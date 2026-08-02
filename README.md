@@ -1,17 +1,34 @@
-# uzbecano_pos
+# Uzbecano POS Desktop Application
 
-A new Flutter project.
+Uzbecano Restoran POS (Point of Sale) kassa va offitsiantlar desktop dasturi. Electron, React, TypeScript va TailwindCSS yordamida yaratilgan.
 
-## Getting Started
+## 🚀 Asosiy Imkoniyatlar
 
-This project is a starting point for a Flutter application.
+- **PIN-kod orqali Avtorizatsiya**: Har bir offitsiant o'zining 4 xonali PIN-kodi yordamida dasturga kiradi.
+- **Stollar Boshqaruvi**: Zallar kesimida (Asosiy Zal, 2-Qavat, VIP Kabinalar) stollar holatini (Bosh / Band) real-vaqtda ko'rish va boshqarish.
+- **Klaviatura Tugmalari (Shortcuts)**:
+  - `F1`: Stollar zali
+  - `F2`: Kassa va menyu
+  - `F3`: Arxiv cheklar
+  - `F4`: Z-Hisobot (Kunlik kassa hisoboti)
+  - `ESC`: Modal oynalarni yopish
+- **Oshxona va Kassa Cheklari (Dual Print)**:
+  - Buyurtma oshxonaga yuborilganda faqat oshxona taomlar kvitansiyasi.
+  - Stol yopilganda mijoz uchun to'langanlik markirovkasi bo'lgan kassa cheki.
+- **Qaytarish (Vozvrat) Tizimi**: Yopilgan cheklarni Admin PIN tasdig'i va sababi bilan qaytarish (Refund).
+- **Z-Report (Kunlik hisobot)**: Kunlik sof tushum, qaytarishlar va offitsiantlar tushumini hisoblash.
+- **Oflayn Ishlash & Auto-Sync**: Tarmoq uzilganda mahalliy `localStorage` da ishlash va aloqa tiklangach serverga sinxronlash.
 
-A few resources to get you started if this is your first Flutter project:
+## 🛠️ Ishga Tushirish va O'rnatish
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### Rivojlantirish rejimi (Development):
+```bash
+npm install
+npm run electron:dev
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Windows uchun .exe yig'ish (Build Production):
+```bash
+npm run dist
+```
+Tayyor Windows o'rnatuvchi va portable `.exe` fayllar `dist/` jildida shakllanadi.

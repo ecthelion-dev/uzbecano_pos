@@ -1,3 +1,13 @@
+export interface ProductVariant {
+  name: string;
+  price: number;
+}
+
+export interface ProductAddon {
+  name: string;
+  price: number;
+}
+
 export interface DBProduct {
   id: string;
   name: string;
@@ -6,6 +16,8 @@ export interface DBProduct {
   image?: string;
   description?: string;
   isAvailable?: boolean;
+  variants?: ProductVariant[];
+  addons?: ProductAddon[];
 }
 
 export interface DBCategory {

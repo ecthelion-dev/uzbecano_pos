@@ -31,6 +31,7 @@ import { ShiftReportModal } from './components/ShiftReportModal';
 import { AdminPinModal } from './components/AdminPinModal';
 import { TableMoveModal } from './components/TableMoveModal';
 import { CashDrawerModal } from './components/CashDrawerModal';
+import { ProductModifierModal } from './components/ProductModifierModal';
 import { Wallet } from 'lucide-react';
 
 export default function App() {
@@ -57,6 +58,7 @@ export default function App() {
 
   const [showTableMoveModal, setShowTableMoveModal] = useState<boolean>(false);
   const [showCashDrawerModal, setShowCashDrawerModal] = useState<boolean>(false);
+  const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(() => {
     try {
       const saved = localStorage.getItem('uzbecano_cash_transactions');
@@ -272,19 +274,31 @@ export default function App() {
     return tables.filter(t => t.area === selectedArea);
   }, [tables, selectedArea]);
 
-  const addToCart = useCallback((product: DBProduct) => {
-    setTableCarts(prev => {
+  const handleAddToCart = useCallback((product: DBProduct, note?: string) => {
+    if (!selectedModifierProduct && (product.variants?.length || product.addons?.length)) {
+      setSelectedModifierProduct(product);
+      return;
+    }
+
+    setTableCarts((prev) => {
       const currentCart = prev[selectedTable] || [];
-      const existing = currentCart.find(item => item.product.id === product.id);
-      let updatedCart: CartItem[];
+      const existing = currentCart.find((item) => item.product.id === product.id && item.product.name === product.name && item.note === note);
       if (existing) {
-        updatedCart = currentCart.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
-      } else {
-        updatedCart = [...currentCart, { product, quantity: 1 }];
+        return {
+          ...prev,
+          [selectedTable]: currentCart.map((item) =>
+            item.product.id === product.id && item.product.name === product.name && item.note === note
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          ),
+        };
       }
-      return { ...prev, [selectedTable]: updatedCart };
+      return {
+        ...prev,
+        [selectedTable]: [...currentCart, { product, quantity: 1, note }],
+      };
     });
-  }, [selectedTable]);
+  }, [selectedTable, selectedModifierProduct]);
 
   const updateQuantity = useCallback((productId: string, delta: number) => {
     setTableCarts(prev => {
@@ -1001,7 +1015,7 @@ export default function App() {
                       {displayedProducts.map((p) => (
                         <div
                           key={p.id}
-                          onClick={() => addToCart(p)}
+                          onClick={() => handleAddToCart(p)}
                           className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-orange-400 transition-all duration-200 cursor-pointer flex flex-col group active:scale-98"
                         >
                           <div className="h-24 bg-slate-100 overflow-hidden relative">
@@ -1298,6 +1312,15 @@ export default function App() {
         currentWaiterName={currentWaiter?.name || ''}
         onAddTransaction={handleAddCashTransaction}
         onClose={() => setShowCashDrawerModal(false)}
+      />
+
+      <ProductModifierModal
+        product={selectedModifierProduct}
+        onAddToCart={(modProd, note) => {
+          handleAddToCart(modProd, note);
+          setSelectedModifierProduct(null);
+        }}
+        onClose={() => setSelectedModifierProduct(null)}
       />
 
       {apiError && (

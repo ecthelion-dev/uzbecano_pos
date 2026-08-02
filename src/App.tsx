@@ -129,6 +129,7 @@ export default function App() {
   });
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<'naqd' | 'karta' | 'aralash'>('naqd');
+  const [customCashAmount, setCustomCashAmount] = useState<string>('');
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
   const [adminPinAction, setAdminPinAction] = useState<(() => void) | null>(null);
 
@@ -667,15 +668,37 @@ export default function App() {
     try {
       const latestOrder = orders.find(o => o.tableNumber === targetTable && o.status !== 'served');
       if (latestOrder) {
+        const orderTotal = latestOrder.total || 0;
+        const defaultHalfCash = Math.round(orderTotal / 2);
+        const calcCash = customCashAmount === '' ? defaultHalfCash : Math.min(orderTotal, Math.max(0, Number(customCashAmount) || 0));
+        const calcCard = Math.max(0, orderTotal - calcCash);
+
+        const finalCash = paymentMethod === 'naqd' ? orderTotal : (paymentMethod === 'karta' ? 0 : calcCash);
+        const finalCard = paymentMethod === 'karta' ? orderTotal : (paymentMethod === 'naqd' ? 0 : calcCard);
+
         if (!isOfflineMode) {
           await fetch(`${API_BASE_URL}/api/orders/${latestOrder.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'served' })
+            body: JSON.stringify({
+              status: 'served',
+              paymentMethod,
+              cashAmount: finalCash,
+              cardAmount: finalCard
+            })
           }).catch(() => null);
         }
 
-        const updatedOrders = orders.map(o => o.id === latestOrder.id ? { ...o, status: 'served', closedAt: o.closedAt || new Date().toISOString(), waiterName: o.waiterName || currentWaiter?.name || '' } : o);
+        const updatedOrders = orders.map(o => o.id === latestOrder.id ? {
+          ...o,
+          status: 'served',
+          paymentMethod,
+          cashAmount: finalCash,
+          cardAmount: finalCard,
+          closedAt: o.closedAt || new Date().toISOString(),
+          waiterName: o.waiterName || currentWaiter?.name || ''
+        } : o);
+
         setOrders(updatedOrders);
         localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
       }
@@ -1182,6 +1205,45 @@ export default function App() {
                     ))}
                   </div>
                 </div>
+
+                {paymentMethod === 'aralash' && (() => {
+                  const defaultHalfCash = Math.round(grandTotal / 2);
+                  const calcCash = customCashAmount === '' ? defaultHalfCash : Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0));
+                  const calcCard = Math.max(0, grandTotal - calcCash);
+
+                  return (
+                    <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl space-y-2 text-xs animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-emerald-900 text-[11px]">Aralash To'lov Bo'lishi:</span>
+                        <button
+                          onClick={() => setCustomCashAmount('')}
+                          className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md hover:bg-emerald-300 transition-colors cursor-pointer"
+                        >
+                          50 / 50 Bo'lish
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-0.5">
+                          <label className="text-[10px] font-bold text-slate-600">💵 Naqd pul:</label>
+                          <input
+                            type="number"
+                            placeholder={defaultHalfCash.toString()}
+                            value={customCashAmount}
+                            onChange={(e) => setCustomCashAmount(e.target.value)}
+                            className="w-full bg-white border border-emerald-300 rounded-lg px-2 py-1 text-xs font-black text-slate-900 focus:outline-none focus:border-emerald-600"
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[10px] font-bold text-slate-600">💳 Karta (Plastik):</label>
+                          <div className="w-full bg-emerald-100 border border-emerald-300 rounded-lg px-2 py-1 text-xs font-black text-emerald-900 flex items-center h-[26px]">
+                            {calcCard.toLocaleString()} so'm
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="flex justify-between text-xs text-slate-500 font-medium pt-1">
                   <span>Jami taomlar:</span>

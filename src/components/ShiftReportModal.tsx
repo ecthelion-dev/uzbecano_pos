@@ -1,10 +1,11 @@
 import React from 'react';
 import { Sparkles, Printer } from 'lucide-react';
-import { DBOrder } from '../types';
+import { DBOrder, CashTransaction } from '../types';
 
 interface ShiftReportModalProps {
   show: boolean;
   orders: DBOrder[];
+  cashTransactions?: CashTransaction[];
   onClose: () => void;
   onPrint: () => void;
 }
@@ -12,6 +13,7 @@ interface ShiftReportModalProps {
 export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
   show,
   orders,
+  cashTransactions = [],
   onClose,
   onPrint,
 }) => {
@@ -22,6 +24,9 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
   const refundedOrders = servedOrders.filter((o) => o.refunded);
   const totalRefunds = refundedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
   const netRevenue = grossRevenue - totalRefunds;
+
+  const totalKirim = cashTransactions.filter(t => t.type === 'kirim').reduce((sum, t) => sum + t.amount, 0);
+  const totalChiqim = cashTransactions.filter(t => t.type === 'chiqim').reduce((sum, t) => sum + t.amount, 0);
 
   const waiterStats: Record<string, { count: number; total: number }> = {};
   servedOrders.forEach((o) => {
@@ -42,7 +47,7 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
             </div>
             <div>
               <h3 className="font-extrabold text-base text-slate-900">Kassa Hisoboti (Z-Report)</h3>
-              <p className="text-[11px] text-slate-500 font-medium">Bugungi kunlik kassa va offitsiantlar hisoboti</p>
+              <p className="text-[11px] text-slate-500 font-medium">Bugungi kunlik kassa va ofitsiantlar hisoboti</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-bold px-2 cursor-pointer">×</button>
@@ -61,6 +66,17 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
               <p className="text-[11px] font-semibold text-slate-500">Stollar Soni</p>
               <p className="text-lg font-black text-slate-900 mt-0.5">{servedOrders.length} ta</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+            <div>
+              <p className="text-[10px] text-slate-500 font-bold">Kassa Kirim (+):</p>
+              <p className="text-sm font-black text-emerald-700">+{totalKirim.toLocaleString()} so'm</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-500 font-bold">Kassa Chiqim (-):</p>
+              <p className="text-sm font-black text-rose-700">-{totalChiqim.toLocaleString()} so'm</p>
             </div>
           </div>
 

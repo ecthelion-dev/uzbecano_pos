@@ -55,3 +55,12 @@ export interface KitchenSlipData {
   items: any[];
   time: string;
 }
+
+export interface CashTransaction {
+  id: string;
+  type: 'kirim' | 'chiqim';
+  amount: number;
+  note: string;
+  createdAt: string;
+  createdBy: string;
+}

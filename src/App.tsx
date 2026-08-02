@@ -30,6 +30,8 @@ import { ArchiveModal } from './components/ArchiveModal';
 import { ShiftReportModal } from './components/ShiftReportModal';
 import { AdminPinModal } from './components/AdminPinModal';
 import { TableMoveModal } from './components/TableMoveModal';
+import { CashDrawerModal } from './components/CashDrawerModal';
+import { Wallet } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'stollar' | 'menyu'>('stollar');
@@ -54,6 +56,15 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [showTableMoveModal, setShowTableMoveModal] = useState<boolean>(false);
+  const [showCashDrawerModal, setShowCashDrawerModal] = useState<boolean>(false);
+  const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('uzbecano_cash_transactions');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<'naqd' | 'karta' | 'aralash'>('naqd');
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
@@ -172,10 +183,15 @@ export default function App() {
       } else if (e.key === 'F4') {
         e.preventDefault();
         setShowShiftReport(prev => !prev);
+      } else if (e.key === 'F5') {
+        e.preventDefault();
+        setShowCashDrawerModal(prev => !prev);
       } else if (e.key === 'Escape') {
         setShowReceiptPreview(false);
         setShowArchiveModal(false);
         setShowShiftReport(false);
+        setShowTableMoveModal(false);
+        setShowCashDrawerModal(false);
         setKitchenSlipData(null);
       }
     };
@@ -475,6 +491,22 @@ export default function App() {
     window.print();
   }, []);
 
+  const handleAddCashTransaction = useCallback((type: 'kirim' | 'chiqim', amount: number, note: string) => {
+    const newTx: CashTransaction = {
+      id: `tx_${Date.now()}`,
+      type,
+      amount,
+      note,
+      createdAt: new Date().toISOString(),
+      createdBy: currentWaiter?.name || ''
+    };
+    const updated = [newTx, ...cashTransactions];
+    setCashTransactions(updated);
+    localStorage.setItem('uzbecano_cash_transactions', JSON.stringify(updated));
+    setToastMessage(`Kassa ${type === 'kirim' ? 'kirimi' : 'chiqimi'} saqlandi!`);
+    setTimeout(() => setToastMessage(null), 2500);
+  }, [cashTransactions, currentWaiter]);
+
   const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
     const sourceOrder = orders.find(o => o.tableNumber === sourceTable && o.status !== 'served');
     if (!sourceOrder) return;
@@ -679,6 +711,13 @@ export default function App() {
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             Z-HISOBOT (F4)
+          </button>
+          <button
+            onClick={() => setShowCashDrawerModal(true)}
+            className="px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer"
+          >
+            <Wallet className="w-3.5 h-3.5 text-emerald-500" />
+            KASSA HARAKATI (F5)
           </button>
         </div>
 
@@ -1186,8 +1225,17 @@ export default function App() {
       <ShiftReportModal
         show={showShiftReport}
         orders={orders}
+        cashTransactions={cashTransactions}
         onClose={() => setShowShiftReport(false)}
         onPrint={() => window.print()}
+      />
+
+      <CashDrawerModal
+        show={showCashDrawerModal}
+        transactions={cashTransactions}
+        currentWaiterName={currentWaiter?.name || ''}
+        onAddTransaction={handleAddCashTransaction}
+        onClose={() => setShowCashDrawerModal(false)}
       />
 
       {apiError && (

@@ -17,7 +17,8 @@ import {
   CheckCircle2,
   Send,
   LogOut,
-  Trash2
+  Trash2,
+  Shuffle
 } from 'lucide-react';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData } from './types';
 import { API_BASE_URL, DEFAULT_WAITERS, DEFAULT_OFFLINE_CATEGORIES, DEFAULT_OFFLINE_PRODUCTS, ALL_TABLE_DEFINITIONS } from './constants';

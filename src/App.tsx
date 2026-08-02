@@ -20,7 +20,7 @@ import {
   Trash2,
   Shuffle
 } from 'lucide-react';
-import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData } from './types';
+import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, WaiterShift } from './types';
 import { API_BASE_URL, DEFAULT_WAITERS, DEFAULT_OFFLINE_CATEGORIES, DEFAULT_OFFLINE_PRODUCTS, ALL_TABLE_DEFINITIONS } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
@@ -60,6 +60,15 @@ export default function App() {
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(() => {
     try {
       const saved = localStorage.getItem('uzbecano_cash_transactions');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [waiterShifts, setWaiterShifts] = useState<WaiterShift[]>(() => {
+    try {
+      const saved = localStorage.getItem('uzbecano_waiter_shifts');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -491,6 +500,41 @@ export default function App() {
     window.print();
   }, []);
 
+  const activeShift = useMemo(() => {
+    if (!currentWaiter) return null;
+    return waiterShifts.find(s => s.waiterId === currentWaiter.id && !s.clockOut);
+  }, [currentWaiter, waiterShifts]);
+
+  const handleToggleShift = useCallback(() => {
+    if (!currentWaiter) return;
+    const now = new Date();
+    let updated: WaiterShift[];
+
+    if (activeShift) {
+      const inTime = new Date(activeShift.clockIn).getTime();
+      const mins = Math.max(1, Math.round((now.getTime() - inTime) / 60000));
+      updated = waiterShifts.map(s => s.id === activeShift.id ? {
+        ...s,
+        clockOut: now.toISOString(),
+        durationMinutes: mins
+      } : s);
+      setToastMessage(`${currentWaiter.name} smenani yopdi! (${Math.floor(mins / 60)}s ${mins % 60}m)`);
+    } else {
+      const newShift: WaiterShift = {
+        id: `shift_${Date.now()}`,
+        waiterId: currentWaiter.id,
+        waiterName: currentWaiter.name,
+        clockIn: now.toISOString()
+      };
+      updated = [newShift, ...waiterShifts];
+      setToastMessage(`${currentWaiter.name} smenani boshladi!`);
+    }
+
+    setWaiterShifts(updated);
+    localStorage.setItem('uzbecano_waiter_shifts', JSON.stringify(updated));
+    setTimeout(() => setToastMessage(null), 2500);
+  }, [currentWaiter, activeShift, waiterShifts]);
+
   const handleAddCashTransaction = useCallback((type: 'kirim' | 'chiqim', amount: number, note: string) => {
     const newTx: CashTransaction = {
       id: `tx_${Date.now()}`,
@@ -738,17 +782,34 @@ export default function App() {
               </div>
               <div className="text-left">
                 <p className="text-xs font-black text-slate-900 leading-tight">{currentWaiter.name}</p>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Offitsiant</p>
+                <p className="text-[9px] font-bold tracking-wider">
+                  {activeShift ? (
+                    <span className="text-emerald-700">🟢 Smenada</span>
+                  ) : (
+                    <span className="text-rose-600">🔴 Smena yopilgan</span>
+                  )}
+                </p>
               </div>
+              <button
+                onClick={handleToggleShift}
+                className={`ml-1 px-2 py-0.5 rounded-lg text-[9px] font-black transition-all cursor-pointer ${
+                  activeShift
+                    ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                    : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                }`}
+                title={activeShift ? "Smenani tugatish" : "Smenani boshlash"}
+              >
+                {activeShift ? 'TUGATISH' : 'BOSHLASH'}
+              </button>
               <button
                 onClick={() => {
                   setCurrentWaiter(null);
                   localStorage.removeItem('uzbecano_current_waiter');
                 }}
-                className="ml-2 p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                className="ml-1 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                 title="Tizimdan chiqish"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
@@ -1226,6 +1287,7 @@ export default function App() {
         show={showShiftReport}
         orders={orders}
         cashTransactions={cashTransactions}
+        waiterShifts={waiterShifts}
         onClose={() => setShowShiftReport(false)}
         onPrint={() => window.print()}
       />

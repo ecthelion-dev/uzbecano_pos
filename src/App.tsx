@@ -28,6 +28,7 @@ import { ReceiptPreviewModal } from './components/ReceiptPreviewModal';
 import { ArchiveModal } from './components/ArchiveModal';
 import { ShiftReportModal } from './components/ShiftReportModal';
 import { AdminPinModal } from './components/AdminPinModal';
+import { TableMoveModal } from './components/TableMoveModal';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'stollar' | 'menyu'>('stollar');
@@ -51,6 +52,7 @@ export default function App() {
   const [selectedArchiveOrder, setSelectedArchiveOrder] = useState<any | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const [showTableMoveModal, setShowTableMoveModal] = useState<boolean>(false);
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<'naqd' | 'karta' | 'aralash'>('naqd');
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
@@ -462,8 +464,76 @@ export default function App() {
   }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode]);
 
   const handlePrint = useCallback(() => {
+    if ((window as any).require) {
+      try {
+        const { ipcRenderer } = (window as any).require('electron');
+        ipcRenderer.send('print-silent');
+        return;
+      } catch {}
+    }
     window.print();
   }, []);
+
+  const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
+    const sourceOrder = orders.find(o => o.tableNumber === sourceTable && o.status !== 'served');
+    if (!sourceOrder) return;
+
+    let updatedOrders = [...orders];
+
+    if (isMerge) {
+      const targetOrder = orders.find(o => o.tableNumber === targetTable && o.status !== 'served');
+      if (!targetOrder) return;
+
+      let srcItems: any[] = [];
+      let tgtItems: any[] = [];
+      try { srcItems = typeof sourceOrder.items === 'string' ? JSON.parse(sourceOrder.items) : (sourceOrder.items || []); } catch {}
+      try { tgtItems = typeof targetOrder.items === 'string' ? JSON.parse(targetOrder.items) : (targetOrder.items || []); } catch {}
+
+      const mergedItems = [...tgtItems, ...srcItems];
+      const sub = mergedItems.reduce((sum: number, i: any) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
+      const fee = Math.round(sub * 0.1);
+      const tot = sub + fee;
+
+      if (!isOfflineMode) {
+        await fetch(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: JSON.stringify(mergedItems),
+            subtotal: sub,
+            serviceFee: fee,
+            total: tot
+          })
+        }).catch(() => null);
+
+        await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+          method: 'DELETE'
+        }).catch(() => null);
+      }
+
+      updatedOrders = updatedOrders
+        .filter(o => o.id !== sourceOrder.id)
+        .map(o => o.id === targetOrder.id ? { ...o, items: JSON.stringify(mergedItems), subtotal: sub, serviceFee: fee, total: tot } : o);
+
+      setToastMessage(`${sourceTable} va ${targetTable} muvaffaqiyatli birlashtirildi!`);
+    } else {
+      if (!isOfflineMode) {
+        await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tableNumber: targetTable })
+        }).catch(() => null);
+      }
+
+      updatedOrders = updatedOrders.map(o => o.id === sourceOrder.id ? { ...o, tableNumber: targetTable } : o);
+      setToastMessage(`${sourceTable} buyurtmasi ${targetTable}ga ko'chirildi!`);
+    }
+
+    setOrders(updatedOrders);
+    localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
+    setSelectedTable(targetTable);
+    setTimeout(() => setToastMessage(null), 2500);
+  }, [orders, isOfflineMode]);
 
   const handleCloseTable = useCallback(async (tableNum?: string) => {
     const targetTable = tableNum || selectedTable;
@@ -1057,12 +1127,21 @@ export default function App() {
                     </button>
                   </div>
 
-                  <button
-                    onClick={handlePrint}
-                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-200 transition-colors cursor-pointer"
-                  >
-                    <Printer className="w-4 h-4 text-slate-500" /> CHEK CHIQARISH
-                  </button>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={handlePrint}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer"
+                    >
+                      <Printer className="w-4 h-4 text-slate-500" /> CHEK CHIQARISH
+                    </button>
+                    <button
+                      onClick={() => setShowTableMoveModal(true)}
+                      disabled={activeTableOrderItems.length === 0}
+                      className="bg-orange-50 hover:bg-orange-100 disabled:opacity-40 text-orange-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer"
+                    >
+                      <Shuffle className="w-4 h-4 text-orange-600" /> KO'CHIRISH
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1131,6 +1210,14 @@ export default function App() {
           setShowAdminPinModal(false);
           setAdminPinAction(null);
         }}
+      />
+
+      <TableMoveModal
+        show={showTableMoveModal}
+        currentTable={selectedTable}
+        orders={orders}
+        onMoveTable={handleMoveTable}
+        onClose={() => setShowTableMoveModal(false)}
       />
 
       <ToastNotification message={toastMessage} />

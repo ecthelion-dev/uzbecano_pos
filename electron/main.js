@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 function createWindow() {
@@ -20,6 +20,20 @@ function createWindow() {
     win.loadFile(path.join(__dirname, '../dist-react/index.html'));
   }
 }
+
+ipcMain.on('print-silent', () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) {
+    win.webContents.print({
+      silent: true,
+      printBackground: true
+    }, (success) => {
+      if (!success) {
+        win.webContents.print({ silent: false });
+      }
+    });
+  }
+});
 
 app.whenReady().then(() => {
   createWindow();

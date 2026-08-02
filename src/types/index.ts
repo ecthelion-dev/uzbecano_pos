@@ -76,12 +76,3 @@ export interface CashTransaction {
   createdAt: string;
   createdBy: string;
 }
-
-export interface WaiterShift {
-  id: string;
-  waiterId: string;
-  waiterName: string;
-  clockIn: string;
-  clockOut?: string;
-  durationMinutes?: number;
-}

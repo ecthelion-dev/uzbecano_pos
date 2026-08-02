@@ -1,12 +1,11 @@
 import React from 'react';
-import { Sparkles, Printer, Clock } from 'lucide-react';
-import { DBOrder, CashTransaction, WaiterShift } from '../types';
+import { Sparkles, Printer } from 'lucide-react';
+import { DBOrder, CashTransaction } from '../types';
 
 interface ShiftReportModalProps {
   show: boolean;
   orders: DBOrder[];
   cashTransactions?: CashTransaction[];
-  waiterShifts?: WaiterShift[];
   onClose: () => void;
   onPrint: () => void;
 }
@@ -15,7 +14,6 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
   show,
   orders,
   cashTransactions = [],
-  waiterShifts = [],
   onClose,
   onPrint,
 }) => {
@@ -83,32 +81,19 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Ofitsiantlar Smenasi va Ish Vaqti</h4>
-            {waiterShifts.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-2">Smena ma'lumotlari mavjud emas</p>
+            <h4 className="font-bold text-xs text-slate-700 uppercase tracking-wider">Ofitsiantlar Tushumi</h4>
+            {Object.keys(waiterStats).length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-4">Bugun yopilgan buyurtmalar yo'q</p>
             ) : (
-              waiterShifts.map((s) => {
-                const inTime = new Date(s.clockIn).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
-                const outTime = s.clockOut ? new Date(s.clockOut).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : 'Davom etmoqda';
-                const mins = s.durationMinutes || (s.clockOut ? Math.round((new Date(s.clockOut).getTime() - new Date(s.clockIn).getTime()) / 60000) : 0);
-                const hrs = Math.floor(mins / 60);
-                const rMins = mins % 60;
-
-                return (
-                  <div key={s.id} className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex justify-between items-center text-xs">
-                    <div>
-                      <span className="font-bold text-slate-900">👨‍🍳 {s.waiterName}</span>
-                      <p className="text-[10px] text-slate-500">
-                        {inTime} ➔ {outTime}
-                      </p>
-                    </div>
-                    <span className="font-extrabold text-slate-700 bg-slate-200 px-2 py-0.5 rounded-md text-[11px] flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-slate-500" />
-                      {s.clockOut ? `${hrs}s ${rMins}m` : '🟢 Smenada'}
-                    </span>
+              Object.entries(waiterStats).map(([name, stat]) => (
+                <div key={name} className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex justify-between items-center text-xs">
+                  <div>
+                    <span className="font-bold text-slate-900">👨‍🍳 {name}</span>
+                    <p className="text-[10px] text-slate-500">{stat.count} ta stol yopilgan</p>
                   </div>
-                );
-              })
+                  <span className="font-black text-slate-900 text-sm">{stat.total.toLocaleString()} so'm</span>
+                </div>
+              ))
             )}
           </div>
         </div>

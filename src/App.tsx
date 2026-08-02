@@ -1158,25 +1158,6 @@ export default function App() {
 
               {/* Calculations & Discounts */}
               <div className="pt-3 border-t border-slate-200 space-y-2 shrink-0">
-                {/* Discount % Selector */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Chegirma (%):</span>
-                  <div className="flex gap-1">
-                    {[0, 5, 10, 15, 20].map((pct) => (
-                      <button
-                        key={pct}
-                        onClick={() => setDiscountPercent(pct)}
-                        className={`flex-1 py-1 rounded-lg text-[10px] font-extrabold border transition-all cursor-pointer ${
-                          discountPercent === pct
-                            ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        {pct === 0 ? 'Yo\'q' : `${pct}%`}
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
                 {/* Payment Method Selector */}
                 <div className="space-y-1">

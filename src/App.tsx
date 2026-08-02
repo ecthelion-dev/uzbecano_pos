@@ -1301,7 +1301,6 @@ export default function App() {
         show={showShiftReport}
         orders={orders}
         cashTransactions={cashTransactions}
-        waiterShifts={waiterShifts}
         onClose={() => setShowShiftReport(false)}
         onPrint={() => window.print()}
       />

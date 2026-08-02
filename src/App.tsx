@@ -34,6 +34,66 @@ import { CashDrawerModal } from './components/CashDrawerModal';
 import { ProductModifierModal } from './components/ProductModifierModal';
 import { Wallet } from 'lucide-react';
 
+const enrichProductModifiers = (prods: DBProduct[]): DBProduct[] => {
+  return prods.map((p) => {
+    if (p.variants && p.variants.length > 0) return p;
+
+    const lowerName = (p.name || '').toLowerCase();
+    const lowerCat = (p.category || '').toLowerCase();
+
+    let variants = p.variants;
+    let addons = p.addons;
+
+    if (lowerName.includes('pizza') || lowerName.includes('pitsa') || lowerCat.includes('pizza') || lowerCat.includes('pitsa')) {
+      variants = [
+        { name: 'Kichik (28 sm)', price: Math.round(p.price * 0.75) },
+        { name: 'O\'rta (32 sm)', price: p.price },
+        { name: 'Katta (40 sm)', price: Math.round(p.price * 1.4) }
+      ];
+      addons = [
+        { name: 'Qo\'shimcha Pishloq', price: 10000 },
+        { name: 'Zaytuncha', price: 5000 },
+        { name: 'Zamburug\' (Griby)', price: 8000 }
+      ];
+    } else if (lowerName.includes('burger') || lowerCat.includes('burger') || lowerCat.includes('fast food')) {
+      variants = [
+        { name: 'Standart', price: p.price },
+        { name: 'Double (Ikki qavat)', price: Math.round(p.price * 1.4) }
+      ];
+      addons = [
+        { name: 'Qo\'shimcha Pishloq', price: 5000 },
+        { name: 'Jalapeno (Achchiq)', price: 4000 },
+        { name: 'Bekon / Qazi', price: 10000 }
+      ];
+    } else if (lowerName.includes('osh') || lowerName.includes('manti') || lowerName.includes('kebab') || lowerCat.includes('milliy')) {
+      variants = [
+        { name: '0.5 Porsiya', price: Math.round(p.price * 0.55) },
+        { name: '1.0 Porsiya', price: p.price },
+        { name: '1.5 Porsiya', price: Math.round(p.price * 1.45) }
+      ];
+      addons = [
+        { name: 'Qazi', price: 15000 },
+        { name: 'Bedana Tuxum', price: 4000 },
+        { name: 'Smetana / Qatiq', price: 4000 }
+      ];
+    } else if (lowerName.includes('cola') || lowerName.includes('pepsi') || lowerName.includes('fanta') || lowerName.includes('suv') || lowerCat.includes('ichimlik')) {
+      variants = [
+        { name: '0.5 Litr', price: Math.round(p.price * 0.6) },
+        { name: '1.0 Litr', price: p.price },
+        { name: '1.5 Litr', price: Math.round(p.price * 1.3) }
+      ];
+    } else {
+      variants = [
+        { name: '0.5 Porsiya', price: Math.round(p.price * 0.55) },
+        { name: '1.0 Porsiya', price: p.price },
+        { name: '1.5 Porsiya', price: Math.round(p.price * 1.45) }
+      ];
+    }
+
+    return { ...p, variants, addons };
+  });
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'stollar' | 'menyu'>('stollar');
   const [selectedTable, setSelectedTable] = useState<string>('Stol 01');
@@ -111,8 +171,8 @@ export default function App() {
         let ordData = ordRes && ordRes.ok ? await ordRes.json() : [];
         let waitData = waitRes && waitRes.ok ? await waitRes.json() : [];
 
-        setCategoriesData(Array.isArray(catData) && catData.length > 0 ? catData : DEFAULT_OFFLINE_CATEGORIES);
-        setProducts(Array.isArray(prodData) && prodData.length > 0 ? prodData : DEFAULT_OFFLINE_PRODUCTS);
+        const rawProds = Array.isArray(prodData) && prodData.length > 0 ? prodData : DEFAULT_OFFLINE_PRODUCTS;
+        setProducts(enrichProductModifiers(rawProds));
         setOrders(Array.isArray(ordData) ? ordData : []);
         const finalWaiters = Array.isArray(waitData) && waitData.length > 0 ? waitData : DEFAULT_WAITERS;
         setWaiters(finalWaiters);
@@ -130,7 +190,8 @@ export default function App() {
       const localWaiters = localStorage.getItem('uzbecano_waiters');
 
       setCategoriesData(localCats ? JSON.parse(localCats) : DEFAULT_OFFLINE_CATEGORIES);
-      setProducts(localProds ? JSON.parse(localProds) : DEFAULT_OFFLINE_PRODUCTS);
+      const offlineProds = localProds ? JSON.parse(localProds) : DEFAULT_OFFLINE_PRODUCTS;
+      setProducts(enrichProductModifiers(offlineProds));
       setOrders(localOrds ? JSON.parse(localOrds) : []);
       setWaiters(localWaiters ? JSON.parse(localWaiters) : DEFAULT_WAITERS);
     } finally {

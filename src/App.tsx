@@ -1534,141 +1534,179 @@ export default function App() {
       <ToastNotification message={toastMessage} />
 
       {/* Standalone Thermal Print Receipt Area (Rendered only on thermal paper) */}
-      <div id="thermal-print-area" className="hidden print:block font-mono text-black">
+      <div id="thermal-print-area" className="hidden print:block text-black">
         {selectedArchiveOrder ? (
-          <div className="w-[70mm] text-xs leading-tight mx-auto text-black">
-            <div className="text-center pb-2 border-b border-dashed border-black">
-              <p className="font-black text-base tracking-wider uppercase">UZBECANO RESTORAN</p>
-              <p className="text-[11px]">Toshkent sh., Markaziy filial</p>
-              <p className="text-[11px]">Tel: +998 90 123 45 67</p>
-              <p className="text-[11px] font-bold mt-1">
+          <div className="w-full text-black space-y-2">
+            {/* Header */}
+            <div className="text-center pb-2 border-b-2 border-dashed border-black">
+              <p className="font-black text-xl tracking-wider uppercase leading-none pb-1">UZBECANO RESTORAN</p>
+              <p className="text-xs font-bold text-slate-800">Toshkent sh., Markaziy filial</p>
+              <p className="text-xs font-bold text-slate-800">Tel: +998 90 123 45 67</p>
+              <p className="text-xs font-black text-black mt-1">
                 Ofitsiant: {selectedArchiveOrder.waiterName || currentWaiter?.name || 'Xodim'}
               </p>
             </div>
 
-            <div className="flex justify-between items-center py-1.5 border-b border-dashed border-black text-xs font-bold">
+            {/* Meta Row */}
+            <div className="flex justify-between items-center py-1.5 border-b-2 border-dashed border-black text-xs font-black">
               <span>{selectedArchiveOrder.tableNumber}</span>
               <span>{selectedArchiveOrder.paymentMethod?.toUpperCase() || 'NAQD'} • {selectedArchiveOrder.refunded ? 'BEKOR' : "TO'LANGAN"}</span>
               <span>{selectedArchiveOrder.closedAt ? new Date(selectedArchiveOrder.closedAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
 
-            <div className="py-2 border-b border-dashed border-black space-y-1.5">
+            {/* Items */}
+            <div className="py-1 border-b-2 border-dashed border-black space-y-2">
               {(() => {
                 let items: any[] = [];
                 try {
                   items = typeof selectedArchiveOrder.items === 'string' ? JSON.parse(selectedArchiveOrder.items) : (selectedArchiveOrder.items || []);
                 } catch { items = []; }
                 return items.map((i: any, idx: number) => (
-                  <div key={idx}>
-                    <div className="flex justify-between font-bold text-xs">
-                      <span className="flex-1 pr-1">{i.name}</span>
-                      <span>{((Number(i.price) || 0) * (Number(i.quantity) || 1)).toLocaleString()} so'm</span>
+                  <div key={idx} className="space-y-0.5">
+                    <div className="flex justify-between items-baseline text-sm font-black">
+                      <span className="flex-1 pr-2">{i.name}</span>
+                      <span className="text-sm font-black whitespace-nowrap">{((Number(i.price) || 0) * (Number(i.quantity) || 1)).toLocaleString()} so'm</span>
                     </div>
-                    <div className="text-[11px]">
+                    <div className="text-xs font-bold text-slate-700">
                       {i.quantity || 1} x {(Number(i.price) || 0).toLocaleString()} so'm
                     </div>
-                    {i.note && <div className="text-[10px] font-bold">Izoh: {i.note}</div>}
+                    {i.note && <div className="text-xs font-black text-slate-900">Izoh: {i.note}</div>}
                   </div>
                 ));
               })()}
             </div>
 
-            <div className="py-1.5 border-b border-dashed border-black text-xs space-y-0.5">
+            {/* Calculations */}
+            <div className="py-1.5 border-b-2 border-dashed border-black text-xs font-bold space-y-1">
               <div className="flex justify-between">
                 <span>Jami taomlar:</span>
-                <span className="font-bold">{(selectedArchiveOrder.subtotal || 0).toLocaleString()} so'm</span>
+                <span className="font-black">{(selectedArchiveOrder.subtotal || 0).toLocaleString()} so'm</span>
               </div>
               {selectedArchiveOrder.discount > 0 && (
                 <div className="flex justify-between">
                   <span>Chegirma:</span>
-                  <span>-{(selectedArchiveOrder.discount || 0).toLocaleString()} so'm</span>
+                  <span className="font-black">-{(selectedArchiveOrder.discount || 0).toLocaleString()} so'm</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span>Xizmat haqi:</span>
-                <span className="font-bold">{(selectedArchiveOrder.serviceFee || 0).toLocaleString()} so'm</span>
+                <span className="font-black">{(selectedArchiveOrder.serviceFee || 0).toLocaleString()} so'm</span>
               </div>
             </div>
 
-            <div className="py-2 border-b border-dashed border-black text-xs font-bold space-y-1">
-              <div className="flex justify-between text-sm font-black">
-                <span>JAMI TO'LOV:</span>
-                <span>{(selectedArchiveOrder.total || 0).toLocaleString()} so'm</span>
+            {/* Grand Total */}
+            <div className="py-2 border-b-2 border-black space-y-1">
+              <div className="flex justify-between items-center text-sm font-black">
+                <span className="text-base font-black">JAMI TO'LOV:</span>
+                <span className="text-xl font-black">{(selectedArchiveOrder.total || 0).toLocaleString()} so'm</span>
               </div>
-              <div className="flex justify-between text-xs">
-                <span>To'lov turi:</span>
-                <span className="uppercase">{selectedArchiveOrder.paymentMethod || 'NAQD'}</span>
-              </div>
+              {selectedArchiveOrder.paymentMethod === 'aralash' ? (
+                <div className="pt-1 text-xs font-bold space-y-0.5 text-slate-800">
+                  <div className="flex justify-between">
+                    <span>Naqd:</span>
+                    <span className="font-black">{(selectedArchiveOrder.cashAmount || 0).toLocaleString()} so'm</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Karta:</span>
+                    <span className="font-black">{(selectedArchiveOrder.cardAmount || 0).toLocaleString()} so'm</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-between text-xs font-bold pt-0.5">
+                  <span>To'lov turi:</span>
+                  <span className="font-black uppercase">{selectedArchiveOrder.paymentMethod || 'NAQD'}</span>
+                </div>
+              )}
             </div>
 
-            <div className="text-center pt-2 text-[11px]">
-              <p className="font-medium">Tashrifingiz uchun rahmat!</p>
-              <p className="text-[9px] text-gray-500 mt-0.5">Uzbecano POS v1.0</p>
+            {/* Footer */}
+            <div className="text-center pt-2 text-xs font-bold">
+              <p>Tashrifingiz uchun rahmat!</p>
+              <p className="text-[10px] text-slate-600 mt-0.5">Uzbecano POS v1.0</p>
             </div>
           </div>
         ) : (
-          <div className="w-[70mm] text-xs leading-tight mx-auto text-black">
-            <div className="text-center pb-2 border-b border-dashed border-black">
-              <p className="font-black text-base tracking-wider uppercase">UZBECANO RESTORAN</p>
-              <p className="text-[11px]">Toshkent sh., Markaziy filial</p>
-              <p className="text-[11px]">Tel: +998 90 123 45 67</p>
-              <p className="text-[11px] font-bold mt-1">
+          <div className="w-full text-black space-y-2">
+            {/* Header */}
+            <div className="text-center pb-2 border-b-2 border-dashed border-black">
+              <p className="font-black text-xl tracking-wider uppercase leading-none pb-1">UZBECANO RESTORAN</p>
+              <p className="text-xs font-bold text-slate-800">Toshkent sh., Markaziy filial</p>
+              <p className="text-xs font-bold text-slate-800">Tel: +998 90 123 45 67</p>
+              <p className="text-xs font-black text-black mt-1">
                 Ofitsiant: {currentWaiter?.name || 'Xodim'}
               </p>
             </div>
 
-            <div className="flex justify-between items-center py-1.5 border-b border-dashed border-black text-xs font-bold">
+            {/* Meta Row */}
+            <div className="flex justify-between items-center py-1.5 border-b-2 border-dashed border-black text-xs font-black">
               <span>{selectedTable}</span>
               <span>{paymentMethod.toUpperCase()} • TO'LANGAN</span>
               <span>{new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
 
-            <div className="py-2 border-b border-dashed border-black space-y-1.5">
+            {/* Items */}
+            <div className="py-1 border-b-2 border-dashed border-black space-y-2">
               {[...activeTableOrderItems, ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note }))].map((i: any, idx: number) => (
-                <div key={idx}>
-                  <div className="flex justify-between font-bold text-xs">
-                    <span className="flex-1 pr-1">{i.name}</span>
-                    <span>{((Number(i.price) || 0) * (Number(i.quantity) || 1)).toLocaleString()} so'm</span>
+                <div key={idx} className="space-y-0.5">
+                  <div className="flex justify-between items-baseline text-sm font-black">
+                    <span className="flex-1 pr-2">{i.name}</span>
+                    <span className="text-sm font-black whitespace-nowrap">{((Number(i.price) || 0) * (Number(i.quantity) || 1)).toLocaleString()} so'm</span>
                   </div>
-                  <div className="text-[11px]">
+                  <div className="text-xs font-bold text-slate-700">
                     {i.quantity || 1} x {(Number(i.price) || 0).toLocaleString()} so'm
                   </div>
-                  {i.note && <div className="text-[10px] font-bold">Izoh: {i.note}</div>}
+                  {i.note && <div className="text-xs font-black text-slate-900">Izoh: {i.note}</div>}
                 </div>
               ))}
             </div>
 
-            <div className="py-1.5 border-b border-dashed border-black text-xs space-y-0.5">
+            {/* Calculations */}
+            <div className="py-1.5 border-b-2 border-dashed border-black text-xs font-bold space-y-1">
               <div className="flex justify-between">
                 <span>Jami taomlar:</span>
-                <span className="font-bold">{subtotal.toLocaleString()} so'm</span>
+                <span className="font-black">{subtotal.toLocaleString()} so'm</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between">
                   <span>Chegirma ({discountPercent}%):</span>
-                  <span>-{discountAmount.toLocaleString()} so'm</span>
+                  <span className="font-black">-{discountAmount.toLocaleString()} so'm</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span>Xizmat haqi ({serviceFeePercent}%):</span>
-                <span className="font-bold">{serviceFee.toLocaleString()} so'm</span>
+                <span className="font-black">{serviceFee.toLocaleString()} so'm</span>
               </div>
             </div>
 
-            <div className="py-2 border-b border-dashed border-black text-xs font-bold space-y-1">
-              <div className="flex justify-between text-sm font-black">
-                <span>JAMI TO'LOV:</span>
-                <span>{grandTotal.toLocaleString()} so'm</span>
+            {/* Grand Total */}
+            <div className="py-2 border-b-2 border-black space-y-1">
+              <div className="flex justify-between items-center text-sm font-black">
+                <span className="text-base font-black">JAMI TO'LOV:</span>
+                <span className="text-xl font-black">{grandTotal.toLocaleString()} so'm</span>
               </div>
-              <div className="flex justify-between text-xs">
-                <span>To'lov turi:</span>
-                <span className="uppercase">{paymentMethod}</span>
-              </div>
+              {paymentMethod === 'aralash' ? (
+                <div className="pt-1 text-xs font-bold space-y-0.5 text-slate-800">
+                  <div className="flex justify-between">
+                    <span>Naqd:</span>
+                    <span className="font-black">{(customCashAmount ? Number(customCashAmount) : Math.round(grandTotal / 2)).toLocaleString()} so'm</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Karta:</span>
+                    <span className="font-black">{(customCardAmount ? Number(customCardAmount) : grandTotal - Math.round(grandTotal / 2)).toLocaleString()} so'm</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-between text-xs font-bold pt-0.5">
+                  <span>To'lov turi:</span>
+                  <span className="font-black uppercase">{paymentMethod}</span>
+                </div>
+              )}
             </div>
 
-            <div className="text-center pt-2 text-[11px]">
-              <p className="font-medium">Tashrifingiz uchun rahmat!</p>
-              <p className="text-[9px] text-gray-500 mt-0.5">Uzbecano POS v1.0</p>
+            {/* Footer */}
+            <div className="text-center pt-2 text-xs font-bold">
+              <p>Tashrifingiz uchun rahmat!</p>
+              <p className="text-[10px] text-slate-600 mt-0.5">Uzbecano POS v1.0</p>
             </div>
           </div>
         )}

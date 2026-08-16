@@ -1578,15 +1578,15 @@ export default function App() {
                   const qty = Number(it.quantity || it.count || 1);
                   const total = Number(it.totalPrice || (unitPrice * qty) || 0);
                   return (
-                    <div key={idx} className="flex justify-between items-start border-b border-slate-100 pb-1.5">
+                    <div key={idx} className="flex justify-between items-start border-b border-slate-100 pb-2">
                       <div>
-                        <div className="font-black text-slate-900 print-text-dark text-lg">{it.product?.name || it.name}</div>
-                        <div className="text-sm font-bold text-slate-700 print-text-dark">{qty}x {unitPrice.toLocaleString()} so'm</div>
+                        <div className="font-black text-slate-900 print-text-dark text-xl">{it.product?.name || it.name}</div>
+                        <div className="text-base font-extrabold text-slate-800 print-text-dark mt-0.5">{qty} x {unitPrice.toLocaleString()} so'm</div>
                         {it.note && (
                           <div className="text-sm font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3.5 h-3.5 inline mr-0.5" />Izoh: {it.note}</div>
                         )}
                       </div>
-                      <span className="font-black text-slate-900 print-text-dark text-lg whitespace-nowrap">{total.toLocaleString()} so'm</span>
+                      <span className="font-black text-slate-900 print-text-dark text-xl whitespace-nowrap">{total.toLocaleString()} so'm</span>
                     </div>
                   );
                 });
@@ -1649,15 +1649,15 @@ export default function App() {
                 const qty = Number(it.quantity || it.count || 1);
                 const total = Number(it.totalPrice || (unitPrice * qty) || 0);
                 return (
-                  <div key={idx} className="flex justify-between items-start border-b border-slate-100 pb-1.5">
+                  <div key={idx} className="flex justify-between items-start border-b border-slate-100 pb-2">
                     <div>
-                      <div className="font-black text-slate-900 print-text-dark text-lg">{it.product?.name || it.name}</div>
-                      <div className="text-sm font-bold text-slate-700 print-text-dark">{qty}x {unitPrice.toLocaleString()} so'm</div>
+                      <div className="font-black text-slate-900 print-text-dark text-xl">{it.product?.name || it.name}</div>
+                      <div className="text-base font-extrabold text-slate-800 print-text-dark mt-0.5">{qty} x {unitPrice.toLocaleString()} so'm</div>
                       {it.note && (
                         <div className="text-sm font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3.5 h-3.5 inline mr-0.5" />Izoh: {it.note}</div>
                       )}
                     </div>
-                    <span className="font-black text-slate-900 print-text-dark text-lg whitespace-nowrap">{total.toLocaleString()} so'm</span>
+                    <span className="font-black text-slate-900 print-text-dark text-xl whitespace-nowrap">{total.toLocaleString()} so'm</span>
                   </div>
                 );
               })}

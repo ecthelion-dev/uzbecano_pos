@@ -39,6 +39,7 @@ import { AdminPinModal } from './components/AdminPinModal';
 import { TableMoveModal } from './components/TableMoveModal';
 import { CashDrawerModal } from './components/CashDrawerModal';
 import { ProductModifierModal } from './components/ProductModifierModal';
+import { AralashNumpadModal } from './components/AralashNumpadModal';
 import { Wallet } from 'lucide-react';
 
 const mapDBProductModifiers = (prods: DBProduct[]): DBProduct[] => {
@@ -114,6 +115,7 @@ export default function App() {
   const [customCashAmount, setCustomCashAmount] = useState<string>('');
   const [customCardAmount, setCustomCardAmount] = useState<string>('');
   const [activeAralashField, setActiveAralashField] = useState<'cash' | 'card'>('cash');
+  const [showAralashModal, setShowAralashModal] = useState<boolean>(false);
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
   const [adminPinAction, setAdminPinAction] = useState<(() => void) | null>(null);
 
@@ -1327,135 +1329,59 @@ export default function App() {
                   const currentCash = customCashAmount === '' ? (customCardAmount === '' ? defaultHalf : Math.max(0, grandTotal - (Number(customCardAmount) || 0))) : Math.max(0, Number(customCashAmount) || 0);
                   const currentCard = customCardAmount === '' ? (customCashAmount === '' ? (grandTotal - defaultHalf) : Math.max(0, grandTotal - (Number(customCashAmount) || 0))) : Math.max(0, Number(customCardAmount) || 0);
 
-                  const handleNumKey = (val: string) => {
-                    const activeVal = activeAralashField === 'cash' ? (customCashAmount || '') : (customCardAmount || '');
-                    let nextVal = activeVal;
-                    if (val === 'C') {
-                      nextVal = '';
-                    } else if (val === 'DEL') {
-                      nextVal = activeVal.slice(0, -1);
-                    } else if (val === '000') {
-                      nextVal = activeVal ? activeVal + '000' : '';
-                    } else {
-                      nextVal = activeVal + val;
-                    }
-
-                    const num = Math.max(0, Math.min(grandTotal, Number(nextVal) || 0));
-                    const otherVal = nextVal === '' ? '' : (grandTotal - num).toString();
-
-                    if (activeAralashField === 'cash') {
-                      setCustomCashAmount(nextVal === '' ? '' : num.toString());
-                      setCustomCardAmount(otherVal);
-                    } else {
-                      setCustomCardAmount(nextVal === '' ? '' : num.toString());
-                      setCustomCashAmount(otherVal);
-                    }
-                  };
-
-                  const handleSetQuick = (amount: number) => {
-                    const num = Math.max(0, Math.min(grandTotal, amount));
-                    const otherVal = (grandTotal - num).toString();
-                    if (activeAralashField === 'cash') {
-                      setCustomCashAmount(num.toString());
-                      setCustomCardAmount(otherVal);
-                    } else {
-                      setCustomCardAmount(num.toString());
-                      setCustomCashAmount(otherVal);
-                    }
-                  };
-
                   return (
-                    <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-2xl space-y-2.5 text-xs animate-fadeIn">
-                      {/* Active Input Selectors */}
+                    <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-2xl space-y-2 text-xs animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-slate-700 text-[11px]">Aralash To'lov Miqdorlari:</span>
+                        <span className="text-[10px] text-slate-400 font-medium">O'zgartirish uchun bosing</span>
+                      </div>
+
+                      {/* Clickable Amount Cards */}
                       <div className="grid grid-cols-2 gap-2">
                         <div
-                          onClick={() => setActiveAralashField('cash')}
-                          className={`p-2 rounded-xl border-2 transition-all cursor-pointer ${
-                            activeAralashField === 'cash'
-                              ? 'bg-emerald-50 border-emerald-500 shadow-xs'
-                              : 'bg-white border-slate-200 hover:border-slate-300'
-                          }`}
+                          onClick={() => {
+                            setActiveAralashField('cash');
+                            setShowAralashModal(true);
+                          }}
+                          className="p-2.5 rounded-xl border-2 bg-white border-emerald-300 hover:border-emerald-500 hover:bg-emerald-50/50 transition-all cursor-pointer shadow-2xs group"
                         >
                           <label className="text-[10px] font-bold text-slate-600 flex items-center justify-between cursor-pointer">
-                            <span className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5 text-emerald-600" /> Naqd:</span>
-                            {activeAralashField === 'cash' && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+                            <span className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5 text-emerald-600" /> Naqd pul:</span>
+                            <span className="text-[10px] font-bold text-emerald-600 group-hover:underline">⌨️ Kiritish</span>
                           </label>
-                          <div className="font-black text-sm text-slate-900 mt-0.5 tracking-tight">
-                            {currentCash.toLocaleString()} so'm
+                          <div className="font-black text-sm text-slate-900 mt-1 tracking-tight">
+                            {currentCash.toLocaleString()} <span className="text-[10px] text-slate-500 font-bold">so'm</span>
                           </div>
                         </div>
 
                         <div
-                          onClick={() => setActiveAralashField('card')}
-                          className={`p-2 rounded-xl border-2 transition-all cursor-pointer ${
-                            activeAralashField === 'card'
-                              ? 'bg-blue-50 border-blue-500 shadow-xs'
-                              : 'bg-white border-slate-200 hover:border-slate-300'
-                          }`}
+                          onClick={() => {
+                            setActiveAralashField('card');
+                            setShowAralashModal(true);
+                          }}
+                          className="p-2.5 rounded-xl border-2 bg-white border-blue-300 hover:border-blue-500 hover:bg-blue-50/50 transition-all cursor-pointer shadow-2xs group"
                         >
                           <label className="text-[10px] font-bold text-slate-600 flex items-center justify-between cursor-pointer">
-                            <span className="flex items-center gap-1"><CreditCard className="w-3.5 h-3.5 text-blue-600" /> Karta:</span>
-                            {activeAralashField === 'card' && <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />}
+                            <span className="flex items-center gap-1"><CreditCard className="w-3.5 h-3.5 text-blue-600" /> Karta (Plastik):</span>
+                            <span className="text-[10px] font-bold text-blue-600 group-hover:underline">⌨️ Kiritish</span>
                           </label>
-                          <div className="font-black text-sm text-slate-900 mt-0.5 tracking-tight">
-                            {currentCard.toLocaleString()} so'm
+                          <div className="font-black text-sm text-slate-900 mt-1 tracking-tight">
+                            {currentCard.toLocaleString()} <span className="text-[10px] text-slate-500 font-bold">so'm</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Quick Amount Pills */}
-                      <div className="flex gap-1 overflow-x-auto pb-0.5 no-scrollbar">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomCashAmount(defaultHalf.toString());
-                            setCustomCardAmount((grandTotal - defaultHalf).toString());
-                          }}
-                          className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 transition-colors"
-                        >
-                          50% / 50%
-                        </button>
-                        {[10000, 20000, 50000, 100000, 200000].map((amt) => (
-                          amt < grandTotal && (
-                            <button
-                              key={amt}
-                              type="button"
-                              onClick={() => handleSetQuick(amt)}
-                              className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 transition-colors"
-                            >
-                              {(amt / 1000)}k
-                            </button>
-                          )
-                        ))}
-                      </div>
-
-                      {/* Touch Numpad Grid */}
-                      <div className="grid grid-cols-4 gap-1 pt-1">
-                        {['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '000'].map((digit) => (
-                          <button
-                            key={digit}
-                            type="button"
-                            onClick={() => handleNumKey(digit)}
-                            className="bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-900 font-black py-2 rounded-xl text-xs border border-slate-200 transition-all active:scale-95 shadow-2xs cursor-pointer"
-                          >
-                            {digit}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => handleNumKey('DEL')}
-                          className="bg-orange-50 hover:bg-orange-100 active:bg-orange-200 text-orange-700 font-black py-2 rounded-xl text-xs border border-orange-200 transition-all active:scale-95 shadow-2xs cursor-pointer"
-                        >
-                          ⌫
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleNumKey('C')}
-                          className="col-span-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-1.5 rounded-xl text-[11px] transition-all cursor-pointer"
-                        >
-                          Tozalash (C)
-                        </button>
-                      </div>
+                      {/* Quick 50/50 Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomCashAmount(defaultHalf.toString());
+                          setCustomCardAmount((grandTotal - defaultHalf).toString());
+                        }}
+                        className="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-[11px] font-bold py-1.5 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <span>⚖️ 50% Naqd ({defaultHalf.toLocaleString()}) / 50% Karta ({(grandTotal - defaultHalf).toLocaleString()})</span>
+                      </button>
                     </div>
                   );
                 })()}
@@ -1613,6 +1539,19 @@ export default function App() {
         orders={orders}
         onMoveTable={handleMoveTable}
         onClose={() => setShowTableMoveModal(false)}
+      />
+
+      <AralashNumpadModal
+        show={showAralashModal}
+        activeField={activeAralashField}
+        grandTotal={grandTotal}
+        initialCash={customCashAmount ? Number(customCashAmount) : Math.round(grandTotal / 2)}
+        initialCard={customCardAmount ? Number(customCardAmount) : (grandTotal - Math.round(grandTotal / 2))}
+        onSave={(cash, card) => {
+          setCustomCashAmount(cash.toString());
+          setCustomCardAmount(card.toString());
+        }}
+        onClose={() => setShowAralashModal(false)}
       />
 
       <ToastNotification message={toastMessage} />

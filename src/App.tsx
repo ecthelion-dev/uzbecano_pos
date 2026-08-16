@@ -1542,29 +1542,29 @@ export default function App() {
         {selectedArchiveOrder ? (
           <div className="w-full bg-white p-1 text-slate-900 space-y-4">
             {/* Header */}
-            <div className="text-center border-b-2 border-dashed border-slate-900 pb-3 space-y-1">
-              <div className="w-12 h-12 mx-auto overflow-hidden rounded-xl">
+            <div className="text-center border-b-2 border-dashed border-slate-900 pb-3.5 space-y-1.5">
+              <div className="w-14 h-14 mx-auto overflow-hidden rounded-xl">
                 <img src="/icon.svg" alt="Uzbecano" className="w-full h-full object-contain" />
               </div>
-              <h2 className="text-2xl font-black tracking-wider uppercase pt-1 text-slate-900 print-text-dark">UZBECANO</h2>
-              <p className="text-xs font-bold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
-              <div className="text-sm font-black pt-1 text-slate-900 print-text-dark">
+              <h2 className="text-3xl font-black tracking-wider uppercase pt-1 text-slate-900 print-text-dark">UZBECANO</h2>
+              <p className="text-sm font-bold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
+              <div className="text-base font-black pt-1 text-slate-900 print-text-dark">
                 <span>{selectedArchiveOrder.tableNumber}</span>
                 <span className="ml-2 text-slate-700 print-text-dark">#{selectedArchiveOrder.id.slice(-6)}</span>
               </div>
-              <div className="text-xs font-bold text-slate-600 print-text-dark">
+              <div className="text-sm font-bold text-slate-600 print-text-dark">
                 {selectedArchiveOrder.closedAt ? new Date(selectedArchiveOrder.closedAt).toLocaleString('uz-UZ') : new Date().toLocaleString('uz-UZ')}
               </div>
               {selectedArchiveOrder.waiterName && (
-                <div className="text-xs font-bold text-slate-700 print-text-dark">
+                <div className="text-sm font-bold text-slate-700 print-text-dark">
                   Ofitsiant: {selectedArchiveOrder.waiterName}
                 </div>
               )}
             </div>
 
             {/* Items List */}
-            <div className="space-y-2.5 text-sm border-b-2 border-dashed border-slate-900 pb-3">
-              <div className="flex justify-between font-black text-xs text-slate-900 print-text-dark uppercase border-b border-slate-200 pb-1">
+            <div className="space-y-3 text-base border-b-2 border-dashed border-slate-900 pb-3.5">
+              <div className="flex justify-between font-black text-sm text-slate-900 print-text-dark uppercase border-b border-slate-200 pb-1.5">
                 <span>NOMI X SANOQ</span>
                 <span>JAMI</span>
               </div>
@@ -1578,15 +1578,15 @@ export default function App() {
                   const qty = Number(it.quantity || it.count || 1);
                   const total = Number(it.totalPrice || (unitPrice * qty) || 0);
                   return (
-                    <div key={idx} className="flex justify-between items-start text-sm border-b border-slate-100 pb-1">
+                    <div key={idx} className="flex justify-between items-start border-b border-slate-100 pb-1.5">
                       <div>
-                        <div className="font-black text-slate-900 print-text-dark text-base">{it.product?.name || it.name}</div>
-                        <div className="text-xs font-bold text-slate-700 print-text-dark">{qty}x {unitPrice.toLocaleString()} so'm</div>
+                        <div className="font-black text-slate-900 print-text-dark text-lg">{it.product?.name || it.name}</div>
+                        <div className="text-sm font-bold text-slate-700 print-text-dark">{qty}x {unitPrice.toLocaleString()} so'm</div>
                         {it.note && (
-                          <div className="text-xs font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />Izoh: {it.note}</div>
+                          <div className="text-sm font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3.5 h-3.5 inline mr-0.5" />Izoh: {it.note}</div>
                         )}
                       </div>
-                      <span className="font-black text-slate-900 print-text-dark text-base">{total.toLocaleString()} so'm</span>
+                      <span className="font-black text-slate-900 print-text-dark text-lg whitespace-nowrap">{total.toLocaleString()} so'm</span>
                     </div>
                   );
                 });
@@ -1594,102 +1594,102 @@ export default function App() {
             </div>
 
             {/* Totals */}
-            <div className="space-y-1.5 text-sm border-b-2 border-dashed border-slate-900 pb-3">
+            <div className="space-y-2 text-base border-b-2 border-dashed border-slate-900 pb-3.5">
               <div className="flex justify-between font-bold text-slate-800 print-text-dark">
                 <span>Oraliq Summa:</span>
-                <span>{(selectedArchiveOrder.subtotal || 0).toLocaleString()} so'm</span>
+                <span className="whitespace-nowrap">{(selectedArchiveOrder.subtotal || 0).toLocaleString()} so'm</span>
               </div>
               {selectedArchiveOrder.discount > 0 && (
                 <div className="flex justify-between font-bold text-slate-800 print-text-dark">
                   <span>Chegirma:</span>
-                  <span>-{(selectedArchiveOrder.discount || 0).toLocaleString()} so'm</span>
+                  <span className="whitespace-nowrap">-{(selectedArchiveOrder.discount || 0).toLocaleString()} so'm</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-slate-800 print-text-dark">
                 <span>Xizmat Haqi ({serviceFeePercent}%):</span>
-                <span>{(selectedArchiveOrder.serviceFee || 0).toLocaleString()} so'm</span>
+                <span className="whitespace-nowrap">{(selectedArchiveOrder.serviceFee || 0).toLocaleString()} so'm</span>
               </div>
-              <div className="flex justify-between font-black text-lg pt-1 text-slate-900 print-text-dark">
+              <div className="flex justify-between font-black text-2xl pt-1 text-slate-900 print-text-dark">
                 <span>JAMI:</span>
-                <span>{(selectedArchiveOrder.total || 0).toLocaleString()} so'm</span>
+                <span className="whitespace-nowrap">{(selectedArchiveOrder.total || 0).toLocaleString()} so'm</span>
               </div>
             </div>
 
-            <div className="text-center text-xs font-bold text-slate-800 print-text-dark pt-1">
+            <div className="text-center text-sm font-bold text-slate-800 print-text-dark pt-1.5">
               Tashrifingiz uchun rahmat!
             </div>
           </div>
         ) : (
           <div className="w-full bg-white p-1 text-slate-900 space-y-4">
             {/* Header */}
-            <div className="text-center border-b-2 border-dashed border-slate-900 pb-3 space-y-1">
-              <div className="w-12 h-12 mx-auto overflow-hidden rounded-xl">
+            <div className="text-center border-b-2 border-dashed border-slate-900 pb-3.5 space-y-1.5">
+              <div className="w-14 h-14 mx-auto overflow-hidden rounded-xl">
                 <img src="/icon.svg" alt="Uzbecano" className="w-full h-full object-contain" />
               </div>
-              <h2 className="text-2xl font-black tracking-wider uppercase pt-1 text-slate-900 print-text-dark">UZBECANO</h2>
-              <p className="text-xs font-bold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
-              <div className="text-sm font-black pt-1 text-slate-900 print-text-dark">
+              <h2 className="text-3xl font-black tracking-wider uppercase pt-1 text-slate-900 print-text-dark">UZBECANO</h2>
+              <p className="text-sm font-bold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
+              <div className="text-base font-black pt-1 text-slate-900 print-text-dark">
                 <span>{selectedTable}</span>
                 {activeTableOrder && <span className="ml-2 text-slate-700 print-text-dark">#{activeTableOrder.id.slice(-6)}</span>}
               </div>
-              <div className="text-xs font-bold text-slate-600 print-text-dark">
+              <div className="text-sm font-bold text-slate-600 print-text-dark">
                 {new Date().toLocaleString('uz-UZ')}
               </div>
               {currentWaiter && (
-                <div className="text-xs font-bold text-slate-700 print-text-dark">
+                <div className="text-sm font-bold text-slate-700 print-text-dark">
                   Ofitsiant: {currentWaiter.name}
                 </div>
               )}
             </div>
 
             {/* Items List */}
-            <div className="space-y-2.5 text-sm border-b-2 border-dashed border-slate-900 pb-3">
-              <div className="flex justify-between font-black text-xs text-slate-900 print-text-dark uppercase border-b border-slate-200 pb-1">
+            <div className="space-y-3 text-base border-b-2 border-dashed border-slate-900 pb-3.5">
+              <div className="flex justify-between font-black text-sm text-slate-900 print-text-dark uppercase border-b border-slate-200 pb-1.5">
                 <span>NOMI X SANOQ</span>
                 <span>JAMI</span>
               </div>
-              {[...activeTableOrderItems, ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note }))].map((it: any, idx: number) => {
+              {[...activeTableOrderItems, ...cart.map(c => ({ name: c.product.name, price: Number(c.product.price) || 0, quantity: c.quantity, note: c.note }))].map((it: any, idx: number) => {
                 const unitPrice = Number(it.price || it.product?.price || it.unitPrice || 0);
                 const qty = Number(it.quantity || it.count || 1);
                 const total = Number(it.totalPrice || (unitPrice * qty) || 0);
                 return (
-                  <div key={idx} className="flex justify-between items-start text-sm border-b border-slate-100 pb-1">
+                  <div key={idx} className="flex justify-between items-start border-b border-slate-100 pb-1.5">
                     <div>
-                      <div className="font-black text-slate-900 print-text-dark text-base">{it.product?.name || it.name}</div>
-                      <div className="text-xs font-bold text-slate-700 print-text-dark">{qty}x {unitPrice.toLocaleString()} so'm</div>
+                      <div className="font-black text-slate-900 print-text-dark text-lg">{it.product?.name || it.name}</div>
+                      <div className="text-sm font-bold text-slate-700 print-text-dark">{qty}x {unitPrice.toLocaleString()} so'm</div>
                       {it.note && (
-                        <div className="text-xs font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />Izoh: {it.note}</div>
+                        <div className="text-sm font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3.5 h-3.5 inline mr-0.5" />Izoh: {it.note}</div>
                       )}
                     </div>
-                    <span className="font-black text-slate-900 print-text-dark text-base">{total.toLocaleString()} so'm</span>
+                    <span className="font-black text-slate-900 print-text-dark text-lg whitespace-nowrap">{total.toLocaleString()} so'm</span>
                   </div>
                 );
               })}
             </div>
 
             {/* Totals */}
-            <div className="space-y-1.5 text-sm border-b-2 border-dashed border-slate-900 pb-3">
+            <div className="space-y-2 text-base border-b-2 border-dashed border-slate-900 pb-3.5">
               <div className="flex justify-between font-bold text-slate-800 print-text-dark">
                 <span>Oraliq Summa:</span>
-                <span>{subtotal.toLocaleString()} so'm</span>
+                <span className="whitespace-nowrap">{subtotal.toLocaleString()} so'm</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between font-bold text-slate-800 print-text-dark">
                   <span>Chegirma ({discountPercent}%):</span>
-                  <span>-{discountAmount.toLocaleString()} so'm</span>
+                  <span className="whitespace-nowrap">-{discountAmount.toLocaleString()} so'm</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-slate-800 print-text-dark">
                 <span>Xizmat Haqi ({serviceFeePercent}%):</span>
-                <span>{serviceFee.toLocaleString()} so'm</span>
+                <span className="whitespace-nowrap">{serviceFee.toLocaleString()} so'm</span>
               </div>
-              <div className="flex justify-between font-black text-lg pt-1 text-slate-900 print-text-dark">
+              <div className="flex justify-between font-black text-2xl pt-1 text-slate-900 print-text-dark">
                 <span>JAMI:</span>
-                <span>{grandTotal.toLocaleString()} so'm</span>
+                <span className="whitespace-nowrap">{grandTotal.toLocaleString()} so'm</span>
               </div>
             </div>
 
-            <div className="text-center text-xs font-bold text-slate-800 print-text-dark pt-1">
+            <div className="text-center text-sm font-bold text-slate-800 print-text-dark pt-1.5">
               Tashrifingiz uchun rahmat!
             </div>
           </div>

@@ -733,7 +733,7 @@ export default function App() {
       const newItems = currentCart.map(c => ({
         id: c.product.id,
         name: c.product.name,
-        price: c.effectivePrice,
+        price: Number(c.product.price) || 0,
         quantity: c.quantity,
         selectedVariant: c.selectedVariant,
         selectedAddons: c.selectedAddons,

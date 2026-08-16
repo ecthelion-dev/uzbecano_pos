@@ -44,10 +44,10 @@ body {
     left: 0 !important;
     right: 0 !important;
     top: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 4mm 3mm 10mm 3mm !important;
+    width: 80% !important;
+    max-width: 80% !important;
+    margin: 0 auto !important;
+    padding: 4mm 2mm 10mm 2mm !important;
     box-sizing: border-box !important;
     background: #ffffff !important;
     color: #000000 !important;

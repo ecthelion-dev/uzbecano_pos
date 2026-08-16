@@ -801,18 +801,21 @@ export default function App() {
           }).catch(() => null);
         }
 
-        const updatedOrders = currentOrders.map(o => o.id === latestOrder.id ? {
-          ...o,
+        const closedOrder = {
+          ...latestOrder,
           status: 'served',
           paymentMethod,
           cashAmount: finalCash,
           cardAmount: finalCard,
-          closedAt: o.closedAt || new Date().toISOString(),
-          waiterName: o.waiterName || currentWaiter?.name || 'Xodim'
-        } : o);
+          closedAt: latestOrder.closedAt || new Date().toISOString(),
+          waiterName: latestOrder.waiterName || currentWaiter?.name || 'Xodim'
+        };
+
+        const updatedOrders = currentOrders.map(o => o.id === latestOrder.id ? closedOrder : o);
 
         setOrders(updatedOrders);
         localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
+        setSelectedArchiveOrder(closedOrder);
       }
       setTableCarts(prev => ({ ...prev, [targetTable]: [] }));
       setToastMessage(`${targetTable} muvaffaqiyatli to'lanib yopildi!`);
@@ -821,7 +824,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen]);
+  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, paymentMethod, customCashAmount]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {
@@ -1021,6 +1024,7 @@ export default function App() {
                 <div
                   key={t.id}
                   onClick={() => {
+                    setSelectedArchiveOrder(null);
                     setSelectedTable(t.number);
                     setActiveTab('menyu');
                   }}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { UtensilsCrossed, Printer } from 'lucide-react';
+import { UtensilsCrossed, Printer, PenLine } from 'lucide-react';
 import { KitchenSlipData } from '../types';
 
 interface KitchenSlipModalProps {
@@ -34,7 +34,7 @@ export const KitchenSlipModal: React.FC<KitchenSlipModalProps> = ({ data, onClos
               <div key={idx} className="flex justify-between items-start text-xs border-b border-slate-200/60 pb-1 last:border-b-0">
                 <div>
                   <p className="font-extrabold text-sm text-slate-900">{item.name}</p>
-                  {item.note && <p className="text-xs font-bold text-amber-900">✍️ Izoh: {item.note}</p>}
+                  {item.note && <p className="text-xs font-bold text-amber-900"><PenLine className="w-3 h-3 inline mr-0.5" />Izoh: {item.note}</p>}
                 </div>
                 <span className="font-black text-base text-slate-900 bg-orange-100 text-orange-800 px-2 py-0.5 rounded-lg">x{item.quantity}</span>
               </div>

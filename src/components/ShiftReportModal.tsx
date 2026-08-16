@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Printer } from 'lucide-react';
+import { Sparkles, Printer, ChefHat } from 'lucide-react';
 import { DBOrder, CashTransaction } from '../types';
 
 interface ShiftReportModalProps {
@@ -88,7 +88,7 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
               Object.entries(waiterStats).map(([name, stat]) => (
                 <div key={name} className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex justify-between items-center text-xs">
                   <div>
-                    <span className="font-bold text-slate-900">👨‍🍳 {name}</span>
+                    <span className="font-bold text-slate-900 flex items-center gap-1"><ChefHat className="w-3.5 h-3.5" />{name}</span>
                     <p className="text-[10px] text-slate-500">{stat.count} ta stol yopilgan</p>
                   </div>
                   <span className="font-black text-slate-900 text-sm">{stat.total.toLocaleString()} so'm</span>

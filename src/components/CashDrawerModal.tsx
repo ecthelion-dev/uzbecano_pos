@@ -149,7 +149,10 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className={`font-black ${t.type === 'kirim' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {t.type === 'kirim' ? '➕ KIRIM' : '➖ CHIQIM'}
+                      {t.type === 'kirim'
+                        ? <span className="flex items-center gap-1"><PlusCircle className="w-3.5 h-3.5" /> KIRIM</span>
+                        : <span className="flex items-center gap-1"><MinusCircle className="w-3.5 h-3.5" /> CHIQIM</span>
+                      }
                     </span>
                     <span className="font-bold text-slate-900">{t.note}</span>
                   </div>

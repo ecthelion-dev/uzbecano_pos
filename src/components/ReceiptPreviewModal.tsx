@@ -1,5 +1,5 @@
 import React from 'react';
-import { Printer } from 'lucide-react';
+import { Printer, Banknote, CreditCard, PenLine } from 'lucide-react';
 import { DBWaiter } from '../types';
 
 interface ReceiptPreviewModalProps {
@@ -12,6 +12,8 @@ interface ReceiptPreviewModalProps {
   discountPercent?: number;
   discountAmount?: number;
   paymentMethod?: string;
+  cashAmount?: number;
+  cardAmount?: number;
   serviceFee: number;
   grandTotal: number;
   onClose: () => void;
@@ -28,6 +30,8 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   discountPercent = 0,
   discountAmount = 0,
   paymentMethod = 'naqd',
+  cashAmount,
+  cardAmount,
   serviceFee,
   grandTotal,
   onClose,
@@ -48,7 +52,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         </div>
 
         {/* Thermal Receipt Paper Effect */}
-        <div className="bg-amber-50/40 p-6 rounded-2xl border border-amber-200/60 font-mono text-sm text-slate-800 space-y-3.5 shadow-inner">
+        <div id="printable-receipt" className="bg-amber-50/40 p-6 rounded-2xl border border-amber-200/60 font-mono text-sm text-slate-800 space-y-3.5 shadow-inner">
           <div className="text-center space-y-1 border-b border-dashed border-slate-400 pb-3">
             <h4 className="font-black text-xl text-slate-900 tracking-wider uppercase">UZBECANO RESTORAN</h4>
             <p className="text-xs text-slate-600 font-medium">Toshkent sh., Markaziy filial</p>
@@ -77,7 +81,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                     <p className="font-bold text-slate-900 text-sm">{item.name}</p>
                     <p className="text-xs text-slate-600 font-medium">{item.quantity} x {(item.price || 0).toLocaleString()} so'm</p>
                     {item.note && (
-                      <p className="text-xs font-bold text-amber-900 mt-0.5">✍️ Izoh: {item.note}</p>
+                      <p className="text-xs font-bold text-amber-900 mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />Izoh: {item.note}</p>
                     )}
                   </div>
                   <span className="font-black text-slate-900 text-sm">{((item.price || 0) * (item.quantity || 1)).toLocaleString()} so'm</span>
@@ -104,9 +108,32 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-between font-black text-base text-slate-900 pt-1">
-            <span>JAMI TO'LOV:</span>
-            <span className="text-[#0F172A] text-lg">{grandTotal.toLocaleString()} so'm</span>
+          <div className="space-y-1.5 border-t border-dashed border-slate-400 pt-2.5 mt-1 text-xs font-semibold">
+            <div className="flex justify-between font-black text-base text-slate-900 pb-1">
+              <span>JAMI TO'LOV:</span>
+              <span className="text-[#0F172A] text-lg">{grandTotal.toLocaleString()} so'm</span>
+            </div>
+            {paymentMethod === 'aralash' ? (
+              <>
+                <div className="flex justify-between text-slate-700">
+                  <span className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5" /> Naqd:</span>
+                  <span className="font-bold">{(cashAmount ?? Math.round(grandTotal / 2)).toLocaleString()} so'm</span>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span className="flex items-center gap-1"><CreditCard className="w-3.5 h-3.5" /> Karta:</span>
+                  <span className="font-bold">{(cardAmount ?? grandTotal - Math.round(grandTotal / 2)).toLocaleString()} so'm</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-between text-slate-700">
+                <span>To'lov turi:</span>
+                <span className="font-bold uppercase">
+                <span className="font-bold uppercase flex items-center gap-1">
+                  {paymentMethod === 'karta' ? <><CreditCard className="w-3.5 h-3.5" /> Karta</> : <><Banknote className="w-3.5 h-3.5" /> Naqd</>}
+                </span>
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="text-center pt-2 text-xs text-slate-500 font-sans">

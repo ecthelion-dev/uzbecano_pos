@@ -18,8 +18,15 @@ import {
   Send,
   LogOut,
   Trash2,
-  Shuffle
+  Shuffle,
+  BarChart2,
+  Banknote,
+  CreditCard,
+  ChefHat,
+  PenLine,
+  User
 } from 'lucide-react';
+import { AdminDashboard } from './components/AdminDashboard';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction } from './types';
 import { API_BASE_URL, DEFAULT_WAITERS, DEFAULT_OFFLINE_CATEGORIES, DEFAULT_OFFLINE_PRODUCTS, ALL_TABLE_DEFINITIONS } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
@@ -34,63 +41,38 @@ import { CashDrawerModal } from './components/CashDrawerModal';
 import { ProductModifierModal } from './components/ProductModifierModal';
 import { Wallet } from 'lucide-react';
 
-const enrichProductModifiers = (prods: DBProduct[]): DBProduct[] => {
-  return prods.map((p) => {
-    if (p.variants && p.variants.length > 0) return p;
-
-    const lowerName = (p.name || '').toLowerCase();
-    const lowerCat = (p.category || '').toLowerCase();
-
-    let variants = p.variants;
-    let addons = p.addons;
-
-    if (lowerName.includes('pizza') || lowerName.includes('pitsa') || lowerCat.includes('pizza') || lowerCat.includes('pitsa')) {
-      variants = [
-        { name: 'Kichik (28 sm)', price: Math.round(p.price * 0.75) },
-        { name: 'O\'rta (32 sm)', price: p.price },
-        { name: 'Katta (40 sm)', price: Math.round(p.price * 1.4) }
-      ];
-      addons = [
-        { name: 'Qo\'shimcha Pishloq', price: 10000 },
-        { name: 'Zaytuncha', price: 5000 },
-        { name: 'Zamburug\' (Griby)', price: 8000 }
-      ];
-    } else if (lowerName.includes('burger') || lowerCat.includes('burger') || lowerCat.includes('fast food')) {
-      variants = [
-        { name: 'Standart', price: p.price },
-        { name: 'Double (Ikki qavat)', price: Math.round(p.price * 1.4) }
-      ];
-      addons = [
-        { name: 'Qo\'shimcha Pishloq', price: 5000 },
-        { name: 'Jalapeno (Achchiq)', price: 4000 },
-        { name: 'Bekon / Qazi', price: 10000 }
-      ];
-    } else if (lowerName.includes('osh') || lowerName.includes('manti') || lowerName.includes('kebab') || lowerCat.includes('milliy')) {
-      variants = [
-        { name: '0.5 Porsiya', price: Math.round(p.price * 0.55) },
-        { name: '1.0 Porsiya', price: p.price },
-        { name: '1.5 Porsiya', price: Math.round(p.price * 1.45) }
-      ];
-      addons = [
-        { name: 'Qazi', price: 15000 },
-        { name: 'Bedana Tuxum', price: 4000 },
-        { name: 'Smetana / Qatiq', price: 4000 }
-      ];
-    } else if (lowerName.includes('cola') || lowerName.includes('pepsi') || lowerName.includes('fanta') || lowerName.includes('suv') || lowerCat.includes('ichimlik')) {
-      variants = [
-        { name: '0.5 Litr', price: Math.round(p.price * 0.6) },
-        { name: '1.0 Litr', price: p.price },
-        { name: '1.5 Litr', price: Math.round(p.price * 1.3) }
-      ];
-    } else {
-      variants = [
-        { name: '0.5 Porsiya', price: Math.round(p.price * 0.55) },
-        { name: '1.0 Porsiya', price: p.price },
-        { name: '1.5 Porsiya', price: Math.round(p.price * 1.45) }
-      ];
+const mapDBProductModifiers = (prods: DBProduct[]): DBProduct[] => {
+  return prods.map((p: any) => {
+    let variants: ProductVariant[] = p.variants || [];
+    if (!variants.length && p.sizes) {
+      try {
+        const parsed = typeof p.sizes === 'string' ? JSON.parse(p.sizes) : p.sizes;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const validSizes = parsed.filter((s: any) => s && (s.label || s.name));
+          if (validSizes.length > 0) {
+            variants = [
+              { name: 'Standart', price: p.price },
+              ...validSizes.map((s: any) => ({
+                name: s.label || s.name,
+                price: Number(s.price) || p.price
+              }))
+            ];
+            const seen = new Set<string>();
+            variants = variants.filter(v => {
+              const k = `${v.name.toLowerCase().trim()}-${v.price}`;
+              if (seen.has(k)) return false;
+              seen.add(k);
+              return true;
+            });
+          }
+        }
+      } catch {}
     }
-
-    return { ...p, variants, addons };
+    return {
+      ...p,
+      variants: variants.length > 0 ? variants : undefined,
+      addons: p.addons && p.addons.length > 0 ? p.addons : undefined
+    };
   });
 };
 
@@ -130,6 +112,7 @@ export default function App() {
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<'naqd' | 'karta' | 'aralash'>('naqd');
   const [customCashAmount, setCustomCashAmount] = useState<string>('');
+  const [customCardAmount, setCustomCardAmount] = useState<string>('');
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
   const [adminPinAction, setAdminPinAction] = useState<(() => void) | null>(null);
 
@@ -145,51 +128,88 @@ export default function App() {
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
 
-  // Fetch live data or fallback to local storage
+  // Fetch orders only (lightweight, called frequently)
+  const fetchOrders = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/orders?days=7`).catch(() => null);
+      if (res && res.ok) {
+        const data = await res.json();
+        const sorted = Array.isArray(data)
+          ? [...data].sort((a: any, b: any) => new Date(b.closedAt || b.createdAt || 0).getTime() - new Date(a.closedAt || a.createdAt || 0).getTime())
+          : [];
+        setOrders(sorted);
+        localStorage.setItem('uzbecano_orders', JSON.stringify(sorted));
+        setIsOfflineMode(false);
+      }
+    } catch {}
+  }, []);
+
+  // Fetch static data once (products, categories, waiters — served from server cache)
   const fetchData = useCallback(async () => {
     setLoading(true);
     setApiError(null);
+
+    // Load static data from localStorage instantly (no flicker)
+    const localCats = localStorage.getItem('uzbecano_categories');
+    const localProds = localStorage.getItem('uzbecano_products');
+    const localWaiters = localStorage.getItem('uzbecano_waiters');
+    const localOrds = localStorage.getItem('uzbecano_orders');
+    if (localProds) {
+      const p = JSON.parse(localProds);
+      if (p.length > 0) setProducts(mapDBProductModifiers(p));
+    }
+    if (localCats) {
+      const c = JSON.parse(localCats);
+      if (c.length > 0) setCategoriesData(c);
+    }
+    if (localWaiters) {
+      const w = JSON.parse(localWaiters);
+      if (w.length > 0) setWaiters(w);
+    }
+    if (localOrds) {
+      setOrders(JSON.parse(localOrds));
+    }
+
     try {
-      const [catRes, prodRes, ordRes, waitRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/categories`).catch(() => null),
+      const [prodRes, catRes, waitRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/products`).catch(() => null),
-        fetch(`${API_BASE_URL}/api/orders`).catch(() => null),
-        fetch(`${API_BASE_URL}/api/waiters`).catch(() => null)
+        fetch(`${API_BASE_URL}/api/categories`).catch(() => null),
+        fetch(`${API_BASE_URL}/api/waiters`).catch(() => null),
       ]);
 
       if (prodRes && prodRes.ok) {
-        const prodData = await prodRes.json();
-        let catData = catRes && catRes.ok ? await catRes.json() : [];
-        let ordData = ordRes && ordRes.ok ? await ordRes.json() : [];
-        let waitData = waitRes && waitRes.ok ? await waitRes.json() : [];
-
-        const rawProds = Array.isArray(prodData) && prodData.length > 0 ? prodData : DEFAULT_OFFLINE_PRODUCTS;
-        setProducts(enrichProductModifiers(rawProds));
-        setOrders(Array.isArray(ordData) ? ordData : []);
-        const finalWaiters = Array.isArray(waitData) && waitData.length > 0 ? waitData : DEFAULT_WAITERS;
-        setWaiters(finalWaiters);
-        localStorage.setItem('uzbecano_waiters', JSON.stringify(finalWaiters));
-        setIsOfflineMode(false);
-      } else {
-        throw new Error('Local server offline');
+        const rawProds = await prodRes.json();
+        if (Array.isArray(rawProds) && rawProds.length > 0) {
+          setProducts(mapDBProductModifiers(rawProds));
+          localStorage.setItem('uzbecano_products', JSON.stringify(rawProds));
+        }
       }
-    } catch (err: any) {
-      // Offline fallback mode
-      setIsOfflineMode(true);
-      const localCats = localStorage.getItem('uzbecano_categories');
-      const localProds = localStorage.getItem('uzbecano_products');
-      const localOrds = localStorage.getItem('uzbecano_orders');
-      const localWaiters = localStorage.getItem('uzbecano_waiters');
+      if (catRes && catRes.ok) {
+        const cats = await catRes.json();
+        if (Array.isArray(cats) && cats.length > 0) {
+          setCategoriesData(cats);
+          localStorage.setItem('uzbecano_categories', JSON.stringify(cats));
+        }
+      }
+      if (waitRes && waitRes.ok) {
+        const ws = await waitRes.json();
+        if (Array.isArray(ws) && ws.length > 0) {
+          setWaiters(ws);
+          localStorage.setItem('uzbecano_waiters', JSON.stringify(ws));
+        }
+      }
 
-      setCategoriesData(localCats ? JSON.parse(localCats) : DEFAULT_OFFLINE_CATEGORIES);
-      const offlineProds = localProds ? JSON.parse(localProds) : DEFAULT_OFFLINE_PRODUCTS;
-      setProducts(enrichProductModifiers(offlineProds));
-      setOrders(localOrds ? JSON.parse(localOrds) : []);
-      setWaiters(localWaiters ? JSON.parse(localWaiters) : DEFAULT_WAITERS);
+      await fetchOrders();
+      setIsOfflineMode(false);
+    } catch {
+      setIsOfflineMode(true);
+      if (!localProds) setProducts(DEFAULT_OFFLINE_PRODUCTS);
+      if (!localCats) setCategoriesData(DEFAULT_OFFLINE_CATEGORIES);
+      if (!localWaiters) setWaiters(DEFAULT_WAITERS);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchOrders]);
 
   // Offline Sync Queue Handler
   const syncOfflineOrders = useCallback(async () => {
@@ -267,30 +287,24 @@ export default function App() {
     fetchData();
   }, [fetchData]);
 
-  // Derived unique categories
+  // Derived unique categories dynamically fetched from Database
   const allCategories = useMemo(() => {
-    const fromProducts = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-    const catMap = new Map<string, DBCategory>();
-
+    const map = new Map<string, DBCategory>();
     categoriesData.forEach(c => {
-      if (c.name) catMap.set(c.name, c);
-    });
-
-    fromProducts.forEach(name => {
-      if (!catMap.has(name)) {
-        catMap.set(name, { id: name, name });
+      if (c.name && !map.has(c.name.toLowerCase())) {
+        map.set(c.name.toLowerCase(), c);
       }
     });
-
-    return Array.from(catMap.values());
-  }, [products, categoriesData]);
+    return Array.from(map.values());
+  }, [categoriesData]);
 
   // Product counts per category
   const categoryProductCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     products.forEach(p => {
       if (p.category) {
-        counts[p.category] = (counts[p.category] || 0) + 1;
+        const key = p.category.toLowerCase().trim();
+        counts[key] = (counts[key] || 0) + 1;
       }
     });
     return counts;
@@ -307,7 +321,8 @@ export default function App() {
       const activeOrder = orders.find(o => o.tableNumber === numStr && o.status !== 'served');
       const draftCart = tableCarts[numStr] || [];
       const draftSubtotal = draftCart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-      const draftTotal = draftSubtotal + Math.round(draftSubtotal * 0.1);
+      const feeRate = typeof window !== 'undefined' ? (Number(localStorage.getItem('serviceFeePercent') ?? 10) / 100) : 0.1;
+      const draftTotal = draftSubtotal + Math.round(draftSubtotal * feeRate);
       
       const total = activeOrder ? activeOrder.total : draftTotal;
       const isOccupied = activeOrder || draftCart.length > 0;
@@ -400,7 +415,8 @@ export default function App() {
   const subtotal = useMemo(() => activeSubtotal + draftSubtotal, [activeSubtotal, draftSubtotal]);
   const discountAmount = useMemo(() => Math.round((subtotal * discountPercent) / 100), [subtotal, discountPercent]);
   const netSubtotal = useMemo(() => subtotal - discountAmount, [subtotal, discountAmount]);
-  const serviceFee = useMemo(() => Math.round(netSubtotal * 0.1), [netSubtotal]);
+  const serviceFeePercent = typeof window !== 'undefined' ? Number(localStorage.getItem('serviceFeePercent') ?? 10) : 10;
+  const serviceFee = useMemo(() => Math.round((netSubtotal * serviceFeePercent) / 100), [netSubtotal, serviceFeePercent]);
   const grandTotal = useMemo(() => netSubtotal + serviceFee, [netSubtotal, serviceFee]);
 
   const requestAdminPin = useCallback((action: () => void) => {
@@ -414,7 +430,7 @@ export default function App() {
       const updatedItems = [...activeTableOrderItems];
       updatedItems.splice(itemIndex, 1);
       const sub = updatedItems.reduce((s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
-      const fee = Math.round(sub * 0.1);
+      const fee = Math.round((sub * serviceFeePercent) / 100);
       const tot = sub + fee;
 
       if (!isOfflineMode) {
@@ -493,7 +509,7 @@ export default function App() {
         });
         const combinedItems = Array.from(itemMap.values());
         const combinedSubtotal = combinedItems.reduce((s: number, i: any) => s + i.price * i.quantity, 0);
-        const combinedFee = Math.round(combinedSubtotal * 0.1);
+        const combinedFee = Math.round((combinedSubtotal * serviceFeePercent) / 100);
         const combinedTotal = combinedSubtotal + combinedFee;
 
         if (!isOfflineMode) {
@@ -541,14 +557,6 @@ export default function App() {
       localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
       setTableCarts(prev => ({ ...prev, [selectedTable]: [] }));
 
-      // Trigger Kitchen Slip (Dual Print)
-      setKitchenSlipData({
-        tableNumber: selectedTable,
-        waiterName: currentWaiter?.name || '',
-        items: newItems,
-        time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-      });
-
       setToastMessage('Buyurtma oshxonaga yuborildi!');
       setTimeout(() => setToastMessage(null), 2500);
     } catch (err: any) {
@@ -557,15 +565,45 @@ export default function App() {
   }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode]);
 
   const handlePrint = useCallback(() => {
+    const allItems = [
+      ...activeTableOrderItems,
+      ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note || '' }))
+    ];
+    const cashAmt = paymentMethod === 'aralash'
+      ? (customCashAmount === '' ? Math.round(grandTotal / 2) : Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0)))
+      : paymentMethod === 'naqd' ? grandTotal : 0;
+    const cardAmt = paymentMethod === 'aralash'
+      ? Math.max(0, grandTotal - cashAmt)
+      : paymentMethod === 'karta' ? grandTotal : 0;
+
+    const receiptData = {
+      shopName: 'UZBECANO RESTORAN',
+      shopAddress: 'Toshkent sh., Markaziy filial',
+      shopPhone: 'Tel: +998 90 123 45 67',
+      waiterName: currentWaiter?.name || '',
+      tableName: selectedTable,
+      paymentMethod,
+      time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+      items: allItems,
+      subtotal,
+      discountPercent,
+      discountAmount,
+      serviceFeePercent,
+      serviceFee,
+      grandTotal,
+      cashAmount: cashAmt,
+      cardAmount: cardAmt,
+    };
+
     if ((window as any).require) {
       try {
         const { ipcRenderer } = (window as any).require('electron');
-        ipcRenderer.send('print-silent');
+        ipcRenderer.send('print-receipt', receiptData);
         return;
       } catch {}
     }
     window.print();
-  }, []);
+  }, [activeTableOrderItems, cart, paymentMethod, customCashAmount, grandTotal, currentWaiter, selectedTable, subtotal, discountPercent, discountAmount, serviceFeePercent, serviceFee]);
 
   const handleAddCashTransaction = useCallback((type: 'kirim' | 'chiqim', amount: number, note: string) => {
     const newTx: CashTransaction = {
@@ -585,64 +623,93 @@ export default function App() {
 
   const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
     const sourceOrder = orders.find(o => o.tableNumber === sourceTable && o.status !== 'served');
-    if (!sourceOrder) return;
+    const sourceCart = tableCarts[sourceTable] || [];
+
+    if (!sourceOrder && sourceCart.length === 0) return;
 
     let updatedOrders = [...orders];
 
     if (isMerge) {
       const targetOrder = orders.find(o => o.tableNumber === targetTable && o.status !== 'served');
-      if (!targetOrder) return;
+      
+      if (sourceOrder && targetOrder) {
+        let srcItems: any[] = [];
+        let tgtItems: any[] = [];
+        try { srcItems = typeof sourceOrder.items === 'string' ? JSON.parse(sourceOrder.items) : (sourceOrder.items || []); } catch {}
+        try { tgtItems = typeof targetOrder.items === 'string' ? JSON.parse(targetOrder.items) : (targetOrder.items || []); } catch {}
 
-      let srcItems: any[] = [];
-      let tgtItems: any[] = [];
-      try { srcItems = typeof sourceOrder.items === 'string' ? JSON.parse(sourceOrder.items) : (sourceOrder.items || []); } catch {}
-      try { tgtItems = typeof targetOrder.items === 'string' ? JSON.parse(targetOrder.items) : (targetOrder.items || []); } catch {}
+        const mergedItems = [...tgtItems, ...srcItems];
+        const sub = mergedItems.reduce((sum: number, i: any) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
+        const fee = Math.round(sub * 0.1);
+        const tot = sub + fee;
 
-      const mergedItems = [...tgtItems, ...srcItems];
-      const sub = mergedItems.reduce((sum: number, i: any) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
-      const fee = Math.round(sub * 0.1);
-      const tot = sub + fee;
+        if (!isOfflineMode) {
+          await fetch(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tableNumber: targetTable,
+              items: JSON.stringify(mergedItems),
+              subtotal: sub,
+              serviceFee: fee,
+              total: tot
+            })
+          }).catch(() => null);
 
-      if (!isOfflineMode) {
-        await fetch(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            items: JSON.stringify(mergedItems),
-            subtotal: sub,
-            serviceFee: fee,
-            total: tot
-          })
-        }).catch(() => null);
+          await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+            method: 'DELETE'
+          }).catch(() => null);
+        }
 
-        await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-          method: 'DELETE'
-        }).catch(() => null);
+        updatedOrders = updatedOrders
+          .filter(o => o.id !== sourceOrder.id)
+          .map(o => o.id === targetOrder.id ? { ...o, tableNumber: targetTable, items: JSON.stringify(mergedItems), subtotal: sub, serviceFee: fee, total: tot } : o);
+      } else if (sourceOrder && !targetOrder) {
+        if (!isOfflineMode) {
+          await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tableNumber: targetTable })
+          }).catch(() => null);
+        }
+        updatedOrders = updatedOrders.map(o => o.id === sourceOrder.id ? { ...o, tableNumber: targetTable } : o);
       }
-
-      updatedOrders = updatedOrders
-        .filter(o => o.id !== sourceOrder.id)
-        .map(o => o.id === targetOrder.id ? { ...o, items: JSON.stringify(mergedItems), subtotal: sub, serviceFee: fee, total: tot } : o);
 
       setToastMessage(`${sourceTable} va ${targetTable} muvaffaqiyatli birlashtirildi!`);
     } else {
-      if (!isOfflineMode) {
-        await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tableNumber: targetTable })
-        }).catch(() => null);
-      }
+      if (sourceOrder) {
+        if (!isOfflineMode) {
+          await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tableNumber: targetTable })
+          }).catch(() => null);
+        }
 
-      updatedOrders = updatedOrders.map(o => o.id === sourceOrder.id ? { ...o, tableNumber: targetTable } : o);
+        updatedOrders = updatedOrders.map(o => o.id === sourceOrder.id ? { ...o, tableNumber: targetTable } : o);
+      }
       setToastMessage(`${sourceTable} buyurtmasi ${targetTable}ga ko'chirildi!`);
     }
+
+    // Transfer draft carts
+    setTableCarts((prev) => {
+      const srcCart = prev[sourceTable] || [];
+      if (srcCart.length === 0) return prev;
+      const next = { ...prev };
+      delete next[sourceTable];
+      if (isMerge) {
+        next[targetTable] = [...(next[targetTable] || []), ...srcCart];
+      } else {
+        next[targetTable] = srcCart;
+      }
+      return next;
+    });
 
     setOrders(updatedOrders);
     localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
     setSelectedTable(targetTable);
     setTimeout(() => setToastMessage(null), 2500);
-  }, [orders, isOfflineMode]);
+  }, [orders, tableCarts, isOfflineMode]);
 
   const handleCloseTable = useCallback(async (tableNum?: string) => {
     const targetTable = tableNum || selectedTable;
@@ -655,18 +722,63 @@ export default function App() {
       return;
     }
 
+    let currentOrders = [...orders];
+
     if (currentCart.length > 0) {
       const confirmClose = window.confirm(
         `Savatchada yuborilmagan taomlar bor!\n\nUlar avtomatik oshxonaga yuborilib, to'lov qilinib stol yopilsinmi?`
       );
       if (!confirmClose) return;
 
-      await handleSendToKitchen();
+      const newItems = currentCart.map(c => ({
+        id: c.product.id,
+        name: c.product.name,
+        price: c.effectivePrice,
+        quantity: c.quantity,
+        selectedVariant: c.selectedVariant,
+        selectedAddons: c.selectedAddons,
+        note: c.note || ''
+      }));
+
+      const sub = draftSubtotal;
+      const fee = Math.round(sub * 0.1);
+      const tot = sub + fee;
+
+      const latestActive = currentOrders.find(o => o.tableNumber === targetTable && o.status !== 'served');
+      if (latestActive) {
+        let existingItems: any[] = [];
+        try { existingItems = typeof latestActive.items === 'string' ? JSON.parse(latestActive.items) : (latestActive.items || []); } catch {}
+        const combinedItems = [...existingItems, ...newItems];
+        const combinedTotal = (latestActive.total || 0) + tot;
+
+        currentOrders = currentOrders.map(o => o.id === latestActive.id ? { ...o, items: JSON.stringify(combinedItems), total: combinedTotal } : o);
+      } else {
+        const newOrderObj = {
+          id: `ord_${Date.now()}`,
+          tableNumber: targetTable,
+          waiterName: currentWaiter?.name || '',
+          items: JSON.stringify(newItems),
+          subtotal: sub,
+          serviceFee: fee,
+          total: tot,
+          status: 'sent_to_kitchen'
+        };
+
+        if (!isOfflineMode) {
+          await fetch(`${API_BASE_URL}/api/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newOrderObj)
+          }).catch(() => null);
+        }
+
+        currentOrders.push(newOrderObj);
+      }
     }
 
     setApiError(null);
     try {
-      const latestOrder = orders.find(o => o.tableNumber === targetTable && o.status !== 'served');
+      const latestOrder = currentOrders.find(o => o.tableNumber === targetTable && o.status !== 'served');
       if (latestOrder) {
         const orderTotal = latestOrder.total || 0;
         const defaultHalfCash = Math.round(orderTotal / 2);
@@ -689,14 +801,14 @@ export default function App() {
           }).catch(() => null);
         }
 
-        const updatedOrders = orders.map(o => o.id === latestOrder.id ? {
+        const updatedOrders = currentOrders.map(o => o.id === latestOrder.id ? {
           ...o,
           status: 'served',
           paymentMethod,
           cashAmount: finalCash,
           cardAmount: finalCard,
           closedAt: o.closedAt || new Date().toISOString(),
-          waiterName: o.waiterName || currentWaiter?.name || ''
+          waiterName: o.waiterName || currentWaiter?.name || 'Xodim'
         } : o);
 
         setOrders(updatedOrders);
@@ -714,11 +826,20 @@ export default function App() {
   // Filtered Products
   const displayedProducts = useMemo(() => {
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return products.filter(p => p.name.toLowerCase().includes(q));
+      const q = searchQuery.toLowerCase().trim();
+      return products.filter(p => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
     }
     if (selectedCategoryName) {
-      return products.filter(p => p.category === selectedCategoryName);
+      const sel = selectedCategoryName.toLowerCase().trim();
+      return products.filter(p => {
+        const prodCat = (p.category || '').toLowerCase().trim();
+        return (
+          prodCat === sel ||
+          prodCat.includes(sel) ||
+          sel.includes(prodCat) ||
+          p.category === selectedCategoryName
+        );
+      });
     }
     return [];
   }, [searchQuery, selectedCategoryName, products]);
@@ -803,25 +924,11 @@ export default function App() {
             <Receipt className="w-3.5 h-3.5 text-orange-500" />
             ARXIV (F3)
           </button>
-          <button
-            onClick={() => setShowShiftReport(true)}
-            className="px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            Z-HISOBOT (F4)
-          </button>
-          <button
-            onClick={() => setShowCashDrawerModal(true)}
-            className="px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer"
-          >
-            <Wallet className="w-3.5 h-3.5 text-emerald-500" />
-            KASSA HARAKATI (F5)
-          </button>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={fetchData}
+            onClick={fetchOrders}
             className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-1 text-xs font-semibold border border-slate-200 bg-white cursor-pointer"
             title="Qayta yuklash"
           >
@@ -832,7 +939,7 @@ export default function App() {
           {currentWaiter && (
             <div className="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-xl border border-slate-200">
               <div className="w-7 h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center font-black text-xs shadow-xs">
-                👨‍🍳
+                <ChefHat className="w-4 h-4" />
               </div>
               <div className="text-left">
                 <p className="text-xs font-black text-slate-900 leading-tight">{currentWaiter.name}</p>
@@ -996,7 +1103,11 @@ export default function App() {
                   ) : (
                     <div className="grid grid-cols-5 gap-4">
                       {allCategories.map((cat) => {
-                        const count = categoryProductCounts[cat.name] || 0;
+                        const catKey = (cat.name || '').toLowerCase().trim();
+                        const count = products.filter(p => {
+                          const pk = (p.category || '').toLowerCase().trim();
+                          return pk === catKey || pk.includes(catKey) || catKey.includes(pk);
+                        }).length;
                         return (
                           <div
                             key={cat.id || cat.name}
@@ -1127,7 +1238,7 @@ export default function App() {
                             </div>
                             {item.note && (
                               <p className="text-[10px] font-extrabold text-amber-800 bg-amber-100/70 border border-amber-300/60 px-2 py-0.5 rounded-md inline-block">
-                                ✍️ {item.note}
+                                <PenLine className="w-3 h-3 inline mr-0.5" />{item.note}
                               </p>
                             )}
                           </div>
@@ -1187,58 +1298,78 @@ export default function App() {
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">To'lov Turi:</span>
                   <div className="grid grid-cols-3 gap-1">
                     {[
-                      { id: 'naqd', label: '💵 Naqd' },
-                      { id: 'karta', label: '💳 Karta' },
-                      { id: 'aralash', label: '🔀 Aralash' }
+                      { id: 'naqd', label: 'Naqd', icon: <Banknote className="w-4 h-4" /> },
+                      { id: 'karta', label: 'Karta', icon: <CreditCard className="w-4 h-4" /> },
+                      { id: 'aralash', label: 'Aralash', icon: <Shuffle className="w-4 h-4" /> }
                     ].map((pm) => (
                       <button
                         key={pm.id}
                         onClick={() => setPaymentMethod(pm.id as any)}
-                        className={`py-1 rounded-lg text-[10px] font-black border transition-all cursor-pointer ${
+                        className={`py-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer flex items-center justify-center gap-1 ${
                           paymentMethod === pm.id
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        {pm.label}
+                        {pm.icon}{pm.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {paymentMethod === 'aralash' && (() => {
-                  const defaultHalfCash = Math.round(grandTotal / 2);
-                  const calcCash = customCashAmount === '' ? defaultHalfCash : Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0));
-                  const calcCard = Math.max(0, grandTotal - calcCash);
+                  const calcCash = customCashAmount === '' ? (customCardAmount === '' ? 0 : Math.max(0, grandTotal - (Number(customCardAmount) || 0))) : Math.max(0, Number(customCashAmount) || 0);
+                  const calcCard = customCardAmount === '' ? (customCashAmount === '' ? grandTotal : Math.max(0, grandTotal - (Number(customCashAmount) || 0))) : Math.max(0, Number(customCardAmount) || 0);
 
                   return (
                     <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl space-y-2 text-xs animate-fadeIn">
                       <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-emerald-900 text-[11px]">Aralash To'lov Bo'lishi:</span>
-                        <button
-                          onClick={() => setCustomCashAmount('')}
-                          className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md hover:bg-emerald-300 transition-colors cursor-pointer"
-                        >
-                          50 / 50 Bo'lish
-                        </button>
+                        <span className="font-extrabold text-emerald-900 text-[11px]">Aralash To'lov Miqdorlari:</span>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-0.5">
-                          <label className="text-[10px] font-bold text-slate-600">💵 Naqd pul:</label>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
+                            <Banknote className="w-3 h-3 text-emerald-600" /> Naqd pul:
+                          </label>
                           <input
                             type="number"
-                            placeholder={defaultHalfCash.toString()}
+                            placeholder={Math.round(grandTotal / 2).toString()}
                             value={customCashAmount}
-                            onChange={(e) => setCustomCashAmount(e.target.value)}
-                            className="w-full bg-white border border-emerald-300 rounded-lg px-2 py-1 text-xs font-black text-slate-900 focus:outline-none focus:border-emerald-600"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCustomCashAmount(val);
+                              if (val !== '') {
+                                const num = Math.max(0, Math.min(grandTotal, Number(val) || 0));
+                                setCustomCardAmount((grandTotal - num).toString());
+                              } else {
+                                setCustomCardAmount('');
+                              }
+                            }}
+                            className="w-full bg-white border border-emerald-300 rounded-lg px-2.5 py-1.5 font-black text-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
                           />
                         </div>
-                        <div className="space-y-0.5">
-                          <label className="text-[10px] font-bold text-slate-600">💳 Karta (Plastik):</label>
-                          <div className="w-full bg-emerald-100 border border-emerald-300 rounded-lg px-2 py-1 text-xs font-black text-emerald-900 flex items-center h-[26px]">
-                            {calcCard.toLocaleString()} so'm
-                          </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
+                            <CreditCard className="w-3 h-3 text-blue-600" /> Karta (Plastik):
+                          </label>
+                          <input
+                            type="number"
+                            placeholder={Math.round(grandTotal / 2).toString()}
+                            value={customCardAmount}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCustomCardAmount(val);
+                              if (val !== '') {
+                                const num = Math.max(0, Math.min(grandTotal, Number(val) || 0));
+                                setCustomCashAmount((grandTotal - num).toString());
+                              } else {
+                                setCustomCashAmount('');
+                              }
+                            }}
+                            className="w-full bg-white border border-emerald-300 rounded-lg px-2.5 py-1.5 font-black text-slate-900 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
                         </div>
                       </div>
                     </div>
@@ -1256,7 +1387,7 @@ export default function App() {
                   </div>
                 )}
                 <div className="flex justify-between text-xs text-slate-500 font-medium">
-                  <span>Xizmat haqi (10%):</span>
+                  <span>Xizmat haqi ({serviceFeePercent}%):</span>
                   <span className="text-slate-900 font-semibold">{serviceFee.toLocaleString()} so'm</span>
                 </div>
                 <div className="flex justify-between text-base font-black text-slate-900 pt-1.5 border-t border-slate-200">
@@ -1287,15 +1418,16 @@ export default function App() {
 
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <button
-                      onClick={handlePrint}
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer"
+                      onClick={() => setShowReceiptPreview(true)}
+                      disabled={activeTableOrderItems.length === 0 && cart.length === 0}
+                      className="bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer"
                     >
                       <Printer className="w-4 h-4 text-slate-500" /> CHEK CHIQARISH
                     </button>
                     <button
                       onClick={() => setShowTableMoveModal(true)}
                       disabled={activeTableOrderItems.length === 0}
-                      className="bg-orange-50 hover:bg-orange-100 disabled:opacity-40 text-orange-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer"
+                      className="bg-orange-50 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed text-orange-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer"
                     >
                       <Shuffle className="w-4 h-4 text-orange-600" /> KO'CHIRISH
                     </button>
@@ -1317,6 +1449,8 @@ export default function App() {
         discountPercent={discountPercent}
         discountAmount={discountAmount}
         paymentMethod={paymentMethod}
+        cashAmount={paymentMethod === 'aralash' ? (customCashAmount === '' ? Math.round(grandTotal / 2) : Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0))) : paymentMethod === 'naqd' ? grandTotal : 0}
+        cardAmount={paymentMethod === 'aralash' ? Math.max(0, grandTotal - (customCashAmount === '' ? Math.round(grandTotal / 2) : Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0)))) : paymentMethod === 'karta' ? grandTotal : 0}
         serviceFee={serviceFee}
         grandTotal={grandTotal}
         onClose={() => setShowReceiptPreview(false)}
@@ -1328,6 +1462,7 @@ export default function App() {
         orders={orders}
         archiveSearch={archiveSearch}
         selectedArchiveOrder={selectedArchiveOrder}
+        currentWaiter={currentWaiter}
         onSearchChange={setArchiveSearch}
         onSelectArchiveOrder={setSelectedArchiveOrder}
         onRefundOrder={handleRefundOrder}
@@ -1397,6 +1532,147 @@ export default function App() {
       />
 
       <ToastNotification message={toastMessage} />
+
+      {/* Standalone Thermal Print Receipt Area (Rendered only on thermal paper) */}
+      <div id="thermal-print-area" className="hidden print:block font-mono text-black">
+        {selectedArchiveOrder ? (
+          <div className="w-[70mm] text-xs leading-tight mx-auto text-black">
+            <div className="text-center pb-2 border-b border-dashed border-black">
+              <p className="font-black text-base tracking-wider uppercase">UZBECANO RESTORAN</p>
+              <p className="text-[11px]">Toshkent sh., Markaziy filial</p>
+              <p className="text-[11px]">Tel: +998 90 123 45 67</p>
+              <p className="text-[11px] font-bold mt-1">
+                Ofitsiant: {selectedArchiveOrder.waiterName || currentWaiter?.name || 'Xodim'}
+              </p>
+            </div>
+
+            <div className="flex justify-between items-center py-1.5 border-b border-dashed border-black text-xs font-bold">
+              <span>{selectedArchiveOrder.tableNumber}</span>
+              <span>{selectedArchiveOrder.paymentMethod?.toUpperCase() || 'NAQD'} • {selectedArchiveOrder.refunded ? 'BEKOR' : "TO'LANGAN"}</span>
+              <span>{selectedArchiveOrder.closedAt ? new Date(selectedArchiveOrder.closedAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+
+            <div className="py-2 border-b border-dashed border-black space-y-1.5">
+              {(() => {
+                let items: any[] = [];
+                try {
+                  items = typeof selectedArchiveOrder.items === 'string' ? JSON.parse(selectedArchiveOrder.items) : (selectedArchiveOrder.items || []);
+                } catch { items = []; }
+                return items.map((i: any, idx: number) => (
+                  <div key={idx}>
+                    <div className="flex justify-between font-bold text-xs">
+                      <span className="flex-1 pr-1">{i.name}</span>
+                      <span>{((Number(i.price) || 0) * (Number(i.quantity) || 1)).toLocaleString()} so'm</span>
+                    </div>
+                    <div className="text-[11px]">
+                      {i.quantity || 1} x {(Number(i.price) || 0).toLocaleString()} so'm
+                    </div>
+                    {i.note && <div className="text-[10px] font-bold">Izoh: {i.note}</div>}
+                  </div>
+                ));
+              })()}
+            </div>
+
+            <div className="py-1.5 border-b border-dashed border-black text-xs space-y-0.5">
+              <div className="flex justify-between">
+                <span>Jami taomlar:</span>
+                <span className="font-bold">{(selectedArchiveOrder.subtotal || 0).toLocaleString()} so'm</span>
+              </div>
+              {selectedArchiveOrder.discount > 0 && (
+                <div className="flex justify-between">
+                  <span>Chegirma:</span>
+                  <span>-{(selectedArchiveOrder.discount || 0).toLocaleString()} so'm</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span>Xizmat haqi:</span>
+                <span className="font-bold">{(selectedArchiveOrder.serviceFee || 0).toLocaleString()} so'm</span>
+              </div>
+            </div>
+
+            <div className="py-2 border-b border-dashed border-black text-xs font-bold space-y-1">
+              <div className="flex justify-between text-sm font-black">
+                <span>JAMI TO'LOV:</span>
+                <span>{(selectedArchiveOrder.total || 0).toLocaleString()} so'm</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span>To'lov turi:</span>
+                <span className="uppercase">{selectedArchiveOrder.paymentMethod || 'NAQD'}</span>
+              </div>
+            </div>
+
+            <div className="text-center pt-2 text-[11px]">
+              <p className="font-medium">Tashrifingiz uchun rahmat!</p>
+              <p className="text-[9px] text-gray-500 mt-0.5">Uzbecano POS v1.0</p>
+            </div>
+          </div>
+        ) : (
+          <div className="w-[70mm] text-xs leading-tight mx-auto text-black">
+            <div className="text-center pb-2 border-b border-dashed border-black">
+              <p className="font-black text-base tracking-wider uppercase">UZBECANO RESTORAN</p>
+              <p className="text-[11px]">Toshkent sh., Markaziy filial</p>
+              <p className="text-[11px]">Tel: +998 90 123 45 67</p>
+              <p className="text-[11px] font-bold mt-1">
+                Ofitsiant: {currentWaiter?.name || 'Xodim'}
+              </p>
+            </div>
+
+            <div className="flex justify-between items-center py-1.5 border-b border-dashed border-black text-xs font-bold">
+              <span>{selectedTable}</span>
+              <span>{paymentMethod.toUpperCase()} • TO'LANGAN</span>
+              <span>{new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+
+            <div className="py-2 border-b border-dashed border-black space-y-1.5">
+              {[...activeTableOrderItems, ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note }))].map((i: any, idx: number) => (
+                <div key={idx}>
+                  <div className="flex justify-between font-bold text-xs">
+                    <span className="flex-1 pr-1">{i.name}</span>
+                    <span>{((Number(i.price) || 0) * (Number(i.quantity) || 1)).toLocaleString()} so'm</span>
+                  </div>
+                  <div className="text-[11px]">
+                    {i.quantity || 1} x {(Number(i.price) || 0).toLocaleString()} so'm
+                  </div>
+                  {i.note && <div className="text-[10px] font-bold">Izoh: {i.note}</div>}
+                </div>
+              ))}
+            </div>
+
+            <div className="py-1.5 border-b border-dashed border-black text-xs space-y-0.5">
+              <div className="flex justify-between">
+                <span>Jami taomlar:</span>
+                <span className="font-bold">{subtotal.toLocaleString()} so'm</span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between">
+                  <span>Chegirma ({discountPercent}%):</span>
+                  <span>-{discountAmount.toLocaleString()} so'm</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span>Xizmat haqi ({serviceFeePercent}%):</span>
+                <span className="font-bold">{serviceFee.toLocaleString()} so'm</span>
+              </div>
+            </div>
+
+            <div className="py-2 border-b border-dashed border-black text-xs font-bold space-y-1">
+              <div className="flex justify-between text-sm font-black">
+                <span>JAMI TO'LOV:</span>
+                <span>{grandTotal.toLocaleString()} so'm</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span>To'lov turi:</span>
+                <span className="uppercase">{paymentMethod}</span>
+              </div>
+            </div>
+
+            <div className="text-center pt-2 text-[11px]">
+              <p className="font-medium">Tashrifingiz uchun rahmat!</p>
+              <p className="text-[9px] text-gray-500 mt-0.5">Uzbecano POS v1.0</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

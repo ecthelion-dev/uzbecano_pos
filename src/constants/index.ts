@@ -1,6 +1,11 @@
 import { DBCategory, DBProduct, DBWaiter } from '../types';
 
-export const API_BASE_URL = 'http://localhost:3000';
+export const API_BASE_URL = 
+  (typeof window !== 'undefined' && localStorage.getItem('uzbecano_api_url')) ||
+  (import.meta as any).env?.VITE_API_URL ||
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' 
+    ? (window.location.port ? `${window.location.protocol}//${window.location.hostname}:3000` : `${window.location.origin}`)
+    : 'http://localhost:3000');
 
 export const DEFAULT_WAITERS: DBWaiter[] = [
   { id: 'w1', name: 'Ali', pinCode: '1111' },

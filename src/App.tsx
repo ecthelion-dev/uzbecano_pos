@@ -1595,10 +1595,6 @@ export default function App() {
 
             {/* Totals */}
             <div className="space-y-2 text-base border-b-2 border-dashed border-slate-900 pb-3.5">
-              <div className="flex justify-between font-bold text-slate-800 print-text-dark">
-                <span>Oraliq Summa:</span>
-                <span className="whitespace-nowrap">{(selectedArchiveOrder.subtotal || 0).toLocaleString()} so'm</span>
-              </div>
               {selectedArchiveOrder.discount > 0 && (
                 <div className="flex justify-between font-bold text-slate-800 print-text-dark">
                   <span>Chegirma:</span>
@@ -1669,10 +1665,6 @@ export default function App() {
 
             {/* Totals */}
             <div className="space-y-2 text-base border-b-2 border-dashed border-slate-900 pb-3.5">
-              <div className="flex justify-between font-bold text-slate-800 print-text-dark">
-                <span>Oraliq Summa:</span>
-                <span className="whitespace-nowrap">{subtotal.toLocaleString()} so'm</span>
-              </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between font-bold text-slate-800 print-text-dark">
                   <span>Chegirma ({discountPercent}%):</span>

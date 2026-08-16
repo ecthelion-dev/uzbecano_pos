@@ -1198,7 +1198,7 @@ export default function App() {
             </div>
 
             {/* Light Receipt Panel */}
-            <div className="w-96 bg-white text-slate-900 rounded-2xl p-5 flex flex-col shadow-md border border-slate-200 h-[calc(100vh-120px)] overflow-hidden">
+            <div className="w-[435px] shrink-0 bg-white text-slate-900 rounded-2xl p-5 flex flex-col shadow-md border border-slate-200 h-[calc(100vh-120px)] overflow-hidden">
               <div className="flex items-center justify-between pb-4 border-b border-slate-200 shrink-0">
                 <div>
                   <h2 className="font-extrabold text-sm text-slate-900">Buyurtma Kvitansiyasi</h2>

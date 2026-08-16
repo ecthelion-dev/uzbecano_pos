@@ -1540,7 +1540,7 @@ export default function App() {
       {/* Standalone Thermal Print Receipt Area (Rendered only on thermal paper) */}
       <div id="thermal-print-area" className="hidden print:block text-slate-900 print-receipt-container font-['Outfit']">
         {selectedArchiveOrder ? (
-          <div className="w-full max-w-[80mm] mx-auto bg-white p-2 text-slate-900 space-y-4">
+          <div className="w-full bg-white p-1 text-slate-900 space-y-4">
             {/* Header */}
             <div className="text-center border-b-2 border-dashed border-slate-900 pb-3 space-y-1">
               <div className="w-12 h-12 mx-auto overflow-hidden rounded-xl">
@@ -1573,18 +1573,23 @@ export default function App() {
                 try {
                   items = typeof selectedArchiveOrder.items === 'string' ? JSON.parse(selectedArchiveOrder.items) : (selectedArchiveOrder.items || []);
                 } catch { items = []; }
-                return items.map((it: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-start text-sm border-b border-slate-100 pb-1">
-                    <div>
-                      <div className="font-black text-slate-900 print-text-dark text-base">{it.product?.name || it.name}</div>
-                      <div className="text-xs font-bold text-slate-700 print-text-dark">{it.quantity || 1}x {(Number(it.product?.price || it.price || 0)).toLocaleString()} so'm</div>
-                      {it.note && (
-                        <div className="text-xs font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />Izoh: {it.note}</div>
-                      )}
+                return items.map((it: any, idx: number) => {
+                  const unitPrice = Number(it.price || it.product?.price || it.unitPrice || 0);
+                  const qty = Number(it.quantity || it.count || 1);
+                  const total = Number(it.totalPrice || (unitPrice * qty) || 0);
+                  return (
+                    <div key={idx} className="flex justify-between items-start text-sm border-b border-slate-100 pb-1">
+                      <div>
+                        <div className="font-black text-slate-900 print-text-dark text-base">{it.product?.name || it.name}</div>
+                        <div className="text-xs font-bold text-slate-700 print-text-dark">{qty}x {unitPrice.toLocaleString()} so'm</div>
+                        {it.note && (
+                          <div className="text-xs font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />Izoh: {it.note}</div>
+                        )}
+                      </div>
+                      <span className="font-black text-slate-900 print-text-dark text-base">{total.toLocaleString()} so'm</span>
                     </div>
-                    <span className="font-black text-slate-900 print-text-dark text-base">{((Number(it.price || it.product?.price || 0)) * (Number(it.quantity) || 1)).toLocaleString()} so'm</span>
-                  </div>
-                ));
+                  );
+                });
               })()}
             </div>
 
@@ -1615,7 +1620,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div className="w-full max-w-[80mm] mx-auto bg-white p-2 text-slate-900 space-y-4">
+          <div className="w-full bg-white p-1 text-slate-900 space-y-4">
             {/* Header */}
             <div className="text-center border-b-2 border-dashed border-slate-900 pb-3 space-y-1">
               <div className="w-12 h-12 mx-auto overflow-hidden rounded-xl">
@@ -1643,18 +1648,23 @@ export default function App() {
                 <span>NOMI X SANOQ</span>
                 <span>JAMI</span>
               </div>
-              {[...activeTableOrderItems, ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note }))].map((it: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-start text-sm border-b border-slate-100 pb-1">
-                  <div>
-                    <div className="font-black text-slate-900 print-text-dark text-base">{it.product?.name || it.name}</div>
-                    <div className="text-xs font-bold text-slate-700 print-text-dark">{it.quantity || 1}x {(Number(it.product?.price || it.price || 0)).toLocaleString()} so'm</div>
-                    {it.note && (
-                      <div className="text-xs font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />Izoh: {it.note}</div>
-                    )}
+              {[...activeTableOrderItems, ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note }))].map((it: any, idx: number) => {
+                const unitPrice = Number(it.price || it.product?.price || it.unitPrice || 0);
+                const qty = Number(it.quantity || it.count || 1);
+                const total = Number(it.totalPrice || (unitPrice * qty) || 0);
+                return (
+                  <div key={idx} className="flex justify-between items-start text-sm border-b border-slate-100 pb-1">
+                    <div>
+                      <div className="font-black text-slate-900 print-text-dark text-base">{it.product?.name || it.name}</div>
+                      <div className="text-xs font-bold text-slate-700 print-text-dark">{qty}x {unitPrice.toLocaleString()} so'm</div>
+                      {it.note && (
+                        <div className="text-xs font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />Izoh: {it.note}</div>
+                      )}
+                    </div>
+                    <span className="font-black text-slate-900 print-text-dark text-base">{total.toLocaleString()} so'm</span>
                   </div>
-                  <span className="font-black text-slate-900 print-text-dark text-base">{((Number(it.price || it.product?.price || 0)) * (Number(it.quantity) || 1)).toLocaleString()} so'm</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Totals */}

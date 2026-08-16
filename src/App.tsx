@@ -1536,26 +1536,26 @@ export default function App() {
       {/* Standalone Thermal Print Receipt Area (Rendered only on thermal paper) */}
       <div id="thermal-print-area" className="hidden print:block text-black">
         {selectedArchiveOrder ? (
-          <div className="w-full text-black space-y-2.5 text-center">
+          <div className="w-full text-black space-y-2">
             {/* Header */}
-            <div className="pb-2.5 border-b-2 border-dashed border-black">
-              <p className="font-black text-2xl tracking-wider uppercase leading-tight pb-1">UZBECANO RESTORAN</p>
-              <p className="text-sm font-bold text-black">Toshkent sh., Markaziy filial</p>
-              <p className="text-sm font-bold text-black">Tel: +998 90 123 45 67</p>
-              <p className="text-sm font-black text-black mt-1">
+            <div className="text-center pb-2 border-b-2 border-dashed border-black">
+              <p className="font-black text-xl tracking-wider uppercase whitespace-nowrap leading-tight pb-0.5">UZBECANO RESTORAN</p>
+              <p className="text-xs font-bold text-black whitespace-nowrap">Toshkent sh., Markaziy filial</p>
+              <p className="text-xs font-bold text-black whitespace-nowrap">Tel: +998 90 123 45 67</p>
+              <p className="text-xs font-black text-black mt-1">
                 Ofitsiant: {selectedArchiveOrder.waiterName || currentWaiter?.name || 'Xodim'}
               </p>
             </div>
 
             {/* Meta Row */}
-            <div className="flex justify-between items-center py-2 border-b-2 border-dashed border-black text-sm font-black text-left">
-              <span>{selectedArchiveOrder.tableNumber}</span>
-              <span>{selectedArchiveOrder.paymentMethod?.toUpperCase() || 'NAQD'} • {selectedArchiveOrder.refunded ? 'BEKOR' : "TO'LANGAN"}</span>
-              <span>{selectedArchiveOrder.closedAt ? new Date(selectedArchiveOrder.closedAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
+            <div className="flex justify-between items-center py-1.5 border-b-2 border-dashed border-black text-xs font-black">
+              <span className="whitespace-nowrap">{selectedArchiveOrder.tableNumber}</span>
+              <span className="whitespace-nowrap">{selectedArchiveOrder.paymentMethod?.toUpperCase() || 'NAQD'} • {selectedArchiveOrder.refunded ? 'BEKOR' : "TO'LANGAN"}</span>
+              <span className="whitespace-nowrap">{selectedArchiveOrder.closedAt ? new Date(selectedArchiveOrder.closedAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
 
             {/* Items */}
-            <div className="py-1.5 border-b-2 border-dashed border-black space-y-2.5 text-left">
+            <div className="py-1.5 border-b-2 border-dashed border-black space-y-2">
               {(() => {
                 let items: any[] = [];
                 try {
@@ -1563,56 +1563,56 @@ export default function App() {
                 } catch { items = []; }
                 return items.map((i: any, idx: number) => (
                   <div key={idx} className="space-y-0.5">
-                    <div className="flex justify-between items-baseline text-base font-black">
+                    <div className="flex justify-between items-baseline text-sm font-black">
                       <span className="flex-1 pr-2">{i.name}</span>
-                      <span className="text-base font-black whitespace-nowrap">{((Number(i.price) || 0) * (Number(i.quantity) || 1)).toLocaleString()} so'm</span>
+                      <span className="text-sm font-black whitespace-nowrap">{((Number(i.price) || 0) * (Number(i.quantity) || 1)).toLocaleString()} so'm</span>
                     </div>
-                    <div className="text-sm font-bold text-black">
+                    <div className="text-xs font-bold text-black whitespace-nowrap">
                       {i.quantity || 1} x {(Number(i.price) || 0).toLocaleString()} so'm
                     </div>
-                    {i.note && <div className="text-sm font-black text-black">Izoh: {i.note}</div>}
+                    {i.note && <div className="text-xs font-black text-black">Izoh: {i.note}</div>}
                   </div>
                 ));
               })()}
             </div>
 
             {/* Calculations */}
-            <div className="py-2 border-b-2 border-dashed border-black text-sm font-bold space-y-1.5 text-left">
+            <div className="py-1.5 border-b-2 border-dashed border-black text-xs font-bold space-y-1">
               <div className="flex justify-between">
                 <span>Jami taomlar:</span>
-                <span className="font-black">{(selectedArchiveOrder.subtotal || 0).toLocaleString()} so'm</span>
+                <span className="font-black whitespace-nowrap">{(selectedArchiveOrder.subtotal || 0).toLocaleString()} so'm</span>
               </div>
               {selectedArchiveOrder.discount > 0 && (
                 <div className="flex justify-between">
                   <span>Chegirma:</span>
-                  <span className="font-black">-{(selectedArchiveOrder.discount || 0).toLocaleString()} so'm</span>
+                  <span className="font-black whitespace-nowrap">-{(selectedArchiveOrder.discount || 0).toLocaleString()} so'm</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span>Xizmat haqi:</span>
-                <span className="font-black">{(selectedArchiveOrder.serviceFee || 0).toLocaleString()} so'm</span>
+                <span className="font-black whitespace-nowrap">{(selectedArchiveOrder.serviceFee || 0).toLocaleString()} so'm</span>
               </div>
             </div>
 
             {/* Grand Total */}
-            <div className="py-2.5 border-b-2 border-black space-y-1.5 text-left">
+            <div className="py-2 border-b-2 border-black space-y-1">
               <div className="flex justify-between items-center font-black">
-                <span className="text-lg font-black">JAMI TO'LOV:</span>
-                <span className="text-2xl font-black">{(selectedArchiveOrder.total || 0).toLocaleString()} so'm</span>
+                <span className="text-base font-black whitespace-nowrap">JAMI TO'LOV:</span>
+                <span className="text-xl font-black whitespace-nowrap">{(selectedArchiveOrder.total || 0).toLocaleString()} so'm</span>
               </div>
               {selectedArchiveOrder.paymentMethod === 'aralash' ? (
-                <div className="pt-1 text-sm font-bold space-y-1 text-black">
+                <div className="pt-1 text-xs font-bold space-y-0.5 text-black">
                   <div className="flex justify-between">
                     <span>Naqd:</span>
-                    <span className="font-black">{(selectedArchiveOrder.cashAmount || 0).toLocaleString()} so'm</span>
+                    <span className="font-black whitespace-nowrap">{(selectedArchiveOrder.cashAmount || 0).toLocaleString()} so'm</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Karta:</span>
-                    <span className="font-black">{(selectedArchiveOrder.cardAmount || 0).toLocaleString()} so'm</span>
+                    <span className="font-black whitespace-nowrap">{(selectedArchiveOrder.cardAmount || 0).toLocaleString()} so'm</span>
                   </div>
                 </div>
               ) : (
-                <div className="flex justify-between text-sm font-bold pt-0.5">
+                <div className="flex justify-between text-xs font-bold pt-0.5">
                   <span>To'lov turi:</span>
                   <span className="font-black uppercase">{selectedArchiveOrder.paymentMethod || 'NAQD'}</span>
                 </div>
@@ -1620,83 +1620,83 @@ export default function App() {
             </div>
 
             {/* Footer */}
-            <div className="text-center pt-2.5 text-sm font-black text-black">
+            <div className="text-center pt-2 text-xs font-black text-black">
               <p>Tashrifingiz uchun rahmat!</p>
-              <p className="text-xs text-black mt-0.5">Uzbecano POS v1.0</p>
+              <p className="text-[10px] text-black mt-0.5">Uzbecano POS v1.0</p>
             </div>
           </div>
         ) : (
-          <div className="w-full text-black space-y-2.5 text-center">
+          <div className="w-full text-black space-y-2">
             {/* Header */}
-            <div className="pb-2.5 border-b-2 border-dashed border-black">
-              <p className="font-black text-2xl tracking-wider uppercase leading-tight pb-1">UZBECANO RESTORAN</p>
-              <p className="text-sm font-bold text-black">Toshkent sh., Markaziy filial</p>
-              <p className="text-sm font-bold text-black">Tel: +998 90 123 45 67</p>
-              <p className="text-sm font-black text-black mt-1">
+            <div className="text-center pb-2 border-b-2 border-dashed border-black">
+              <p className="font-black text-xl tracking-wider uppercase whitespace-nowrap leading-tight pb-0.5">UZBECANO RESTORAN</p>
+              <p className="text-xs font-bold text-black whitespace-nowrap">Toshkent sh., Markaziy filial</p>
+              <p className="text-xs font-bold text-black whitespace-nowrap">Tel: +998 90 123 45 67</p>
+              <p className="text-xs font-black text-black mt-1">
                 Ofitsiant: {currentWaiter?.name || 'Xodim'}
               </p>
             </div>
 
             {/* Meta Row */}
-            <div className="flex justify-between items-center py-2 border-b-2 border-dashed border-black text-sm font-black text-left">
-              <span>{selectedTable}</span>
-              <span>{paymentMethod.toUpperCase()} • TO'LANGAN</span>
-              <span>{new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
+            <div className="flex justify-between items-center py-1.5 border-b-2 border-dashed border-black text-xs font-black">
+              <span className="whitespace-nowrap">{selectedTable}</span>
+              <span className="whitespace-nowrap">{paymentMethod.toUpperCase()} • TO'LANGAN</span>
+              <span className="whitespace-nowrap">{new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
 
             {/* Items */}
-            <div className="py-1.5 border-b-2 border-dashed border-black space-y-2.5 text-left">
+            <div className="py-1.5 border-b-2 border-dashed border-black space-y-2">
               {[...activeTableOrderItems, ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note }))].map((i: any, idx: number) => (
                 <div key={idx} className="space-y-0.5">
-                  <div className="flex justify-between items-baseline text-base font-black">
+                  <div className="flex justify-between items-baseline text-sm font-black">
                     <span className="flex-1 pr-2">{i.name}</span>
-                    <span className="text-base font-black whitespace-nowrap">{((Number(i.price) || 0) * (Number(i.quantity) || 1)).toLocaleString()} so'm</span>
+                    <span className="text-sm font-black whitespace-nowrap">{((Number(i.price) || 0) * (Number(i.quantity) || 1)).toLocaleString()} so'm</span>
                   </div>
-                  <div className="text-sm font-bold text-black">
+                  <div className="text-xs font-bold text-black whitespace-nowrap">
                     {i.quantity || 1} x {(Number(i.price) || 0).toLocaleString()} so'm
                   </div>
-                  {i.note && <div className="text-sm font-black text-black">Izoh: {i.note}</div>}
+                  {i.note && <div className="text-xs font-black text-black">Izoh: {i.note}</div>}
                 </div>
               ))}
             </div>
 
             {/* Calculations */}
-            <div className="py-2 border-b-2 border-dashed border-black text-sm font-bold space-y-1.5 text-left">
+            <div className="py-1.5 border-b-2 border-dashed border-black text-xs font-bold space-y-1">
               <div className="flex justify-between">
                 <span>Jami taomlar:</span>
-                <span className="font-black">{subtotal.toLocaleString()} so'm</span>
+                <span className="font-black whitespace-nowrap">{subtotal.toLocaleString()} so'm</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between">
                   <span>Chegirma ({discountPercent}%):</span>
-                  <span className="font-black">-{discountAmount.toLocaleString()} so'm</span>
+                  <span className="font-black whitespace-nowrap">-{discountAmount.toLocaleString()} so'm</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span>Xizmat haqi ({serviceFeePercent}%):</span>
-                <span className="font-black">{serviceFee.toLocaleString()} so'm</span>
+                <span className="font-black whitespace-nowrap">{serviceFee.toLocaleString()} so'm</span>
               </div>
             </div>
 
             {/* Grand Total */}
-            <div className="py-2.5 border-b-2 border-black space-y-1.5 text-left">
+            <div className="py-2 border-b-2 border-black space-y-1">
               <div className="flex justify-between items-center font-black">
-                <span className="text-lg font-black">JAMI TO'LOV:</span>
-                <span className="text-2xl font-black">{grandTotal.toLocaleString()} so'm</span>
+                <span className="text-base font-black whitespace-nowrap">JAMI TO'LOV:</span>
+                <span className="text-xl font-black whitespace-nowrap">{grandTotal.toLocaleString()} so'm</span>
               </div>
               {paymentMethod === 'aralash' ? (
-                <div className="pt-1 text-sm font-bold space-y-1 text-black">
+                <div className="pt-1 text-xs font-bold space-y-0.5 text-black">
                   <div className="flex justify-between">
                     <span>Naqd:</span>
-                    <span className="font-black">{(customCashAmount ? Number(customCashAmount) : Math.round(grandTotal / 2)).toLocaleString()} so'm</span>
+                    <span className="font-black whitespace-nowrap">{(customCashAmount ? Number(customCashAmount) : Math.round(grandTotal / 2)).toLocaleString()} so'm</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Karta:</span>
-                    <span className="font-black">{(customCardAmount ? Number(customCardAmount) : grandTotal - Math.round(grandTotal / 2)).toLocaleString()} so'm</span>
+                    <span className="font-black whitespace-nowrap">{(customCardAmount ? Number(customCardAmount) : grandTotal - Math.round(grandTotal / 2)).toLocaleString()} so'm</span>
                   </div>
                 </div>
               ) : (
-                <div className="flex justify-between text-sm font-bold pt-0.5">
+                <div className="flex justify-between text-xs font-bold pt-0.5">
                   <span>To'lov turi:</span>
                   <span className="font-black uppercase">{paymentMethod}</span>
                 </div>
@@ -1704,9 +1704,9 @@ export default function App() {
             </div>
 
             {/* Footer */}
-            <div className="text-center pt-2.5 text-sm font-black text-black">
+            <div className="text-center pt-2 text-xs font-black text-black">
               <p>Tashrifingiz uchun rahmat!</p>
-              <p className="text-xs text-black mt-0.5">Uzbecano POS v1.0</p>
+              <p className="text-[10px] text-black mt-0.5">Uzbecano POS v1.0</p>
             </div>
           </div>
         )}

@@ -211,10 +211,10 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           ))}
           <button
             type="button"
-            onClick={() => handleKey('000')}
-            className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-xs transition-all active:scale-95 cursor-pointer"
+            onClick={() => handleKey('C')}
+            className="bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-800 font-bold py-3 rounded-lg text-sm transition-all active:scale-95 cursor-pointer"
           >
-            000
+            C
           </button>
 
           {['7', '8', '9'].map((d) => (
@@ -229,10 +229,11 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           ))}
           <button
             type="button"
-            onClick={() => handleKey('C')}
-            className="bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-800 font-bold py-3 rounded-lg text-sm transition-all active:scale-95 cursor-pointer"
+            onClick={handleConfirm}
+            className="row-span-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 rounded-lg text-sm shadow-md shadow-emerald-600/30 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
           >
-            C
+            <Check className="w-6 h-6" />
+            <span className="text-xs">TAYYOR</span>
           </button>
 
           <button
@@ -244,11 +245,10 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={handleConfirm}
-            className="col-span-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 rounded-lg text-sm shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+            onClick={() => handleKey('000')}
+            className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-xs transition-all active:scale-95 cursor-pointer"
           >
-            <Check className="w-5 h-5" />
-            <span>TAYYOR</span>
+            000
           </button>
         </div>
       </div>

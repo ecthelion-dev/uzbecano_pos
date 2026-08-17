@@ -54,7 +54,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         {/* Thermal Receipt Paper Effect */}
         <div id="printable-receipt" className="bg-amber-50/40 p-6 rounded-2xl border border-amber-200/60 font-mono text-sm text-slate-800 space-y-3.5 shadow-inner">
           <div className="text-center space-y-1 border-b border-dashed border-slate-400 pb-3">
-            <h4 className="font-black text-xl text-slate-900 tracking-wider uppercase">UZBECANO RESTORAN</h4>
+            <h4 className="font-black text-xl text-slate-900 tracking-wider uppercase">ORDERPLUS RESTORAN</h4>
             <p className="text-xs text-slate-600 font-medium">Toshkent sh., Markaziy filial</p>
             <p className="text-xs text-slate-600 font-medium">Tel: +998 90 123 45 67</p>
             {currentWaiter?.name && (
@@ -138,7 +138,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
           <div className="text-center pt-2 text-xs text-slate-500 font-sans">
             <p className="font-medium">Tashrifingiz uchun rahmat!</p>
-            <p className="text-[10px] mt-0.5 text-slate-400">Uzbecano POS v1.0</p>
+            <p className="text-[10px] mt-0.5 text-slate-400">OrderPlus POS v1.0</p>
           </div>
         </div>
 

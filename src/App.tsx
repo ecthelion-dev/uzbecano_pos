@@ -580,7 +580,7 @@ export default function App() {
       : paymentMethod === 'karta' ? grandTotal : 0;
 
     const receiptData = {
-      shopName: 'UZBECANO RESTORAN',
+      shopName: 'ORDERPLUS RESTORAN',
       shopAddress: 'Toshkent sh., Markaziy filial',
       shopPhone: 'Tel: +998 90 123 45 67',
       waiterName: currentWaiter?.name || '',

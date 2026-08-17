@@ -147,7 +147,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
             <div id="printable-receipt" className="bg-amber-50/50 p-6 rounded-3xl border-2 border-amber-200/80 font-mono text-sm text-slate-800 space-y-3.5 shadow-sm max-w-lg mx-auto">
               <div className="text-center space-y-1 border-b-2 border-dashed border-slate-400 pb-3">
-                <h4 className="font-black text-2xl text-slate-900 tracking-wider uppercase">UZBECANO RESTORAN</h4>
+                <h4 className="font-black text-2xl text-slate-900 tracking-wider uppercase">ORDERPLUS RESTORAN</h4>
                 <p className="text-xs text-slate-600 font-bold">Yopilgan Chek: #{selectedArchiveOrder.id.slice(-6)}</p>
                 {selectedArchiveOrder.closedAt && (
                   <p className="text-xs text-slate-600 font-semibold">Sana: {new Date(selectedArchiveOrder.closedAt).toLocaleString('uz-UZ')}</p>

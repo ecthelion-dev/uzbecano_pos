@@ -416,12 +416,23 @@ export default function App() {
   const allCategories = useMemo(() => {
     const map = new Map<string, DBCategory>();
     categoriesData.forEach(c => {
-      if (c.name && !map.has(c.name.toLowerCase())) {
-        map.set(c.name.toLowerCase(), c);
+      if (c.name && !map.has(c.name.toLowerCase().trim())) {
+        map.set(c.name.toLowerCase().trim(), c);
+      }
+    });
+    // Also include any categories present on products
+    products.forEach(p => {
+      if (p.category && !map.has(p.category.toLowerCase().trim())) {
+        map.set(p.category.toLowerCase().trim(), {
+          id: p.category,
+          name: p.category,
+          icon: 'UtensilsCrossed',
+          cafeId: '',
+        });
       }
     });
     return Array.from(map.values());
-  }, [categoriesData]);
+  }, [categoriesData, products]);
 
   // Product counts per category
   const categoryProductCounts = useMemo(() => {
@@ -1114,9 +1125,10 @@ export default function App() {
 
         <div className="flex items-center gap-2">
           {/* Cafe Name & Logo Display */}
-          <div
-            className="flex items-center gap-2 px-3.5 h-10 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold shadow-2xs"
-            title="Faol Kafe"
+          <button
+            onClick={() => setShowConnectModal(true)}
+            className="flex items-center gap-2 px-3.5 h-10 bg-orange-50 hover:bg-orange-100/80 active:scale-98 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
+            title="Kafeni o'zgartirish yoki ulanish"
           >
             {connectedCafeLogo ? (
               <img src={connectedCafeLogo} alt={connectedCafeName} className="w-5 h-5 rounded-md object-contain shrink-0" />
@@ -1124,7 +1136,7 @@ export default function App() {
               <Building2 className="w-4 h-4 text-orange-500 shrink-0" />
             )}
             <span className="max-w-[180px] truncate">{connectedCafeName || 'Kafe'}</span>
-          </div>
+          </button>
 
           {/* Thermal Printer Settings Button */}
           <button

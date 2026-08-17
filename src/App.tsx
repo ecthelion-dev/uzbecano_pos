@@ -895,7 +895,7 @@ export default function App() {
           <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
           <div>
             <h1 className="text-lg font-black tracking-wider text-slate-900 leading-none">ORDER<span className="text-orange-500">PLUS</span></h1>
-            <p className="text-[10px] text-slate-500 font-medium mt-0.5">DB Live System</p>
+            <p className="text-[10px] text-slate-500 font-medium mt-0.5">POS System</p>
           </div>
         </div>
 

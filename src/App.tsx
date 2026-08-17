@@ -1360,7 +1360,7 @@ export default function App() {
                       className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-black p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16"
                     >
                       <Send className="w-4 h-4" />
-                      <span>OSHXONAGA YUBORISH</span>
+                      <span>BUYURTMANI TASDIQLASH</span>
                     </button>
 
                     <button

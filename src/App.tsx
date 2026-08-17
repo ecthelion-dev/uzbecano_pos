@@ -1087,41 +1087,43 @@ export default function App() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           {/* Cafe Name Display */}
           <div
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold shadow-2xs"
+            className="flex items-center gap-2 px-3.5 h-10 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold shadow-2xs"
             title="Faol Kafe"
           >
-            <Building2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+            <Building2 className="w-4 h-4 text-orange-500 shrink-0" />
             <span className="max-w-[180px] truncate">{connectedCafeName || 'Kafe'}</span>
           </div>
 
           {/* Thermal Printer Settings Button */}
           <button
             onClick={() => setShowPrinterModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 active:scale-98 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-2 px-3.5 h-10 bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
             title="Termoprinter va Chek Sozlamalari"
           >
-            <Printer className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+            <Printer className="w-4 h-4 text-orange-500 shrink-0" />
             <span className="hidden lg:inline">Printer</span>
           </button>
 
+          {/* Refresh Button */}
           <button
             onClick={fetchOrders}
-            className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-1 text-xs font-medium border border-slate-200 bg-white cursor-pointer"
+            className="flex items-center gap-2 px-3.5 h-10 bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
             title="Qayta yuklash"
           >
-            <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin text-orange-500' : ''}`} />
-            YANGILASH
+            <RotateCw className={`w-4 h-4 text-slate-500 ${loading ? 'animate-spin text-orange-500' : ''}`} />
+            <span>Yangilash</span>
           </button>
 
+          {/* Waiter Profile & Logout */}
           {currentWaiter && (
-            <div className="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-xl border border-slate-200">
-              <div className="w-7 h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+            <div className="flex items-center gap-2.5 bg-slate-50/80 px-2.5 h-10 rounded-xl border border-slate-200 shadow-2xs">
+              <div className="w-7 h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                 <ChefHat className="w-4 h-4" />
               </div>
-              <div className="text-left">
+              <div className="text-left pr-1">
                 <p className="text-xs font-bold text-slate-900 leading-tight">{currentWaiter.name}</p>
                 <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">Ofitsiant</p>
               </div>
@@ -1130,7 +1132,7 @@ export default function App() {
                   setCurrentWaiter(null);
                   localStorage.removeItem('uzbecano_current_waiter');
                 }}
-                className="ml-2 p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                 title="Tizimdan chiqish"
               >
                 <LogOut className="w-4 h-4" />

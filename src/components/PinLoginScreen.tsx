@@ -1,5 +1,4 @@
 import React from 'react';
-import { UtensilsCrossed } from 'lucide-react';
 import { DBWaiter } from '../types';
 
 interface PinLoginScreenProps {
@@ -17,8 +16,8 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 font-sans antialiased text-slate-100 selection:bg-orange-500 selection:text-white">
       <div className="bg-slate-800 border border-slate-700/80 rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="bg-orange-500 p-3.5 rounded-2xl text-white shadow-lg shadow-orange-500/30">
-            <UtensilsCrossed className="w-8 h-8" />
+          <div className="w-20 h-20 mx-auto overflow-hidden rounded-2xl">
+            <img src="/logo.png" alt="Uzbecano" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-xl font-black tracking-wider text-white mt-2">
             UZBECANO <span className="text-orange-500">POS</span>

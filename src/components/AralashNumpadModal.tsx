@@ -31,8 +31,10 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
     }
   }, [show, initialActiveField, initialCash, initialCard]);
 
+  // Only auto-fill other field when user has explicitly entered something
+  const hasInput = inputVal !== '' && inputVal !== '0';
   const currentNum = Math.max(0, Math.min(grandTotal, Number(inputVal) || 0));
-  const otherNum = Math.max(0, grandTotal - currentNum);
+  const otherNum = hasInput ? Math.max(0, grandTotal - currentNum) : 0;
 
   const cashAmount = selectedField === 'cash' ? currentNum : otherNum;
   const cardAmount = selectedField === 'card' ? currentNum : otherNum;

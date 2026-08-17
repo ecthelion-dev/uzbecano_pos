@@ -16,6 +16,11 @@ interface ReceiptPreviewModalProps {
   cardAmount?: number;
   serviceFee: number;
   grandTotal: number;
+  cafeName?: string;
+  cafeLogo?: string;
+  cafeAddress?: string;
+  cafePhone?: string;
+  receiptHeader?: string;
   onClose: () => void;
   onPrint: () => void;
 }
@@ -34,6 +39,11 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   cardAmount,
   serviceFee,
   grandTotal,
+  cafeName,
+  cafeLogo,
+  cafeAddress,
+  cafePhone,
+  receiptHeader,
   onClose,
   onPrint,
 }) => {
@@ -53,10 +63,20 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
         {/* Thermal Receipt Paper Effect */}
         <div id="printable-receipt" className="bg-amber-50/40 p-6 rounded-2xl border border-amber-200/60 font-mono text-sm text-slate-800 space-y-3.5 shadow-inner">
-          <div className="text-center space-y-1 border-b border-dashed border-slate-400 pb-3">
-            <h4 className="font-bold text-xl text-slate-900 tracking-wider uppercase">ORDERPLUS RESTORAN</h4>
-            <p className="text-xs text-slate-600 font-medium">Toshkent sh., Markaziy filial</p>
-            <p className="text-xs text-slate-600 font-medium">Tel: +998 90 123 45 67</p>
+          <div className="text-center space-y-1.5 border-b border-dashed border-slate-400 pb-3">
+            <div className="flex flex-col items-center justify-center gap-1">
+              {cafeLogo ? (
+                <img src={cafeLogo} alt={cafeName} className="w-12 h-12 rounded-xl object-contain mx-auto" />
+              ) : (
+                <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain mx-auto" />
+              )}
+              <h4 className="font-bold text-xl text-slate-900 tracking-wider uppercase">{cafeName || 'ORDERPLUS RESTORAN'}</h4>
+            </div>
+            {receiptHeader && (
+              <p className="text-xs text-orange-600 font-bold">{receiptHeader}</p>
+            )}
+            <p className="text-xs text-slate-600 font-medium">{cafeAddress || 'Toshkent sh., Markaziy filial'}</p>
+            <p className="text-xs text-slate-600 font-medium">{cafePhone ? (cafePhone.startsWith('Tel') ? cafePhone : `Tel: ${cafePhone}`) : 'Tel: +998 90 123 45 67'}</p>
             {currentWaiter?.name && (
               <p className="text-xs text-slate-900 font-bold mt-1">Ofitsiant: {currentWaiter.name}</p>
             )}

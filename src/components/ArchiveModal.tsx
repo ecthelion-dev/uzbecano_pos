@@ -8,6 +8,11 @@ interface ArchiveModalProps {
   archiveSearch: string;
   selectedArchiveOrder: DBOrder | null;
   currentWaiter?: DBWaiter | null;
+  cafeName?: string;
+  cafeLogo?: string;
+  cafeAddress?: string;
+  cafePhone?: string;
+  receiptHeader?: string;
   onSearchChange: (q: string) => void;
   onSelectArchiveOrder: (ord: DBOrder | null) => void;
   onRefundOrder?: (ord: DBOrder, reason: string) => void;
@@ -23,6 +28,11 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   archiveSearch,
   selectedArchiveOrder,
   currentWaiter,
+  cafeName,
+  cafeLogo,
+  cafeAddress,
+  cafePhone,
+  receiptHeader,
   onSearchChange,
   onSelectArchiveOrder,
   onRefundOrder,
@@ -146,8 +156,24 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             </button>
 
             <div id="printable-receipt" className="bg-amber-50/50 p-6 rounded-3xl border-2 border-amber-200/80 font-mono text-sm text-slate-800 space-y-3.5 shadow-sm max-w-lg mx-auto">
-              <div className="text-center space-y-1 border-b-2 border-dashed border-slate-400 pb-3">
-                <h4 className="font-bold text-2xl text-slate-900 tracking-wider uppercase">ORDERPLUS RESTORAN</h4>
+              <div className="text-center space-y-1.5 border-b-2 border-dashed border-slate-400 pb-3">
+                <div className="flex flex-col items-center justify-center gap-1">
+                  {cafeLogo ? (
+                    <img src={cafeLogo} alt={cafeName} className="w-12 h-12 rounded-xl object-contain mx-auto" />
+                  ) : (
+                    <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain mx-auto" />
+                  )}
+                  <h4 className="font-bold text-2xl text-slate-900 tracking-wider uppercase">{cafeName || 'ORDERPLUS RESTORAN'}</h4>
+                </div>
+                {receiptHeader && (
+                  <p className="text-xs text-orange-600 font-bold">{receiptHeader}</p>
+                )}
+                {cafeAddress && (
+                  <p className="text-xs text-slate-600 font-medium">{cafeAddress}</p>
+                )}
+                {cafePhone && (
+                  <p className="text-xs text-slate-600 font-medium">{cafePhone.startsWith('Tel') ? cafePhone : `Tel: ${cafePhone}`}</p>
+                )}
                 <p className="text-xs text-slate-600 font-semibold">Yopilgan Chek: #{selectedArchiveOrder.id.slice(-6)}</p>
                 {selectedArchiveOrder.closedAt && (
                   <p className="text-xs text-slate-600 font-medium">Sana: {new Date(selectedArchiveOrder.closedAt).toLocaleString('uz-UZ')}</p>

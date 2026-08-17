@@ -1626,6 +1626,10 @@ export default function App() {
         cardAmount={paymentMethod === 'aralash' ? Math.max(0, Number(customCardAmount) || 0) : paymentMethod === 'karta' ? grandTotal : 0}
         serviceFee={serviceFee}
         grandTotal={grandTotal}
+        cafeName={connectedCafeName}
+        cafeLogo={connectedCafeLogo}
+        cafeAddress={connectedCafeAddress}
+        cafePhone={connectedCafePhone}
         onClose={() => setShowReceiptPreview(false)}
         onPrint={() => window.print()}
       />
@@ -1636,6 +1640,10 @@ export default function App() {
         archiveSearch={archiveSearch}
         selectedArchiveOrder={selectedArchiveOrder}
         currentWaiter={currentWaiter}
+        cafeName={connectedCafeName}
+        cafeLogo={connectedCafeLogo}
+        cafeAddress={connectedCafeAddress}
+        cafePhone={connectedCafePhone}
         onSearchChange={setArchiveSearch}
         onSelectArchiveOrder={setSelectedArchiveOrder}
         onRefundOrder={handleRefundOrder}

@@ -1332,32 +1332,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {paymentMethod === 'aralash' && (() => {
-                  const currentCash = Math.max(0, Number(customCashAmount) || 0);
-                  const currentCard = Math.max(0, Number(customCardAmount) || 0);
-                  return (
-                    <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-2xl space-y-2 text-xs animate-fadeIn">
-                      <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-slate-700 text-[11px]">Aralash To'lov:</span>
-                        <button
-                          type="button"
-                          onClick={() => { setActiveAralashField('cash'); setShowAralashModal(true); }}
-                          className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
-                        >⌨️ O'zgartirish</button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="p-2 rounded-xl bg-white border border-emerald-200">
-                          <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1"><Banknote className="w-3 h-3 text-emerald-600" /> Naqd:</div>
-                          <div className="font-black text-sm text-slate-900 mt-0.5">{currentCash.toLocaleString()} so'm</div>
-                        </div>
-                        <div className="p-2 rounded-xl bg-white border border-blue-200">
-                          <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1"><CreditCard className="w-3 h-3 text-blue-600" /> Karta:</div>
-                          <div className="font-black text-sm text-slate-900 mt-0.5">{currentCard.toLocaleString()} so'm</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
+
+
 
                 <div className="flex justify-between text-xs text-slate-500 font-medium pt-1">
                   <span>Jami taomlar:</span>

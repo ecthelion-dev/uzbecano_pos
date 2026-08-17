@@ -238,16 +238,9 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleKey('0')}
-            className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
+            className="col-span-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
           >
             0
-          </button>
-          <button
-            type="button"
-            onClick={() => handleKey('00')}
-            className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-sm transition-all active:scale-95 cursor-pointer"
-          >
-            00
           </button>
           <button
             type="button"

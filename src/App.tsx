@@ -1152,13 +1152,10 @@ export default function App() {
         ) : activeTab === 'stollar' ? (
           /* Light Stollar Zali Grid */
           <div className="flex-1 flex flex-col gap-5">
-            <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-              <div>
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Grid className="w-5 h-5 text-orange-500" /> Restoran Stollari Joylashuvi
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">Zal yoki xonalardan birini tanlang</p>
-              </div>
+            <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Grid className="w-5 h-5 text-orange-500" /> Restoran Stollari Joylashuvi
+              </h2>
               <div className="flex items-center gap-4 text-xs font-medium">
                 <span className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg text-emerald-700 border border-emerald-200">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> BOSH STOL

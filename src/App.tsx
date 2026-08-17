@@ -214,11 +214,12 @@ export default function App() {
     }
 
     try {
+      const now = Date.now();
       const [prodRes, catRes, waitRes, settRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/products?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
-        fetch(`${API_BASE_URL}/api/categories?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
-        fetch(`${API_BASE_URL}/api/waiters?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
-        fetch(`${API_BASE_URL}/api/settings?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
+        fetch(`${API_BASE_URL}/api/products?cafeId=${encodeURIComponent(cafeId)}&_t=${now}`, { cache: 'no-store' }).catch(() => null),
+        fetch(`${API_BASE_URL}/api/categories?cafeId=${encodeURIComponent(cafeId)}&_t=${now}`, { cache: 'no-store' }).catch(() => null),
+        fetch(`${API_BASE_URL}/api/waiters?cafeId=${encodeURIComponent(cafeId)}&_t=${now}`, { cache: 'no-store' }).catch(() => null),
+        fetch(`${API_BASE_URL}/api/settings?cafeId=${encodeURIComponent(cafeId)}&_t=${now}`, { cache: 'no-store' }).catch(() => null),
       ]);
 
       if (prodRes && prodRes.ok) {

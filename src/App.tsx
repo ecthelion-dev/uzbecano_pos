@@ -892,12 +892,10 @@ export default function App() {
       {/* Light Top Header Bar */}
       <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="bg-orange-500 p-2.5 rounded-xl text-white shadow-md">
-            <UtensilsCrossed className="w-5 h-5" />
-          </div>
+          <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
           <div>
-            <h1 className="text-lg font-black tracking-wider text-slate-900">UZBECANO <span className="text-orange-500">POS</span></h1>
-            <p className="text-[10px] text-slate-500 font-medium">DB Live System</p>
+            <h1 className="text-lg font-black tracking-wider text-slate-900 leading-none">ORDER<span className="text-orange-500">PLUS</span></h1>
+            <p className="text-[10px] text-slate-500 font-medium mt-0.5">DB Live System</p>
           </div>
         </div>
 

@@ -1512,7 +1512,7 @@ export default function App() {
             {/* Header */}
             <div className="text-center border-b-2 border-dashed border-slate-900 pb-3.5 space-y-1.5">
               <div className="w-14 h-14 mx-auto overflow-hidden rounded-xl">
-                <img src="/icon.svg" alt="Uzbecano" className="w-full h-full object-contain" />
+                <img src="/logo.png" alt="Uzbecano" className="w-full h-full object-contain" />
               </div>
               <h2 className="text-3xl font-black tracking-wider uppercase pt-1 text-slate-900 print-text-dark">UZBECANO</h2>
               <p className="text-sm font-bold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
@@ -1588,7 +1588,7 @@ export default function App() {
             {/* Header */}
             <div className="text-center border-b-2 border-dashed border-slate-900 pb-3.5 space-y-1.5">
               <div className="w-14 h-14 mx-auto overflow-hidden rounded-xl">
-                <img src="/icon.svg" alt="Uzbecano" className="w-full h-full object-contain" />
+                <img src="/logo.png" alt="Uzbecano" className="w-full h-full object-contain" />
               </div>
               <h2 className="text-3xl font-black tracking-wider uppercase pt-1 text-slate-900 print-text-dark">UZBECANO</h2>
               <p className="text-sm font-bold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>

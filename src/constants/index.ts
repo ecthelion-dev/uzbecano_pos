@@ -7,10 +7,7 @@ export const API_BASE_URL =
     ? 'https://orderplus.uz'
     : 'http://localhost:3000');
 
-export const DEFAULT_WAITERS: DBWaiter[] = [
-  { id: 'w1', name: 'Ali', pinCode: '1111' },
-  { id: 'w2', name: 'Vali', pinCode: '2222' }
-];
+export const DEFAULT_WAITERS: DBWaiter[] = [];
 
 export const DEFAULT_OFFLINE_CATEGORIES: DBCategory[] = [
   { id: 'cat_1', name: 'Milliy Taomlar' },

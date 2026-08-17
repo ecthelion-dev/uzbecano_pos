@@ -154,72 +154,93 @@ export default function App() {
           ? [...data].sort((a: any, b: any) => new Date(b.closedAt || b.createdAt || 0).getTime() - new Date(a.closedAt || a.createdAt || 0).getTime())
           : [];
         setOrders(sorted);
-        localStorage.setItem('uzbecano_orders', JSON.stringify(sorted));
+        localStorage.setItem(`orderplus_${cafeId}_orders`, JSON.stringify(sorted));
         setIsOfflineMode(false);
       }
     } catch {}
   }, []);
 
-  // Fetch static data once (products, categories, waiters — served from server cache)
+  // Fetch static data once (products, categories, waiters, settings)
   const fetchData = useCallback(async () => {
     setLoading(true);
     setApiError(null);
 
     const cafeId = localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
 
-    // Load static data from localStorage instantly (no flicker)
-    const localCats = localStorage.getItem('uzbecano_categories');
-    const localProds = localStorage.getItem('uzbecano_products');
-    const localWaiters = localStorage.getItem('uzbecano_waiters');
-    const localOrds = localStorage.getItem('uzbecano_orders');
+    // Load static data from localStorage scoped by cafeId
+    const localCats = localStorage.getItem(`orderplus_${cafeId}_categories`) || localStorage.getItem('uzbecano_categories');
+    const localProds = localStorage.getItem(`orderplus_${cafeId}_products`) || localStorage.getItem('uzbecano_products');
+    const localWaiters = localStorage.getItem(`orderplus_${cafeId}_waiters`) || localStorage.getItem('uzbecano_waiters');
+    const localOrds = localStorage.getItem(`orderplus_${cafeId}_orders`) || localStorage.getItem('uzbecano_orders');
+
     if (localProds) {
-      const p = JSON.parse(localProds);
-      if (p.length > 0) setProducts(mapDBProductModifiers(p));
+      try {
+        const p = JSON.parse(localProds);
+        if (p.length > 0) setProducts(mapDBProductModifiers(p));
+      } catch {}
     }
     if (localCats) {
-      const c = JSON.parse(localCats);
-      if (c.length > 0) setCategoriesData(c);
+      try {
+        const c = JSON.parse(localCats);
+        if (c.length > 0) setCategoriesData(c);
+      } catch {}
     }
     if (localWaiters) {
-      const w = JSON.parse(localWaiters);
-      if (w.length > 0) setWaiters(w);
+      try {
+        const w = JSON.parse(localWaiters);
+        if (w.length > 0) setWaiters(w);
+      } catch {}
     }
     if (localOrds) {
-      setOrders(JSON.parse(localOrds));
+      try {
+        setOrders(JSON.parse(localOrds));
+      } catch {}
     }
 
     try {
-      const [prodRes, catRes, waitRes] = await Promise.all([
+      const [prodRes, catRes, waitRes, settRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/products?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
         fetch(`${API_BASE_URL}/api/categories?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
         fetch(`${API_BASE_URL}/api/waiters?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
+        fetch(`${API_BASE_URL}/api/settings?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
       ]);
 
       if (prodRes && prodRes.ok) {
         const rawProds = await prodRes.json();
-        if (Array.isArray(rawProds) && rawProds.length > 0) {
+        if (Array.isArray(rawProds)) {
           setProducts(mapDBProductModifiers(rawProds));
-          localStorage.setItem('uzbecano_products', JSON.stringify(rawProds));
+          localStorage.setItem(`orderplus_${cafeId}_products`, JSON.stringify(rawProds));
         }
       }
       if (catRes && catRes.ok) {
         const cats = await catRes.json();
-        if (Array.isArray(cats) && cats.length > 0) {
+        if (Array.isArray(cats)) {
           setCategoriesData(cats);
-          localStorage.setItem('uzbecano_categories', JSON.stringify(cats));
+          localStorage.setItem(`orderplus_${cafeId}_categories`, JSON.stringify(cats));
         }
       }
       if (waitRes && waitRes.ok) {
         const ws = await waitRes.json();
         if (Array.isArray(ws) && ws.length > 0) {
           setWaiters(ws);
-          localStorage.setItem('uzbecano_waiters', JSON.stringify(ws));
+          localStorage.setItem(`orderplus_${cafeId}_waiters`, JSON.stringify(ws));
+        }
+      }
+      if (settRes && settRes.ok) {
+        const setts = await settRes.json();
+        if (typeof setts.serviceFeePercent === 'number') {
+          setServiceFeePercent(setts.serviceFeePercent);
+        }
+        if (setts.name) {
+          setConnectedCafeName(setts.name);
+          localStorage.setItem('orderplus_cafe_name', setts.name);
         }
       }
 
       await fetchOrders();
       setIsOfflineMode(false);
-    } catch {
+    } catch (err: any) {
+      setApiError(`Ulanishda xatolik: ${err?.message || err}`);
       setIsOfflineMode(true);
       if (!localProds) setProducts(DEFAULT_OFFLINE_PRODUCTS);
       if (!localCats) setCategoriesData(DEFAULT_OFFLINE_CATEGORIES);

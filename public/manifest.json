@@ -1,7 +1,7 @@
 {
-  "name": "Uzbecano POS",
-  "short_name": "Uzbecano",
-  "description": "Uzbecano POS Restoran Kassa va Buyurtma Tizimi",
+  "name": "OrderPlus POS",
+  "short_name": "OrderPlus",
+  "description": "OrderPlus POS Restoran Kassa va Buyurtma Tizimi",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",
@@ -9,7 +9,7 @@
   "theme_color": "#ea580c",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/favicon.png",
       "sizes": "192x192 512x512",
       "type": "image/png",
       "purpose": "any maskable"

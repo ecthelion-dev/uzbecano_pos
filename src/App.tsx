@@ -41,7 +41,9 @@ import { TableMoveModal } from './components/TableMoveModal';
 import { CashDrawerModal } from './components/CashDrawerModal';
 import { ProductModifierModal } from './components/ProductModifierModal';
 import { AralashNumpadModal } from './components/AralashNumpadModal';
-import { Wallet } from 'lucide-react';
+import { PrinterSettingsModal } from './components/PrinterSettingsModal';
+import { executePrintReceipt, executePrintKitchenSlip, getPrinterSettings } from './lib/printer';
+import { Wallet, Printer } from 'lucide-react';
 
 const mapDBProductModifiers = (prods: DBProduct[]): DBProduct[] => {
   return prods.map((p: any) => {
@@ -139,6 +141,7 @@ export default function App() {
   const [connectCodeInput, setConnectCodeInput] = useState<string>('');
   const [connectError, setConnectError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [showPrinterModal, setShowPrinterModal] = useState<boolean>(false);
 
   // Fetch orders only (lightweight, called frequently)
   const fetchOrders = useCallback(async () => {
@@ -614,12 +617,25 @@ export default function App() {
       localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
       setTableCarts(prev => ({ ...prev, [selectedTable]: [] }));
 
+      const kitchenPayload: KitchenSlipData = {
+        tableNumber: selectedTable,
+        waiterName: currentWaiter?.name || 'Offitsiant',
+        items: newItems,
+        timestamp: new Date().toISOString(),
+      };
+      setKitchenSlipData(kitchenPayload);
+
+      const pSettings = getPrinterSettings();
+      if (pSettings.autoPrintKitchen) {
+        executePrintKitchenSlip(kitchenPayload, connectedCafeName || 'OrderPlus');
+      }
+
       setToastMessage('Buyurtma oshxonaga yuborildi!');
       setTimeout(() => setToastMessage(null), 2500);
     } catch (err: any) {
       setApiError(`Ulanish xatosi: ${err.message || err}`);
     }
-  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode]);
+  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName]);
 
   const handlePrint = useCallback(() => {
     const allItems = [
@@ -835,7 +851,10 @@ export default function App() {
 
     setApiError(null);
     try {
+      const currentOrders = [...orders];
       const latestOrder = currentOrders.find(o => o.tableNumber === targetTable && o.status !== 'served');
+      let closedOrder: any = null;
+
       if (latestOrder) {
         const orderTotal = latestOrder.total || 0;
         const defaultHalfCash = Math.round(orderTotal / 2);
@@ -858,7 +877,7 @@ export default function App() {
           }).catch(() => null);
         }
 
-        const closedOrder = {
+        closedOrder = {
           ...latestOrder,
           status: 'served',
           paymentMethod,
@@ -877,11 +896,15 @@ export default function App() {
       setTableCarts(prev => ({ ...prev, [targetTable]: [] }));
       setToastMessage(`${targetTable} muvaffaqiyatli to'lanib yopildi!`);
       setTimeout(() => setToastMessage(null), 2500);
-      setTimeout(() => window.print(), 300);
+
+      const pSettings = getPrinterSettings();
+      if (pSettings.autoPrintReceipt && closedOrder) {
+        executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus');
+      }
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, paymentMethod, customCashAmount]);
+  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, paymentMethod, customCashAmount, connectedCafeName]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {
@@ -1093,6 +1116,16 @@ export default function App() {
           >
             <Building2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
             <span className="max-w-[140px] truncate">{connectedCafeName}</span>
+          </button>
+
+          {/* Thermal Printer Settings Button */}
+          <button
+            onClick={() => setShowPrinterModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 active:scale-98 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            title="Termoprinter va Chek Sozlamalari"
+          >
+            <Printer className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+            <span className="hidden lg:inline">Printer</span>
           </button>
 
           <button
@@ -1885,6 +1918,17 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Thermal Printer Settings Modal */}
+      <PrinterSettingsModal
+        isOpen={showPrinterModal}
+        onClose={() => setShowPrinterModal(false)}
+        cafeName={connectedCafeName || 'OrderPlus Restoran'}
+        onToast={(msg) => {
+          setToastMessage(msg);
+          setTimeout(() => setToastMessage(null), 2500);
+        }}
+      />
     </div>
   );
 }

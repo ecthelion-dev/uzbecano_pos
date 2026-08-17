@@ -134,9 +134,10 @@ export default function App() {
   // Fetch orders only (lightweight, called frequently)
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/orders?days=7`).catch(() => null);
-      if (res && res.ok) {
-        const data = await res.json();
+      const cafeId = localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
+      const res = await fetch(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data: DBOrder[] = await res.json();
         const sorted = Array.isArray(data)
           ? [...data].sort((a: any, b: any) => new Date(b.closedAt || b.createdAt || 0).getTime() - new Date(a.closedAt || a.createdAt || 0).getTime())
           : [];
@@ -151,6 +152,8 @@ export default function App() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setApiError(null);
+
+    const cafeId = localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
 
     // Load static data from localStorage instantly (no flicker)
     const localCats = localStorage.getItem('uzbecano_categories');
@@ -175,9 +178,9 @@ export default function App() {
 
     try {
       const [prodRes, catRes, waitRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/products`).catch(() => null),
-        fetch(`${API_BASE_URL}/api/categories`).catch(() => null),
-        fetch(`${API_BASE_URL}/api/waiters`).catch(() => null),
+        fetch(`${API_BASE_URL}/api/products?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
+        fetch(`${API_BASE_URL}/api/categories?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
+        fetch(`${API_BASE_URL}/api/waiters?cafeId=${encodeURIComponent(cafeId)}`).catch(() => null),
       ]);
 
       if (prodRes && prodRes.ok) {
@@ -534,8 +537,10 @@ export default function App() {
         const sub = draftSubtotal;
         const fee = Math.round(sub * 0.1);
         const tot = sub + fee;
+        const cafeId = localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
         const newOrderObj = {
           id: `ord_${Date.now()}`,
+          cafeId,
           tableNumber: selectedTable,
           waiterName: currentWaiter?.name || '',
           items: JSON.stringify(newItems),

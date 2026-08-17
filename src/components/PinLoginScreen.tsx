@@ -16,12 +16,12 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 font-sans antialiased text-slate-100 selection:bg-orange-500 selection:text-white">
       <div className="bg-slate-800 border border-slate-700/80 rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="w-20 h-20 mx-auto overflow-hidden rounded-2xl">
-            <img src="/logo.png" alt="Uzbecano" className="w-full h-full object-contain" />
+          <div className="flex items-center gap-3">
+            <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
+            <h1 className="text-xl font-black tracking-wider text-white">
+              ORDER<span className="text-orange-500">PLUS</span>
+            </h1>
           </div>
-          <h1 className="text-xl font-black tracking-wider text-white mt-2">
-            UZBECANO <span className="text-orange-500">POS</span>
-          </h1>
           <p className="text-xs text-slate-400 font-medium">Offitsiant PIN kodini kiriting</p>
         </div>
 

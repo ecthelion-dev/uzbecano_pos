@@ -1511,10 +1511,10 @@ export default function App() {
           <div className="w-full bg-white p-1 text-slate-900 space-y-4">
             {/* Header */}
             <div className="text-center border-b-2 border-dashed border-slate-900 pb-3.5 space-y-1.5">
-              <div className="w-14 h-14 mx-auto overflow-hidden rounded-xl">
-                <img src="/logo.png" alt="Uzbecano" className="w-full h-full object-contain" />
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
+                <h2 className="text-3xl font-black tracking-wider uppercase text-slate-900 print-text-dark">ORDER<span>PLUS</span></h2>
               </div>
-              <h2 className="text-3xl font-black tracking-wider uppercase pt-1 text-slate-900 print-text-dark">UZBECANO</h2>
               <p className="text-sm font-bold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
               <div className="text-base font-black pt-1 text-slate-900 print-text-dark">
                 <span>{selectedArchiveOrder.tableNumber}</span>
@@ -1587,10 +1587,10 @@ export default function App() {
           <div className="w-full bg-white p-1 text-slate-900 space-y-4">
             {/* Header */}
             <div className="text-center border-b-2 border-dashed border-slate-900 pb-3.5 space-y-1.5">
-              <div className="w-14 h-14 mx-auto overflow-hidden rounded-xl">
-                <img src="/logo.png" alt="Uzbecano" className="w-full h-full object-contain" />
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
+                <h2 className="text-3xl font-black tracking-wider uppercase text-slate-900 print-text-dark">ORDER<span>PLUS</span></h2>
               </div>
-              <h2 className="text-3xl font-black tracking-wider uppercase pt-1 text-slate-900 print-text-dark">UZBECANO</h2>
               <p className="text-sm font-bold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
               <div className="text-base font-black pt-1 text-slate-900 print-text-dark">
                 <span>{selectedTable}</span>

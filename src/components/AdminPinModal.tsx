@@ -56,12 +56,12 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
         <div className="flex items-center justify-between w-full border-b border-slate-100 pb-2">
           <div className="flex items-center gap-2 text-rose-600">
             <Lock className="w-4 h-4" />
-            <h3 className="font-extrabold text-xs text-slate-900">Xavfsizlik Tasdig'i</h3>
+            <h3 className="font-bold text-xs text-slate-900">Xavfsizlik Tasdig'i</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg font-bold">×</button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg font-semibold">×</button>
         </div>
 
-        <p className="text-xs text-slate-600 font-semibold text-center">{title}</p>
+        <p className="text-xs text-slate-600 font-medium text-center">{title}</p>
 
         <div className="flex items-center justify-center gap-3 py-1">
           {[0, 1, 2, 3].map((i) => (
@@ -77,7 +77,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
         </div>
 
         {error && (
-          <div className="text-rose-600 text-xs font-bold bg-rose-50 border border-rose-200 px-3 py-1 rounded-lg flex items-center gap-1">
+          <div className="text-rose-600 text-xs font-semibold bg-rose-50 border border-rose-200 px-3 py-1 rounded-lg flex items-center gap-1">
             <AlertCircle className="w-3.5 h-3.5" />
             <span>{error}</span>
           </div>
@@ -88,7 +88,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
             <button
               key={key}
               onClick={() => handleKey(key)}
-              className={`h-11 rounded-xl font-bold text-base transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
+              className={`h-11 rounded-xl font-semibold text-base transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
                 key === 'C'
                   ? 'bg-rose-50 text-rose-600 border border-rose-200 text-xs'
                   : key === 'DEL'

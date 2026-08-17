@@ -894,7 +894,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
           <div>
-            <h1 className="text-lg font-black tracking-wider text-slate-900 leading-none">ORDER<span className="text-orange-500">PLUS</span></h1>
+            <h1 className="text-lg font-bold tracking-wider text-slate-900 leading-none">ORDER<span className="text-orange-500">PLUS</span></h1>
             <p className="text-[10px] text-slate-500 font-medium mt-0.5">POS System</p>
           </div>
         </div>
@@ -903,7 +903,7 @@ export default function App() {
         <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button
             onClick={() => setActiveTab('stollar')}
-            className={`px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-2 ${activeTab === 'stollar'
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 ${activeTab === 'stollar'
                 ? 'bg-orange-500 text-white shadow-md'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
@@ -913,7 +913,7 @@ export default function App() {
           </button>
           <button
             onClick={() => setActiveTab('menyu')}
-            className={`px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-2 ${activeTab === 'menyu'
+            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 ${activeTab === 'menyu'
                 ? 'bg-orange-500 text-white shadow-md'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
@@ -923,7 +923,7 @@ export default function App() {
           </button>
           <button
             onClick={() => setShowArchiveModal(true)}
-            className="px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer"
+            className="px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer"
           >
             <Receipt className="w-3.5 h-3.5 text-orange-500" />
             ARXIV (F3)
@@ -933,7 +933,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           <button
             onClick={fetchOrders}
-            className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-1 text-xs font-semibold border border-slate-200 bg-white cursor-pointer"
+            className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-1 text-xs font-medium border border-slate-200 bg-white cursor-pointer"
             title="Qayta yuklash"
           >
             <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin text-orange-500' : ''}`} />
@@ -942,12 +942,12 @@ export default function App() {
 
           {currentWaiter && (
             <div className="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-xl border border-slate-200">
-              <div className="w-7 h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center font-black text-xs shadow-xs">
+              <div className="w-7 h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                 <ChefHat className="w-4 h-4" />
               </div>
               <div className="text-left">
-                <p className="text-xs font-black text-slate-900 leading-tight">{currentWaiter.name}</p>
-                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Ofitsiant</p>
+                <p className="text-xs font-bold text-slate-900 leading-tight">{currentWaiter.name}</p>
+                <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">Ofitsiant</p>
               </div>
               <button
                 onClick={() => {
@@ -969,19 +969,19 @@ export default function App() {
         {loading && products.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-24 text-slate-500 gap-3">
             <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-            <p className="text-xs font-bold">Ma'lumotlar bazasidan yuklanmoqda...</p>
+            <p className="text-xs font-semibold">Ma'lumotlar bazasidan yuklanmoqda...</p>
           </div>
         ) : activeTab === 'stollar' ? (
           /* Light Stollar Zali Grid */
           <div className="flex-1 flex flex-col gap-5">
             <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
               <div>
-                <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <Grid className="w-5 h-5 text-orange-500" /> Restoran Stollari Joylashuvi
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">Zal yoki xonalardan birini tanlang</p>
               </div>
-              <div className="flex items-center gap-4 text-xs font-semibold">
+              <div className="flex items-center gap-4 text-xs font-medium">
                 <span className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg text-emerald-700 border border-emerald-200">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> BOSH STOL
                 </span>
@@ -1000,14 +1000,14 @@ export default function App() {
                   <button
                     key={area}
                     onClick={() => setSelectedArea(area)}
-                    className={`px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center gap-2 border whitespace-nowrap shadow-2xs ${
+                    className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 border whitespace-nowrap shadow-2xs ${
                       selectedArea === area
                         ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                   >
                     <span>{area}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                       selectedArea === area ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'
                     }`}>
                       {areaCount}
@@ -1035,10 +1035,10 @@ export default function App() {
                     }`}
                 >
                   <div className="flex justify-between items-center">
-                    <span className={`font-black text-base tracking-tight ${t.status === 'band' ? 'text-white' : 'text-slate-900'}`}>
+                    <span className={`font-bold text-base tracking-tight ${t.status === 'band' ? 'text-white' : 'text-slate-900'}`}>
                       {t.number}
                     </span>
-                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full tracking-wider ${t.status === 'band'
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full tracking-wider ${t.status === 'band'
                         ? 'bg-orange-500 text-white'
                         : 'bg-emerald-100 text-emerald-700'
                       }`}>
@@ -1048,12 +1048,12 @@ export default function App() {
 
                   {t.status === 'band' ? (
                     <div className="bg-[#2A2D2F] p-2 rounded-xl border border-[#3A3E41] flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-semibold">Jami:</span>
-                      <span className="text-xs text-white font-extrabold">{t.total.toLocaleString()} so'm</span>
+                      <span className="text-[10px] text-slate-400 font-medium">Jami:</span>
+                      <span className="text-xs text-white font-bold">{t.total.toLocaleString()} so'm</span>
                     </div>
                   ) : (
                     <div className="py-0.5">
-                      <p className="text-[10px] text-slate-400 font-semibold">{t.area}</p>
+                      <p className="text-[10px] text-slate-400 font-medium">{t.area}</p>
                     </div>
                   )}
                 </div>
@@ -1072,14 +1072,14 @@ export default function App() {
                       setSelectedCategoryName(null);
                       setSearchQuery('');
                     }}
-                    className="flex items-center gap-2 text-xs font-extrabold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl border border-slate-200 transition-all cursor-pointer"
+                    className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl border border-slate-200 transition-all cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4 text-slate-600" /> KATEGORIYALARGA QAYTISH
                   </button>
                 ) : (
                   <button
                     onClick={() => setActiveTab('stollar')}
-                    className="flex items-center gap-2 text-xs font-extrabold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3.5 py-2 rounded-xl border border-orange-200 transition-all cursor-pointer"
+                    className="flex items-center gap-2 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3.5 py-2 rounded-xl border border-orange-200 transition-all cursor-pointer"
                   >
                     <ArrowLeft className="w-4 h-4 text-orange-500" /> STOLLAR ZALIGA QAYTISH
                   </button>
@@ -1103,7 +1103,7 @@ export default function App() {
                 <div className="flex-1 overflow-y-auto pr-1 pt-2.5 p-1">
                   {allCategories.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                      <p className="text-slate-400 text-sm font-semibold">Bazada kategoriyalar yoki mahsulotlar topilmadi</p>
+                      <p className="text-slate-400 text-sm font-medium">Bazada kategoriyalar yoki mahsulotlar topilmadi</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-5 gap-4">
@@ -1122,10 +1122,10 @@ export default function App() {
                             <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 group-hover:bg-orange-500 group-hover:text-white flex items-center justify-center transition-all mb-3 shadow-xs">
                               <UtensilsCrossed className="w-7 h-7" />
                             </div>
-                            <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1">
+                            <h3 className="font-bold text-sm text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1">
                               {cat.name}
                             </h3>
-                            <p className="text-[11px] font-bold text-slate-400 mt-1 bg-slate-100 group-hover:bg-orange-50 group-hover:text-orange-600 px-2.5 py-0.5 rounded-full transition-colors">
+                            <p className="text-[11px] font-semibold text-slate-400 mt-1 bg-slate-100 group-hover:bg-orange-50 group-hover:text-orange-600 px-2.5 py-0.5 rounded-full transition-colors">
                               {count} ta taom
                             </p>
                           </div>
@@ -1139,7 +1139,7 @@ export default function App() {
                 <div className="flex-1 overflow-y-auto pr-1">
                   {selectedCategoryName && (
                     <div className="flex items-center justify-between mb-3 px-1">
-                      <h3 className="text-sm font-bold text-slate-800">
+                      <h3 className="text-sm font-semibold text-slate-800">
                         {selectedCategoryName} ({displayedProducts.length})
                       </h3>
                     </div>
@@ -1147,7 +1147,7 @@ export default function App() {
 
                   {displayedProducts.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                      <p className="text-slate-400 text-sm font-semibold">Mahsulotlar topilmadi</p>
+                      <p className="text-slate-400 text-sm font-medium">Mahsulotlar topilmadi</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-4 gap-3">
@@ -1169,20 +1169,20 @@ export default function App() {
                                 <UtensilsCrossed className="w-8 h-8" />
                               </div>
                             )}
-                            <div className="absolute top-1.5 right-1.5 bg-slate-900/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                            <div className="absolute top-1.5 right-1.5 bg-slate-900/80 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-full">
                               {p.category}
                             </div>
                           </div>
                           <div className="p-2.5 flex flex-col justify-between flex-1">
                             <div>
-                              <h4 className="font-bold text-xs text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1">{p.name}</h4>
+                              <h4 className="font-semibold text-xs text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1">{p.name}</h4>
                               {p.description && (
                                 <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{p.description}</p>
                               )}
                             </div>
                             <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
-                              <span className="font-extrabold text-xs text-orange-600">{p.price.toLocaleString()} so'm</span>
-                              <span className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 group-hover:bg-orange-500 group-hover:text-white flex items-center justify-center transition-all shadow-xs group-active:scale-90 font-black">
+                              <span className="font-bold text-xs text-orange-600">{p.price.toLocaleString()} so'm</span>
+                              <span className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 group-hover:bg-orange-500 group-hover:text-white flex items-center justify-center transition-all shadow-xs group-active:scale-90 font-bold">
                                 <Plus className="w-4.5 h-4.5" />
                               </span>
                             </div>
@@ -1199,9 +1199,9 @@ export default function App() {
             <div className="w-[435px] shrink-0 bg-white text-slate-900 rounded-2xl p-5 flex flex-col shadow-md border border-slate-200 h-[calc(100vh-120px)] overflow-hidden">
               <div className="flex items-center justify-between pb-4 border-b border-slate-200 shrink-0">
                 <div>
-                  <h2 className="font-extrabold text-sm text-slate-900">Buyurtma Kvitansiyasi</h2>
+                  <h2 className="font-bold text-sm text-slate-900">Buyurtma Kvitansiyasi</h2>
                 </div>
-                <span className="bg-orange-500 text-white text-xs font-black px-2.5 py-1 rounded-xl shadow-sm">
+                <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-sm">
                   {selectedTable}
                 </span>
               </div>
@@ -1211,7 +1211,7 @@ export default function App() {
                 {activeTableOrderItems.length === 0 && cart.length === 0 ? (
                   <div className="text-center py-16 text-slate-400">
                     <ShoppingBag className="w-10 h-10 mx-auto opacity-30 mb-2" />
-                    <p className="text-xs font-semibold">Savat bo'sh</p>
+                    <p className="text-xs font-medium">Savat bo'sh</p>
                     <p className="text-[10px] text-slate-400 mt-1">Menyudan taom tanlang</p>
                   </div>
                 ) : (
@@ -1220,18 +1220,18 @@ export default function App() {
                     {activeTableOrderItems.length > 0 && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <p className="text-[10px] font-extrabold text-orange-600 tracking-wider uppercase">Oshxonaga yuborilgan taomlar</p>
-                          <span className="text-[9px] bg-orange-100 text-orange-700 font-extrabold px-1.5 py-0.5 rounded-md">Tayyorlanmoqda</span>
+                          <p className="text-[10px] font-bold text-orange-600 tracking-wider uppercase">Oshxonaga yuborilgan taomlar</p>
+                          <span className="text-[9px] bg-orange-100 text-orange-700 font-bold px-1.5 py-0.5 rounded-md">Tayyorlanmoqda</span>
                         </div>
                         {activeTableOrderItems.map((item: any, idx: number) => (
                           <div key={idx} className="bg-orange-50/60 p-2.5 rounded-xl border border-orange-200/70 space-y-1">
                             <div className="flex justify-between items-start">
                               <div className="flex-1 pr-2">
-                                <p className="font-extrabold text-xs text-slate-900">{item.name}</p>
-                                <p className="text-[10px] text-slate-500 font-semibold">{item.quantity || 1} ta x {(Number(item.price) || 0).toLocaleString()} so'm</p>
+                                <p className="font-bold text-xs text-slate-900">{item.name}</p>
+                                <p className="text-[10px] text-slate-500 font-medium">{item.quantity || 1} ta x {(Number(item.price) || 0).toLocaleString()} so'm</p>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-black text-slate-900">{((Number(item.price) || 0) * (Number(item.quantity) || 1)).toLocaleString()} so'm</span>
+                                <span className="text-xs font-bold text-slate-900">{((Number(item.price) || 0) * (Number(item.quantity) || 1)).toLocaleString()} so'm</span>
                                 <button
                                   onClick={() => handleRemoveKitchenItem(idx)}
                                   title="Bekor qilish (Admin PIN talab qilinadi)"
@@ -1242,7 +1242,7 @@ export default function App() {
                               </div>
                             </div>
                             {item.note && (
-                              <p className="text-[10px] font-extrabold text-amber-800 bg-amber-100/70 border border-amber-300/60 px-2 py-0.5 rounded-md inline-block">
+                              <p className="text-[10px] font-bold text-amber-800 bg-amber-100/70 border border-amber-300/60 px-2 py-0.5 rounded-md inline-block">
                                 <PenLine className="w-3 h-3 inline mr-0.5" />{item.note}
                               </p>
                             )}
@@ -1255,26 +1255,26 @@ export default function App() {
                     {cart.length > 0 && (
                       <div className="space-y-2 pt-1">
                         {activeTableOrderItems.length > 0 && (
-                          <p className="text-[10px] font-extrabold text-slate-500 tracking-wider uppercase border-t border-slate-100 pt-2">Yangi qo'shilayotgan taomlar</p>
+                          <p className="text-[10px] font-bold text-slate-500 tracking-wider uppercase border-t border-slate-100 pt-2">Yangi qo'shilayotgan taomlar</p>
                         )}
                         {cart.map((item) => (
                           <div key={item.product.id} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 shadow-xs space-y-1.5">
                             <div className="flex justify-between items-center">
                               <div className="flex-1 pr-2">
-                                <p className="font-bold text-xs text-slate-900">{item.product.name}</p>
-                                <p className="text-[11px] text-orange-600 font-semibold mt-0.5">{(item.product.price * item.quantity).toLocaleString()} so'm</p>
+                                <p className="font-semibold text-xs text-slate-900">{item.product.name}</p>
+                                <p className="text-[11px] text-orange-600 font-medium mt-0.5">{(item.product.price * item.quantity).toLocaleString()} so'm</p>
                               </div>
                               <div className="flex items-center gap-2 bg-slate-100/80 rounded-xl p-1 border border-slate-200 shadow-inner shrink-0">
                                 <button
                                   onClick={() => updateQuantity(item.product.id, -1)}
-                                  className="w-8 h-8 rounded-lg bg-white text-slate-700 hover:bg-rose-500 hover:text-white active:scale-90 flex items-center justify-center font-bold transition-all shadow-xs cursor-pointer"
+                                  className="w-8 h-8 rounded-lg bg-white text-slate-700 hover:bg-rose-500 hover:text-white active:scale-90 flex items-center justify-center font-semibold transition-all shadow-xs cursor-pointer"
                                 >
                                   <Minus className="w-4 h-4 stroke-[2.5]" />
                                 </button>
-                                <span className="text-sm font-black w-5 text-center text-slate-900">{item.quantity}</span>
+                                <span className="text-sm font-bold w-5 text-center text-slate-900">{item.quantity}</span>
                                 <button
                                   onClick={() => updateQuantity(item.product.id, 1)}
-                                  className="w-8 h-8 rounded-lg bg-white text-slate-700 hover:bg-emerald-500 hover:text-white active:scale-90 flex items-center justify-center font-bold transition-all shadow-xs cursor-pointer"
+                                  className="w-8 h-8 rounded-lg bg-white text-slate-700 hover:bg-emerald-500 hover:text-white active:scale-90 flex items-center justify-center font-semibold transition-all shadow-xs cursor-pointer"
                                 >
                                   <Plus className="w-4 h-4 stroke-[2.5]" />
                                 </button>
@@ -1300,7 +1300,7 @@ export default function App() {
 
                 {/* Payment Method Selector */}
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">To'lov Turi:</span>
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">To'lov Turi:</span>
                   <div className="grid grid-cols-3 gap-1">
                     {[
                       { id: 'naqd', label: 'Naqd', icon: <Banknote className="w-4 h-4" /> },
@@ -1318,7 +1318,7 @@ export default function App() {
                             setShowAralashModal(true);
                           }
                         }}
-                        className={`py-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                        className={`py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1 ${
                           paymentMethod === pm.id
                             ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -1335,19 +1335,19 @@ export default function App() {
 
                 <div className="flex justify-between text-xs text-slate-500 font-medium pt-1">
                   <span>Jami taomlar:</span>
-                  <span className="text-slate-900 font-semibold">{subtotal.toLocaleString()} so'm</span>
+                  <span className="text-slate-900 font-medium">{subtotal.toLocaleString()} so'm</span>
                 </div>
                 {discountAmount > 0 && (
-                  <div className="flex justify-between text-xs text-emerald-600 font-bold">
+                  <div className="flex justify-between text-xs text-emerald-600 font-semibold">
                     <span>Chegirma ({discountPercent}%):</span>
                     <span>-{discountAmount.toLocaleString()} so'm</span>
                   </div>
                 )}
                 <div className="flex justify-between text-xs text-slate-500 font-medium">
                   <span>Xizmat haqi ({serviceFeePercent}%):</span>
-                  <span className="text-slate-900 font-semibold">{serviceFee.toLocaleString()} so'm</span>
+                  <span className="text-slate-900 font-medium">{serviceFee.toLocaleString()} so'm</span>
                 </div>
-                <div className="flex justify-between text-base font-black text-slate-900 pt-1.5 border-t border-slate-200">
+                <div className="flex justify-between text-base font-bold text-slate-900 pt-1.5 border-t border-slate-200">
                   <span>JAMI:</span>
                   <span className="text-[#0F172A] text-lg">{grandTotal.toLocaleString()} so'm</span>
                 </div>
@@ -1357,7 +1357,7 @@ export default function App() {
                     <button
                       onClick={handleSendToKitchen}
                       disabled={cart.length === 0}
-                      className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-black p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16"
+                      className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16"
                     >
                       <Send className="w-4 h-4" />
                       <span>BUYURTMANI TASDIQLASH</span>
@@ -1366,7 +1366,7 @@ export default function App() {
                     <button
                       onClick={() => handleCloseTable()}
                       disabled={activeTableOrderItems.length === 0 && cart.length === 0}
-                      className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16"
+                      className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16"
                     >
                       <CheckCircle2 className="w-4 h-4" />
                       <span>TO'LOV VA YOPISH</span>
@@ -1377,14 +1377,14 @@ export default function App() {
                     <button
                       onClick={() => setShowReceiptPreview(true)}
                       disabled={activeTableOrderItems.length === 0 && cart.length === 0}
-                      className="bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer"
+                      className="bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer"
                     >
                       <Printer className="w-4 h-4 text-slate-500" /> CHEK CHIQARISH
                     </button>
                     <button
                       onClick={() => setShowTableMoveModal(true)}
                       disabled={activeTableOrderItems.length === 0}
-                      className="bg-orange-50 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed text-orange-700 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer"
+                      className="bg-orange-50 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed text-orange-700 font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer"
                     >
                       <Shuffle className="w-4 h-4 text-orange-600" /> KO'CHIRISH
                     </button>
@@ -1458,7 +1458,7 @@ export default function App() {
       />
 
       {apiError && (
-        <div className="bg-rose-600 text-white px-5 py-2.5 text-xs font-bold flex items-center justify-between shadow-xl">
+        <div className="bg-rose-600 text-white px-5 py-2.5 text-xs font-semibold flex items-center justify-between shadow-xl">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
             <span>{apiError}</span>
@@ -1511,18 +1511,18 @@ export default function App() {
             <div className="text-center border-b-2 border-dashed border-slate-900 pb-3.5 space-y-1.5">
               <div className="flex items-center justify-center gap-2 pt-1">
                 <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
-                <h2 className="text-3xl font-black tracking-wider uppercase text-slate-900 print-text-dark">ORDER<span>PLUS</span></h2>
+                <h2 className="text-3xl font-bold tracking-wider uppercase text-slate-900 print-text-dark">ORDER<span>PLUS</span></h2>
               </div>
-              <p className="text-sm font-bold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
-              <div className="text-base font-black pt-1 text-slate-900 print-text-dark">
+              <p className="text-sm font-semibold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
+              <div className="text-base font-bold pt-1 text-slate-900 print-text-dark">
                 <span>{selectedArchiveOrder.tableNumber}</span>
                 <span className="ml-2 text-slate-700 print-text-dark">#{selectedArchiveOrder.id.slice(-6)}</span>
               </div>
-              <div className="text-sm font-bold text-slate-600 print-text-dark">
+              <div className="text-sm font-semibold text-slate-600 print-text-dark">
                 {selectedArchiveOrder.closedAt ? new Date(selectedArchiveOrder.closedAt).toLocaleString('uz-UZ') : new Date().toLocaleString('uz-UZ')}
               </div>
               {selectedArchiveOrder.waiterName && (
-                <div className="text-sm font-bold text-slate-700 print-text-dark">
+                <div className="text-sm font-semibold text-slate-700 print-text-dark">
                   Ofitsiant: {selectedArchiveOrder.waiterName}
                 </div>
               )}
@@ -1530,7 +1530,7 @@ export default function App() {
 
             {/* Items List */}
             <div className="space-y-3 text-base border-b-2 border-dashed border-slate-900 pb-3.5">
-              <div className="flex justify-between font-black text-sm text-slate-900 print-text-dark uppercase border-b border-slate-200 pb-1.5">
+              <div className="flex justify-between font-bold text-sm text-slate-900 print-text-dark uppercase border-b border-slate-200 pb-1.5">
                 <span>NOMI X SANOQ</span>
                 <span>JAMI</span>
               </div>
@@ -1546,13 +1546,13 @@ export default function App() {
                   return (
                     <div key={idx} className="flex justify-between items-start border-b border-slate-100 pb-2">
                       <div>
-                        <div className="font-black text-slate-900 print-text-dark text-xl">{it.product?.name || it.name}</div>
-                        <div className="text-base font-extrabold text-slate-800 print-text-dark mt-0.5">{qty} x {unitPrice.toLocaleString()} so'm</div>
+                        <div className="font-bold text-slate-900 print-text-dark text-xl">{it.product?.name || it.name}</div>
+                        <div className="text-base font-bold text-slate-800 print-text-dark mt-0.5">{qty} x {unitPrice.toLocaleString()} so'm</div>
                         {it.note && (
-                          <div className="text-sm font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3.5 h-3.5 inline mr-0.5" />Izoh: {it.note}</div>
+                          <div className="text-sm font-semibold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3.5 h-3.5 inline mr-0.5" />Izoh: {it.note}</div>
                         )}
                       </div>
-                      <span className="font-black text-slate-900 print-text-dark text-xl whitespace-nowrap">{total.toLocaleString()} so'm</span>
+                      <span className="font-bold text-slate-900 print-text-dark text-xl whitespace-nowrap">{total.toLocaleString()} so'm</span>
                     </div>
                   );
                 });
@@ -1562,22 +1562,22 @@ export default function App() {
             {/* Totals */}
             <div className="space-y-2 text-base border-b-2 border-dashed border-slate-900 pb-3.5">
               {selectedArchiveOrder.discount > 0 && (
-                <div className="flex justify-between font-bold text-slate-800 print-text-dark">
+                <div className="flex justify-between font-semibold text-slate-800 print-text-dark">
                   <span>Chegirma:</span>
                   <span className="whitespace-nowrap">-{(selectedArchiveOrder.discount || 0).toLocaleString()} so'm</span>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-slate-800 print-text-dark">
+              <div className="flex justify-between font-semibold text-slate-800 print-text-dark">
                 <span>Xizmat Haqi ({serviceFeePercent}%):</span>
                 <span className="whitespace-nowrap">{(selectedArchiveOrder.serviceFee || 0).toLocaleString()} so'm</span>
               </div>
-              <div className="flex justify-between font-black text-2xl pt-1 text-slate-900 print-text-dark">
+              <div className="flex justify-between font-bold text-2xl pt-1 text-slate-900 print-text-dark">
                 <span>JAMI:</span>
                 <span className="whitespace-nowrap">{(selectedArchiveOrder.total || 0).toLocaleString()} so'm</span>
               </div>
             </div>
 
-            <div className="text-center text-sm font-bold text-slate-800 print-text-dark pt-1.5">
+            <div className="text-center text-sm font-semibold text-slate-800 print-text-dark pt-1.5">
               Tashrifingiz uchun rahmat!
             </div>
           </div>
@@ -1587,18 +1587,18 @@ export default function App() {
             <div className="text-center border-b-2 border-dashed border-slate-900 pb-3.5 space-y-1.5">
               <div className="flex items-center justify-center gap-2 pt-1">
                 <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
-                <h2 className="text-3xl font-black tracking-wider uppercase text-slate-900 print-text-dark">ORDER<span>PLUS</span></h2>
+                <h2 className="text-3xl font-bold tracking-wider uppercase text-slate-900 print-text-dark">ORDER<span>PLUS</span></h2>
               </div>
-              <p className="text-sm font-bold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
-              <div className="text-base font-black pt-1 text-slate-900 print-text-dark">
+              <p className="text-sm font-semibold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
+              <div className="text-base font-bold pt-1 text-slate-900 print-text-dark">
                 <span>{selectedTable}</span>
                 {activeTableOrder && <span className="ml-2 text-slate-700 print-text-dark">#{activeTableOrder.id.slice(-6)}</span>}
               </div>
-              <div className="text-sm font-bold text-slate-600 print-text-dark">
+              <div className="text-sm font-semibold text-slate-600 print-text-dark">
                 {new Date().toLocaleString('uz-UZ')}
               </div>
               {currentWaiter && (
-                <div className="text-sm font-bold text-slate-700 print-text-dark">
+                <div className="text-sm font-semibold text-slate-700 print-text-dark">
                   Ofitsiant: {currentWaiter.name}
                 </div>
               )}
@@ -1606,7 +1606,7 @@ export default function App() {
 
             {/* Items List */}
             <div className="space-y-3 text-base border-b-2 border-dashed border-slate-900 pb-3.5">
-              <div className="flex justify-between font-black text-sm text-slate-900 print-text-dark uppercase border-b border-slate-200 pb-1.5">
+              <div className="flex justify-between font-bold text-sm text-slate-900 print-text-dark uppercase border-b border-slate-200 pb-1.5">
                 <span>NOMI X SANOQ</span>
                 <span>JAMI</span>
               </div>
@@ -1617,13 +1617,13 @@ export default function App() {
                 return (
                   <div key={idx} className="flex justify-between items-start border-b border-slate-100 pb-2">
                     <div>
-                      <div className="font-black text-slate-900 print-text-dark text-xl">{it.product?.name || it.name}</div>
-                      <div className="text-base font-extrabold text-slate-800 print-text-dark mt-0.5">{qty} x {unitPrice.toLocaleString()} so'm</div>
+                      <div className="font-bold text-slate-900 print-text-dark text-xl">{it.product?.name || it.name}</div>
+                      <div className="text-base font-bold text-slate-800 print-text-dark mt-0.5">{qty} x {unitPrice.toLocaleString()} so'm</div>
                       {it.note && (
-                        <div className="text-sm font-bold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3.5 h-3.5 inline mr-0.5" />Izoh: {it.note}</div>
+                        <div className="text-sm font-semibold text-amber-900 print-text-dark mt-0.5"><PenLine className="w-3.5 h-3.5 inline mr-0.5" />Izoh: {it.note}</div>
                       )}
                     </div>
-                    <span className="font-black text-slate-900 print-text-dark text-xl whitespace-nowrap">{total.toLocaleString()} so'm</span>
+                    <span className="font-bold text-slate-900 print-text-dark text-xl whitespace-nowrap">{total.toLocaleString()} so'm</span>
                   </div>
                 );
               })}
@@ -1632,22 +1632,22 @@ export default function App() {
             {/* Totals */}
             <div className="space-y-2 text-base border-b-2 border-dashed border-slate-900 pb-3.5">
               {discountAmount > 0 && (
-                <div className="flex justify-between font-bold text-slate-800 print-text-dark">
+                <div className="flex justify-between font-semibold text-slate-800 print-text-dark">
                   <span>Chegirma ({discountPercent}%):</span>
                   <span className="whitespace-nowrap">-{discountAmount.toLocaleString()} so'm</span>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-slate-800 print-text-dark">
+              <div className="flex justify-between font-semibold text-slate-800 print-text-dark">
                 <span>Xizmat Haqi ({serviceFeePercent}%):</span>
                 <span className="whitespace-nowrap">{serviceFee.toLocaleString()} so'm</span>
               </div>
-              <div className="flex justify-between font-black text-2xl pt-1 text-slate-900 print-text-dark">
+              <div className="flex justify-between font-bold text-2xl pt-1 text-slate-900 print-text-dark">
                 <span>JAMI:</span>
                 <span className="whitespace-nowrap">{grandTotal.toLocaleString()} so'm</span>
               </div>
             </div>
 
-            <div className="text-center text-sm font-bold text-slate-800 print-text-dark pt-1.5">
+            <div className="text-center text-sm font-semibold text-slate-800 print-text-dark pt-1.5">
               Tashrifingiz uchun rahmat!
             </div>
           </div>

@@ -93,8 +93,8 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
         {/* Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
-            <h3 className="font-black text-slate-900 text-base">Aralash To'lov Miqdori</h3>
-            <p className="text-xs text-slate-500 font-medium">Jami to'lov: <span className="font-bold text-slate-900">{grandTotal.toLocaleString()} so'm</span></p>
+            <h3 className="font-bold text-slate-900 text-base">Aralash To'lov Miqdori</h3>
+            <p className="text-xs text-slate-500 font-medium">Jami to'lov: <span className="font-semibold text-slate-900">{grandTotal.toLocaleString()} so'm</span></p>
           </div>
           <button
             onClick={onClose}
@@ -109,7 +109,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleFieldSwitch('cash')}
-            className={`py-2.5 px-3 rounded-lg font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               selectedField === 'cash'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 scale-[1.02]'
                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
@@ -122,7 +122,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleFieldSwitch('card')}
-            className={`py-2.5 px-3 rounded-lg font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               selectedField === 'card'
                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 scale-[1.02]'
                 : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
@@ -135,15 +135,15 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
 
         {/* Display */}
         <div className="p-4 bg-slate-50/50 border-b border-slate-100 text-center space-y-1">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
             {selectedField === 'cash' ? '💵 Naqd pul miqdori' : '💳 Karta miqdori'}
           </div>
-          <div className="text-3xl font-black text-slate-900 tracking-tight font-mono">
-            {currentNum.toLocaleString()} <span className="text-sm font-bold text-slate-500">so'm</span>
+          <div className="text-3xl font-bold text-slate-900 tracking-tight font-mono">
+            {currentNum.toLocaleString()} <span className="text-sm font-semibold text-slate-500">so'm</span>
           </div>
-          <div className="text-xs font-bold text-slate-600">
+          <div className="text-xs font-semibold text-slate-600">
             {selectedField === 'cash' ? 'Karta orqali:' : 'Naqd orqali:'}{' '}
-            <span className="font-extrabold text-blue-700">
+            <span className="font-bold text-blue-700">
               {otherNum.toLocaleString()} so'm
             </span>
           </div>
@@ -154,14 +154,14 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleQuick(Math.round(grandTotal / 2))}
-            className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-black px-2.5 py-1.5 rounded-md shrink-0 transition-colors"
+            className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-bold px-2.5 py-1.5 rounded-md shrink-0 transition-colors"
           >
             50% / 50%
           </button>
           <button
             type="button"
             onClick={() => handleQuick(grandTotal)}
-            className="bg-slate-200 hover:bg-slate-300 text-slate-800 text-[11px] font-black px-2.5 py-1.5 rounded-md shrink-0 transition-colors"
+            className="bg-slate-200 hover:bg-slate-300 text-slate-800 text-[11px] font-bold px-2.5 py-1.5 rounded-md shrink-0 transition-colors"
           >
             To'liq
           </button>
@@ -171,7 +171,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
                 key={amt}
                 type="button"
                 onClick={() => handleQuick(amt)}
-                className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-bold px-2.5 py-1.5 rounded-md shrink-0 transition-colors"
+                className="bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-semibold px-2.5 py-1.5 rounded-md shrink-0 transition-colors"
               >
                 {(amt / 1000)}k
               </button>
@@ -186,7 +186,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
               key={d}
               type="button"
               onClick={() => handleKey(d)}
-              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-black py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
+              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
             >
               {d}
             </button>
@@ -194,7 +194,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleKey('DEL')}
-            className="bg-orange-100 hover:bg-orange-200 active:bg-orange-300 text-orange-800 font-black py-3 rounded-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+            className="bg-orange-100 hover:bg-orange-200 active:bg-orange-300 text-orange-800 font-bold py-3 rounded-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
           >
             <Delete className="w-5 h-5" />
           </button>
@@ -204,7 +204,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
               key={d}
               type="button"
               onClick={() => handleKey(d)}
-              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-black py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
+              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
             >
               {d}
             </button>
@@ -212,7 +212,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleKey('000')}
-            className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-black py-3 rounded-lg text-xs transition-all active:scale-95 cursor-pointer"
+            className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-xs transition-all active:scale-95 cursor-pointer"
           >
             000
           </button>
@@ -222,7 +222,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
               key={d}
               type="button"
               onClick={() => handleKey(d)}
-              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-black py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
+              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
             >
               {d}
             </button>
@@ -230,7 +230,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleKey('C')}
-            className="bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-800 font-black py-3 rounded-lg text-sm transition-all active:scale-95 cursor-pointer"
+            className="bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-800 font-bold py-3 rounded-lg text-sm transition-all active:scale-95 cursor-pointer"
           >
             C
           </button>
@@ -238,21 +238,21 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleKey('0')}
-            className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-black py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
+            className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
           >
             0
           </button>
           <button
             type="button"
             onClick={() => handleKey('00')}
-            className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-black py-3 rounded-lg text-sm transition-all active:scale-95 cursor-pointer"
+            className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-sm transition-all active:scale-95 cursor-pointer"
           >
             00
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className="col-span-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black py-3 rounded-lg text-sm shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+            className="col-span-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 rounded-lg text-sm shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
           >
             <Check className="w-5 h-5" />
             <span>TAYYOR</span>

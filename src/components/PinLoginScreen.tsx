@@ -18,7 +18,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-3">
             <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
-            <h1 className="text-xl font-black tracking-wider text-white">
+            <h1 className="text-xl font-bold tracking-wider text-white">
               ORDER<span className="text-orange-500">PLUS</span>
             </h1>
           </div>
@@ -39,7 +39,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
         </div>
 
         {pinError && (
-          <div className="text-rose-400 text-xs font-bold bg-rose-950/50 border border-rose-800/50 px-3 py-1.5 rounded-xl">
+          <div className="text-rose-400 text-xs font-semibold bg-rose-950/50 border border-rose-800/50 px-3 py-1.5 rounded-xl">
             {pinError}
           </div>
         )}
@@ -49,7 +49,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
             <button
               key={key}
               onClick={() => onPinKey(key)}
-              className={`h-14 rounded-2xl font-black text-lg transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
+              className={`h-14 rounded-2xl font-bold text-lg transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
                 key === 'C'
                   ? 'bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 border border-rose-700/50 text-sm'
                   : key === 'DEL'

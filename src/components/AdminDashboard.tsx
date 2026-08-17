@@ -101,9 +101,9 @@ export function AdminDashboard({ orders, products }: Props) {
     if (!active || !payload?.length) return null;
     return (
       <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-lg text-xs">
-        <p className="font-bold text-slate-700 mb-1">{label}</p>
+        <p className="font-semibold text-slate-700 mb-1">{label}</p>
         {payload.map((p: any, i: number) => (
-          <p key={i} style={{ color: p.color }} className="font-semibold">
+          <p key={i} style={{ color: p.color }} className="font-medium">
             {p.name}: {typeof p.value === 'number' && p.value > 1000 ? fmtSom(p.value) : p.value}
           </p>
         ))}
@@ -131,7 +131,7 @@ export function AdminDashboard({ orders, products }: Props) {
             <div key={i} className={`${c.bg} rounded-2xl border ${c.border} p-4 shadow-sm`}>
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${c.icon}`}>{card.icon}</div>
               <p className="text-xs text-slate-500 font-medium">{card.label}</p>
-              <p className="text-xl font-black text-slate-900 mt-0.5">{card.value}</p>
+              <p className="text-xl font-bold text-slate-900 mt-0.5">{card.value}</p>
               <p className="text-[10px] text-slate-400 mt-0.5">{card.sub}</p>
             </div>
           );
@@ -142,7 +142,7 @@ export function AdminDashboard({ orders, products }: Props) {
         <div className="col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4 text-orange-500" />
-            <h3 className="text-sm font-extrabold text-slate-900">7 kunlik tushum dinamikasi</h3>
+            <h3 className="text-sm font-bold text-slate-900">7 kunlik tushum dinamikasi</h3>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={last7Days} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
@@ -164,7 +164,7 @@ export function AdminDashboard({ orders, products }: Props) {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart2 className="w-4 h-4 text-blue-500" />
-            <h3 className="text-sm font-extrabold text-slate-900">Buyurtmalar holati</h3>
+            <h3 className="text-sm font-bold text-slate-900">Buyurtmalar holati</h3>
           </div>
           {statusData.length === 0 ? (
             <div className="h-[200px] flex items-center justify-center text-slate-400 text-xs">Ma'lumot yo'q</div>
@@ -186,7 +186,7 @@ export function AdminDashboard({ orders, products }: Props) {
         <div className="col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <ShoppingBag className="w-4 h-4 text-emerald-500" />
-            <h3 className="text-sm font-extrabold text-slate-900">Eng mashhur taomlar</h3>
+            <h3 className="text-sm font-bold text-slate-900">Eng mashhur taomlar</h3>
           </div>
           {topProducts.length === 0 ? (
             <div className="h-[180px] flex items-center justify-center text-slate-400 text-xs">Ma'lumot yo'q</div>
@@ -207,7 +207,7 @@ export function AdminDashboard({ orders, products }: Props) {
 
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-            <h3 className="text-xs font-extrabold text-slate-900 mb-3">To'lov usullari</h3>
+            <h3 className="text-xs font-bold text-slate-900 mb-3">To'lov usullari</h3>
             {paymentSplit.length === 0 ? (
               <p className="text-xs text-slate-400">Ma'lumot yo'q</p>
             ) : (
@@ -216,7 +216,7 @@ export function AdminDashboard({ orders, products }: Props) {
                   const pct = totalRevenue > 0 ? Math.round((p.value / totalRevenue) * 100) : 0;
                   return (
                     <div key={i}>
-                      <div className="flex justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                      <div className="flex justify-between text-[11px] font-medium text-slate-600 mb-1">
                         <span>{p.name}</span>
                         <span>{pct}%  · {p.value.toLocaleString()} so'm</span>
                       </div>
@@ -231,7 +231,7 @@ export function AdminDashboard({ orders, products }: Props) {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-            <h3 className="text-xs font-extrabold text-slate-900 mb-3">Soatlik buyurtmalar</h3>
+            <h3 className="text-xs font-bold text-slate-900 mb-3">Soatlik buyurtmalar</h3>
             <ResponsiveContainer width="100%" height={110}>
               <BarChart data={hourlyData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -246,26 +246,26 @@ export function AdminDashboard({ orders, products }: Props) {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <h3 className="text-sm font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
           <Users className="w-4 h-4 text-slate-400" /> Eng yaxshi taomlar – batafsil
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-slate-100">
-                <th className="text-left text-slate-400 font-bold pb-2 pr-4">#</th>
-                <th className="text-left text-slate-400 font-bold pb-2 pr-4">Taom nomi</th>
-                <th className="text-right text-slate-400 font-bold pb-2 pr-4">Buyurtma soni</th>
-                <th className="text-right text-slate-400 font-bold pb-2">Jami tushum</th>
+                <th className="text-left text-slate-400 font-semibold pb-2 pr-4">#</th>
+                <th className="text-left text-slate-400 font-semibold pb-2 pr-4">Taom nomi</th>
+                <th className="text-right text-slate-400 font-semibold pb-2 pr-4">Buyurtma soni</th>
+                <th className="text-right text-slate-400 font-semibold pb-2">Jami tushum</th>
               </tr>
             </thead>
             <tbody>
               {topProducts.map((p, i) => (
                 <tr key={i} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                  <td className="py-2 pr-4 text-slate-400 font-bold">{i + 1}</td>
-                  <td className="py-2 pr-4 font-semibold text-slate-800">{p.name}</td>
-                  <td className="py-2 pr-4 text-right font-bold text-orange-600">{p.count} ta</td>
-                  <td className="py-2 text-right font-bold text-slate-700">{p.revenue.toLocaleString()} so'm</td>
+                  <td className="py-2 pr-4 text-slate-400 font-semibold">{i + 1}</td>
+                  <td className="py-2 pr-4 font-medium text-slate-800">{p.name}</td>
+                  <td className="py-2 pr-4 text-right font-semibold text-orange-600">{p.count} ta</td>
+                  <td className="py-2 text-right font-semibold text-slate-700">{p.revenue.toLocaleString()} so'm</td>
                 </tr>
               ))}
               {topProducts.length === 0 && (

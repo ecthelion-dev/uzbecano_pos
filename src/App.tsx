@@ -1311,7 +1311,15 @@ export default function App() {
                     ].map((pm) => (
                       <button
                         key={pm.id}
-                        onClick={() => setPaymentMethod(pm.id as any)}
+                        onClick={() => {
+                          setPaymentMethod(pm.id as any);
+                          if (pm.id === 'aralash') {
+                            setCustomCashAmount('0');
+                            setCustomCardAmount('0');
+                            setActiveAralashField('cash');
+                            setShowAralashModal(true);
+                          }
+                        }}
                         className={`py-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer flex items-center justify-center gap-1 ${
                           paymentMethod === pm.id
                             ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
@@ -1325,63 +1333,28 @@ export default function App() {
                 </div>
 
                 {paymentMethod === 'aralash' && (() => {
-                  const defaultHalf = Math.round(grandTotal / 2);
-                  const currentCash = customCashAmount === '' ? (customCardAmount === '' ? defaultHalf : Math.max(0, grandTotal - (Number(customCardAmount) || 0))) : Math.max(0, Number(customCashAmount) || 0);
-                  const currentCard = customCardAmount === '' ? (customCashAmount === '' ? (grandTotal - defaultHalf) : Math.max(0, grandTotal - (Number(customCashAmount) || 0))) : Math.max(0, Number(customCardAmount) || 0);
-
+                  const currentCash = Math.max(0, Number(customCashAmount) || 0);
+                  const currentCard = Math.max(0, Number(customCardAmount) || 0);
                   return (
                     <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-2xl space-y-2 text-xs animate-fadeIn">
                       <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-slate-700 text-[11px]">Aralash To'lov Miqdorlari:</span>
-                        <span className="text-[10px] text-slate-400 font-medium">O'zgartirish uchun bosing</span>
+                        <span className="font-extrabold text-slate-700 text-[11px]">Aralash To'lov:</span>
+                        <button
+                          type="button"
+                          onClick={() => { setActiveAralashField('cash'); setShowAralashModal(true); }}
+                          className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                        >⌨️ O'zgartirish</button>
                       </div>
-
-                      {/* Clickable Amount Cards */}
                       <div className="grid grid-cols-2 gap-2">
-                        <div
-                          onClick={() => {
-                            setActiveAralashField('cash');
-                            setShowAralashModal(true);
-                          }}
-                          className="p-2.5 rounded-xl border-2 bg-white border-emerald-300 hover:border-emerald-500 hover:bg-emerald-50/50 transition-all cursor-pointer shadow-2xs group"
-                        >
-                          <label className="text-[10px] font-bold text-slate-600 flex items-center justify-between cursor-pointer">
-                            <span className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5 text-emerald-600" /> Naqd pul:</span>
-                            <span className="text-[10px] font-bold text-emerald-600 group-hover:underline">⌨️ Kiritish</span>
-                          </label>
-                          <div className="font-black text-sm text-slate-900 mt-1 tracking-tight">
-                            {currentCash.toLocaleString()} <span className="text-[10px] text-slate-500 font-bold">so'm</span>
-                          </div>
+                        <div className="p-2 rounded-xl bg-white border border-emerald-200">
+                          <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1"><Banknote className="w-3 h-3 text-emerald-600" /> Naqd:</div>
+                          <div className="font-black text-sm text-slate-900 mt-0.5">{currentCash.toLocaleString()} so'm</div>
                         </div>
-
-                        <div
-                          onClick={() => {
-                            setActiveAralashField('card');
-                            setShowAralashModal(true);
-                          }}
-                          className="p-2.5 rounded-xl border-2 bg-white border-blue-300 hover:border-blue-500 hover:bg-blue-50/50 transition-all cursor-pointer shadow-2xs group"
-                        >
-                          <label className="text-[10px] font-bold text-slate-600 flex items-center justify-between cursor-pointer">
-                            <span className="flex items-center gap-1"><CreditCard className="w-3.5 h-3.5 text-blue-600" /> Karta (Plastik):</span>
-                            <span className="text-[10px] font-bold text-blue-600 group-hover:underline">⌨️ Kiritish</span>
-                          </label>
-                          <div className="font-black text-sm text-slate-900 mt-1 tracking-tight">
-                            {currentCard.toLocaleString()} <span className="text-[10px] text-slate-500 font-bold">so'm</span>
-                          </div>
+                        <div className="p-2 rounded-xl bg-white border border-blue-200">
+                          <div className="text-[10px] font-bold text-slate-500 flex items-center gap-1"><CreditCard className="w-3 h-3 text-blue-600" /> Karta:</div>
+                          <div className="font-black text-sm text-slate-900 mt-0.5">{currentCard.toLocaleString()} so'm</div>
                         </div>
                       </div>
-
-                      {/* Quick 50/50 Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCustomCashAmount(defaultHalf.toString());
-                          setCustomCardAmount((grandTotal - defaultHalf).toString());
-                        }}
-                        className="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-[11px] font-bold py-1.5 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                      >
-                        <span>⚖️ 50% Naqd ({defaultHalf.toLocaleString()}) / 50% Karta ({(grandTotal - defaultHalf).toLocaleString()})</span>
-                      </button>
                     </div>
                   );
                 })()}
@@ -1459,8 +1432,8 @@ export default function App() {
         discountPercent={discountPercent}
         discountAmount={discountAmount}
         paymentMethod={paymentMethod}
-        cashAmount={paymentMethod === 'aralash' ? (customCashAmount === '' ? Math.round(grandTotal / 2) : Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0))) : paymentMethod === 'naqd' ? grandTotal : 0}
-        cardAmount={paymentMethod === 'aralash' ? Math.max(0, grandTotal - (customCashAmount === '' ? Math.round(grandTotal / 2) : Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0)))) : paymentMethod === 'karta' ? grandTotal : 0}
+        cashAmount={paymentMethod === 'aralash' ? Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0)) : paymentMethod === 'naqd' ? grandTotal : 0}
+        cardAmount={paymentMethod === 'aralash' ? Math.max(0, Number(customCardAmount) || 0) : paymentMethod === 'karta' ? grandTotal : 0}
         serviceFee={serviceFee}
         grandTotal={grandTotal}
         onClose={() => setShowReceiptPreview(false)}
@@ -1545,8 +1518,8 @@ export default function App() {
         show={showAralashModal}
         activeField={activeAralashField}
         grandTotal={grandTotal}
-        initialCash={customCashAmount ? Number(customCashAmount) : Math.round(grandTotal / 2)}
-        initialCard={customCardAmount ? Number(customCardAmount) : (grandTotal - Math.round(grandTotal / 2))}
+        initialCash={Number(customCashAmount) || 0}
+        initialCard={Number(customCardAmount) || 0}
         onSave={(cash, card) => {
           setCustomCashAmount(cash.toString());
           setCustomCardAmount(card.toString());

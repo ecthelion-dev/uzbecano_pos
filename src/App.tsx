@@ -143,10 +143,24 @@ export default function App() {
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [showPrinterModal, setShowPrinterModal] = useState<boolean>(false);
 
+  const getActiveCafeId = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const cafeParam = params.get('cafe') || params.get('cafeId');
+      if (cafeParam && cafeParam.trim()) {
+        const clean = cafeParam.trim().toLowerCase();
+        localStorage.setItem('orderplus_cafe_id', clean);
+        return clean;
+      }
+      return localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
+    }
+    return 'uzbecano';
+  }, []);
+
   // Fetch orders only (lightweight, called frequently)
   const fetchOrders = useCallback(async () => {
     try {
-      const cafeId = localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
+      const cafeId = getActiveCafeId();
       const res = await fetch(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}`, { cache: 'no-store' });
       if (res.ok) {
         const data: DBOrder[] = await res.json();
@@ -158,20 +172,22 @@ export default function App() {
         setIsOfflineMode(false);
       }
     } catch {}
-  }, []);
+  }, [getActiveCafeId]);
 
   // Fetch static data once (products, categories, waiters, settings)
   const fetchData = useCallback(async () => {
     setLoading(true);
     setApiError(null);
 
-    const cafeId = localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
+    const cafeId = getActiveCafeId();
 
     // Load static data from localStorage scoped by cafeId
     const localCats = localStorage.getItem(`orderplus_${cafeId}_categories`) || localStorage.getItem('uzbecano_categories');
     const localProds = localStorage.getItem(`orderplus_${cafeId}_products`) || localStorage.getItem('uzbecano_products');
     const localWaiters = localStorage.getItem(`orderplus_${cafeId}_waiters`) || localStorage.getItem('uzbecano_waiters');
     const localOrds = localStorage.getItem(`orderplus_${cafeId}_orders`) || localStorage.getItem('uzbecano_orders');
+    const localCafeName = localStorage.getItem(`orderplus_${cafeId}_name`) || localStorage.getItem('orderplus_cafe_name');
+    if (localCafeName) setConnectedCafeName(localCafeName);
 
     if (localProds) {
       try {
@@ -221,7 +237,7 @@ export default function App() {
       }
       if (waitRes && waitRes.ok) {
         const ws = await waitRes.json();
-        if (Array.isArray(ws) && ws.length > 0) {
+        if (Array.isArray(ws)) {
           setWaiters(ws);
           localStorage.setItem(`orderplus_${cafeId}_waiters`, JSON.stringify(ws));
         }
@@ -234,6 +250,7 @@ export default function App() {
         if (setts.name) {
           setConnectedCafeName(setts.name);
           localStorage.setItem('orderplus_cafe_name', setts.name);
+          localStorage.setItem(`orderplus_${cafeId}_name`, setts.name);
         }
       }
 
@@ -248,19 +265,9 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [fetchOrders]);
+  }, [getActiveCafeId, fetchOrders]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const cafeParam = params.get('cafe') || params.get('cafeId');
-      if (cafeParam && cafeParam.trim()) {
-        const clean = cafeParam.trim().toLowerCase();
-        if (clean !== localStorage.getItem('orderplus_cafe_id')) {
-          localStorage.setItem('orderplus_cafe_id', clean);
-        }
-      }
-    }
     fetchData();
   }, [fetchData]);
 
@@ -1080,15 +1087,14 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Cafe Connection Badge */}
-          <button
-            onClick={() => { setConnectError(null); setShowConnectModal(true); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 active:scale-98 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
-            title="Kafega Ulanish / O'zgartirish"
+          {/* Cafe Name Display */}
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold shadow-2xs"
+            title="Faol Kafe"
           >
             <Building2 className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-            <span className="max-w-[140px] truncate">{connectedCafeName}</span>
-          </button>
+            <span className="max-w-[180px] truncate">{connectedCafeName || 'Kafe'}</span>
+          </div>
 
           {/* Thermal Printer Settings Button */}
           <button

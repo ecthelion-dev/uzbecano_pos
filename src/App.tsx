@@ -138,6 +138,15 @@ export default function App() {
   const [connectedCafeName, setConnectedCafeName] = useState<string>(() => {
     return localStorage.getItem('orderplus_cafe_name') || 'OrderPlus Restoran';
   });
+  const [connectedCafeLogo, setConnectedCafeLogo] = useState<string>(() => {
+    return localStorage.getItem('orderplus_cafe_logo') || '';
+  });
+  const [connectedCafeAddress, setConnectedCafeAddress] = useState<string>(() => {
+    return localStorage.getItem('orderplus_cafe_address') || '';
+  });
+  const [connectedCafePhone, setConnectedCafePhone] = useState<string>(() => {
+    return localStorage.getItem('orderplus_cafe_phone') || '';
+  });
   const [connectCodeInput, setConnectCodeInput] = useState<string>('');
   const [connectError, setConnectError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
@@ -252,6 +261,21 @@ export default function App() {
           setConnectedCafeName(setts.name);
           localStorage.setItem('orderplus_cafe_name', setts.name);
           localStorage.setItem(`orderplus_${cafeId}_name`, setts.name);
+        }
+        if (setts.logo !== undefined) {
+          setConnectedCafeLogo(setts.logo || '');
+          localStorage.setItem('orderplus_cafe_logo', setts.logo || '');
+          localStorage.setItem(`orderplus_${cafeId}_logo`, setts.logo || '');
+        }
+        if (setts.address !== undefined) {
+          setConnectedCafeAddress(setts.address || '');
+          localStorage.setItem('orderplus_cafe_address', setts.address || '');
+          localStorage.setItem(`orderplus_${cafeId}_address`, setts.address || '');
+        }
+        if (setts.phone !== undefined) {
+          setConnectedCafePhone(setts.phone || '');
+          localStorage.setItem('orderplus_cafe_phone', setts.phone || '');
+          localStorage.setItem(`orderplus_${cafeId}_phone`, setts.phone || '');
         }
       }
 
@@ -693,9 +717,10 @@ export default function App() {
       : paymentMethod === 'karta' ? grandTotal : 0;
 
     const receiptData = {
-      shopName: 'ORDERPLUS RESTORAN',
-      shopAddress: 'Toshkent sh., Markaziy filial',
-      shopPhone: 'Tel: +998 90 123 45 67',
+      shopName: connectedCafeName || 'ORDERPLUS RESTORAN',
+      shopLogo: connectedCafeLogo || '',
+      shopAddress: connectedCafeAddress || 'Toshkent sh., Markaziy filial',
+      shopPhone: connectedCafePhone ? `Tel: ${connectedCafePhone}` : 'Tel: +998 90 123 45 67',
       waiterName: currentWaiter?.name || '',
       tableName: selectedTable,
       paymentMethod,
@@ -1088,12 +1113,16 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Cafe Name Display */}
+          {/* Cafe Name & Logo Display */}
           <div
             className="flex items-center gap-2 px-3.5 h-10 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold shadow-2xs"
             title="Faol Kafe"
           >
-            <Building2 className="w-4 h-4 text-orange-500 shrink-0" />
+            {connectedCafeLogo ? (
+              <img src={connectedCafeLogo} alt={connectedCafeName} className="w-5 h-5 rounded-md object-contain shrink-0" />
+            ) : (
+              <Building2 className="w-4 h-4 text-orange-500 shrink-0" />
+            )}
             <span className="max-w-[180px] truncate">{connectedCafeName || 'Kafe'}</span>
           </div>
 
@@ -1684,11 +1713,24 @@ export default function App() {
           <div className="w-full bg-white p-1 text-slate-900 space-y-4">
             {/* Header */}
             <div className="text-center border-b-2 border-dashed border-slate-900 pb-3.5 space-y-1.5">
-              <div className="flex items-center justify-center gap-2 pt-1">
-                <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
-                <h2 className="text-3xl font-bold tracking-wider uppercase text-slate-900 print-text-dark">ORDER<span>PLUS</span></h2>
+              <div className="flex flex-col items-center justify-center gap-1 pt-1">
+                {connectedCafeLogo ? (
+                  <img src={connectedCafeLogo} alt={connectedCafeName} className="w-12 h-12 object-contain rounded-xl mx-auto" />
+                ) : (
+                  <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain mx-auto" />
+                )}
+                <h2 className="text-2xl font-black tracking-wider uppercase text-slate-900 print-text-dark">
+                  {connectedCafeName || 'ORDERPLUS'}
+                </h2>
               </div>
-              <p className="text-sm font-semibold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
+              {connectedCafeAddress ? (
+                <p className="text-xs font-semibold text-slate-700 print-text-dark">{connectedCafeAddress}</p>
+              ) : (
+                <p className="text-xs font-semibold text-slate-700 print-text-dark">Restoran va Kofe Tarmog&apos;i</p>
+              )}
+              {connectedCafePhone && (
+                <p className="text-xs font-semibold text-slate-600 print-text-dark">Tel: {connectedCafePhone}</p>
+              )}
               <div className="text-base font-bold pt-1 text-slate-900 print-text-dark">
                 <span>{selectedArchiveOrder.tableNumber}</span>
                 <span className="ml-2 text-slate-700 print-text-dark">#{selectedArchiveOrder.id.slice(-6)}</span>

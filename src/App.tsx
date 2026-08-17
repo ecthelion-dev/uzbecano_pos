@@ -904,7 +904,7 @@ export default function App() {
     return [];
   }, [searchQuery, selectedCategoryName, products]);
 
-  const handlePinKey = useCallback((val: string) => {
+  const handlePinKey = useCallback(async (val: string) => {
     setPinError(null);
     if (val === 'C') {
       setPinInput('');
@@ -918,26 +918,126 @@ export default function App() {
       const nextPin = pinInput + val;
       setPinInput(nextPin);
       if (nextPin.length === 4) {
+        // 1. Check local waiters in memory first (fast offline)
         const matched = waiters.find(w => String(w.pinCode).trim() === nextPin);
         if (matched) {
           setCurrentWaiter(matched);
           localStorage.setItem('uzbecano_current_waiter', JSON.stringify(matched));
           setPinInput('');
-        } else {
+          return;
+        }
+
+        // 2. Fallback: Live server PIN verification
+        try {
+          const currentCid = localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
+          const res = await fetch(`${API_BASE_URL}/api/auth/pin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: nextPin, cafeId: currentCid }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            if (data.cafe?.slug || data.cafe?.id) {
+              localStorage.setItem('orderplus_cafe_id', data.cafe.slug || data.cafe.id);
+              localStorage.setItem('orderplus_cafe_name', data.cafe.name);
+              setConnectedCafeName(data.cafe.name);
+            }
+            const loggedWaiter: DBWaiter = {
+              id: data.waiterId || 'waiter-' + Date.now(),
+              name: data.waiterName || (data.role === 'cafe_admin' ? `${data.cafe?.name || 'Admin'} (Kassa)` : 'Offitsiant'),
+              pinCode: nextPin,
+              role: data.role === 'cafe_admin' ? 'manager' : 'waiter',
+            };
+            setCurrentWaiter(loggedWaiter);
+            localStorage.setItem('uzbecano_current_waiter', JSON.stringify(loggedWaiter));
+            setPinInput('');
+            fetchData();
+            fetchOrders();
+          } else {
+            setPinError(data.error || "PIN kod noto'g'ri!");
+            setTimeout(() => setPinInput(''), 600);
+          }
+        } catch {
           setPinError("PIN kod noto'g'ri!");
-          setTimeout(() => setPinInput(''), 400);
+          setTimeout(() => setPinInput(''), 600);
         }
       }
     }
-  }, [pinInput, waiters]);
+  }, [pinInput, waiters, fetchData, fetchOrders]);
 
   if (!currentWaiter) {
     return (
-      <PinLoginScreen
-        pinInput={pinInput}
-        pinError={pinError}
-        onPinKey={handlePinKey}
-      />
+      <>
+        <PinLoginScreen
+          pinInput={pinInput}
+          pinError={pinError}
+          onPinKey={handlePinKey}
+          connectedCafeName={connectedCafeName || localStorage.getItem('orderplus_cafe_name') || 'OrderPlus'}
+          onOpenConnect={() => setShowConnectModal(true)}
+        />
+        {/* Connect Cafe Modal */}
+        {showConnectModal && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-slate-800 animate-in fade-in zoom-in duration-200">
+              <div className="flex items-center justify-between border-b pb-3">
+                <div className="flex items-center gap-2 font-bold text-base text-slate-900">
+                  <Building2 className="w-5 h-5 text-orange-500" />
+                  <span>Kafega Ulanish</span>
+                </div>
+                <button
+                  onClick={() => setShowConnectModal(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {connectError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl text-center">
+                  {connectError}
+                </div>
+              )}
+
+              <form onSubmit={handleConnectCafe} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">
+                    Kafe Slugi yoki POS Ulanish Kodi:
+                  </label>
+                  <input
+                    type="text"
+                    value={connectCodeInput}
+                    onChange={(e) => setConnectCodeInput(e.target.value)}
+                    placeholder="Masalan: rayhon yoki afruz-9305"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono text-slate-900 focus:outline-none focus:border-orange-500 font-bold"
+                    required
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Super Admin panelidagi &quot;Abonentlar&quot; bo&apos;limidan olinadi.
+                  </p>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowConnectModal(false)}
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer transition-all"
+                  >
+                    Bekor qilish
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isConnecting}
+                    className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs shadow-md shadow-orange-500/30 cursor-pointer transition-all disabled:opacity-50"
+                  >
+                    {isConnecting ? 'Ulanmoqda...' : 'Ulanish'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 

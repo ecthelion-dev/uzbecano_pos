@@ -151,16 +151,25 @@ export default function App() {
     const cafeId = typeof window !== 'undefined'
       ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
       : 'uzbecano';
-    return localStorage.getItem(`orderplus_${cafeId}_name`) || localStorage.getItem('orderplus_cafe_name') || 'OrderPlus Restoran';
+    return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_name`) : null) || cafeId;
   });
   const [connectedCafeLogo, setConnectedCafeLogo] = useState<string>(() => {
-    return localStorage.getItem('orderplus_cafe_logo') || '';
+    const cafeId = typeof window !== 'undefined'
+      ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
+      : 'uzbecano';
+    return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_logo`) : null) || '';
   });
   const [connectedCafeAddress, setConnectedCafeAddress] = useState<string>(() => {
-    return localStorage.getItem('orderplus_cafe_address') || '';
+    const cafeId = typeof window !== 'undefined'
+      ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
+      : 'uzbecano';
+    return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_address`) : null) || '';
   });
   const [connectedCafePhone, setConnectedCafePhone] = useState<string>(() => {
-    return localStorage.getItem('orderplus_cafe_phone') || '';
+    const cafeId = typeof window !== 'undefined'
+      ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
+      : 'uzbecano';
+    return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_phone`) : null) || '';
   });
   const [connectCodeInput, setConnectCodeInput] = useState<string>('');
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -181,7 +190,7 @@ export default function App() {
     return 'uzbecano';
   }, []);
 
-  // Ensure currentWaiter and active cafe match when URL param changes
+  // Ensure currentWaiter, cafe name, and active cafe match when URL param changes
   useEffect(() => {
     const cafeId = getActiveCafeId();
     const saved = localStorage.getItem(`orderplus_${cafeId}_current_waiter`);
@@ -194,6 +203,10 @@ export default function App() {
     } else {
       setCurrentWaiter(null);
     }
+    const savedName = localStorage.getItem(`orderplus_${cafeId}_name`);
+    setConnectedCafeName(savedName || cafeId);
+    const savedLogo = localStorage.getItem(`orderplus_${cafeId}_logo`);
+    setConnectedCafeLogo(savedLogo || '');
   }, [getActiveCafeId]);
 
   // Fetch orders only (lightweight, called frequently)

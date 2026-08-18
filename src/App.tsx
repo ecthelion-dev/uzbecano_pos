@@ -379,6 +379,15 @@ export default function App() {
     };
   }, [syncOfflineOrders]);
 
+  // Auto-sync active orders in background every 8 seconds
+  useEffect(() => {
+    if (!currentWaiter) return;
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [currentWaiter, fetchOrders]);
+
   // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, ESC: Close)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

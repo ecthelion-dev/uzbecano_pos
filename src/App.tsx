@@ -1179,21 +1179,19 @@ export default function App() {
           {/* Thermal Printer Settings Button */}
           <button
             onClick={() => setShowPrinterModal(true)}
-            className="flex items-center gap-2 px-3.5 h-10 bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs"
             title="Termoprinter va Chek Sozlamalari"
           >
             <Printer className="w-4 h-4 text-orange-500 shrink-0" />
-            <span className="hidden lg:inline">Printer</span>
           </button>
 
           {/* Refresh Button */}
           <button
             onClick={fetchOrders}
-            className="flex items-center gap-2 px-3.5 h-10 bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs"
             title="Qayta yuklash"
           >
             <RotateCw className={`w-4 h-4 text-slate-500 ${loading ? 'animate-spin text-orange-500' : ''}`} />
-            <span>Yangilash</span>
           </button>
 
           {/* Waiter Profile & Logout */}

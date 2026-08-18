@@ -330,7 +330,9 @@ export default function App() {
       setConnectCodeInput('');
       setToastMessage(`"${cafe.name}" kafesiga muvaffaqiyatli ulandi!`);
 
-      // Clear current waiter and refresh data
+      // Clear cart, active table, and current waiter to prevent cross-cafe mixing
+      setCart([]);
+      setActiveTable(null);
       setCurrentWaiter(null);
       localStorage.removeItem('uzbecano_current_waiter');
       fetchData();

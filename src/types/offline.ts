@@ -27,7 +27,7 @@ export interface SyncQueueItem {
 }
 
 export interface SyncStatusSummary {
-  isOnline: boolean;
+  isOnline?: boolean;
   pendingCount: number;
   failedCount: number;
   lastSyncedAt?: string;

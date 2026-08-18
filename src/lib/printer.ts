@@ -386,12 +386,13 @@ export async function executePrintReceipt(order: any, cafeName: string) {
     }
 
     // Electron IPC fallback
-    if (typeof window !== 'undefined' && (window as any).require) {
+    if (typeof window !== 'undefined' && window.electronAPI) {
       try {
-        const { ipcRenderer } = (window as any).require('electron');
-        ipcRenderer.send('print-receipt', order);
+        await window.electronAPI.printReceipt(order);
         return;
-      } catch {}
+      } catch (e) {
+        console.warn('Electron print receipt failed, falling back:', e);
+      }
     }
 
     // Browser iframe fallback (non-blocking)

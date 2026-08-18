@@ -9,10 +9,9 @@ export function useNetworkStatus() {
   });
 
   const checkSyncStatus = useCallback(async () => {
-    if (window.require) {
+    if (typeof window !== 'undefined' && window.electronAPI) {
       try {
-        const { ipcRenderer } = window.require('electron');
-        const summary: SyncStatusSummary = await ipcRenderer.invoke('sync:get-status');
+        const summary: SyncStatusSummary = await window.electronAPI.getSyncStatus();
         setSyncSummary({
           pendingCount: summary.pendingCount,
           failedCount: summary.failedCount,
@@ -24,10 +23,9 @@ export function useNetworkStatus() {
   }, []);
 
   const triggerSync = useCallback(async () => {
-    if (window.require && isOnline) {
+    if (typeof window !== 'undefined' && window.electronAPI && isOnline) {
       try {
-        const { ipcRenderer } = window.require('electron');
-        const summary = await ipcRenderer.invoke('sync:trigger');
+        const summary = await window.electronAPI.triggerSync();
         setSyncSummary({
           pendingCount: summary.pendingCount,
           failedCount: summary.failedCount,

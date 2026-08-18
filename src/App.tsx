@@ -30,7 +30,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { AdminDashboard } from './components/AdminDashboard';
-import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction } from './types';
+import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
 import { API_BASE_URL, DEFAULT_WAITERS, DEFAULT_OFFLINE_CATEGORIES, DEFAULT_OFFLINE_PRODUCTS, ALL_TABLE_DEFINITIONS } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
@@ -523,7 +523,7 @@ export default function App() {
         id: `table_${i + 1}`,
         number: numStr,
         area: def.area,
-        status: isOccupied ? 'band' : 'bosh',
+        status: (isOccupied ? 'band' : 'bosh') as 'band' | 'bosh',
         total: total,
       };
     });
@@ -764,6 +764,7 @@ export default function App() {
         tableNumber: selectedTable,
         waiterName: currentWaiter?.name || 'Offitsiant',
         items: newItems,
+        time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
         timestamp: new Date().toISOString(),
       };
       setKitchenSlipData(kitchenPayload);
@@ -780,7 +781,7 @@ export default function App() {
     }
   }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName]);
 
-  const handlePrint = useCallback(() => {
+  const handlePrint = useCallback(async () => {
     const allItems = [
       ...activeTableOrderItems,
       ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note || '' }))
@@ -812,12 +813,13 @@ export default function App() {
       cardAmount: cardAmt,
     };
 
-    if ((window as any).require) {
+    if (window.electronAPI) {
       try {
-        const { ipcRenderer } = (window as any).require('electron');
-        ipcRenderer.send('print-receipt', receiptData);
+        await window.electronAPI.printReceipt(receiptData);
         return;
-      } catch { }
+      } catch (err) {
+        console.warn('Electron print receipt error, falling back to browser print:', err);
+      }
     }
     window.print();
   }, [activeTableOrderItems, cart, paymentMethod, customCashAmount, grandTotal, currentWaiter, selectedTable, subtotal, discountPercent, discountAmount, serviceFeePercent, serviceFee]);
@@ -1754,8 +1756,11 @@ export default function App() {
       <PrinterSettingsModal
         isOpen={showPrinterModal}
         onClose={() => setShowPrinterModal(false)}
-        receiptHeader={connectedCafeName}
-        receiptFooter="Tashrifingiz uchun rahmat!"
+        cafeName={connectedCafeName}
+        onToast={(msg) => {
+          setToastMessage(msg);
+          setTimeout(() => setToastMessage(null), 2500);
+        }}
       />
 
       {/* POS Subscription Frozen / Locked Screen */}

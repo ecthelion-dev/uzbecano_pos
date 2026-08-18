@@ -18,6 +18,7 @@ export interface DBProduct {
   isAvailable?: boolean;
   variants?: ProductVariant[];
   addons?: ProductAddon[];
+  sizes?: any;
 }
 
 export interface DBCategory {
@@ -25,12 +26,15 @@ export interface DBCategory {
   name: string;
   icon?: string;
   image?: string;
+  cafeId?: string;
 }
 
 export interface CartItem {
   product: DBProduct;
   quantity: number;
   note?: string;
+  selectedVariant?: ProductVariant;
+  selectedAddons?: ProductAddon[];
 }
 
 export interface DBOrder {
@@ -43,6 +47,7 @@ export interface DBOrder {
   subtotal?: number;
   serviceFee?: number;
   closedAt?: string;
+  createdAt?: string;
   discountPercent?: number;
   discountAmount?: number;
   paymentMethod?: 'naqd' | 'karta' | 'aralash';
@@ -66,6 +71,7 @@ export interface KitchenSlipData {
   waiterName: string;
   items: any[];
   time: string;
+  timestamp?: string;
 }
 
 export interface CashTransaction {

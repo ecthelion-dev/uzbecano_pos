@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
     "electron:dev": "VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
+    "typecheck": "tsc --noEmit",
+    "test": "node test_ipc_security.js",
     "build": "vite build",
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --win --x64"

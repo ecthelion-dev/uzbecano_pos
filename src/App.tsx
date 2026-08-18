@@ -26,6 +26,8 @@ import {
   PenLine,
   User,
   Building2,
+  Lock,
+  ExternalLink,
 } from 'lucide-react';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction } from './types';
@@ -145,8 +147,7 @@ export default function App() {
   });
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
-
-  const [showConnectModal, setShowConnectModal] = useState<boolean>(false);
+  const [isCafeFrozen, setIsCafeFrozen] = useState<boolean>(false);
   const [connectedCafeName, setConnectedCafeName] = useState<string>(() => {
     const cafeId = typeof window !== 'undefined'
       ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
@@ -317,6 +318,9 @@ export default function App() {
           localStorage.setItem('orderplus_cafe_phone', setts.phone || '');
           localStorage.setItem(`orderplus_${cafeId}_phone`, setts.phone || '');
         }
+
+        const isFrozen = setts.status === 'frozen' || setts.status === 'expired' || (setts.subscriptionEnd && new Date(setts.subscriptionEnd).getTime() < Date.now());
+        setIsCafeFrozen(Boolean(isFrozen));
       }
 
       await fetchOrders();
@@ -1092,9 +1096,13 @@ export default function App() {
             setCurrentWaiter(loggedWaiter);
             localStorage.setItem(`orderplus_${matchedCafeId}_current_waiter`, JSON.stringify(loggedWaiter));
             setPinInput('');
+            setIsCafeFrozen(false);
             fetchData();
             fetchOrders();
           } else {
+            if (data.isFrozen || res.status === 403) {
+              setIsCafeFrozen(true);
+            }
             setPinError(data.error || "PIN kod noto'g'ri!");
             setTimeout(() => setPinInput(''), 600);
           }
@@ -1669,12 +1677,49 @@ export default function App() {
       <PrinterSettingsModal
         isOpen={showPrinterModal}
         onClose={() => setShowPrinterModal(false)}
-        cafeName={connectedCafeName || 'OrderPlus Restoran'}
-        onToast={(msg) => {
-          setToastMessage(msg);
-          setTimeout(() => setToastMessage(null), 2500);
-        }}
+        receiptHeader={connectedCafeName}
+        receiptFooter="Tashrifingiz uchun rahmat!"
       />
+
+      {/* POS Subscription Frozen / Locked Screen */}
+      {isCafeFrozen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl text-white space-y-5 animate-scaleUp">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto border border-amber-500/30">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div>
+              <div className="inline-block px-3 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-full text-[11px] font-bold tracking-wide uppercase mb-2">
+                Muzlatilgan
+              </div>
+              <h2 className="text-xl font-black text-white">Kassa Vaqtincha Muzlatilgan</h2>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                <strong className="text-white font-semibold">{connectedCafeName}</strong> restorani uchun abonent to'lov muddati yakunlangan.
+                Kassani faollashtirish uchun admin panelga kiring va to'lovni amalga oshiring.
+              </p>
+            </div>
+            <div className="pt-2 flex flex-col gap-2.5">
+              <a
+                href="https://orderplus.uz/admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer transition-all"
+              >
+                <span>Admin Panelga O'tish (To'lov Qilish)</span>
+                <ExternalLink className="w-4 h-4" />
+              </a>
+              <a
+                href="https://t.me/orderplus_admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 bg-slate-800/80 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all border border-slate-700"
+              >
+                <span>Telegram Qo'llab-quvvatlash</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

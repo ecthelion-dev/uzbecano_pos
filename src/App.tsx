@@ -171,9 +171,6 @@ export default function App() {
       : 'uzbecano';
     return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_phone`) : null) || '';
   });
-  const [connectCodeInput, setConnectCodeInput] = useState<string>('');
-  const [connectError, setConnectError] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [showPrinterModal, setShowPrinterModal] = useState<boolean>(false);
 
   const getActiveCafeId = useCallback(() => {
@@ -338,49 +335,6 @@ export default function App() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const handleConnectCafe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setConnectError(null);
-    if (!connectCodeInput.trim()) {
-      setConnectError('Kafe kodi yoki slugi kiritilishi shart');
-      return;
-    }
-    setIsConnecting(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/pos/connect`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: connectCodeInput.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setConnectError(data.error || 'Ushbu kodga mos kafe topilmadi');
-        return;
-      }
-
-      const cafe = data.cafe;
-      localStorage.setItem('orderplus_cafe_id', cafe.slug || cafe.id);
-      localStorage.setItem('orderplus_cafe_name', cafe.name);
-      setConnectedCafeName(cafe.name);
-      setShowConnectModal(false);
-      setConnectCodeInput('');
-      setToastMessage(`"${cafe.name}" kafesiga muvaffaqiyatli ulandi!`);
-
-      // Clear cart, active table, and current waiter to prevent cross-cafe mixing
-      setCart([]);
-      setActiveTable(null);
-      setCurrentWaiter(null);
-      const cafeId = getActiveCafeId();
-      localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
-      fetchData();
-      fetchOrders();
-    } catch {
-      setConnectError('Serverga ulanib bo\'lmadi');
-    } finally {
-      setIsConnecting(false);
-    }
-  };
 
   // Offline Sync Queue Handler
   const syncOfflineOrders = useCallback(async () => {
@@ -1109,7 +1063,7 @@ export default function App() {
           return;
         }
 
-        // 2. Fallback: Live server PIN verification
+        // 2. Fallback: Live server PIN verification & Auto-Connect
         try {
           const currentCid = getActiveCafeId();
           const res = await fetch(`${API_BASE_URL}/api/auth/pin`, {
@@ -1119,20 +1073,24 @@ export default function App() {
           });
           const data = await res.json();
           if (res.ok && data.success) {
-            if (data.cafe?.slug || data.cafe?.id) {
-              localStorage.setItem('orderplus_cafe_id', data.cafe.slug || data.cafe.id);
-              localStorage.setItem('orderplus_cafe_name', data.cafe.name);
-              setConnectedCafeName(data.cafe.name);
-            }
+            const matchedCafeId = data.cafe?.slug || data.cafe?.id || 'uzbecano';
+            const matchedCafeName = data.cafe?.name || 'OrderPlus Restoran';
+            const matchedCafeLogo = data.cafe?.logo || '';
+
+            localStorage.setItem('orderplus_cafe_id', matchedCafeId);
+            localStorage.setItem(`orderplus_${matchedCafeId}_name`, matchedCafeName);
+            if (matchedCafeLogo) localStorage.setItem(`orderplus_${matchedCafeId}_logo`, matchedCafeLogo);
+            setConnectedCafeName(matchedCafeName);
+            setConnectedCafeLogo(matchedCafeLogo);
+
             const loggedWaiter: DBWaiter = {
               id: data.waiterId || 'waiter-' + Date.now(),
-              name: data.waiterName || (data.role === 'cafe_admin' ? `${data.cafe?.name || 'Admin'} (Kassa)` : 'Offitsiant'),
+              name: data.waiterName || (data.role === 'cafe_admin' ? `${matchedCafeName} (Kassa)` : 'Offitsiant'),
               pinCode: nextPin,
               role: data.role === 'cafe_admin' ? 'manager' : 'waiter',
             };
-            const cafeId = getActiveCafeId();
             setCurrentWaiter(loggedWaiter);
-            localStorage.setItem(`orderplus_${cafeId}_current_waiter`, JSON.stringify(loggedWaiter));
+            localStorage.setItem(`orderplus_${matchedCafeId}_current_waiter`, JSON.stringify(loggedWaiter));
             setPinInput('');
             fetchData();
             fetchOrders();
@@ -1206,18 +1164,17 @@ export default function App() {
 
         <div className="flex items-center gap-2">
           {/* Cafe Name & Logo Display */}
-          <button
-            onClick={() => setShowConnectModal(true)}
-            className="flex items-center gap-2 px-3.5 h-10 bg-orange-50 hover:bg-orange-100/80 active:scale-98 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
-            title="Kafeni o'zgartirish yoki ulanish"
+          <div
+            className="flex items-center gap-2 px-3.5 h-10 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold shadow-2xs"
+            title="Ulangan Kafe"
           >
             {connectedCafeLogo ? (
               <img src={connectedCafeLogo} alt={connectedCafeName} className="w-5 h-5 rounded-md object-contain shrink-0" />
             ) : (
               <Building2 className="w-4 h-4 text-orange-500 shrink-0" />
             )}
-            <span className="max-w-[180px] truncate">{connectedCafeName || 'Kafe'}</span>
-          </button>
+            <span className="max-w-[180px] truncate">{connectedCafeName || 'OrderPlus'}</span>
+          </div>
 
           {/* Thermal Printer Settings Button */}
           <button
@@ -1707,74 +1664,6 @@ export default function App() {
         discountAmount={discountAmount}
         grandTotal={grandTotal}
       />
-
-      {/* POS Cafe Connection Modal */}
-      {showConnectModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-orange-100 text-orange-600 rounded-xl">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Kafega Ulanish (POS Setup)</h3>
-                  <p className="text-[11px] text-slate-500">Kassa dasturini restoran bazasiga ulash</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowConnectModal(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {connectError && (
-              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold text-center">
-                {connectError}
-              </div>
-            )}
-
-            <form onSubmit={handleConnectCafe} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Kafe Kodi yoki Slugi:
-                </label>
-                <input
-                  type="text"
-                  value={connectCodeInput}
-                  onChange={(e) => setConnectCodeInput(e.target.value)}
-                  placeholder="Masalan: afruz-9305 yoki uzbecano"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-orange-500"
-                  required
-                  autoFocus
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Ushbu kodni Super Admin panelidagi kafe kartochkasidan (POS Ulanish Kodi) nusxalashingiz mumkin.
-                </p>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowConnectModal(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
-                >
-                  Bekor qilish
-                </button>
-                <button
-                  type="submit"
-                  disabled={isConnecting}
-                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 active:scale-98 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 cursor-pointer disabled:opacity-50"
-                >
-                  {isConnecting ? 'Ulanmoqda...' : 'Ulanish'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Thermal Printer Settings Modal */}
       <PrinterSettingsModal

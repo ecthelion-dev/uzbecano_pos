@@ -78,7 +78,7 @@ const mapDBProductModifiers = (prods: DBProduct[]): DBProduct[] => {
             });
           }
         }
-      } catch {}
+      } catch { }
     }
     return {
       ...p,
@@ -244,7 +244,7 @@ export default function App() {
         localStorage.setItem(`orderplus_${cafeId}_orders`, JSON.stringify(sorted));
         setIsOfflineMode(false);
       }
-    } catch {}
+    } catch { }
   }, [getActiveCafeId]);
 
   // Fetch static data once (products, categories, waiters, settings)
@@ -266,24 +266,24 @@ export default function App() {
       try {
         const p = JSON.parse(localProds);
         if (p.length > 0) setProducts(mapDBProductModifiers(p));
-      } catch {}
+      } catch { }
     }
     if (localCats) {
       try {
         const c = JSON.parse(localCats);
         if (c.length > 0) setCategoriesData(c);
-      } catch {}
+      } catch { }
     }
     if (localWaiters) {
       try {
         const w = JSON.parse(localWaiters);
         if (w.length > 0) setWaiters(w);
-      } catch {}
+      } catch { }
     }
     if (localOrds) {
       try {
         setOrders(JSON.parse(localOrds));
-      } catch {}
+      } catch { }
     }
 
     try {
@@ -397,7 +397,7 @@ export default function App() {
         setToastMessage("Oflayn buyurtmalar serverga sinxronlandi!");
         setTimeout(() => setToastMessage(null), 2500);
       }
-    } catch {}
+    } catch { }
   }, [getActiveCafeId]);
 
   useEffect(() => {
@@ -515,7 +515,7 @@ export default function App() {
       const draftSubtotal = draftCart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
       const feeRate = typeof window !== 'undefined' ? (Number(localStorage.getItem('serviceFeePercent') ?? 10) / 100) : 0.1;
       const draftTotal = draftSubtotal + Math.round(draftSubtotal * feeRate);
-      
+
       const total = activeOrder ? activeOrder.total : draftTotal;
       const isOccupied = activeOrder || draftCart.length > 0;
 
@@ -817,7 +817,7 @@ export default function App() {
         const { ipcRenderer } = (window as any).require('electron');
         ipcRenderer.send('print-receipt', receiptData);
         return;
-      } catch {}
+      } catch { }
     }
     window.print();
   }, [activeTableOrderItems, cart, paymentMethod, customCashAmount, grandTotal, currentWaiter, selectedTable, subtotal, discountPercent, discountAmount, serviceFeePercent, serviceFee]);
@@ -848,12 +848,12 @@ export default function App() {
 
     if (isMerge) {
       const targetOrder = orders.find(o => o.tableNumber === targetTable && o.status !== 'served');
-      
+
       if (sourceOrder && targetOrder) {
         let srcItems: any[] = [];
         let tgtItems: any[] = [];
-        try { srcItems = typeof sourceOrder.items === 'string' ? JSON.parse(sourceOrder.items) : (sourceOrder.items || []); } catch {}
-        try { tgtItems = typeof targetOrder.items === 'string' ? JSON.parse(targetOrder.items) : (targetOrder.items || []); } catch {}
+        try { srcItems = typeof sourceOrder.items === 'string' ? JSON.parse(sourceOrder.items) : (sourceOrder.items || []); } catch { }
+        try { tgtItems = typeof targetOrder.items === 'string' ? JSON.parse(targetOrder.items) : (targetOrder.items || []); } catch { }
 
         const mergedItems = [...tgtItems, ...srcItems];
         const sub = mergedItems.reduce((sum: number, i: any) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
@@ -964,7 +964,7 @@ export default function App() {
       const latestActive = currentOrders.find(o => o.tableNumber === targetTable && o.status !== 'served');
       if (latestActive) {
         let existingItems: any[] = [];
-        try { existingItems = typeof latestActive.items === 'string' ? JSON.parse(latestActive.items) : (latestActive.items || []); } catch {}
+        try { existingItems = typeof latestActive.items === 'string' ? JSON.parse(latestActive.items) : (latestActive.items || []); } catch { }
         const combinedItems = [...existingItems, ...newItems];
         const combinedTotal = (latestActive.total || 0) + tot;
 
@@ -1131,7 +1131,7 @@ export default function App() {
             fetchData();
             fetchOrders();
           } else {
-            if (data.isFrozen || res.status === 403) {
+            if (data.isFrozen) {
               setIsCafeFrozen(true);
               if (data.cafeName) setConnectedCafeName(data.cafeName);
             }
@@ -1164,6 +1164,13 @@ export default function App() {
             </p>
           </div>
           <div className="pt-2 flex flex-col gap-2.5">
+            <button
+              onClick={() => fetchData()}
+              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all border border-slate-700"
+            >
+              <RotateCw className="w-4 h-4" />
+              <span>Qayta tekshirish (Yangilash)</span>
+            </button>
             <a
               href="https://orderplus.uz/admin"
               target="_blank"
@@ -1221,8 +1228,8 @@ export default function App() {
           <button
             onClick={() => setActiveTab('stollar')}
             className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${activeTab === 'stollar'
-                ? 'bg-orange-500 text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+              ? 'bg-orange-500 text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
           >
             <Grid className="w-3.5 h-3.5" />
@@ -1231,8 +1238,8 @@ export default function App() {
           <button
             onClick={() => setActiveTab('menyu')}
             className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${activeTab === 'menyu'
-                ? 'bg-orange-500 text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+              ? 'bg-orange-500 text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
@@ -1334,16 +1341,14 @@ export default function App() {
                   <button
                     key={area}
                     onClick={() => setSelectedArea(area)}
-                    className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 sm:gap-2 border whitespace-nowrap shadow-2xs cursor-pointer ${
-                      selectedArea === area
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 sm:gap-2 border whitespace-nowrap shadow-2xs cursor-pointer ${selectedArea === area
                         ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
+                      }`}
                   >
                     <span>{area}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                      selectedArea === area ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${selectedArea === area ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
                       {areaCount}
                     </span>
                     {occupiedCount > 0 && (
@@ -1534,11 +1539,10 @@ export default function App() {
                             setShowAralashModal(true);
                           }
                         }}
-                        className={`py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                          paymentMethod === pm.id
+                        className={`py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1 ${paymentMethod === pm.id
                             ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                        }`}
+                          }`}
                       >
                         {pm.icon}{pm.label}
                       </button>

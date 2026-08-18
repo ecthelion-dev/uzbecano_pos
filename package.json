@@ -8,6 +8,7 @@
     "electron:dev": "VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
     "typecheck": "tsc --noEmit",
     "test": "node test_ipc_security.js && node test_sqlite.js",
+    "postinstall": "electron-builder install-app-deps",
     "build": "vite build",
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder --win --x64"

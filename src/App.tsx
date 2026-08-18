@@ -43,6 +43,11 @@ import { ProductModifierModal } from './components/ProductModifierModal';
 import { AralashNumpadModal } from './components/AralashNumpadModal';
 import { PrinterSettingsModal } from './components/PrinterSettingsModal';
 import { ThermalPrintArea } from './components/ThermalPrintArea';
+import { CategoryCard } from './components/CategoryCard';
+import { ProductCard } from './components/ProductCard';
+import { TableCard } from './components/TableCard';
+import { CartItemRow } from './components/CartItemRow';
+import { KitchenItemRow } from './components/KitchenItemRow';
 import { executePrintReceipt, executePrintKitchenSlip, getPrinterSettings } from './lib/printer';
 import { Wallet } from 'lucide-react';
 
@@ -478,6 +483,16 @@ export default function App() {
     if (selectedArea === 'Barchasi') return tables;
     return tables.filter(t => t.area === selectedArea);
   }, [tables, selectedArea]);
+
+  const handleSelectTable = useCallback((tableNumber: string) => {
+    setSelectedArchiveOrder(null);
+    setSelectedTable(tableNumber);
+    setActiveTab('menyu');
+  }, []);
+
+  const handleSelectCategory = useCallback((categoryName: string) => {
+    setSelectedCategoryName(categoryName);
+  }, []);
 
   const handleAddToCart = useCallback((product: DBProduct, note?: string) => {
     if (!selectedModifierProduct && (product.variants?.length || product.addons?.length)) {
@@ -1007,6 +1022,19 @@ export default function App() {
     return [];
   }, [searchQuery, selectedCategoryName, products]);
 
+  // Precomputed category product counts for fast O(1) card render
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const cat of allCategories) {
+      const catKey = (cat.name || '').toLowerCase().trim();
+      counts[cat.name] = products.filter(p => {
+        const pk = (p.category || '').toLowerCase().trim();
+        return pk === catKey || pk.includes(catKey) || catKey.includes(pk);
+      }).length;
+    }
+    return counts;
+  }, [allCategories, products]);
+
   const handlePinKey = useCallback(async (val: string) => {
     setPinError(null);
     if (val === 'C') {
@@ -1239,41 +1267,11 @@ export default function App() {
 
             <div className="grid grid-cols-6 gap-3">
               {filteredTables.map((t) => (
-                <div
+                <TableCard
                   key={t.id}
-                  onClick={() => {
-                    setSelectedArchiveOrder(null);
-                    setSelectedTable(t.number);
-                    setActiveTab('menyu');
-                  }}
-                  className={`p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between h-32 shadow-xs hover:shadow-md cursor-pointer group active:scale-98 ${t.status === 'band'
-                      ? 'bg-[#1E2021] border-[#2A2D2F] text-white hover:border-orange-500'
-                      : 'bg-white border-slate-200 text-slate-800 hover:border-orange-400'
-                    }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className={`font-bold text-base tracking-tight ${t.status === 'band' ? 'text-white' : 'text-slate-900'}`}>
-                      {t.number}
-                    </span>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full tracking-wider ${t.status === 'band'
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-emerald-100 text-emerald-700'
-                      }`}>
-                      {t.status === 'band' ? 'BAND' : 'BOSH'}
-                    </span>
-                  </div>
-
-                  {t.status === 'band' ? (
-                    <div className="bg-[#2A2D2F] p-2 rounded-xl border border-[#3A3E41] flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-medium">Jami:</span>
-                      <span className="text-xs text-white font-bold">{t.total.toLocaleString()} so'm</span>
-                    </div>
-                  ) : (
-                    <div className="py-0.5">
-                      <p className="text-[10px] text-slate-400 font-medium">{t.area}</p>
-                    </div>
-                  )}
-                </div>
+                  table={t}
+                  onSelect={handleSelectTable}
+                />
               ))}
             </div>
           </div>
@@ -1324,30 +1322,14 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-5 gap-4">
-                      {allCategories.map((cat) => {
-                        const catKey = (cat.name || '').toLowerCase().trim();
-                        const count = products.filter(p => {
-                          const pk = (p.category || '').toLowerCase().trim();
-                          return pk === catKey || pk.includes(catKey) || catKey.includes(pk);
-                        }).length;
-                        return (
-                          <div
-                            key={cat.id || cat.name}
-                            onClick={() => setSelectedCategoryName(cat.name)}
-                            className="bg-white border-2 border-slate-200/80 hover:border-orange-500 p-5 rounded-2xl shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center aspect-square group active:scale-95 hover:scale-[1.02]"
-                          >
-                            <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 group-hover:bg-orange-500 group-hover:text-white flex items-center justify-center transition-all mb-3 shadow-xs">
-                              <UtensilsCrossed className="w-7 h-7" />
-                            </div>
-                            <h3 className="font-bold text-sm text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1">
-                              {cat.name}
-                            </h3>
-                            <p className="text-[11px] font-semibold text-slate-400 mt-1 bg-slate-100 group-hover:bg-orange-50 group-hover:text-orange-600 px-2.5 py-0.5 rounded-full transition-colors">
-                              {count} ta taom
-                            </p>
-                          </div>
-                        );
-                      })}
+                      {allCategories.map((cat) => (
+                        <CategoryCard
+                          key={cat.id || cat.name}
+                          category={cat}
+                          count={categoryCounts[cat.name] || 0}
+                          onSelect={handleSelectCategory}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>
@@ -1369,42 +1351,11 @@ export default function App() {
                   ) : (
                     <div className="grid grid-cols-4 gap-3">
                       {displayedProducts.map((p) => (
-                        <div
+                        <ProductCard
                           key={p.id}
-                          onClick={() => handleAddToCart(p)}
-                          className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:border-orange-400 transition-all duration-200 cursor-pointer flex flex-col group active:scale-98"
-                        >
-                          <div className="h-24 bg-slate-100 overflow-hidden relative">
-                            {p.image ? (
-                              <img
-                                src={p.image}
-                                alt={p.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-400">
-                                <UtensilsCrossed className="w-8 h-8" />
-                              </div>
-                            )}
-                            <div className="absolute top-1.5 right-1.5 bg-slate-900/80 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-full">
-                              {p.category}
-                            </div>
-                          </div>
-                          <div className="p-2.5 flex flex-col justify-between flex-1">
-                            <div>
-                              <h4 className="font-semibold text-xs text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1">{p.name}</h4>
-                              {p.description && (
-                                <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{p.description}</p>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
-                              <span className="font-bold text-xs text-orange-600">{p.price.toLocaleString()} so'm</span>
-                              <span className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 group-hover:bg-orange-500 group-hover:text-white flex items-center justify-center transition-all shadow-xs group-active:scale-90 font-bold">
-                                <Plus className="w-4.5 h-4.5" />
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                          product={p}
+                          onAddToCart={handleAddToCart}
+                        />
                       ))}
                     </div>
                   )}
@@ -1441,29 +1392,12 @@ export default function App() {
                           <span className="text-[9px] bg-orange-100 text-orange-700 font-bold px-1.5 py-0.5 rounded-md">Tayyorlanmoqda</span>
                         </div>
                         {activeTableOrderItems.map((item: any, idx: number) => (
-                          <div key={idx} className="bg-orange-50/60 p-2.5 rounded-xl border border-orange-200/70 space-y-1">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1 pr-2">
-                                <p className="font-bold text-xs text-slate-900">{item.name}</p>
-                                <p className="text-[10px] text-slate-500 font-medium">{item.quantity || 1} ta x {(Number(item.price) || 0).toLocaleString()} so'm</p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-900">{((Number(item.price) || 0) * (Number(item.quantity) || 1)).toLocaleString()} so'm</span>
-                                <button
-                                  onClick={() => handleRemoveKitchenItem(idx)}
-                                  title="Bekor qilish (Admin PIN talab qilinadi)"
-                                  className="text-rose-400 hover:text-rose-600 hover:bg-rose-100 p-1 rounded-md transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                            {item.note && (
-                              <p className="text-[10px] font-bold text-amber-800 bg-amber-100/70 border border-amber-300/60 px-2 py-0.5 rounded-md inline-block">
-                                <PenLine className="w-3 h-3 inline mr-0.5" />{item.note}
-                              </p>
-                            )}
-                          </div>
+                          <KitchenItemRow
+                            key={idx}
+                            item={item}
+                            index={idx}
+                            onRemove={handleRemoveKitchenItem}
+                          />
                         ))}
                       </div>
                     )}
@@ -1475,36 +1409,12 @@ export default function App() {
                           <p className="text-[10px] font-bold text-slate-500 tracking-wider uppercase border-t border-slate-100 pt-2">Yangi qo'shilayotgan taomlar</p>
                         )}
                         {cart.map((item) => (
-                          <div key={item.product.id} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 shadow-xs space-y-1.5">
-                            <div className="flex justify-between items-center">
-                              <div className="flex-1 pr-2">
-                                <p className="font-semibold text-xs text-slate-900">{item.product.name}</p>
-                                <p className="text-[11px] text-orange-600 font-medium mt-0.5">{(item.product.price * item.quantity).toLocaleString()} so'm</p>
-                              </div>
-                              <div className="flex items-center gap-2 bg-slate-100/80 rounded-xl p-1 border border-slate-200 shadow-inner shrink-0">
-                                <button
-                                  onClick={() => updateQuantity(item.product.id, -1)}
-                                  className="w-8 h-8 rounded-lg bg-white text-slate-700 hover:bg-rose-500 hover:text-white active:scale-90 flex items-center justify-center font-semibold transition-all shadow-xs cursor-pointer"
-                                >
-                                  <Minus className="w-4 h-4 stroke-[2.5]" />
-                                </button>
-                                <span className="text-sm font-bold w-5 text-center text-slate-900">{item.quantity}</span>
-                                <button
-                                  onClick={() => updateQuantity(item.product.id, 1)}
-                                  className="w-8 h-8 rounded-lg bg-white text-slate-700 hover:bg-emerald-500 hover:text-white active:scale-90 flex items-center justify-center font-semibold transition-all shadow-xs cursor-pointer"
-                                >
-                                  <Plus className="w-4 h-4 stroke-[2.5]" />
-                                </button>
-                              </div>
-                            </div>
-                            <input
-                              type="text"
-                              placeholder="Oshxonaga izoh (masalan: piyozsiz, achchiq...)"
-                              value={item.note || ''}
-                              onChange={(e) => updateItemNote(item.product.id, e.target.value)}
-                              className="w-full text-[10px] text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1 placeholder-slate-400 focus:outline-none focus:border-orange-500 font-medium transition-all"
-                            />
-                          </div>
+                          <CartItemRow
+                            key={item.product.id}
+                            item={item}
+                            onUpdateQuantity={updateQuantity}
+                            onUpdateNote={updateItemNote}
+                          />
                         ))}
                       </div>
                     )}

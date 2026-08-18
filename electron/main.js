@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
+const { initDB, closeDB } = require('./db/index');
 const repositories = require('./db/repositories');
 const SyncEngine = require('./sync/syncEngine');
 
@@ -298,6 +299,12 @@ ipcMain.handle('print-receipt', async (event, d) => {
 });
 
 app.whenReady().then(() => {
+  try {
+    initDB();
+  } catch (err) {
+    console.error('Failed to initialize SQLite database:', err);
+  }
+
   syncEngine = new SyncEngine();
   createWindow();
 
@@ -310,6 +317,10 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+});
+
+app.on('will-quit', () => {
+  closeDB();
 });
 
 app.on('window-all-closed', () => {

@@ -1,95 +1,316 @@
 const path = require('path');
 const fs = require('fs');
-const { app } = require('electron');
+const Database = require('better-sqlite3');
 
-let dbPath = null;
+let dbInstance = null;
+let currentDbPath = null;
+let isInitialized = false;
 
-function getDbPath() {
-  if (!dbPath) {
-    const userDir = app.getPath('userData');
-    dbPath = path.join(userDir, 'uzbecano_pos_store.json');
-    if (!fs.existsSync(dbPath)) {
-      fs.writeFileSync(dbPath, JSON.stringify({ orders: [], sync_queue: [] }, null, 2));
-    }
-  }
-  return dbPath;
-}
-
-let cachedData = null;
-let writeTimer = null;
-
-function readData() {
-  if (cachedData) return cachedData;
+function getDefaultDbPath() {
   try {
-    const fileContent = fs.readFileSync(getDbPath(), 'utf8');
-    cachedData = JSON.parse(fileContent);
-  } catch (e) {
-    cachedData = { orders: [], sync_queue: [] };
-  }
-  return cachedData;
-}
-
-function writeData(data) {
-  cachedData = data;
-  clearTimeout(writeTimer);
-  writeTimer = setTimeout(() => {
-    try {
-      fs.writeFileSync(getDbPath(), JSON.stringify(data, null, 2));
-    } catch (e) {}
-  }, 300);
-}
-
-const db = {
-  async exec(sql) {},
-  async get(sql, params) {},
-  async all(sql, params) {},
-  async run(sql, params) {}
-};
-
-async function getDB() {
-  return {
-    async exec() {},
-    async all(sql) {
-      const data = readData();
-      if (sql.includes('orders')) return data.orders;
-      if (sql.includes('sync_queue')) return data.sync_queue;
-      return [];
-    },
-    async get(sql, params) {
-      const data = readData();
-      if (sql.includes('orders') && params) {
-        return data.orders.find(o => o.id === params[0]);
-      }
-      return null;
-    },
-    async run(sql, params) {
-      const data = readData();
-      if (sql.includes('INSERT INTO orders')) {
-        const [id, table_number, order_type, phone, address, items, subtotal, service_fee, total, status, sync_status, created_at, updated_at, version] = params;
-        const existingIndex = data.orders.findIndex(o => o.id === id);
-        const newOrder = { id, table_number, order_type, phone, address, items, subtotal, service_fee, total, status, sync_status, created_at, updated_at, version };
-        if (existingIndex >= 0) {
-          data.orders[existingIndex] = newOrder;
-        } else {
-          data.orders.push(newOrder);
-        }
-        writeData(data);
-      } else if (sql.includes('UPDATE orders SET status')) {
-        const [status, updated_at, id] = params;
-        const order = data.orders.find(o => o.id === id);
-        if (order) {
-          order.status = status;
-          order.updated_at = updated_at;
-          writeData(data);
-        }
-      } else if (sql.includes('INSERT INTO sync_queue')) {
-        const [id, order_id, action, payload, status, retry_count, last_error, created_at] = params;
-        data.sync_queue.push({ id, order_id, action, payload, status, retry_count, last_error, created_at });
-        writeData(data);
-      }
-      return { lastID: 1, changes: 1 };
+    const { app } = require('electron');
+    if (app && typeof app.getPath === 'function') {
+      return path.join(app.getPath('userData'), 'orderplus.sqlite');
     }
-  };
+  } catch {}
+  return path.join(process.cwd(), 'orderplus.sqlite');
 }
 
-module.exports = { getDB };
+function runMigrations(db) {
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  db.pragma('busy_timeout = 5000');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      applied_at TEXT NOT NULL
+    );
+  `);
+
+  const appliedMigrations = new Set(
+    db.prepare('SELECT version FROM schema_migrations').all().map((r) => r.version)
+  );
+
+  const migrations = [
+    {
+      version: 1,
+      name: 'initial_pos_schema',
+      up: (dbTx) => {
+        dbTx.exec(`
+          CREATE TABLE IF NOT EXISTS orders (
+            id TEXT PRIMARY KEY,
+            table_number TEXT,
+            order_type TEXT DEFAULT 'DINE_IN',
+            phone TEXT,
+            address TEXT,
+            items TEXT,
+            subtotal INTEGER DEFAULT 0,
+            service_fee INTEGER DEFAULT 0,
+            discount_amount INTEGER DEFAULT 0,
+            discount_percent INTEGER DEFAULT 0,
+            total INTEGER DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'pending',
+            sync_status TEXT NOT NULL DEFAULT 'pending',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            version INTEGER NOT NULL DEFAULT 1,
+            cafe_id TEXT,
+            payment_method TEXT,
+            cash_amount INTEGER DEFAULT 0,
+            card_amount INTEGER DEFAULT 0,
+            waiter_name TEXT
+          );
+
+          CREATE TABLE IF NOT EXISTS order_items (
+            id TEXT PRIMARY KEY,
+            order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+            item_index INTEGER NOT NULL,
+            product_id TEXT,
+            name TEXT NOT NULL,
+            quantity REAL NOT NULL DEFAULT 1,
+            unit_price INTEGER NOT NULL DEFAULT 0,
+            total INTEGER NOT NULL DEFAULT 0,
+            note TEXT,
+            metadata_json TEXT
+          );
+
+          CREATE TABLE IF NOT EXISTS payments (
+            id TEXT PRIMARY KEY,
+            order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+            method TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'completed',
+            created_at TEXT NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS sync_operations (
+            id TEXT PRIMARY KEY,
+            operation_id TEXT UNIQUE,
+            order_id TEXT NOT NULL,
+            action TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            retry_count INTEGER NOT NULL DEFAULT 0,
+            next_retry_at TEXT,
+            last_error TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS audit_logs (
+            id TEXT PRIMARY KEY,
+            action TEXT NOT NULL,
+            entity_type TEXT NOT NULL,
+            entity_id TEXT,
+            actor_id TEXT,
+            metadata_json TEXT,
+            created_at TEXT NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS app_settings (
+            key TEXT PRIMARY KEY,
+            value_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+          CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+          CREATE INDEX IF NOT EXISTS idx_sync_operations_status ON sync_operations(status, created_at);
+          CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+        `);
+      },
+    },
+  ];
+
+  for (const m of migrations) {
+    if (!appliedMigrations.has(m.version)) {
+      const applyTx = db.transaction(() => {
+        m.up(db);
+        db.prepare(
+          'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)'
+        ).run(m.version, m.name, new Date().toISOString());
+      });
+      applyTx();
+    }
+  }
+}
+
+function migrateLegacyJson(db, dbDirectory) {
+  const legacyJsonPath = path.join(dbDirectory, 'uzbecano_pos_store.json');
+  if (!fs.existsSync(legacyJsonPath)) {
+    return { migrated: false, reason: 'no_legacy_file' };
+  }
+
+  let fileContent;
+  let parsed;
+  try {
+    fileContent = fs.readFileSync(legacyJsonPath, 'utf8');
+    parsed = JSON.parse(fileContent);
+  } catch (err) {
+    throw new Error(
+      `[MIGRATION_ERROR] Legacy JSON store at ${legacyJsonPath} is corrupt or unreadable: ${err.message}`
+    );
+  }
+
+  const legacyOrders = Array.isArray(parsed.orders) ? parsed.orders : [];
+  const legacySyncQueue = Array.isArray(parsed.sync_queue) ? parsed.sync_queue : [];
+
+  if (legacyOrders.length === 0 && legacySyncQueue.length === 0) {
+    return { migrated: false, reason: 'empty_legacy_data' };
+  }
+
+  const migrationTx = db.transaction(() => {
+    const insertOrderStmt = db.prepare(`
+      INSERT OR IGNORE INTO orders (
+        id, table_number, order_type, phone, address, items,
+        subtotal, service_fee, discount_amount, total, status,
+        sync_status, created_at, updated_at, version
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertItemStmt = db.prepare(`
+      INSERT OR IGNORE INTO order_items (
+        id, order_id, item_index, name, quantity, unit_price, total, note
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertSyncStmt = db.prepare(`
+      INSERT OR IGNORE INTO sync_operations (
+        id, operation_id, order_id, action, payload_json,
+        status, retry_count, last_error, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const o of legacyOrders) {
+      if (!o.id) continue;
+      const itemsStr = typeof o.items === 'string' ? o.items : JSON.stringify(o.items || []);
+      insertOrderStmt.run(
+        o.id,
+        o.table_number || o.tableNumber || '',
+        o.order_type || o.orderType || 'DINE_IN',
+        o.phone || '',
+        o.address || '',
+        itemsStr,
+        Number(o.subtotal) || 0,
+        Number(o.service_fee || o.serviceFee) || 0,
+        Number(o.discount_amount || o.discountAmount) || 0,
+        Number(o.total) || 0,
+        o.status || 'pending',
+        o.sync_status || o.syncStatus || 'pending',
+        o.created_at || o.createdAt || new Date().toISOString(),
+        o.updated_at || o.updatedAt || new Date().toISOString(),
+        Number(o.version) || 1
+      );
+
+      let parsedItems = [];
+      try {
+        parsedItems = typeof o.items === 'string' ? JSON.parse(o.items) : o.items || [];
+      } catch {}
+
+      if (Array.isArray(parsedItems)) {
+        parsedItems.forEach((it, idx) => {
+          const itemId = `${o.id}_item_${idx}`;
+          insertItemStmt.run(
+            itemId,
+            o.id,
+            idx,
+            it.name || 'Taom',
+            Number(it.quantity) || 1,
+            Number(it.price || it.unitPrice) || 0,
+            (Number(it.quantity) || 1) * (Number(it.price || it.unitPrice) || 0),
+            it.note || null
+          );
+        });
+      }
+    }
+
+    for (const sq of legacySyncQueue) {
+      if (!sq.id) continue;
+      const now = new Date().toISOString();
+      insertSyncStmt.run(
+        sq.id,
+        sq.id,
+        sq.order_id || sq.orderId || '',
+        sq.action || 'CREATE',
+        typeof sq.payload === 'string' ? sq.payload : JSON.stringify(sq.payload || {}),
+        sq.status || 'pending',
+        Number(sq.retry_count || sq.retryCount) || 0,
+        sq.last_error || sq.lastError || null,
+        sq.created_at || sq.createdAt || now,
+        now
+      );
+    }
+  });
+
+  migrationTx();
+
+  // Create safety backup of legacy JSON
+  try {
+    const backupPath = `${legacyJsonPath}.migrated-backup`;
+    fs.copyFileSync(legacyJsonPath, backupPath);
+  } catch {}
+
+  return { migrated: true, ordersCount: legacyOrders.length, queueCount: legacySyncQueue.length };
+}
+
+function initDB(customPath = null) {
+  if (dbInstance && isInitialized && (!customPath || customPath === currentDbPath)) {
+    return dbInstance;
+  }
+
+  if (dbInstance) {
+    try {
+      dbInstance.close();
+    } catch {}
+    dbInstance = null;
+    isInitialized = false;
+  }
+
+  currentDbPath = customPath || getDefaultDbPath();
+  const dbDir = path.dirname(currentDbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
+  dbInstance = new Database(currentDbPath);
+  runMigrations(dbInstance);
+
+  try {
+    migrateLegacyJson(dbInstance, dbDir);
+  } catch (err) {
+    dbInstance.close();
+    dbInstance = null;
+    throw err;
+  }
+
+  isInitialized = true;
+  return dbInstance;
+}
+
+function getDB() {
+  if (!dbInstance || !isInitialized) {
+    return initDB(currentDbPath);
+  }
+  return dbInstance;
+}
+
+function closeDB() {
+  if (dbInstance) {
+    try {
+      dbInstance.close();
+    } catch {}
+    dbInstance = null;
+    isInitialized = false;
+  }
+}
+
+module.exports = {
+  initDB,
+  getDB,
+  closeDB,
+  getDefaultDbPath,
+  runMigrations,
+  migrateLegacyJson,
+};

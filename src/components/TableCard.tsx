@@ -26,12 +26,12 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
           : 'bg-white border-slate-200 text-slate-800 hover:border-orange-400'
       }`}
     >
-      <div className="flex justify-between items-center">
-        <span className={`font-bold text-base tracking-tight ${table.status === 'band' ? 'text-white' : 'text-slate-900'}`}>
+      <div className="flex justify-between items-center gap-1 min-w-0">
+        <span className={`font-bold text-xs sm:text-sm md:text-base tracking-tight truncate whitespace-nowrap ${table.status === 'band' ? 'text-white' : 'text-slate-900'}`}>
           {table.number}
         </span>
         <span
-          className={`text-[9px] font-bold px-2 py-0.5 rounded-full tracking-wider ${
+          className={`text-[8px] sm:text-[9px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full tracking-wider shrink-0 whitespace-nowrap ${
             table.status === 'band'
               ? 'bg-orange-500 text-white'
               : 'bg-emerald-100 text-emerald-700'
@@ -42,13 +42,13 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
       </div>
 
       {table.status === 'band' ? (
-        <div className="bg-[#2A2D2F] p-2 rounded-xl border border-[#3A3E41] flex items-center justify-between">
-          <span className="text-[10px] text-slate-400 font-medium">Jami:</span>
-          <span className="text-xs text-white font-bold">{table.total.toLocaleString()} so'm</span>
+        <div className="bg-[#2A2D2F] p-1.5 sm:p-2 rounded-xl border border-[#3A3E41] flex items-center justify-between gap-1 min-w-0">
+          <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium shrink-0">Jami:</span>
+          <span className="text-[11px] sm:text-xs text-white font-bold truncate whitespace-nowrap">{table.total.toLocaleString()} so'm</span>
         </div>
       ) : (
-        <div className="py-0.5">
-          <p className="text-[10px] text-slate-400 font-medium">{table.area}</p>
+        <div className="py-0.5 min-w-0">
+          <p className="text-[10px] text-slate-400 font-medium truncate whitespace-nowrap">{table.area}</p>
         </div>
       )}
     </div>

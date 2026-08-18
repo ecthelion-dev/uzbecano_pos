@@ -182,6 +182,13 @@ export default function App() {
     return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_phone`) : null) || '';
   });
   const [showPrinterModal, setShowPrinterModal] = useState<boolean>(false);
+  const [serviceFeePercent, setServiceFeePercent] = useState<number>(() => {
+    try {
+      return typeof window !== 'undefined' ? Number(localStorage.getItem('serviceFeePercent') ?? 10) : 10;
+    } catch {
+      return 10;
+    }
+  });
 
   const getActiveCafeId = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -313,6 +320,7 @@ export default function App() {
         const setts = await settRes.json();
         if (typeof setts.serviceFeePercent === 'number') {
           setServiceFeePercent(setts.serviceFeePercent);
+          localStorage.setItem('serviceFeePercent', String(setts.serviceFeePercent));
         }
         if (setts.name) {
           setConnectedCafeName(setts.name);
@@ -598,7 +606,6 @@ export default function App() {
   const subtotal = useMemo(() => activeSubtotal + draftSubtotal, [activeSubtotal, draftSubtotal]);
   const discountAmount = useMemo(() => Math.round((subtotal * discountPercent) / 100), [subtotal, discountPercent]);
   const netSubtotal = useMemo(() => subtotal - discountAmount, [subtotal, discountAmount]);
-  const serviceFeePercent = typeof window !== 'undefined' ? Number(localStorage.getItem('serviceFeePercent') ?? 10) : 10;
   const serviceFee = useMemo(() => Math.round((netSubtotal * serviceFeePercent) / 100), [netSubtotal, serviceFeePercent]);
   const grandTotal = useMemo(() => netSubtotal + serviceFee, [netSubtotal, serviceFee]);
 
@@ -1189,64 +1196,64 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 antialiased selection:bg-orange-500 selection:text-white">
       {/* Light Top Header Bar */}
-      <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
-          <div>
-            <h1 className="text-lg font-bold tracking-wider text-slate-900 leading-none">ORDER<span className="text-orange-500">PLUS</span></h1>
-            <p className="text-[10px] text-slate-500 font-medium mt-0.5">POS System</p>
+      <header className="bg-white border-b border-slate-200 px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between shadow-sm sticky top-0 z-50 gap-2 sm:gap-4 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <img src="/favicon.png" alt="OrderPlus" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+          <div className="hidden xs:block">
+            <h1 className="text-base sm:text-lg font-bold tracking-wider text-slate-900 leading-none">ORDER<span className="text-orange-500">PLUS</span></h1>
+            <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium mt-0.5">POS System</p>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
           <button
             onClick={() => setActiveTab('stollar')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 ${activeTab === 'stollar'
+            className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${activeTab === 'stollar'
                 ? 'bg-orange-500 text-white shadow-md'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
           >
             <Grid className="w-3.5 h-3.5" />
-            STOLLAR (F1)
+            <span>STOLLAR</span><span className="hidden md:inline text-[10px] opacity-80">(F1)</span>
           </button>
           <button
             onClick={() => setActiveTab('menyu')}
-            className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 ${activeTab === 'menyu'
+            className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${activeTab === 'menyu'
                 ? 'bg-orange-500 text-white shadow-md'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            MENYU (F2)
+            <span>MENYU</span><span className="hidden md:inline text-[10px] opacity-80">(F2)</span>
           </button>
           <button
             onClick={() => setShowArchiveModal(true)}
-            className="px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer"
+            className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer whitespace-nowrap"
           >
             <Receipt className="w-3.5 h-3.5 text-orange-500" />
-            ARXIV (F3)
+            <span>ARXIV</span><span className="hidden md:inline text-[10px] opacity-80">(F3)</span>
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Cafe Name & Logo Display */}
           <div
-            className="flex items-center gap-2 px-3.5 h-10 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold shadow-2xs"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 h-9 sm:h-10 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl text-[11px] sm:text-xs font-bold shadow-2xs"
             title="Ulangan Kafe"
           >
             {connectedCafeLogo ? (
-              <img src={connectedCafeLogo} alt={connectedCafeName} className="w-5 h-5 rounded-md object-contain shrink-0" />
+              <img src={connectedCafeLogo} alt={connectedCafeName} className="w-4 h-4 sm:w-5 sm:h-5 rounded-md object-contain shrink-0" />
             ) : (
-              <Building2 className="w-4 h-4 text-orange-500 shrink-0" />
+              <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-500 shrink-0" />
             )}
-            <span className="max-w-[180px] truncate">{connectedCafeName || 'OrderPlus'}</span>
+            <span className="max-w-[120px] sm:max-w-[180px] truncate whitespace-nowrap">{connectedCafeName || 'OrderPlus'}</span>
           </div>
 
           {/* Thermal Printer Settings Button */}
           <button
             onClick={() => setShowPrinterModal(true)}
-            className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs"
+            className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs"
             title="Termoprinter va Chek Sozlamalari"
           >
             <Printer className="w-4 h-4 text-orange-500 shrink-0" />
@@ -1255,7 +1262,7 @@ export default function App() {
           {/* Refresh Button */}
           <button
             onClick={fetchOrders}
-            className="w-10 h-10 flex items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs"
+            className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs"
             title="Qayta yuklash"
           >
             <RotateCw className={`w-4 h-4 text-slate-500 ${loading ? 'animate-spin text-orange-500' : ''}`} />
@@ -1263,13 +1270,13 @@ export default function App() {
 
           {/* Waiter Profile & Logout */}
           {currentWaiter && (
-            <div className="flex items-center gap-2.5 bg-slate-50/80 px-2.5 h-10 rounded-xl border border-slate-200 shadow-2xs">
-              <div className="w-7 h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
-                <ChefHat className="w-4 h-4" />
+            <div className="flex items-center gap-2 bg-slate-50/80 px-2 sm:px-2.5 h-9 sm:h-10 rounded-xl border border-slate-200 shadow-2xs">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                <ChefHat className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <div className="text-left pr-1">
-                <p className="text-xs font-bold text-slate-900 leading-tight">{currentWaiter.name}</p>
-                <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">Ofitsiant</p>
+              <div className="text-left pr-1 hidden sm:block">
+                <p className="text-[11px] font-bold text-slate-900 leading-none truncate max-w-[100px]">{currentWaiter.name}</p>
+                <p className="text-[9px] text-slate-400 mt-0.5">{currentWaiter.role === 'admin' ? 'Kassir' : 'Offitsiant'}</p>
               </div>
               <button
                 onClick={() => {
@@ -1277,42 +1284,38 @@ export default function App() {
                   localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
                   setCurrentWaiter(null);
                 }}
-                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                title="Tizimdan chiqish"
+                className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                title="Chiqish"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
         </div>
       </header>
 
-      {/* Main Workspace Area */}
-      <main className="flex-1 p-6 flex gap-6 overflow-hidden max-w-[1700px] mx-auto w-full">
-        {loading && products.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center py-24 text-slate-500 gap-3">
-            <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-            <p className="text-xs font-semibold">Ma'lumotlar bazasidan yuklanmoqda...</p>
-          </div>
-        ) : activeTab === 'stollar' ? (
-          /* Light Stollar Zali Grid */
-          <div className="flex-1 flex flex-col gap-5">
-            <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Grid className="w-5 h-5 text-orange-500" /> Restoran Stollari Joylashuvi
+      {/* Main Content Area */}
+      <main className="flex-1 flex overflow-hidden p-2 sm:p-4 gap-2 sm:gap-4 relative">
+        {activeTab === 'stollar' ? (
+          /* Stollar Zali View */
+          <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
+            {/* Top Bar for Tables */}
+            <div className="flex items-center justify-between bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                <Grid className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" /> Restoran Stollari Joylashuvi
               </h2>
-              <div className="flex items-center gap-4 text-xs font-medium">
-                <span className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-lg text-emerald-700 border border-emerald-200">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> BOSH STOL
+              <div className="flex items-center gap-2 sm:gap-4 text-[11px] sm:text-xs font-medium">
+                <span className="flex items-center gap-1.5 bg-emerald-50 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span> BOSH
                 </span>
-                <span className="flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-lg text-orange-700 border border-orange-200">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span> BAND STOL
+                <span className="flex items-center gap-1.5 bg-orange-50 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-orange-700 border border-orange-200 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-orange-500"></span> BAND
                 </span>
               </div>
             </div>
 
             {/* Area Zone Filters */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
               {['Barchasi', 'Asosiy Zal', '2-Qavat', 'VIP Kabinalar', 'Alohida Xonalar'].map((area) => {
                 const areaCount = tables.filter(t => area === 'Barchasi' || t.area === area).length;
                 const occupiedCount = tables.filter(t => (area === 'Barchasi' || t.area === area) && t.status === 'band').length;
@@ -1320,7 +1323,7 @@ export default function App() {
                   <button
                     key={area}
                     onClick={() => setSelectedArea(area)}
-                    className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 border whitespace-nowrap shadow-2xs ${
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 sm:gap-2 border whitespace-nowrap shadow-2xs cursor-pointer ${
                       selectedArea === area
                         ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
@@ -1340,7 +1343,7 @@ export default function App() {
               })}
             </div>
 
-            <div className="grid grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3">
               {filteredTables.map((t) => (
                 <TableCard
                   key={t.id}

@@ -113,7 +113,10 @@ export default function App() {
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(() => {
     try {
-      const saved = localStorage.getItem('uzbecano_cash_transactions');
+      const cafeId = typeof window !== 'undefined'
+        ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
+        : 'uzbecano';
+      const saved = localStorage.getItem(`orderplus_${cafeId}_cash_transactions`);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -128,10 +131,13 @@ export default function App() {
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
   const [adminPinAction, setAdminPinAction] = useState<(() => void) | null>(null);
 
-  const [waiters, setWaiters] = useState<DBWaiter[]>(DEFAULT_WAITERS);
+  const [waiters, setWaiters] = useState<DBWaiter[]>([]);
   const [currentWaiter, setCurrentWaiter] = useState<DBWaiter | null>(() => {
     try {
-      const saved = localStorage.getItem('uzbecano_current_waiter');
+      const cafeId = typeof window !== 'undefined'
+        ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
+        : 'uzbecano';
+      const saved = localStorage.getItem(`orderplus_${cafeId}_current_waiter`);
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -142,7 +148,10 @@ export default function App() {
 
   const [showConnectModal, setShowConnectModal] = useState<boolean>(false);
   const [connectedCafeName, setConnectedCafeName] = useState<string>(() => {
-    return localStorage.getItem('orderplus_cafe_name') || 'OrderPlus Restoran';
+    const cafeId = typeof window !== 'undefined'
+      ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
+      : 'uzbecano';
+    return localStorage.getItem(`orderplus_${cafeId}_name`) || localStorage.getItem('orderplus_cafe_name') || 'OrderPlus Restoran';
   });
   const [connectedCafeLogo, setConnectedCafeLogo] = useState<string>(() => {
     return localStorage.getItem('orderplus_cafe_logo') || '';
@@ -172,6 +181,21 @@ export default function App() {
     return 'uzbecano';
   }, []);
 
+  // Ensure currentWaiter and active cafe match when URL param changes
+  useEffect(() => {
+    const cafeId = getActiveCafeId();
+    const saved = localStorage.getItem(`orderplus_${cafeId}_current_waiter`);
+    if (saved) {
+      try {
+        setCurrentWaiter(JSON.parse(saved));
+      } catch {
+        setCurrentWaiter(null);
+      }
+    } else {
+      setCurrentWaiter(null);
+    }
+  }, [getActiveCafeId]);
+
   // Fetch orders only (lightweight, called frequently)
   const fetchOrders = useCallback(async () => {
     try {
@@ -196,12 +220,12 @@ export default function App() {
 
     const cafeId = getActiveCafeId();
 
-    // Load static data from localStorage scoped by cafeId
-    const localCats = localStorage.getItem(`orderplus_${cafeId}_categories`) || localStorage.getItem('uzbecano_categories');
-    const localProds = localStorage.getItem(`orderplus_${cafeId}_products`) || localStorage.getItem('uzbecano_products');
-    const localWaiters = localStorage.getItem(`orderplus_${cafeId}_waiters`) || localStorage.getItem('uzbecano_waiters');
-    const localOrds = localStorage.getItem(`orderplus_${cafeId}_orders`) || localStorage.getItem('uzbecano_orders');
-    const localCafeName = localStorage.getItem(`orderplus_${cafeId}_name`) || localStorage.getItem('orderplus_cafe_name');
+    // Load static data from localStorage strictly scoped by cafeId
+    const localCats = localStorage.getItem(`orderplus_${cafeId}_categories`);
+    const localProds = localStorage.getItem(`orderplus_${cafeId}_products`);
+    const localWaiters = localStorage.getItem(`orderplus_${cafeId}_waiters`);
+    const localOrds = localStorage.getItem(`orderplus_${cafeId}_orders`);
+    const localCafeName = localStorage.getItem(`orderplus_${cafeId}_name`);
     if (localCafeName) setConnectedCafeName(localCafeName);
 
     if (localProds) {
@@ -334,7 +358,8 @@ export default function App() {
       setCart([]);
       setActiveTable(null);
       setCurrentWaiter(null);
-      localStorage.removeItem('uzbecano_current_waiter');
+      const cafeId = getActiveCafeId();
+      localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
       fetchData();
       fetchOrders();
     } catch {
@@ -346,7 +371,8 @@ export default function App() {
 
   // Offline Sync Queue Handler
   const syncOfflineOrders = useCallback(async () => {
-    const queueStr = localStorage.getItem('uzbecano_sync_queue');
+    const cafeId = getActiveCafeId();
+    const queueStr = localStorage.getItem(`orderplus_${cafeId}_sync_queue`);
     if (!queueStr) return;
     try {
       const queue: DBOrder[] = JSON.parse(queueStr);
@@ -357,20 +383,20 @@ export default function App() {
           const res = await fetch(`${API_BASE_URL}/api/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(ord)
+            body: JSON.stringify({ ...ord, cafeId })
           });
           if (!res.ok) remaining.push(ord);
         } catch {
           remaining.push(ord);
         }
       }
-      localStorage.setItem('uzbecano_sync_queue', JSON.stringify(remaining));
+      localStorage.setItem(`orderplus_${cafeId}_sync_queue`, JSON.stringify(remaining));
       if (remaining.length < queue.length) {
         setToastMessage("Oflayn buyurtmalar serverga sinxronlandi!");
         setTimeout(() => setToastMessage(null), 2500);
       }
     } catch {}
-  }, []);
+  }, [getActiveCafeId]);
 
   useEffect(() => {
     const interval = setInterval(syncOfflineOrders, 10000);
@@ -611,11 +637,11 @@ export default function App() {
 
       const updatedOrders = orders.map(o => o.id === activeTableOrder.id ? { ...o, items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot } : o);
       setOrders(updatedOrders);
-      localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
+      localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
       setToastMessage('Taom oshxona buyurtmasidan bekor qilindi!');
       setTimeout(() => setToastMessage(null), 2500);
     });
-  }, [activeTableOrder, activeTableOrderItems, orders, isOfflineMode, requestAdminPin]);
+  }, [activeTableOrder, activeTableOrderItems, orders, isOfflineMode, requestAdminPin, getActiveCafeId]);
 
   const handleRefundOrder = useCallback((targetOrder: DBOrder, reason: string) => {
     requestAdminPin(async () => {
@@ -641,7 +667,7 @@ export default function App() {
       } : o);
 
       setOrders(updatedOrders);
-      localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
+      localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
       setSelectedArchiveOrder(prev => prev && prev.id === targetOrder.id ? {
         ...prev,
         refunded: true,
@@ -719,7 +745,7 @@ export default function App() {
       }
 
       setOrders(updatedOrders);
-      localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
+      localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
       setTableCarts(prev => ({ ...prev, [selectedTable]: [] }));
 
       const kitchenPayload: KitchenSlipData = {
@@ -795,7 +821,7 @@ export default function App() {
     };
     const updated = [newTx, ...cashTransactions];
     setCashTransactions(updated);
-    localStorage.setItem('uzbecano_cash_transactions', JSON.stringify(updated));
+    localStorage.setItem(`orderplus_${getActiveCafeId()}_cash_transactions`, JSON.stringify(updated));
     setToastMessage(`Kassa ${type === 'kirim' ? 'kirimi' : 'chiqimi'} saqlandi!`);
     setTimeout(() => setToastMessage(null), 2500);
   }, [cashTransactions, currentWaiter]);
@@ -885,7 +911,7 @@ export default function App() {
     });
 
     setOrders(updatedOrders);
-    localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
+    localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
     setSelectedTable(targetTable);
     setTimeout(() => setToastMessage(null), 2500);
   }, [orders, tableCarts, isOfflineMode]);
@@ -996,7 +1022,7 @@ export default function App() {
         const updatedOrders = currentOrders.map(o => o.id === latestOrder.id ? closedOrder : o);
 
         setOrders(updatedOrders);
-        localStorage.setItem('uzbecano_orders', JSON.stringify(updatedOrders));
+        localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
         setSelectedArchiveOrder(closedOrder);
       }
       setTableCarts(prev => ({ ...prev, [targetTable]: [] }));
@@ -1063,15 +1089,16 @@ export default function App() {
         // 1. Check local waiters in memory first (fast offline)
         const matched = waiters.find(w => String(w.pinCode).trim() === nextPin);
         if (matched) {
+          const cafeId = getActiveCafeId();
           setCurrentWaiter(matched);
-          localStorage.setItem('uzbecano_current_waiter', JSON.stringify(matched));
+          localStorage.setItem(`orderplus_${cafeId}_current_waiter`, JSON.stringify(matched));
           setPinInput('');
           return;
         }
 
         // 2. Fallback: Live server PIN verification
         try {
-          const currentCid = localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
+          const currentCid = getActiveCafeId();
           const res = await fetch(`${API_BASE_URL}/api/auth/pin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1090,8 +1117,9 @@ export default function App() {
               pinCode: nextPin,
               role: data.role === 'cafe_admin' ? 'manager' : 'waiter',
             };
+            const cafeId = getActiveCafeId();
             setCurrentWaiter(loggedWaiter);
-            localStorage.setItem('uzbecano_current_waiter', JSON.stringify(loggedWaiter));
+            localStorage.setItem(`orderplus_${cafeId}_current_waiter`, JSON.stringify(loggedWaiter));
             setPinInput('');
             fetchData();
             fetchOrders();
@@ -1105,7 +1133,7 @@ export default function App() {
         }
       }
     }
-  }, [pinInput, waiters, fetchData, fetchOrders]);
+  }, [pinInput, waiters, fetchData, fetchOrders, getActiveCafeId]);
 
   if (!currentWaiter) {
     return (
@@ -1208,8 +1236,9 @@ export default function App() {
               </div>
               <button
                 onClick={() => {
+                  const cafeId = getActiveCafeId();
+                  localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
                   setCurrentWaiter(null);
-                  localStorage.removeItem('uzbecano_current_waiter');
                 }}
                 className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                 title="Tizimdan chiqish"

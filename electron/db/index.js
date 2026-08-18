@@ -15,19 +15,28 @@ function getDbPath() {
   return dbPath;
 }
 
+let cachedData = null;
+let writeTimer = null;
+
 function readData() {
+  if (cachedData) return cachedData;
   try {
     const fileContent = fs.readFileSync(getDbPath(), 'utf8');
-    return JSON.parse(fileContent);
+    cachedData = JSON.parse(fileContent);
   } catch (e) {
-    return { orders: [], sync_queue: [] };
+    cachedData = { orders: [], sync_queue: [] };
   }
+  return cachedData;
 }
 
 function writeData(data) {
-  try {
-    fs.writeFileSync(getDbPath(), JSON.stringify(data, null, 2));
-  } catch (e) {}
+  cachedData = data;
+  clearTimeout(writeTimer);
+  writeTimer = setTimeout(() => {
+    try {
+      fs.writeFileSync(getDbPath(), JSON.stringify(data, null, 2));
+    } catch (e) {}
+  }, 300);
 }
 
 const db = {

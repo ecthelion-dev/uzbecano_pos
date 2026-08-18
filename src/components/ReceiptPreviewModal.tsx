@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Printer, Banknote, CreditCard, PenLine } from 'lucide-react';
 import { DBWaiter } from '../types';
 
@@ -49,7 +49,10 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 }) => {
   if (!show) return null;
 
-  const combinedItems = [...activeTableOrderItems, ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note }))];
+  const combinedItems = useMemo(() => [
+    ...activeTableOrderItems,
+    ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note }))
+  ], [activeTableOrderItems, cart]);
 
   return (
     <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">

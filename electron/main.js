@@ -56,7 +56,22 @@ ipcMain.handle('sync:get-status', async () => {
   return syncEngine.getSummary();
 });
 
-ipcMain.on('print-receipt', (event, d) => {
+// Persistent hidden print window (reused across prints)
+let printWindow = null;
+
+function getPrintWindow() {
+  if (printWindow && !printWindow.isDestroyed()) return printWindow;
+  printWindow = new BrowserWindow({
+    width: 400,
+    height: 600,
+    show: false,
+    webPreferences: { nodeIntegration: false, contextIsolation: true }
+  });
+  printWindow.on('closed', () => { printWindow = null; });
+  return printWindow;
+}
+
+function buildReceiptHtml(d) {
   function fmt(n) {
     return Number(n || 0).toLocaleString('ru-RU') + " so'm";
   }
@@ -86,7 +101,7 @@ ipcMain.on('print-receipt', (event, d) => {
         <span>Karta:</span><span style="font-weight:bold">${fmt(d.cardAmount)}</span>
        </div>` : '';
 
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <style>
 @page { size: 72mm auto; margin: 0; }
@@ -130,29 +145,24 @@ ${mixedHtml}
   <div style="font-size:9px;color:#555;margin-top:2px">Uzbecano POS v1.0</div>
 </div>
 </body></html>`;
+}
 
-  const printWin = new BrowserWindow({
-    width: 400,
-    height: 600,
-    show: false,
-    webPreferences: { nodeIntegration: false, contextIsolation: true }
-  });
+ipcMain.on('print-receipt', (event, d) => {
+  const html = buildReceiptHtml(d);
+  const win = getPrintWindow();
 
-  printWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-
-  printWin.webContents.on('did-finish-load', () => {
-    setTimeout(() => {
-      printWin.webContents.print({
-        silent: true,
-        printBackground: true,
-        deviceName: 'Printer_POS_80',
-        margins: { marginType: 'none' }
-      }, () => {
-        setTimeout(() => printWin.close(), 1000);
-      });
-    }, 300);
+  win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+  win.webContents.once('did-finish-load', () => {
+    win.webContents.print({
+      silent: true,
+      printBackground: true,
+      margins: { marginType: 'none' }
+    }, (success, reason) => {
+      if (!success) console.error('Print failed:', reason);
+    });
   });
 });
+
 
 // Legacy fallback
 ipcMain.on('print-silent', () => {

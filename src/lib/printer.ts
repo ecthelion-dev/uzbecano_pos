@@ -46,6 +46,7 @@ const GS = 0x1D;
 
 class EscPosEncoder {
   private buffer: number[] = [];
+  private static textEncoder = new TextEncoder();
 
   init() {
     this.buffer.push(ESC, 0x40); // Initialize printer
@@ -70,9 +71,7 @@ class EscPosEncoder {
   }
 
   text(str: string) {
-    // Basic transliteration for non-ascii cyrillic characters
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(str);
+    const bytes = EscPosEncoder.textEncoder.encode(str);
     for (let i = 0; i < bytes.length; i++) {
       this.buffer.push(bytes[i]);
     }
@@ -182,11 +181,15 @@ async function sendRawToPrinter(bytes: Uint8Array): Promise<boolean> {
   // Try Bluetooth first if active
   if (activeBluetoothCharacteristic) {
     try {
-      // Chunk into 512 bytes for BLE
       const chunkSize = 512;
+      const useNoResponse = activeBluetoothCharacteristic.properties?.writeWithoutResponse;
       for (let i = 0; i < bytes.length; i += chunkSize) {
         const chunk = bytes.slice(i, i + chunkSize);
-        await activeBluetoothCharacteristic.writeValue(chunk);
+        if (useNoResponse) {
+          await activeBluetoothCharacteristic.writeValueWithoutResponse(chunk);
+        } else {
+          await activeBluetoothCharacteristic.writeValue(chunk);
+        }
       }
       return true;
     } catch (e) {
@@ -307,48 +310,116 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
   return enc.encode();
 }
 
+// Non-blocking browser print via iframe (doesn't freeze main UI)
+function printViaBrowserNonBlocking(): Promise<void> {
+  return new Promise((resolve) => {
+    const printArea = document.getElementById('thermal-print-area');
+    if (!printArea) {
+      window.print();
+      resolve();
+      return;
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:-10000px;left:-10000px;width:80mm;height:auto;border:none;';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) { window.print(); resolve(); return; }
+
+    // Copy all styles
+    const styles = document.querySelectorAll('style, link[rel="stylesheet"]');
+    styles.forEach(s => doc.head.appendChild(s.cloneNode(true)));
+    doc.body.innerHTML = printArea.innerHTML;
+    doc.body.style.cssText = 'margin:0;padding:0;background:#fff;color:#000;';
+
+    const cleanup = () => {
+      try { document.body.removeChild(iframe); } catch {}
+      resolve();
+    };
+
+    iframe.contentWindow?.addEventListener('afterprint', cleanup);
+    // Fallback timeout in case afterprint doesn't fire
+    const fallbackTimer = setTimeout(cleanup, 8000);
+    iframe.contentWindow?.addEventListener('afterprint', () => clearTimeout(fallbackTimer));
+
+    setTimeout(() => {
+      try { iframe.contentWindow?.print(); } catch { cleanup(); }
+    }, 200);
+  });
+}
+
+// Print Queue — prevents concurrent print collisions
+class PrintQueue {
+  private static queue: Array<() => Promise<void>> = [];
+  private static processing = false;
+
+  static async enqueue(job: () => Promise<void>) {
+    this.queue.push(job);
+    if (!this.processing) this.processNext();
+  }
+
+  private static async processNext() {
+    this.processing = true;
+    while (this.queue.length > 0) {
+      const job = this.queue.shift()!;
+      try { await job(); } catch (e) { console.error('Print job failed:', e); }
+      await new Promise(r => setTimeout(r, 300));
+    }
+    this.processing = false;
+  }
+}
+
 // Print Receipt Execution (Direct or Universal Browser Print)
 export async function executePrintReceipt(order: any, cafeName: string) {
-  const settings = getPrinterSettings();
+  PrintQueue.enqueue(async () => {
+    const settings = getPrinterSettings();
 
-  // If Bluetooth or Serial is connected, print ESC/POS directly without popup
-  if (settings.mode === 'bluetooth' || settings.mode === 'serial' || activeBluetoothCharacteristic || activeSerialPort) {
-    try {
-      const bytes = generateEscPosReceipt(order, cafeName, settings);
-      const ok = await sendRawToPrinter(bytes);
-      if (ok) return;
-    } catch (e) {
-      console.warn("Direct thermal print failed, using universal window.print():", e);
+    if (settings.mode === 'bluetooth' || settings.mode === 'serial' || activeBluetoothCharacteristic || activeSerialPort) {
+      try {
+        const bytes = generateEscPosReceipt(order, cafeName, settings);
+        const ok = await sendRawToPrinter(bytes);
+        if (ok) return;
+      } catch (e) {
+        console.warn("Direct thermal print failed, falling back:", e);
+      }
     }
-  }
 
-  // Universal browser print fallback
-  if (typeof window !== 'undefined') {
-    setTimeout(() => {
-      window.print();
-    }, 150);
-  }
+    // Electron IPC fallback
+    if (typeof window !== 'undefined' && (window as any).require) {
+      try {
+        const { ipcRenderer } = (window as any).require('electron');
+        ipcRenderer.send('print-receipt', order);
+        return;
+      } catch {}
+    }
+
+    // Browser iframe fallback (non-blocking)
+    if (typeof window !== 'undefined') {
+      await printViaBrowserNonBlocking();
+    }
+  });
 }
 
 // Print Kitchen Slip Execution
 export async function executePrintKitchenSlip(data: any, cafeName: string) {
-  const settings = getPrinterSettings();
+  PrintQueue.enqueue(async () => {
+    const settings = getPrinterSettings();
 
-  if (settings.mode === 'bluetooth' || settings.mode === 'serial' || activeBluetoothCharacteristic || activeSerialPort) {
-    try {
-      const bytes = generateEscPosKitchenSlip(data, cafeName, settings);
-      const ok = await sendRawToPrinter(bytes);
-      if (ok) return;
-    } catch (e) {
-      console.warn("Direct kitchen slip print failed, using universal window.print():", e);
+    if (settings.mode === 'bluetooth' || settings.mode === 'serial' || activeBluetoothCharacteristic || activeSerialPort) {
+      try {
+        const bytes = generateEscPosKitchenSlip(data, cafeName, settings);
+        const ok = await sendRawToPrinter(bytes);
+        if (ok) return;
+      } catch (e) {
+        console.warn("Direct kitchen slip print failed, falling back:", e);
+      }
     }
-  }
 
-  if (typeof window !== 'undefined') {
-    setTimeout(() => {
-      window.print();
-    }, 150);
-  }
+    if (typeof window !== 'undefined') {
+      await printViaBrowserNonBlocking();
+    }
+  });
 }
 
 // Print Test Receipt

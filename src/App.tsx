@@ -147,7 +147,16 @@ export default function App() {
   });
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
-  const [isCafeFrozen, setIsCafeFrozen] = useState<boolean>(false);
+  const [isCafeFrozen, setIsCafeFrozen] = useState<boolean>(() => {
+    try {
+      const cafeId = typeof window !== 'undefined'
+        ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
+        : 'uzbecano';
+      return localStorage.getItem(`orderplus_${cafeId}_is_frozen`) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [connectedCafeName, setConnectedCafeName] = useState<string>(() => {
     const cafeId = typeof window !== 'undefined'
       ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
@@ -191,15 +200,22 @@ export default function App() {
   // Ensure currentWaiter, cafe name, and active cafe match when URL param changes
   useEffect(() => {
     const cafeId = getActiveCafeId();
-    const saved = localStorage.getItem(`orderplus_${cafeId}_current_waiter`);
-    if (saved) {
-      try {
-        setCurrentWaiter(JSON.parse(saved));
-      } catch {
+    const frozenSaved = localStorage.getItem(`orderplus_${cafeId}_is_frozen`) === 'true';
+    setIsCafeFrozen(frozenSaved);
+    if (frozenSaved) {
+      setCurrentWaiter(null);
+      localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
+    } else {
+      const saved = localStorage.getItem(`orderplus_${cafeId}_current_waiter`);
+      if (saved) {
+        try {
+          setCurrentWaiter(JSON.parse(saved));
+        } catch {
+          setCurrentWaiter(null);
+        }
+      } else {
         setCurrentWaiter(null);
       }
-    } else {
-      setCurrentWaiter(null);
     }
     const savedName = localStorage.getItem(`orderplus_${cafeId}_name`);
     setConnectedCafeName(savedName || cafeId);
@@ -322,8 +338,11 @@ export default function App() {
         const isFrozen = setts.status === 'frozen' || setts.status === 'expired' || (setts.subscriptionEnd && new Date(setts.subscriptionEnd).getTime() < Date.now());
         setIsCafeFrozen(Boolean(isFrozen));
         if (isFrozen) {
+          localStorage.setItem(`orderplus_${cafeId}_is_frozen`, 'true');
           setCurrentWaiter(null);
           localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
+        } else {
+          localStorage.removeItem(`orderplus_${cafeId}_is_frozen`);
         }
       }
 
@@ -1110,9 +1129,8 @@ export default function App() {
   }, [pinInput, fetchData, fetchOrders, getActiveCafeId]);
 
   const renderFrozenModal = () => {
-    if (!isCafeFrozen) return null;
     return (
-      <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="bg-slate-900 border border-slate-700/80 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl text-white space-y-5 animate-scaleUp">
           <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto border border-amber-500/30">
             <Lock className="w-8 h-8" />
@@ -1151,6 +1169,10 @@ export default function App() {
     );
   };
 
+  if (isCafeFrozen) {
+    return renderFrozenModal();
+  }
+
   if (!currentWaiter) {
     return (
       <>
@@ -1159,7 +1181,6 @@ export default function App() {
           pinError={pinError}
           onPinKey={handlePinKey}
         />
-        {renderFrozenModal()}
         <ToastNotification message={toastMessage} />
       </>
     );

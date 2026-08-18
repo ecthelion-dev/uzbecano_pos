@@ -1762,9 +1762,6 @@ export default function App() {
           setTimeout(() => setToastMessage(null), 2500);
         }}
       />
-
-      {/* POS Subscription Frozen / Locked Screen */}
-      {renderFrozenModal()}
     </div>
   );
 }

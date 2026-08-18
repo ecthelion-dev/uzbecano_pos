@@ -1,7 +1,7 @@
 const repositories = require('../db/repositories');
 
 class SyncEngine {
-  constructor(serverBaseUrl = process.env.VITE_API_URL || 'http://localhost:3000') {
+  constructor(serverBaseUrl = process.env.VITE_API_URL || 'https://orderplus.uz') {
     this.serverBaseUrl = serverBaseUrl;
     this.isSyncing = false;
   }

@@ -8,10 +8,11 @@
     "electron:dev": "VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
     "typecheck": "tsc --noEmit",
     "test": "node test_ipc_security.js && node test_sqlite.js",
-    "postinstall": "electron-builder install-app-deps",
+    "rebuild:electron": "electron-builder install-app-deps",
+    "rebuild:node": "npm rebuild better-sqlite3",
     "build": "vite build",
     "start": "npm run build && electron .",
-    "dist": "npm run build && electron-builder --win --x64"
+    "dist": "npm run build && npm run rebuild:electron && electron-builder --win --x64"
   },
   "build": {
     "appId": "com.uzbecano.pos",
@@ -41,7 +42,7 @@
     }
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
+    "better-sqlite3": "11.8.1",
     "jsoning": "^1.0.1",
     "lowdb": "^5.1.0",
     "lucide-react": "^0.469.0",

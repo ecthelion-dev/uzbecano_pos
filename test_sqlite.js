@@ -6,7 +6,19 @@ const Database = require('better-sqlite3');
 const { initDB, getDB, closeDB, runMigrations, migrateLegacyJson } = require('./electron/db/index');
 const repositories = require('./electron/db/repositories');
 
-console.log('=== RUNNING SQLITE PERSISTENCE & MIGRATION TESTS ===\n');
+const pkg = require('./package.json');
+
+console.log('=== RUNNING SQLITE PERSISTENCE & MIGRATION TESTS ===');
+console.log(`[DIAGNOSTIC] Node Runtime: ${process.version}`);
+console.log(`[DIAGNOSTIC] Target Architecture: ${process.platform}-${process.arch}`);
+console.log(`[DIAGNOSTIC] better-sqlite3 Version: ${pkg.dependencies['better-sqlite3']}`);
+
+// Probe initial in-memory load
+const probeDb = new Database(':memory:');
+const probeJournal = probeDb.pragma('journal_mode', { simple: true });
+console.log(`[DIAGNOSTIC] In-memory probe success: journal_mode=${probeJournal}`);
+probeDb.close();
+console.log('');
 
 const testDir = path.join(os.tmpdir(), `uzbecano_pos_test_${Date.now()}_${Math.random().toString(36).slice(2)}`);
 fs.mkdirSync(testDir, { recursive: true });

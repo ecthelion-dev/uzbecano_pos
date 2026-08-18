@@ -409,13 +409,24 @@ export default function App() {
     };
   }, [syncOfflineOrders]);
 
-  // Auto-sync active orders in background every 8 seconds
+  // Auto-sync active orders in background with visibility optimization
   useEffect(() => {
     if (!currentWaiter) return;
     const interval = setInterval(() => {
-      fetchOrders();
-    }, 8000);
-    return () => clearInterval(interval);
+      if (document.visibilityState === 'visible') {
+        fetchOrders();
+      }
+    }, 6000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchOrders();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [currentWaiter, fetchOrders]);
 
   // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, ESC: Close)

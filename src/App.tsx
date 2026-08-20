@@ -145,6 +145,19 @@ export default function App() {
       return null;
     }
   });
+  // Session JWT issued by /api/auth/pin — required on every staff-authenticated
+  // request (order create/update/list). Without it the backend's requireAuth
+  // rejects the request with 401, which fetch does not treat as an error.
+  const [authToken, setAuthToken] = useState<string | null>(() => {
+    try {
+      const cafeId = typeof window !== 'undefined'
+        ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
+        : 'uzbecano';
+      return localStorage.getItem(`orderplus_${cafeId}_auth_token`);
+    } catch {
+      return null;
+    }
+  });
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [isCafeFrozen, setIsCafeFrozen] = useState<boolean>(() => {
@@ -204,6 +217,58 @@ export default function App() {
     return 'uzbecano';
   }, []);
 
+  // Staff-authenticated backend requests (orders create/update/list) require
+  // this Bearer token, issued by /api/auth/pin on login.
+  const getAuthHeaders = useCallback((): Record<string, string> => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    return headers;
+  }, [authToken]);
+
+  // Logs the operator out and sanitizes renderer state (cart, discount,
+  // payment entry) so the next person at the terminal never sees the
+  // previous operator's session or draft data. Shared by the manual logout
+  // button and the idle-timeout auto-lock below.
+  const handleLogout = useCallback(() => {
+    const cafeId = getActiveCafeId();
+    localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
+    localStorage.removeItem(`orderplus_${cafeId}_auth_token`);
+    setCurrentWaiter(null);
+    setAuthToken(null);
+    setTableCarts({});
+    setDiscountPercent(0);
+    setCustomCashAmount('');
+    setCustomCardAmount('');
+    setPaymentMethod('naqd');
+  }, [getActiveCafeId]);
+
+  // Idle timeout: auto-lock the terminal after a period of no operator
+  // activity, per the mandatory operator session policy. Any mouse/keyboard/
+  // touch activity resets the timer; the check itself runs on a coarse
+  // interval rather than a timer-per-keystroke to keep this cheap.
+  const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+  const lastActivityRef = React.useRef<number>(Date.now());
+  useEffect(() => {
+    const markActivity = () => { lastActivityRef.current = Date.now(); };
+    const events: Array<keyof WindowEventMap> = ['mousedown', 'keydown', 'touchstart', 'wheel'];
+    events.forEach(ev => window.addEventListener(ev, markActivity, { passive: true }));
+    return () => {
+      events.forEach(ev => window.removeEventListener(ev, markActivity));
+    };
+  }, []);
+  useEffect(() => {
+    if (!currentWaiter) return;
+    lastActivityRef.current = Date.now();
+    const interval = setInterval(() => {
+      if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
+        handleLogout();
+        setToastMessage("Faolsizlik tufayli tizimdan chiqildi");
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [currentWaiter, handleLogout]);
+
   // Ensure currentWaiter, cafe name, and active cafe match when URL param changes
   useEffect(() => {
     const cafeId = getActiveCafeId();
@@ -211,7 +276,9 @@ export default function App() {
     setIsCafeFrozen(frozenSaved);
     if (frozenSaved) {
       setCurrentWaiter(null);
+      setAuthToken(null);
       localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
+      localStorage.removeItem(`orderplus_${cafeId}_auth_token`);
     } else {
       const saved = localStorage.getItem(`orderplus_${cafeId}_current_waiter`);
       if (saved) {
@@ -223,6 +290,7 @@ export default function App() {
       } else {
         setCurrentWaiter(null);
       }
+      setAuthToken(localStorage.getItem(`orderplus_${cafeId}_auth_token`));
     }
     const savedName = localStorage.getItem(`orderplus_${cafeId}_name`);
     setConnectedCafeName(savedName || cafeId);
@@ -234,7 +302,7 @@ export default function App() {
   const fetchOrders = useCallback(async () => {
     try {
       const cafeId = getActiveCafeId();
-      const res = await fetch(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}`, { cache: 'no-store' });
+      const res = await fetch(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}`, { cache: 'no-store', headers: getAuthHeaders() });
       if (res.ok) {
         const data: DBOrder[] = await res.json();
         const sorted = Array.isArray(data)
@@ -245,7 +313,7 @@ export default function App() {
         setIsOfflineMode(false);
       }
     } catch { }
-  }, [getActiveCafeId]);
+  }, [getActiveCafeId, getAuthHeaders]);
 
   // Fetch static data once (products, categories, waiters, settings)
   const fetchData = useCallback(async () => {
@@ -348,7 +416,9 @@ export default function App() {
         if (isFrozen) {
           localStorage.setItem(`orderplus_${cafeId}_is_frozen`, 'true');
           setCurrentWaiter(null);
+          setAuthToken(null);
           localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
+          localStorage.removeItem(`orderplus_${cafeId}_auth_token`);
         } else {
           localStorage.removeItem(`orderplus_${cafeId}_is_frozen`);
         }
@@ -371,34 +441,126 @@ export default function App() {
     fetchData();
   }, [fetchData]);
 
-  // Offline Sync Queue Handler
+  // Offline sync queue: each entry is either a full order CREATE or a PATCH
+  // against an existing order (status change, payment finalization, item
+  // removal, table move, refund). Entries are replayed strictly in the order
+  // they were queued, so a PATCH for an order always retries after that same
+  // order's CREATE — required since the order only exists server-side once
+  // its CREATE has synced. This only works because the order id is generated
+  // client-side (crypto.randomUUID()) and the backend now honors it as the
+  // real primary key (see POST /api/orders), so a PATCH's target id is valid
+  // whether the order synced immediately or was queued.
+  type SyncQueueItem =
+    | { kind: 'create'; order: any }
+    | { kind: 'patch'; orderId: string; body: any; label?: string }
+    | { kind: 'delete'; orderId: string; label?: string };
+
+  const readSyncQueue = useCallback((cafeId: string): SyncQueueItem[] => {
+    try {
+      const raw = localStorage.getItem(`orderplus_${cafeId}_sync_queue`);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const writeSyncQueue = useCallback((cafeId: string, queue: SyncQueueItem[]) => {
+    try {
+      localStorage.setItem(`orderplus_${cafeId}_sync_queue`, JSON.stringify(queue));
+    } catch { }
+  }, []);
+
+  // Queues an order that failed to reach the server (offline, timeout, 5xx) so
+  // it is retried instead of silently lost. Each entry carries a stable
+  // idempotencyKey so a later successful retry can never create a duplicate
+  // order even if an earlier attempt actually reached the server.
+  const queueOrderForSync = useCallback((order: any) => {
+    const cafeId = getActiveCafeId();
+    const queue = readSyncQueue(cafeId);
+    queue.push({ kind: 'create', order: { ...order, idempotencyKey: order.idempotencyKey || order.id } });
+    writeSyncQueue(cafeId, queue);
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
+
+  // Queues a PATCH (status/payment/items/refund) against an existing order
+  // that failed to reach the server, so it is retried automatically instead
+  // of being silently lost once the operator moves on.
+  const queuePatchForSync = useCallback((orderId: string, body: any, label?: string) => {
+    const cafeId = getActiveCafeId();
+    const queue = readSyncQueue(cafeId);
+    queue.push({ kind: 'patch', orderId, body, label });
+    writeSyncQueue(cafeId, queue);
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
+
+  // Queues a DELETE (e.g. removing a source order after merging its items
+  // into another table) that failed to reach the server.
+  const queueDeleteForSync = useCallback((orderId: string, label?: string) => {
+    const cafeId = getActiveCafeId();
+    const queue = readSyncQueue(cafeId);
+    queue.push({ kind: 'delete', orderId, label });
+    writeSyncQueue(cafeId, queue);
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
+
+  // Offline Sync Queue Handler — retries queued creates/patches that
+  // previously failed to reach the server. Runs on an interval and on the
+  // browser 'online' event. Processes strictly in FIFO order and stops
+  // retrying later items for an order once an earlier item for that same
+  // order fails, so a status PATCH is never attempted before its CREATE.
   const syncOfflineOrders = useCallback(async () => {
     const cafeId = getActiveCafeId();
-    const queueStr = localStorage.getItem(`orderplus_${cafeId}_sync_queue`);
-    if (!queueStr) return;
-    try {
-      const queue: DBOrder[] = JSON.parse(queueStr);
-      if (!Array.isArray(queue) || queue.length === 0) return;
-      const remaining: DBOrder[] = [];
-      for (const ord of queue) {
-        try {
-          const res = await fetch(`${API_BASE_URL}/api/orders`, {
+    const queue = readSyncQueue(cafeId);
+    if (queue.length === 0) return;
+
+    const remaining: SyncQueueItem[] = [];
+    const failedOrderIds = new Set<string>();
+    let anySucceeded = false;
+
+    for (const item of queue) {
+      const blockedOrderId = item.kind === 'create' ? item.order?.id : item.orderId;
+      if (blockedOrderId && failedOrderIds.has(blockedOrderId)) {
+        remaining.push(item);
+        continue;
+      }
+      try {
+        let res: Response;
+        if (item.kind === 'create') {
+          res = await fetch(`${API_BASE_URL}/api/orders`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...ord, cafeId })
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ ...item.order, cafeId }),
           });
-          if (!res.ok) remaining.push(ord);
-        } catch {
-          remaining.push(ord);
+        } else if (item.kind === 'patch') {
+          res = await fetch(`${API_BASE_URL}/api/orders/${item.orderId}`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(item.body),
+          });
+        } else {
+          res = await fetch(`${API_BASE_URL}/api/orders/${item.orderId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
         }
+
+        if (res.ok) {
+          anySucceeded = true;
+        } else {
+          remaining.push(item);
+          if (blockedOrderId) failedOrderIds.add(blockedOrderId);
+        }
+      } catch {
+        remaining.push(item);
+        if (blockedOrderId) failedOrderIds.add(blockedOrderId);
       }
-      localStorage.setItem(`orderplus_${cafeId}_sync_queue`, JSON.stringify(remaining));
-      if (remaining.length < queue.length) {
-        setToastMessage("Oflayn buyurtmalar serverga sinxronlandi!");
-        setTimeout(() => setToastMessage(null), 2500);
-      }
-    } catch { }
-  }, [getActiveCafeId]);
+    }
+
+    writeSyncQueue(cafeId, remaining);
+    if (anySucceeded) {
+      setToastMessage("Oflayn amallar serverga sinxronlandi!");
+      setTimeout(() => setToastMessage(null), 2500);
+      fetchOrders();
+    }
+  }, [getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, writeSyncQueue]);
 
   useEffect(() => {
     const interval = setInterval(syncOfflineOrders, 10000);
@@ -634,17 +796,20 @@ export default function App() {
       const fee = Math.round((sub * serviceFeePercent) / 100);
       const tot = sub + fee;
 
+      const patchBody = { items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot };
       if (!isOfflineMode) {
-        await fetch(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            items: JSON.stringify(updatedItems),
-            subtotal: sub,
-            serviceFee: fee,
-            total: tot
-          })
-        }).catch(() => null);
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(patchBody)
+          });
+          if (!res.ok) queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item');
+        } catch {
+          queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item');
+        }
+      } else {
+        queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item');
       }
 
       const updatedOrders = orders.map(o => o.id === activeTableOrder.id ? { ...o, items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot } : o);
@@ -653,21 +818,29 @@ export default function App() {
       setToastMessage('Taom oshxona buyurtmasidan bekor qilindi!');
       setTimeout(() => setToastMessage(null), 2500);
     });
-  }, [activeTableOrder, activeTableOrderItems, orders, isOfflineMode, requestAdminPin, getActiveCafeId]);
+  }, [activeTableOrder, activeTableOrderItems, orders, isOfflineMode, requestAdminPin, getActiveCafeId, getAuthHeaders, queuePatchForSync]);
 
   const handleRefundOrder = useCallback((targetOrder: DBOrder, reason: string) => {
     requestAdminPin(async () => {
+      const refundBody = { action: 'refund', refundReason: reason };
       if (!isOfflineMode) {
-        await fetch(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            refunded: true,
-            refundReason: reason,
-            refundedAt: new Date().toISOString(),
-            refundedBy: currentWaiter?.name || ''
-          })
-        }).catch(() => null);
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(refundBody)
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            setApiError(data.error || "Qaytarish serverga yozilmadi — qayta urinib ko'ring");
+            queuePatchForSync(targetOrder.id, refundBody, 'refund');
+          }
+        } catch {
+          setApiError("Tarmoq xatoligi: qaytarish navbatga qo'yildi, aloqa tiklanganda avtomatik yuboriladi");
+          queuePatchForSync(targetOrder.id, refundBody, 'refund');
+        }
+      } else {
+        queuePatchForSync(targetOrder.id, refundBody, 'refund');
       }
 
       const updatedOrders = orders.map(o => o.id === targetOrder.id ? {
@@ -689,7 +862,7 @@ export default function App() {
       setToastMessage(`Chek #${targetOrder.id.slice(-6)} muvaffaqiyatli vozvrat qilindi!`);
       setTimeout(() => setToastMessage(null), 2500);
     });
-  }, [orders, currentWaiter, isOfflineMode, requestAdminPin]);
+  }, [orders, currentWaiter, isOfflineMode, requestAdminPin, getActiveCafeId, getAuthHeaders, queuePatchForSync]);
 
   const handleSendToKitchen = useCallback(async () => {
     if (cart.length === 0) return;
@@ -713,18 +886,26 @@ export default function App() {
         const combinedFee = Math.round((combinedSubtotal * serviceFeePercent) / 100);
         const combinedTotal = combinedSubtotal + combinedFee;
 
+        const mergePatchBody = {
+          items: JSON.stringify(combinedItems),
+          subtotal: combinedSubtotal,
+          serviceFee: combinedFee,
+          total: combinedTotal,
+          status: 'sent_to_kitchen'
+        };
         if (!isOfflineMode) {
-          await fetch(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              items: JSON.stringify(combinedItems),
-              subtotal: combinedSubtotal,
-              serviceFee: combinedFee,
-              total: combinedTotal,
-              status: 'sent_to_kitchen'
-            })
-          }).catch(() => null);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
+              method: 'PATCH',
+              headers: getAuthHeaders(),
+              body: JSON.stringify(mergePatchBody)
+            });
+            if (!res.ok) queuePatchForSync(activeTableOrder.id, mergePatchBody, 'add_items');
+          } catch {
+            queuePatchForSync(activeTableOrder.id, mergePatchBody, 'add_items');
+          }
+        } else {
+          queuePatchForSync(activeTableOrder.id, mergePatchBody, 'add_items');
         }
 
         updatedOrders = updatedOrders.map(o => o.id === activeTableOrder.id ? { ...o, items: JSON.stringify(combinedItems), total: combinedTotal } : o);
@@ -734,7 +915,7 @@ export default function App() {
         const tot = sub + fee;
         const cafeId = localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
         const newOrderObj = {
-          id: `ord_${Date.now()}`,
+          id: crypto.randomUUID(),
           cafeId,
           tableNumber: selectedTable,
           waiterName: currentWaiter?.name || '',
@@ -746,11 +927,18 @@ export default function App() {
         };
 
         if (!isOfflineMode) {
-          await fetch(`${API_BASE_URL}/api/orders`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newOrderObj)
-          }).catch(() => null);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/orders`, {
+              method: 'POST',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({ ...newOrderObj, idempotencyKey: newOrderObj.id })
+            });
+            if (!res.ok) queueOrderForSync(newOrderObj);
+          } catch {
+            queueOrderForSync(newOrderObj);
+          }
+        } else {
+          queueOrderForSync(newOrderObj);
         }
 
         updatedOrders.push(newOrderObj);
@@ -779,7 +967,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Ulanish xatosi: ${err.message || err}`);
     }
-  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName]);
+  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync]);
 
   const handlePrint = useCallback(async () => {
     const allItems = [
@@ -862,22 +1050,37 @@ export default function App() {
         const fee = Math.round(sub * 0.1);
         const tot = sub + fee;
 
+        const mergeTablePatchBody = {
+          tableNumber: targetTable,
+          items: JSON.stringify(mergedItems),
+          subtotal: sub,
+          serviceFee: fee,
+          total: tot
+        };
         if (!isOfflineMode) {
-          await fetch(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              tableNumber: targetTable,
-              items: JSON.stringify(mergedItems),
-              subtotal: sub,
-              serviceFee: fee,
-              total: tot
-            })
-          }).catch(() => null);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
+              method: 'PATCH',
+              headers: getAuthHeaders(),
+              body: JSON.stringify(mergeTablePatchBody)
+            });
+            if (!res.ok) queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table');
+          } catch {
+            queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table');
+          }
 
-          await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-            method: 'DELETE'
-          }).catch(() => null);
+          try {
+            const delRes = await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+              method: 'DELETE',
+              headers: getAuthHeaders(),
+            });
+            if (!delRes.ok) queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup');
+          } catch {
+            queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup');
+          }
+        } else {
+          queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table');
+          queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup');
         }
 
         updatedOrders = updatedOrders
@@ -885,11 +1088,18 @@ export default function App() {
           .map(o => o.id === targetOrder.id ? { ...o, tableNumber: targetTable, items: JSON.stringify(mergedItems), subtotal: sub, serviceFee: fee, total: tot } : o);
       } else if (sourceOrder && !targetOrder) {
         if (!isOfflineMode) {
-          await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tableNumber: targetTable })
-          }).catch(() => null);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+              method: 'PATCH',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({ tableNumber: targetTable })
+            });
+            if (!res.ok) queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
+          } catch {
+            queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
+          }
+        } else {
+          queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
         }
         updatedOrders = updatedOrders.map(o => o.id === sourceOrder.id ? { ...o, tableNumber: targetTable } : o);
       }
@@ -898,11 +1108,18 @@ export default function App() {
     } else {
       if (sourceOrder) {
         if (!isOfflineMode) {
-          await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tableNumber: targetTable })
-          }).catch(() => null);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+              method: 'PATCH',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({ tableNumber: targetTable })
+            });
+            if (!res.ok) queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
+          } catch {
+            queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
+          }
+        } else {
+          queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
         }
 
         updatedOrders = updatedOrders.map(o => o.id === sourceOrder.id ? { ...o, tableNumber: targetTable } : o);
@@ -928,7 +1145,7 @@ export default function App() {
     localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
     setSelectedTable(targetTable);
     setTimeout(() => setToastMessage(null), 2500);
-  }, [orders, tableCarts, isOfflineMode]);
+  }, [orders, tableCarts, isOfflineMode, getActiveCafeId, getAuthHeaders, queuePatchForSync, queueDeleteForSync]);
 
   const handleCloseTable = useCallback(async (tableNum?: string) => {
     const targetTable = tableNum || selectedTable;
@@ -973,7 +1190,8 @@ export default function App() {
         currentOrders = currentOrders.map(o => o.id === latestActive.id ? { ...o, items: JSON.stringify(combinedItems), total: combinedTotal } : o);
       } else {
         const newOrderObj = {
-          id: `ord_${Date.now()}`,
+          id: crypto.randomUUID(),
+          cafeId: getActiveCafeId(),
           tableNumber: targetTable,
           waiterName: currentWaiter?.name || '',
           items: JSON.stringify(newItems),
@@ -984,11 +1202,18 @@ export default function App() {
         };
 
         if (!isOfflineMode) {
-          await fetch(`${API_BASE_URL}/api/orders`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newOrderObj)
-          }).catch(() => null);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/orders`, {
+              method: 'POST',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({ ...newOrderObj, idempotencyKey: newOrderObj.id })
+            });
+            if (!res.ok) queueOrderForSync(newOrderObj);
+          } catch {
+            queueOrderForSync(newOrderObj);
+          }
+        } else {
+          queueOrderForSync(newOrderObj);
         }
 
         currentOrders.push(newOrderObj);
@@ -1010,17 +1235,29 @@ export default function App() {
         const finalCash = paymentMethod === 'naqd' ? orderTotal : (paymentMethod === 'karta' ? 0 : calcCash);
         const finalCard = paymentMethod === 'karta' ? orderTotal : (paymentMethod === 'naqd' ? 0 : calcCard);
 
+        const paymentPatchBody = {
+          status: 'served',
+          paymentMethod,
+          cashAmount: finalCash,
+          cardAmount: finalCard
+        };
         if (!isOfflineMode) {
-          await fetch(`${API_BASE_URL}/api/orders/${latestOrder.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              status: 'served',
-              paymentMethod,
-              cashAmount: finalCash,
-              cardAmount: finalCard
-            })
-          }).catch(() => null);
+          try {
+            const res = await fetch(`${API_BASE_URL}/api/orders/${latestOrder.id}`, {
+              method: 'PATCH',
+              headers: getAuthHeaders(),
+              body: JSON.stringify(paymentPatchBody)
+            });
+            if (!res.ok) {
+              setApiError("To'lov serverga yozilmadi! Aloqa tiklanganda avtomatik yuboriladi.");
+              queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
+            }
+          } catch {
+            setApiError("Tarmoq xatoligi: to'lov navbatga qo'yildi, aloqa tiklanganda avtomatik yuboriladi.");
+            queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
+          }
+        } else {
+          queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
         }
 
         closedOrder = {
@@ -1050,7 +1287,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, paymentMethod, customCashAmount, connectedCafeName]);
+  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, paymentMethod, customCashAmount, connectedCafeName, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {
@@ -1123,11 +1360,14 @@ export default function App() {
             const loggedWaiter: DBWaiter = {
               id: data.waiterId || 'waiter-' + Date.now(),
               name: data.waiterName || (data.role === 'cafe_admin' ? `${matchedCafeName} (Kassa)` : 'Offitsiant'),
-              pinCode: nextPin,
               role: data.role === 'cafe_admin' ? 'manager' : 'waiter',
             };
             setCurrentWaiter(loggedWaiter);
             localStorage.setItem(`orderplus_${matchedCafeId}_current_waiter`, JSON.stringify(loggedWaiter));
+            if (data.token) {
+              setAuthToken(data.token);
+              localStorage.setItem(`orderplus_${matchedCafeId}_auth_token`, data.token);
+            }
             setPinInput('');
             setIsCafeFrozen(false);
             fetchData();
@@ -1299,11 +1539,7 @@ export default function App() {
                 <p className="text-[9px] text-slate-400 mt-0.5">{currentWaiter.role === 'admin' ? 'Kassir' : 'Offitsiant'}</p>
               </div>
               <button
-                onClick={() => {
-                  const cafeId = getActiveCafeId();
-                  localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
-                  setCurrentWaiter(null);
-                }}
+                onClick={handleLogout}
                 className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                 title="Chiqish"
               >
@@ -1361,7 +1597,7 @@ export default function App() {
               })}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2.5 sm:gap-3">
               {filteredTables.map((t) => (
                 <TableCard
                   key={t.id}
@@ -1699,7 +1935,7 @@ export default function App() {
 
       <AdminPinModal
         show={showAdminPinModal}
-        waiters={waiters}
+        cafeId={getActiveCafeId()}
         title="Oshxona buyurtmasi / Taomni bekor qilish uchun PIN kodni kiriting"
         onConfirm={() => {
           if (adminPinAction) adminPinAction();

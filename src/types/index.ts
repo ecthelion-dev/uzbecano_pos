@@ -62,7 +62,8 @@ export interface DBOrder {
 export interface DBWaiter {
   id: string;
   name: string;
-  pinCode: string;
+  // Never persisted client-side — PIN is verified server-side only.
+  pinCode?: string;
   role?: string;
 }
 

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Lock, AlertCircle } from 'lucide-react';
-import { DBWaiter } from '../types';
+import { API_BASE_URL } from '../constants';
+
+const ELEVATED_ROLES = ['admin', 'cafe_admin', 'platform_admin', 'manager'];
 
 interface AdminPinModalProps {
   show: boolean;
-  waiters: DBWaiter[];
+  cafeId: string;
   title?: string;
   onConfirm: () => void;
   onClose: () => void;
@@ -12,17 +14,19 @@ interface AdminPinModalProps {
 
 export const AdminPinModal: React.FC<AdminPinModalProps> = ({
   show,
-  waiters,
+  cafeId,
   title = "Tasdiqlash uchun PIN kodni kiriting",
   onConfirm,
   onClose,
 }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   if (!show) return null;
 
-  const handleKey = (val: string) => {
+  const handleKey = async (val: string) => {
+    if (checking) return;
     setError(null);
     if (val === 'C') {
       setPin('');
@@ -36,15 +40,32 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
       const nextPin = pin + val;
       setPin(nextPin);
       if (nextPin.length === 4) {
-        // Admin PIN (0000) or any valid staff PIN
-        const isValid = nextPin === '0000' || waiters.some(w => String(w.pinCode).trim() === nextPin);
-        if (isValid) {
-          onConfirm();
-          setPin('');
-          onClose();
-        } else {
-          setError("PIN kod noto'g'ri!");
-          setTimeout(() => setPin(''), 400);
+        // Manager/admin-level PIN is verified live against the server —
+        // never locally, since waiter PINs are only ever stored as server-side
+        // scrypt hashes and a regular waiter's own PIN must not be able to
+        // self-approve overrides this modal is meant to gate.
+        setChecking(true);
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/auth/pin`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: nextPin, cafeId }),
+          });
+          const data = await res.json().catch(() => ({}));
+          const isValid = res.ok && data.success && ELEVATED_ROLES.includes(String(data.role || '').toLowerCase());
+          if (isValid) {
+            onConfirm();
+            setPin('');
+            onClose();
+          } else {
+            setError("PIN kod noto'g'ri yoki ruxsat darajasi yetarli emas!");
+            setTimeout(() => setPin(''), 400);
+          }
+        } catch {
+          setError("Tekshirish uchun internet aloqasi kerak");
+          setTimeout(() => setPin(''), 600);
+        } finally {
+          setChecking(false);
         }
       }
     }
@@ -87,8 +108,9 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'DEL'].map((key) => (
             <button
               key={key}
+              disabled={checking}
               onClick={() => handleKey(key)}
-              className={`h-11 rounded-xl font-semibold text-base transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
+              className={`h-11 rounded-xl font-semibold text-base transition-all flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
                 key === 'C'
                   ? 'bg-rose-50 text-rose-600 border border-rose-200 text-xs'
                   : key === 'DEL'

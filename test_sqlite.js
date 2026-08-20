@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const Database = require('better-sqlite3');
-const { initDB, getDB, closeDB, runMigrations, migrateLegacyJson } = require('./electron/db/index');
+const { initDB, getDB, closeDB, runMigrations, migrateLegacyJson, runIntegrityCheck, backupDbFile } = require('./electron/db/index');
 const repositories = require('./electron/db/repositories');
 
 const pkg = require('./package.json');
@@ -209,13 +209,53 @@ try {
     assert(corruptCaught, 'Corrupt JSON throws error instead of wiping data');
     console.log('[PASS] G. Legacy JSON migration is idempotent and protects against corrupt JSON');
 
+    // Test H: Pre-migration backup + post-migration integrity check
+    const migTestDir = path.join(os.tmpdir(), `uzbecano_migration_test_${Date.now()}`);
+    fs.mkdirSync(migTestDir, { recursive: true });
+    const migDbPath = path.join(migTestDir, 'orderplus.sqlite');
+
+    closeDB();
+    const migDb = initDB(migDbPath); // fresh DB: migration 1 applied, no backup expected yet
+
+    const filesAfterFreshInit = fs.readdirSync(migTestDir);
+    assert(
+      !filesAfterFreshInit.some((f) => f.includes('.backup-')),
+      'No backup created on a fresh database (nothing to back up)'
+    );
+
+    const freshCheck = runIntegrityCheck(migDb);
+    assert.equal(freshCheck.ok, true, 'integrity_check reports ok on a healthy database');
+
+    // Simulate a future app update: this database already has migration
+    // history (so it holds real data worth protecting) but is now missing
+    // migration 1's record, i.e. a pending migration needs to (re)apply.
+    migDb.prepare("INSERT INTO schema_migrations (version, name, applied_at) VALUES (9999, 'test_marker', ?)").run(new Date().toISOString());
+    migDb.prepare('DELETE FROM schema_migrations WHERE version = 1').run();
+    runMigrations(migDb, migDbPath);
+
+    const filesAfterReMigration = fs.readdirSync(migTestDir);
+    const backupFile = filesAfterReMigration.find((f) => f.includes('.backup-') && f.includes('pre-migration'));
+    assert(backupFile, 'Pre-migration backup file created before re-applying a pending migration');
+    const backupStat = fs.statSync(path.join(migTestDir, backupFile));
+    assert(backupStat.size > 0, 'Pre-migration backup file is non-empty');
+
+    const reappliedVersion = migDb.prepare('SELECT version FROM schema_migrations WHERE version = 1').get();
+    assert(reappliedVersion, 'Migration re-recorded as applied after re-running');
+
+    // Direct unit check of the backup helper itself
+    const directBackupPath = backupDbFile(migDbPath, migDb);
+    assert(fs.existsSync(directBackupPath), 'backupDbFile() produces a readable backup copy');
+
+    console.log('[PASS] H. Pre-migration backup created and post-migration integrity_check passes');
+
     // Cleanup test directories
     closeDB();
     try { fs.rmSync(testDir, { recursive: true, force: true }); } catch {}
     try { fs.rmSync(legacyTestDir, { recursive: true, force: true }); } catch {}
     try { fs.rmSync(corruptTestDir, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(migTestDir, { recursive: true, force: true }); } catch {}
 
-    console.log('\n=== ALL SQLITE TESTS PASSED (7/7) ===');
+    console.log('\n=== ALL SQLITE TESTS PASSED (8/8) ===');
     process.exit(0);
   });
 } catch (err) {

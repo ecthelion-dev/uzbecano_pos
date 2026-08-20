@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const { initDB, closeDB } = require('./db/index');
 const repositories = require('./db/repositories');
@@ -303,6 +303,12 @@ app.whenReady().then(() => {
     initDB();
   } catch (err) {
     console.error('Failed to initialize SQLite database:', err);
+    // A silent console.error here would leave the cashier running against no
+    // local database with no idea why orders aren't saving. Surface it.
+    dialog.showErrorBox(
+      "Mahalliy ma'lumotlar bazasi xatosi",
+      `Dastur mahalliy bazani ishga tushira olmadi. Buyurtmalar saqlanmasligi mumkin.\n\nXato: ${err.message}\n\nQo'llab-quvvatlash xizmatiga murojaat qiling.`
+    );
   }
 
   syncEngine = new SyncEngine();

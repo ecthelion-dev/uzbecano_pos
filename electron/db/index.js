@@ -16,7 +16,24 @@ function getDefaultDbPath() {
   return path.join(process.cwd(), 'orderplus.sqlite');
 }
 
-function runMigrations(db) {
+function runIntegrityCheck(db) {
+  const rows = db.pragma('integrity_check');
+  const status = Array.isArray(rows) && rows.length > 0 ? rows[0].integrity_check : null;
+  return { ok: status === 'ok', detail: rows };
+}
+
+function backupDbFile(dbPath, db) {
+  // Flush WAL into the main file first so the backup copy is complete on its own,
+  // not missing recent committed writes that are still sitting in the -wal file.
+  try {
+    db.pragma('wal_checkpoint(TRUNCATE)');
+  } catch {}
+  const backupPath = `${dbPath}.backup-${Date.now()}-pre-migration`;
+  fs.copyFileSync(dbPath, backupPath);
+  return backupPath;
+}
+
+function runMigrations(db, dbPath) {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.pragma('busy_timeout = 5000');
@@ -124,16 +141,45 @@ function runMigrations(db) {
     },
   ];
 
-  for (const m of migrations) {
-    if (!appliedMigrations.has(m.version)) {
-      const applyTx = db.transaction(() => {
-        m.up(db);
-        db.prepare(
-          'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)'
-        ).run(m.version, m.name, new Date().toISOString());
-      });
-      applyTx();
+  const pending = migrations.filter((m) => !appliedMigrations.has(m.version));
+  if (pending.length === 0) return;
+
+  // Automatic backup before applying any pending schema migration. Skipped
+  // only for a brand-new database (better-sqlite3 creates the file on open,
+  // so file-existence alone can't tell "fresh" from "has data" — a database
+  // that has never had a migration recorded as applied has nothing to back
+  // up). If the backup itself fails (e.g. disk full/permissions), refuse to
+  // migrate rather than risk an unrecoverable schema change.
+  let backupPath = null;
+  if (dbPath && appliedMigrations.size > 0) {
+    try {
+      backupPath = backupDbFile(dbPath, db);
+    } catch (err) {
+      throw new Error(
+        `[MIGRATION_ABORTED] Could not create pre-migration backup, refusing to migrate: ${err.message}`
+      );
     }
+  }
+
+  for (const m of pending) {
+    const applyTx = db.transaction(() => {
+      m.up(db);
+      db.prepare(
+        'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)'
+      ).run(m.version, m.name, new Date().toISOString());
+    });
+    applyTx();
+  }
+
+  // Integrity check after migration so schema/data corruption is caught
+  // immediately, with a known-good backup available for recovery, instead of
+  // surfacing later as a mysterious runtime failure.
+  const { ok, detail } = runIntegrityCheck(db);
+  if (!ok) {
+    throw new Error(
+      `[MIGRATION_INTEGRITY_FAILURE] Post-migration integrity_check failed: ${JSON.stringify(detail)}.` +
+      (backupPath ? ` Pre-migration backup available at: ${backupPath}` : ' No pre-migration backup existed (fresh database).')
+    );
   }
 }
 
@@ -275,7 +321,14 @@ function initDB(customPath = null) {
   }
 
   dbInstance = new Database(currentDbPath);
-  runMigrations(dbInstance);
+
+  try {
+    runMigrations(dbInstance, currentDbPath);
+  } catch (err) {
+    dbInstance.close();
+    dbInstance = null;
+    throw err;
+  }
 
   try {
     migrateLegacyJson(dbInstance, dbDir);
@@ -313,4 +366,6 @@ module.exports = {
   getDefaultDbPath,
   runMigrations,
   migrateLegacyJson,
+  runIntegrityCheck,
+  backupDbFile,
 };

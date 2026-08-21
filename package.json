@@ -12,7 +12,8 @@
     "rebuild:node": "npm rebuild better-sqlite3",
     "build": "vite build",
     "start": "npm run build && electron .",
-    "dist": "npm run build && npm run rebuild:electron && electron-builder --win --x64"
+    "dist": "npm run build && npm run rebuild:electron && electron-builder --win --x64",
+    "postdist": "npm run rebuild:electron"
   },
   "build": {
     "appId": "com.uzbecano.pos",

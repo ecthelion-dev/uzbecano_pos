@@ -525,6 +525,71 @@ export default function App() {
     fetchData();
   }, [fetchData]);
 
+  /**
+   * Re-reads the menu and the floor plan.
+   *
+   * Orders were the only thing being polled, so a dish added, repriced or
+   * hidden in the admin panel appeared in the QR menu at once — the guest's
+   * page loads it fresh on every scan — while the till kept serving whatever
+   * it had read at startup. The two screens then disagreed until somebody
+   * restarted the app, which is not something a cashier thinks to do.
+   *
+   * Unlike fetchData this leaves `loading` alone: it runs unattended, and
+   * flashing the whole screen every minute would be worse than a stale menu.
+   */
+  const refreshMenuData = useCallback(async () => {
+    const cafeId = getActiveCafeId();
+    try {
+      const now = Date.now();
+      const [prodRes, catRes, settRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/products?cafeId=${encodeURIComponent(cafeId)}&_t=${now}`, { cache: 'no-store' }).catch(() => null),
+        fetch(`${API_BASE_URL}/api/categories?cafeId=${encodeURIComponent(cafeId)}&_t=${now}`, { cache: 'no-store' }).catch(() => null),
+        fetch(`${API_BASE_URL}/api/settings?cafeId=${encodeURIComponent(cafeId)}&_t=${now}`, { cache: 'no-store' }).catch(() => null),
+      ]);
+
+      if (prodRes && prodRes.ok) {
+        const rawProds = await prodRes.json();
+        if (Array.isArray(rawProds)) {
+          setProducts(mapDBProductModifiers(rawProds));
+          localStorage.setItem(`orderplus_${cafeId}_products`, JSON.stringify(rawProds));
+        }
+      }
+      if (catRes && catRes.ok) {
+        const cats = await catRes.json();
+        if (Array.isArray(cats)) {
+          setCategoriesData(cats);
+          localStorage.setItem(`orderplus_${cafeId}_categories`, JSON.stringify(cats));
+        }
+      }
+      if (settRes && settRes.ok) {
+        const setts = await settRes.json();
+        if (typeof setts.serviceFeePercent === 'number') {
+          setServiceFeePercent(setts.serviceFeePercent);
+          localStorage.setItem('serviceFeePercent', String(setts.serviceFeePercent));
+        }
+      }
+    } catch { }
+
+    fetchTableDefs();
+  }, [getActiveCafeId, fetchTableDefs]);
+
+  // A menu changes far less often than a ticket does, so once a minute is
+  // plenty; coming back to the window checks immediately, which covers the
+  // cashier who was told over the phone that a dish just went off the menu.
+  useEffect(() => {
+    if (!currentWaiter) return;
+    const MENU_REFRESH_MS = 60_000;
+    const tick = () => {
+      if (document.visibilityState === 'visible') refreshMenuData();
+    };
+    const interval = setInterval(tick, MENU_REFRESH_MS);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [currentWaiter, refreshMenuData]);
+
   // The archive and the shift report are the only screens that read served
   // orders, so that is when the heavy list is worth refreshing. Once a minute
   // is enough; the poll keeps unserved tickets current on top of it.
@@ -964,18 +1029,20 @@ export default function App() {
     if (cart.length === 0) return;
     setApiError(null);
     try {
-      const newItems = cart.map(i => ({ name: i.product.name, price: i.product.price, quantity: i.quantity, note: i.note || '' }));
+      // productId is what the server prices the line from — it re-reads the
+      // price from its own database and refuses a line it cannot identify.
+      const newItems = cart.map(i => ({ productId: i.product.id, name: i.product.name, price: i.product.price, quantity: i.quantity, note: i.note || '' }));
       let updatedOrders = [...orders];
 
       if (activeTableOrder) {
-        const itemMap = new Map<string, { name: string; price: number; quantity: number; note?: string }>();
+        const itemMap = new Map<string, { productId?: string; name: string; price: number; quantity: number; note?: string }>();
         activeTableOrderItems.forEach((i: any, idx: number) => {
           const key = `${i.name}_${i.note || ''}_${idx}`;
-          itemMap.set(key, { name: i.name, price: Number(i.price) || 0, quantity: Number(i.quantity) || 1, note: i.note || '' });
+          itemMap.set(key, { productId: i.productId, name: i.name, price: Number(i.price) || 0, quantity: Number(i.quantity) || 1, note: i.note || '' });
         });
         newItems.forEach((i, idx) => {
           const key = `${i.name}_${i.note || ''}_new_${idx}`;
-          itemMap.set(key, { name: i.name, price: i.price, quantity: i.quantity, note: i.note || '' });
+          itemMap.set(key, { productId: i.productId, name: i.name, price: i.price, quantity: i.quantity, note: i.note || '' });
         });
         const combinedItems = Array.from(itemMap.values());
         const combinedSubtotal = combinedItems.reduce((s: number, i: any) => s + i.price * i.quantity, 0);

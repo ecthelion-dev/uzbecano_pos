@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Shuffle, ArrowRight, Merge, AlertCircle, X } from 'lucide-react';
 import { DBOrder } from '../types';
-import { ALL_TABLE_DEFINITIONS } from '../constants';
 
 interface TableMoveModalProps {
   show: boolean;
   currentTable: string;
+  /** The cafe's own floor plan, passed in rather than compiled in. */
+  tableDefs: { number: string; area: string }[];
   orders: DBOrder[];
   onMoveTable: (sourceTable: string, targetTable: string, isMerge: boolean) => void;
   onClose: () => void;
@@ -14,6 +15,7 @@ interface TableMoveModalProps {
 export const TableMoveModal: React.FC<TableMoveModalProps> = ({
   show,
   currentTable,
+  tableDefs,
   orders,
   onMoveTable,
   onClose,
@@ -24,7 +26,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
 
   if (!show) return null;
 
-  const availableTables = ALL_TABLE_DEFINITIONS.filter(t => t.number !== currentTable);
+  const availableTables = tableDefs.filter(t => t.number !== currentTable);
 
   const handleSubmit = () => {
     setError(null);

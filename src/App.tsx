@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
-import { API_BASE_URL, ALL_TABLE_DEFINITIONS } from './constants';
+import { API_BASE_URL } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
 import { KitchenSlipModal } from './components/KitchenSlipModal';
@@ -96,6 +96,9 @@ export default function App() {
   const [categoriesData, setCategoriesData] = useState<DBCategory[]>([]);
   const [products, setProducts] = useState<DBProduct[]>([]);
   const [orders, setOrders] = useState<DBOrder[]>([]);
+  // The cafe's own floor plan. It used to be twenty names compiled into the
+  // bundle, identical for every cafe, so a six-table teahouse showed twenty.
+  const [tableDefs, setTableDefs] = useState<{ number: string; area: string }[]>([]);
   // null until the first poll lands, so a fresh start does not treat every
   // already-open ticket as newly departed.
   const seenActiveIdsRef = React.useRef<Set<string> | null>(null);
@@ -318,6 +321,30 @@ export default function App() {
   // The full 7-day window, which only the archive and shift report read. It is
   // the expensive call (up to 200 orders with their items), so it is kept off
   // the poll and pulled when something actually needs it.
+  const fetchTableDefs = useCallback(async () => {
+    const cafeId = getActiveCafeId();
+    const cacheKey = `orderplus_${cafeId}_tables`;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/tables?cafeId=${encodeURIComponent(cafeId)}`, {
+        cache: 'no-store',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error('tables fetch failed');
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error('bad payload');
+      const defs = data.map((t: any) => ({ number: String(t.name), area: String(t.area || 'Zonasiz') }));
+      setTableDefs(defs);
+      localStorage.setItem(cacheKey, JSON.stringify(defs));
+    } catch {
+      // A till that loses the network keeps serving the floor it last knew;
+      // only a till that has never synced has nothing to show.
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try { setTableDefs(JSON.parse(cached)); } catch { }
+      }
+    }
+  }, [getActiveCafeId, getAuthHeaders]);
+
   const fetchOrderHistory = useCallback(async () => {
     try {
       const cafeId = getActiveCafeId();
@@ -478,7 +505,7 @@ export default function App() {
 
       // Startup is the one point where both are needed: the archive and shift
       // report must have the 7-day window before the operator can open them.
-      await Promise.all([fetchOrders(), fetchOrderHistory()]);
+      await Promise.all([fetchOrders(), fetchOrderHistory(), fetchTableDefs()]);
       setIsOfflineMode(false);
     } catch (err: any) {
       setApiError(`Ulanishda xatolik: ${err?.message || err}`);
@@ -492,7 +519,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [getActiveCafeId, fetchOrders, fetchOrderHistory]);
+  }, [getActiveCafeId, fetchOrders, fetchOrderHistory, fetchTableDefs]);
 
   useEffect(() => {
     fetchData();
@@ -739,7 +766,7 @@ export default function App() {
 
   // Tables status & totals (combines DB orders and active draft carts)
   const tables = useMemo(() => {
-    return ALL_TABLE_DEFINITIONS.map((def, i) => {
+    return tableDefs.map((def, i) => {
       const numStr = def.number;
       const activeOrder = orders.find(o => o.tableNumber === numStr && o.status !== 'served');
       const draftCart = tableCarts[numStr] || [];
@@ -758,7 +785,7 @@ export default function App() {
         total: total,
       };
     });
-  }, [ALL_TABLE_DEFINITIONS, orders, tableCarts]);
+  }, [tableDefs, orders, tableCarts]);
 
   const filteredTables = useMemo(() => {
     if (selectedArea === 'Barchasi') return tables;
@@ -1666,15 +1693,27 @@ export default function App() {
               })}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2.5 sm:gap-3">
-              {filteredTables.map((t) => (
-                <TableCard
-                  key={t.id}
-                  table={t}
-                  onSelect={handleSelectTable}
-                />
-              ))}
-            </div>
+            {tables.length === 0 ? (
+              /* Tables come from the cafe's own floor plan now, so an empty one
+                 is a real state and needs to say what to do about it. */
+              <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center space-y-2">
+                <p className="text-sm font-bold text-slate-700">Stollar belgilanmagan</p>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Admin panelga kiring va &quot;Stollar&quot; bo&apos;limidan kafengizdagi stollarni
+                  qo&apos;shing. Kassa ekrani va QR kodlar shu ro&apos;yxatdan oladi.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2.5 sm:gap-3">
+                {filteredTables.map((t) => (
+                  <TableCard
+                    key={t.id}
+                    table={t}
+                    onSelect={handleSelectTable}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           /* Light Kassa va Menyu View */
@@ -2018,6 +2057,7 @@ export default function App() {
       <TableMoveModal
         show={showTableMoveModal}
         currentTable={selectedTable}
+        tableDefs={tableDefs}
         orders={orders}
         onMoveTable={handleMoveTable}
         onClose={() => setShowTableMoveModal(false)}

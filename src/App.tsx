@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
-import { API_BASE_URL } from './constants';
+import { API_BASE_URL, isActiveOrder } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
 import { KitchenSlipModal } from './components/KitchenSlipModal';
@@ -768,7 +768,7 @@ export default function App() {
   const tables = useMemo(() => {
     return tableDefs.map((def, i) => {
       const numStr = def.number;
-      const activeOrder = orders.find(o => o.tableNumber === numStr && o.status !== 'served');
+      const activeOrder = orders.find(o => o.tableNumber === numStr && isActiveOrder(o.status));
       const draftCart = tableCarts[numStr] || [];
       const draftSubtotal = draftCart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
       const feeRate = typeof window !== 'undefined' ? (Number(localStorage.getItem('serviceFeePercent') ?? 10) / 100) : 0.1;
@@ -856,7 +856,7 @@ export default function App() {
   }, [selectedTable]);
 
   const activeTableOrder = useMemo(() => {
-    return orders.find(o => o.tableNumber === selectedTable && o.status !== 'served');
+    return orders.find(o => o.tableNumber === selectedTable && isActiveOrder(o.status));
   }, [orders, selectedTable]);
 
   const activeTableOrderItems = useMemo(() => {
@@ -1125,7 +1125,7 @@ export default function App() {
   }, [cashTransactions, currentWaiter]);
 
   const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
-    const sourceOrder = orders.find(o => o.tableNumber === sourceTable && o.status !== 'served');
+    const sourceOrder = orders.find(o => o.tableNumber === sourceTable && isActiveOrder(o.status));
     const sourceCart = tableCarts[sourceTable] || [];
 
     if (!sourceOrder && sourceCart.length === 0) return;
@@ -1133,7 +1133,7 @@ export default function App() {
     let updatedOrders = [...orders];
 
     if (isMerge) {
-      const targetOrder = orders.find(o => o.tableNumber === targetTable && o.status !== 'served');
+      const targetOrder = orders.find(o => o.tableNumber === targetTable && isActiveOrder(o.status));
 
       if (sourceOrder && targetOrder) {
         let srcItems: any[] = [];
@@ -1246,7 +1246,7 @@ export default function App() {
   const handleCloseTable = useCallback(async (tableNum?: string) => {
     const targetTable = tableNum || selectedTable;
     const currentCart = tableCarts[targetTable] || [];
-    const activeOrder = orders.find(o => o.tableNumber === targetTable && o.status !== 'served');
+    const activeOrder = orders.find(o => o.tableNumber === targetTable && isActiveOrder(o.status));
 
     if (!activeOrder && currentCart.length === 0) {
       setToastMessage('Stolda hech qanday buyurtma mavjud emas!');

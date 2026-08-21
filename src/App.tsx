@@ -1567,7 +1567,7 @@ export default function App() {
               <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
             </div>
           )}
-          <div className="hidden xs:block min-w-0">
+          <div className="min-w-0">
             <h1 className="text-base sm:text-lg font-bold tracking-wide text-slate-900 leading-none truncate max-w-[150px] sm:max-w-[240px]">
               {connectedCafeName || 'OrderPlus'}
             </h1>

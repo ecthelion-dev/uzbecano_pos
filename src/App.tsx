@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { AdminDashboard } from './components/AdminDashboard';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
-import { API_BASE_URL, DEFAULT_WAITERS, DEFAULT_OFFLINE_CATEGORIES, DEFAULT_OFFLINE_PRODUCTS, ALL_TABLE_DEFINITIONS } from './constants';
+import { API_BASE_URL, ALL_TABLE_DEFINITIONS } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
 import { KitchenSlipModal } from './components/KitchenSlipModal';
@@ -483,9 +483,12 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Ulanishda xatolik: ${err?.message || err}`);
       setIsOfflineMode(true);
-      if (!localProds) setProducts(DEFAULT_OFFLINE_PRODUCTS);
-      if (!localCats) setCategoriesData(DEFAULT_OFFLINE_CATEGORIES);
-      if (!localWaiters) setWaiters(DEFAULT_WAITERS);
+      // Offline with nothing cached means we genuinely do not know this cafe's
+      // menu. Showing a built-in demo menu here let a cashier ring up dishes
+      // the kitchen does not make, at prices nobody set.
+      if (!localProds) setProducts([]);
+      if (!localCats) setCategoriesData([]);
+      if (!localWaiters) setWaiters([]);
     } finally {
       setLoading(false);
     }
@@ -1050,8 +1053,8 @@ export default function App() {
     const receiptData = {
       shopName: connectedCafeName || 'ORDERPLUS RESTORAN',
       shopLogo: connectedCafeLogo || '',
-      shopAddress: connectedCafeAddress || 'Toshkent sh., Markaziy filial',
-      shopPhone: connectedCafePhone ? `Tel: ${connectedCafePhone}` : 'Tel: +998 90 123 45 67',
+      shopAddress: connectedCafeAddress || '',
+      shopPhone: connectedCafePhone ? `Tel: ${connectedCafePhone}` : '',
       waiterName: currentWaiter?.name || '',
       tableName: selectedTable,
       paymentMethod,

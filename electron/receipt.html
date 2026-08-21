@@ -41,8 +41,8 @@
 <body>
   <div class="center">
     <div class="large" id="shop-name">UZBECANO RESTORAN</div>
-    <div class="small mt2" id="shop-address">Toshkent sh., Markaziy filial</div>
-    <div class="small" id="shop-phone">Tel: +998 90 123 45 67</div>
+    <div class="small mt2" id="shop-address"></div>
+    <div class="small" id="shop-phone"></div>
     <div class="small bold mt2" id="waiter-name"></div>
   </div>
 
@@ -107,8 +107,8 @@
     const d = window.__receiptData;
     if (d) {
       document.getElementById('shop-name').textContent = d.shopName || 'UZBECANO RESTORAN';
-      document.getElementById('shop-address').textContent = d.shopAddress || 'Toshkent sh., Markaziy filial';
-      document.getElementById('shop-phone').textContent = d.shopPhone || 'Tel: +998 90 123 45 67';
+      document.getElementById('shop-address').textContent = d.shopAddress || '';
+      document.getElementById('shop-phone').textContent = d.shopPhone || '';
       document.getElementById('waiter-name').textContent = d.waiterName ? 'Ofitsiant: ' + d.waiterName : '';
       document.getElementById('table-name').textContent = d.tableName || '';
       document.getElementById('payment-status').textContent = (d.paymentMethod || 'NAQD').toUpperCase() + " \u2022 TO'LANGAN";

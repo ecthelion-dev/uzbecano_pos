@@ -78,8 +78,8 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
             {receiptHeader && (
               <p className="text-xs text-orange-600 font-bold">{receiptHeader}</p>
             )}
-            <p className="text-xs text-slate-600 font-medium">{cafeAddress || 'Toshkent sh., Markaziy filial'}</p>
-            <p className="text-xs text-slate-600 font-medium">{cafePhone ? (cafePhone.startsWith('Tel') ? cafePhone : `Tel: ${cafePhone}`) : 'Tel: +998 90 123 45 67'}</p>
+            {cafeAddress && <p className="text-xs text-slate-600 font-medium">{cafeAddress}</p>}
+            {cafePhone && <p className="text-xs text-slate-600 font-medium">{cafePhone.startsWith('Tel') ? cafePhone : `Tel: ${cafePhone}`}</p>}
             {currentWaiter?.name && (
               <p className="text-xs text-slate-900 font-bold mt-1">Ofitsiant: {currentWaiter.name}</p>
             )}

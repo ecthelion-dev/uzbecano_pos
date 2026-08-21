@@ -1,68 +1,79 @@
 import { useState, useEffect, useCallback } from 'react';
-import { SyncStatusSummary } from '../types/offline';
+
+/**
+ * Connection state and the size of the offline backlog.
+ *
+ * The backlog lives in localStorage under `orderplus_<cafe>_sync_queue`, written
+ * by App.tsx whenever an order or a payment fails to reach the server. Reading
+ * it here keeps one source of truth: this hook only reports what that queue
+ * holds, it never owns any state of its own.
+ */
+const SYNC_POLL_MS = 5000;
+
+function activeCafeId(): string {
+  if (typeof window === 'undefined') return 'uzbecano';
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = params.get('cafe') || params.get('cafeId');
+  if (fromUrl && fromUrl.trim()) return fromUrl.trim().toLowerCase();
+  return (localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase();
+}
+
+function readPendingCount(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = localStorage.getItem(`orderplus_${activeCafeId()}_sync_queue`);
+    const queue = raw ? JSON.parse(raw) : [];
+    return Array.isArray(queue) ? queue.length : 0;
+  } catch {
+    return 0;
+  }
+}
 
 export function useNetworkStatus() {
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [syncSummary, setSyncSummary] = useState<{ pendingCount: number; failedCount: number }>({
-    pendingCount: 0,
-    failedCount: 0,
-  });
+  const [isOnline, setIsOnline] = useState<boolean>(
+    typeof navigator === 'undefined' ? true : navigator.onLine
+  );
+  const [pendingCount, setPendingCount] = useState<number>(0);
 
-  const checkSyncStatus = useCallback(async () => {
-    if (typeof window !== 'undefined' && window.electronAPI) {
-      try {
-        const summary: SyncStatusSummary = await window.electronAPI.getSyncStatus();
-        setSyncSummary({
-          pendingCount: summary.pendingCount,
-          failedCount: summary.failedCount,
-        });
-      } catch (err) {
-        console.error('Failed to get sync status from IPC', err);
-      }
-    }
+  const refresh = useCallback(() => {
+    setPendingCount(readPendingCount());
   }, []);
 
+  // The queue drains on its own interval in App.tsx; asking the browser to go
+  // online is the most this can do, and the count then falls by itself.
   const triggerSync = useCallback(async () => {
-    if (typeof window !== 'undefined' && window.electronAPI && isOnline) {
-      try {
-        const summary = await window.electronAPI.triggerSync();
-        setSyncSummary({
-          pendingCount: summary.pendingCount,
-          failedCount: summary.failedCount,
-        });
-      } catch (err) {
-        console.error('Sync trigger error', err);
-      }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('online'));
     }
-  }, [isOnline]);
+    refresh();
+  }, [refresh]);
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      triggerSync();
+      refresh();
     };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    checkSyncStatus();
-    const interval = setInterval(checkSyncStatus, 10000);
+    refresh();
+    const interval = setInterval(refresh, SYNC_POLL_MS);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
     };
-  }, [checkSyncStatus, triggerSync]);
+  }, [refresh]);
 
   return {
     isOnline,
-    pendingCount: syncSummary.pendingCount,
-    failedCount: syncSummary.failedCount,
+    pendingCount,
+    // Nothing distinguishes a permanently failed entry from one still being
+    // retried: the queue retries forever until the server accepts it.
+    failedCount: 0,
     triggerSync,
   };
 }

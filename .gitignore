@@ -6,3 +6,7 @@ dist-react
 .env
 .env.*
 !.env.example
+
+# Flutter/Dart artefacts that were once committed here by mistake
+build/
+*.dill

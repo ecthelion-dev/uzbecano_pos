@@ -1,6 +1,8 @@
-# Uzbecano POS Desktop Application
+# OrderPlus POS
 
-Uzbecano Restoran POS (Point of Sale) kassa va offitsiantlar desktop dasturi. Electron, React, TypeScript va TailwindCSS yordamida yaratilgan.
+OrderPlus restoran kassa tizimi — brauzerdan o'rnatiladigan PWA. React, Vite, TypeScript va TailwindCSS.
+
+Manzil: https://pos.orderplus.uz
 
 ## 🚀 Asosiy Imkoniyatlar
 
@@ -24,7 +26,7 @@ Uzbecano Restoran POS (Point of Sale) kassa va offitsiantlar desktop dasturi. El
 ### Rivojlantirish rejimi (Development):
 ```bash
 npm install
-npm run electron:dev
+npm run dev
 ```
 
 ### Windows uchun .exe yig'ish (Build Production):

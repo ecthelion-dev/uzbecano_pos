@@ -385,16 +385,6 @@ export async function executePrintReceipt(order: any, cafeName: string) {
       }
     }
 
-    // Electron IPC fallback
-    if (typeof window !== 'undefined' && window.electronAPI) {
-      try {
-        await window.electronAPI.printReceipt(order);
-        return;
-      } catch (e) {
-        console.warn('Electron print receipt failed, falling back:', e);
-      }
-    }
-
     // Browser iframe fallback (non-blocking)
     if (typeof window !== 'undefined') {
       await printViaBrowserNonBlocking();

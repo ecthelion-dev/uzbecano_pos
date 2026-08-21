@@ -34,9 +34,9 @@ Priority:
 # POS Client Architecture Guidelines (uzbecano_pos)
 
 ## 1. Stack & Architecture
-- **Desktop Framework**: Electron (Main & Preload), React, Vite, TypeScript.
-- **Local Storage**: SQLite / local-first storage for offline resilience and fast response times.
-- **IPC Communication**: Safe IPC via `contextBridge` and typed channels. Never expose raw Node.js modules or dangerous primitives to the renderer.
+- **Delivery**: installable PWA (React, Vite, TypeScript) served from pos.orderplus.uz. No native shell — a fix reaches every till on the next reload.
+- **Offline**: service worker for the app shell, `localStorage` for the menu cache and the sync queue. `/api/` is never cached: a stale answer about orders or tables is worse than a visible error.
+- **Printing**: ESC/POS over Web Serial or Web Bluetooth (`src/lib/printer.ts`), with the browser print dialog as the fallback for a printer the operating system owns.
 
 ## 2. Local-First, Schema Migration & Offline Synchronization
 - **Offline First**: All critical POS functions (cart, checkout, receipt generation, table management) must operate smoothly without active internet.

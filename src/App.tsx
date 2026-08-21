@@ -1195,14 +1195,10 @@ export default function App() {
       cardAmount: cardAmt,
     };
 
-    if (window.electronAPI) {
-      try {
-        await window.electronAPI.printReceipt(receiptData);
-        return;
-      } catch (err) {
-        console.warn('Electron print receipt error, falling back to browser print:', err);
-      }
-    }
+    // Prints the hidden ThermalPrintArea below. A printer connected over serial
+    // or Bluetooth is driven directly by lib/printer.ts on the close path; this
+    // button is the manual reprint, and goes through whatever printer the
+    // operating system owns.
     window.print();
   }, [activeTableOrderItems, cart, paymentMethod, customCashAmount, grandTotal, currentWaiter, selectedTable, subtotal, discountPercent, discountAmount, serviceFeePercent, serviceFee]);
 

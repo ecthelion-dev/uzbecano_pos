@@ -353,7 +353,33 @@ export default function App() {
       const data: DBOrder[] = await res.json();
       if (!Array.isArray(data)) return;
       lastHistoryFetchRef.current = Date.now();
-      const sorted = sortOrders(data);
+
+      // A ticket the server has not accepted yet — queued while offline, or
+      // rejected and awaiting retry — exists only on this till. Replacing the
+      // list with the server's copy wiped it off the table screen while the
+      // sync queue was still holding it, so the food was on its way to the
+      // kitchen with nothing left on screen to charge for. Keep anything the
+      // queue still owns; drop the rest, which really is gone.
+      let pendingIds = new Set<string>();
+      try {
+        const raw = localStorage.getItem(`orderplus_${cafeId}_sync_queue`);
+        const queue = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(queue)) {
+          pendingIds = new Set(
+            queue
+              .map((q: any) => (q?.kind === 'create' ? q?.order?.id : q?.orderId))
+              .filter((id: any): id is string => typeof id === 'string')
+          );
+        }
+      } catch { }
+
+      const serverIds = new Set(data.map((o) => o.id));
+      const unsynced = pendingIds.size
+        ? ordersRef.current.filter((o) => !serverIds.has(o.id) && pendingIds.has(o.id))
+        : [];
+
+      const sorted = sortOrders([...data, ...unsynced]);
+      ordersRef.current = sorted;
       setOrders(sorted);
       persistOrders(sorted);
       setIsOfflineMode(false);
@@ -1032,7 +1058,11 @@ export default function App() {
       // productId is what the server prices the line from — it re-reads the
       // price from its own database and refuses a line it cannot identify.
       const newItems = cart.map(i => ({ productId: i.product.id, name: i.product.name, price: i.product.price, quantity: i.quantity, note: i.note || '' }));
-      let updatedOrders = [...orders];
+      // Read through the ref, not the value captured when this handler
+      // started: an await sits between here and the write, and the six-second
+      // poll can land inside it. Writing the stale copy back would undo
+      // whatever the poll had just learned from the server.
+      let updatedOrders = [...ordersRef.current];
 
       if (activeTableOrder) {
         const itemMap = new Map<string, { productId?: string; name: string; price: number; quantity: number; note?: string }>();
@@ -1107,6 +1137,7 @@ export default function App() {
         updatedOrders.push(newOrderObj);
       }
 
+      ordersRef.current = updatedOrders;
       setOrders(updatedOrders);
       localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
       setTableCarts(prev => ({ ...prev, [selectedTable]: [] }));
@@ -1197,7 +1228,7 @@ export default function App() {
 
     if (!sourceOrder && sourceCart.length === 0) return;
 
-    let updatedOrders = [...orders];
+    let updatedOrders = [...ordersRef.current];
 
     if (isMerge) {
       const targetOrder = orders.find(o => o.tableNumber === targetTable && isActiveOrder(o.status));
@@ -1321,7 +1352,7 @@ export default function App() {
       return;
     }
 
-    let currentOrders = [...orders];
+    let currentOrders = [...ordersRef.current];
 
     if (currentCart.length > 0) {
       const confirmClose = window.confirm(
@@ -1385,7 +1416,7 @@ export default function App() {
 
     setApiError(null);
     try {
-      const currentOrders = [...orders];
+      const currentOrders = [...ordersRef.current];
       const latestOrder = currentOrders.find(o => o.tableNumber === targetTable && o.status !== 'served');
       let closedOrder: any = null;
 
@@ -1435,6 +1466,7 @@ export default function App() {
 
         const updatedOrders = currentOrders.map(o => o.id === latestOrder.id ? closedOrder : o);
 
+        ordersRef.current = updatedOrders;
         setOrders(updatedOrders);
         localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
         setSelectedArchiveOrder(closedOrder);

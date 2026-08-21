@@ -96,6 +96,13 @@ export default function App() {
   const [categoriesData, setCategoriesData] = useState<DBCategory[]>([]);
   const [products, setProducts] = useState<DBProduct[]>([]);
   const [orders, setOrders] = useState<DBOrder[]>([]);
+  // null until the first poll lands, so a fresh start does not treat every
+  // already-open ticket as newly departed.
+  const seenActiveIdsRef = React.useRef<Set<string> | null>(null);
+  const lastHistoryFetchRef = React.useRef<number>(0);
+  // Mirrors `orders` so the poll can merge against the current list without
+  // reading state that may have moved on since the request went out.
+  const ordersRef = React.useRef<DBOrder[]>([]);
   const [tableCarts, setTableCarts] = useState<Record<string, CartItem[]>>({});
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -298,22 +305,67 @@ export default function App() {
     setConnectedCafeLogo(savedLogo || '');
   }, [getActiveCafeId]);
 
-  // Fetch orders only (lightweight, called frequently)
-  const fetchOrders = useCallback(async () => {
+  const sortOrders = useCallback((list: DBOrder[]) =>
+    [...list].sort((a: any, b: any) =>
+      new Date(b.closedAt || b.createdAt || 0).getTime() - new Date(a.closedAt || a.createdAt || 0).getTime()
+    ), []);
+
+  const persistOrders = useCallback((list: DBOrder[]) => {
+    const cafeId = getActiveCafeId();
+    localStorage.setItem(`orderplus_${cafeId}_orders`, JSON.stringify(list));
+  }, [getActiveCafeId]);
+
+  // The full 7-day window, which only the archive and shift report read. It is
+  // the expensive call (up to 200 orders with their items), so it is kept off
+  // the poll and pulled when something actually needs it.
+  const fetchOrderHistory = useCallback(async () => {
     try {
       const cafeId = getActiveCafeId();
       const res = await fetch(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}`, { cache: 'no-store', headers: getAuthHeaders() });
-      if (res.ok) {
-        const data: DBOrder[] = await res.json();
-        const sorted = Array.isArray(data)
-          ? [...data].sort((a: any, b: any) => new Date(b.closedAt || b.createdAt || 0).getTime() - new Date(a.closedAt || a.createdAt || 0).getTime())
-          : [];
-        setOrders(sorted);
-        localStorage.setItem(`orderplus_${cafeId}_orders`, JSON.stringify(sorted));
-        setIsOfflineMode(false);
-      }
+      if (!res.ok) return;
+      const data: DBOrder[] = await res.json();
+      if (!Array.isArray(data)) return;
+      lastHistoryFetchRef.current = Date.now();
+      const sorted = sortOrders(data);
+      setOrders(sorted);
+      persistOrders(sorted);
+      setIsOfflineMode(false);
     } catch { }
-  }, [getActiveCafeId, getAuthHeaders]);
+  }, [getActiveCafeId, getAuthHeaders, sortOrders, persistOrders]);
+
+  // Polled every few seconds, so it asks only for unserved orders — the set the
+  // table grid and the open-ticket lookups care about. Served orders already in
+  // state are left alone instead of being re-downloaded on every tick.
+  const fetchOrders = useCallback(async () => {
+    try {
+      const cafeId = getActiveCafeId();
+      const res = await fetch(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}&active=1`, { cache: 'no-store', headers: getAuthHeaders() });
+      if (!res.ok) return;
+      const data: DBOrder[] = await res.json();
+      if (!Array.isArray(data)) return;
+
+      const activeIds = new Set(data.map((o) => o.id));
+      const seen = seenActiveIdsRef.current;
+      // An id we were tracking is gone from the active set, so it was served —
+      // possibly on another terminal. Our copy of it is stale, so pull history.
+      let departed = false;
+      if (seen) seen.forEach((id) => { if (!activeIds.has(id)) departed = true; });
+      seenActiveIdsRef.current = activeIds;
+
+      // Merged off a ref rather than inside a setState updater: updaters must
+      // stay pure, and persisting needs the result synchronously.
+      const byId = new Map<string, DBOrder>();
+      for (const o of ordersRef.current) byId.set(o.id, o);
+      for (const o of data) byId.set(o.id, o);
+      const merged = sortOrders(Array.from(byId.values()));
+      ordersRef.current = merged;
+      setOrders(merged);
+      persistOrders(merged);
+      setIsOfflineMode(false);
+
+      if (departed) fetchOrderHistory();
+    } catch { }
+  }, [getActiveCafeId, getAuthHeaders, sortOrders, persistOrders, fetchOrderHistory]);
 
   // Fetch static data once (products, categories, waiters, settings)
   const fetchData = useCallback(async () => {
@@ -424,7 +476,9 @@ export default function App() {
         }
       }
 
-      await fetchOrders();
+      // Startup is the one point where both are needed: the archive and shift
+      // report must have the 7-day window before the operator can open them.
+      await Promise.all([fetchOrders(), fetchOrderHistory()]);
       setIsOfflineMode(false);
     } catch (err: any) {
       setApiError(`Ulanishda xatolik: ${err?.message || err}`);
@@ -435,11 +489,21 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [getActiveCafeId, fetchOrders]);
+  }, [getActiveCafeId, fetchOrders, fetchOrderHistory]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // The archive and the shift report are the only screens that read served
+  // orders, so that is when the heavy list is worth refreshing. Once a minute
+  // is enough; the poll keeps unserved tickets current on top of it.
+  const HISTORY_STALE_MS = 60_000;
+  useEffect(() => {
+    if (!showArchiveModal && !showShiftReport) return;
+    if (Date.now() - lastHistoryFetchRef.current < HISTORY_STALE_MS) return;
+    fetchOrderHistory();
+  }, [showArchiveModal, showShiftReport, fetchOrderHistory]);
 
   // Offline sync queue: each entry is either a full order CREATE or a PATCH
   // against an existing order (status change, payment finalization, item
@@ -663,6 +727,8 @@ export default function App() {
     });
     return counts;
   }, [products]);
+
+  useEffect(() => { ordersRef.current = orders; }, [orders]);
 
   const cart = useMemo(() => tableCarts[selectedTable] || [], [tableCarts, selectedTable]);
 

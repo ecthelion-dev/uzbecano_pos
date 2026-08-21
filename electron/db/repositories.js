@@ -7,8 +7,6 @@ function mapOrderRow(row) {
     id: row.id,
     tableNumber: row.table_number,
     orderType: row.order_type,
-    phone: row.phone,
-    address: row.address,
     items: row.items,
     subtotal: row.subtotal,
     serviceFee: row.service_fee,
@@ -58,19 +56,17 @@ async function createLocalOrder(orderData) {
     // 1. Insert into orders
     const insertOrder = db.prepare(`
       INSERT INTO orders (
-        id, table_number, order_type, phone, address, items,
+        id, table_number, order_type, items,
         subtotal, service_fee, discount_amount, discount_percent, total,
         status, sync_status, created_at, updated_at, version,
         cafe_id, payment_method, cash_amount, card_amount, waiter_name
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, 1, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, 1, ?, ?, ?, ?, ?)
     `);
 
     insertOrder.run(
       id,
       orderData.tableNumber || '',
       orderData.orderType || 'DINE_IN',
-      orderData.phone || '',
-      orderData.address || '',
       itemsJson,
       Number(orderData.subtotal) || 0,
       Number(orderData.serviceFee) || 0,

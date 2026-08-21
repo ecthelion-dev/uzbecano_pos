@@ -60,7 +60,15 @@ function runMigrations(db, dbPath) {
             id TEXT PRIMARY KEY,
             table_number TEXT,
             order_type TEXT DEFAULT 'DINE_IN',
+            -- Dead column: the customer phone was removed along with delivery.
+            -- Kept because this migration already ran on every till; editing an
+            -- applied migration would split schemas across terminals.
             phone TEXT,
+            -- Dead column: delivery was removed and nothing reads or writes it.
+            -- Left in place because this migration already ran on every till;
+            -- editing an applied migration would leave new and existing
+            -- terminals on different schemas. It is nullable, so inserts that
+            -- omit it are fine.
             address TEXT,
             items TEXT,
             subtotal INTEGER DEFAULT 0,
@@ -210,10 +218,10 @@ function migrateLegacyJson(db, dbDirectory) {
   const migrationTx = db.transaction(() => {
     const insertOrderStmt = db.prepare(`
       INSERT OR IGNORE INTO orders (
-        id, table_number, order_type, phone, address, items,
+        id, table_number, order_type, items,
         subtotal, service_fee, discount_amount, total, status,
         sync_status, created_at, updated_at, version
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertItemStmt = db.prepare(`
@@ -236,8 +244,6 @@ function migrateLegacyJson(db, dbDirectory) {
         o.id,
         o.table_number || o.tableNumber || '',
         o.order_type || o.orderType || 'DINE_IN',
-        o.phone || '',
-        o.address || '',
         itemsStr,
         Number(o.subtotal) || 0,
         Number(o.service_fee || o.serviceFee) || 0,

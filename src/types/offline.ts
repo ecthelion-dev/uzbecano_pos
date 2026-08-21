@@ -2,8 +2,6 @@ export interface LocalOrder {
   id: string;
   tableNumber: string;
   orderType?: string;
-  phone?: string;
-  address?: string;
   items: string; // JSON string
   subtotal: number;
   serviceFee: number;

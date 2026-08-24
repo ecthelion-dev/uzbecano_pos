@@ -25,6 +25,22 @@ module.exports = {
       blur: {
         xs: '2px',
       },
+      // Modallar animate-fadeIn / animate-scaleUp ishlatadi, lekin bu
+      // animatsiyalar hech qayerda ta'riflanmagan edi.
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        scaleUp: {
+          '0%': { opacity: '0', transform: 'scale(.96)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+      },
+      animation: {
+        fadeIn: 'fadeIn .15s ease-out',
+        scaleUp: 'scaleUp .18s ease-out',
+      },
     },
   },
   plugins: [],

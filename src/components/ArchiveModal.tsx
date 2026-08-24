@@ -271,19 +271,19 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     </button>
                   ))}
                 </div>
-                <div className="flex gap-2.5 pt-1">
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
                   <button
                     onClick={() => {
                       if (onRefundOrder) onRefundOrder(selectedArchiveOrder, refundReason);
                       setShowReasonSelect(false);
                     }}
-                    className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer shadow-md transition-all active:scale-98"
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 sm:py-2.5 px-2 rounded-xl text-xs cursor-pointer shadow-md transition-all active:scale-98"
                   >
                     TASDIQLASH (ADMIN PIN)
                   </button>
                   <button
                     onClick={() => setShowReasonSelect(false)}
-                    className="px-5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 rounded-xl text-xs cursor-pointer transition-all"
+                    className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-3 sm:py-2.5 px-2 rounded-xl text-xs cursor-pointer transition-all active:scale-98"
                   >
                     BEKOR QILISH
                   </button>
@@ -291,19 +291,27 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               </div>
             )}
 
-            <div className="flex justify-center gap-3 pt-2">
+            <div
+              className={`grid ${
+                !selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect
+                  ? 'grid-cols-2'
+                  : 'grid-cols-1'
+              } gap-2.5 sm:gap-3 pt-2 max-w-lg mx-auto w-full`}
+            >
               <button
                 onClick={onPrint}
-                className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-8 rounded-2xl text-base flex items-center gap-2.5 shadow-lg shadow-orange-500/20 transition-all cursor-pointer hover:scale-102 active:scale-98"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 sm:py-3.5 px-3 sm:px-8 rounded-2xl text-xs sm:text-base flex flex-col sm:flex-row items-center justify-center text-center gap-1.5 sm:gap-2.5 shadow-lg shadow-orange-500/20 transition-all cursor-pointer active:scale-98"
               >
-                <Printer className="w-5 h-5" /> CHEKNI CHOP ETISH
+                <Printer className="w-5 h-5 shrink-0" />
+                <span>CHEKNI CHOP ETISH</span>
               </button>
               {!selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect && (
                 <button
                   onClick={() => setShowReasonSelect(true)}
-                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3.5 px-8 rounded-2xl text-base flex items-center gap-2.5 shadow-lg shadow-rose-600/20 transition-all cursor-pointer hover:scale-102 active:scale-98"
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 sm:py-3.5 px-3 sm:px-8 rounded-2xl text-xs sm:text-base flex flex-col sm:flex-row items-center justify-center text-center gap-1.5 sm:gap-2.5 shadow-lg shadow-rose-600/20 transition-all cursor-pointer active:scale-98"
                 >
-                  <span className="text-lg">↩️</span> QAYTARISH (VOZVRAT)
+                  <RotateCcw className="w-5 h-5 shrink-0" />
+                  <span>QAYTARISH (VOZVRAT)</span>
                 </button>
               )}
             </div>

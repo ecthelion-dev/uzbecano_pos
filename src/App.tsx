@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   UtensilsCrossed,
   ShoppingBag,
@@ -11,6 +11,7 @@ import {
   Grid,
   ChevronRight,
   ChevronUp,
+  X,
   AlertCircle,
   Receipt,
   Sparkles,
@@ -823,6 +824,7 @@ export default function App() {
         setShowCashDrawerModal(prev => !prev);
       } else if (e.key === 'Escape') {
         setShowMobileCart(false);
+        setShowMobileSearch(false);
         setShowReceiptPreview(false);
         setShowArchiveModal(false);
         setShowShiftReport(false);
@@ -880,6 +882,9 @@ export default function App() {
   const [selectedArea, setSelectedArea] = useState<string>('Barchasi');
   // Telefonda kvitansiya yon panel sifatida sig'maydi — pastdan chiquvchi panel.
   const [showMobileCart, setShowMobileCart] = useState<boolean>(false);
+  // Telefonda qidiruv maydoni ikonka ortida turadi va bosilganda ochiladi.
+  const [showMobileSearch, setShowMobileSearch] = useState<boolean>(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Tables status & totals (combines DB orders and active draft carts)
   const tables = useMemo(() => {
@@ -1010,6 +1015,10 @@ export default function App() {
     () => activeTableOrderItems.length + cart.length,
     [activeTableOrderItems, cart]
   );
+
+  useEffect(() => {
+    if (showMobileSearch) searchInputRef.current?.focus();
+  }, [showMobileSearch]);
 
   const requestAdminPin = useCallback((action: () => void) => {
     setAdminPinAction(() => action);
@@ -1648,6 +1657,7 @@ export default function App() {
         onTabChange={(tab) => {
           setActiveTab(tab);
           setShowMobileCart(false);
+          setShowMobileSearch(false);
         }}
         onOpenArchive={() => setShowArchiveModal(true)}
         onOpenPrinterSettings={() => setShowPrinterModal(true)}
@@ -1731,36 +1741,69 @@ export default function App() {
           <>
             {/* Left Content Area */}
             <div className="flex-1 flex flex-col gap-2.5 sm:gap-4 overflow-hidden min-h-0">
-              <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 shrink-0">
+              <div className="bg-white p-2 sm:p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-2 sm:gap-4 shrink-0">
+                {/* Orqaga: telefonda faqat ikonka, qidiruv ochiqda esa yashirin */}
                 {selectedCategoryName || searchQuery ? (
                   <button
                     onClick={() => {
                       setSelectedCategoryName(null);
                       setSearchQuery('');
+                      setShowMobileSearch(false);
                     }}
-                    className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl border border-slate-200 transition-all cursor-pointer"
+                    title="Kategoriyalarga qaytish"
+                    className={`${showMobileSearch ? 'hidden sm:flex' : 'flex'} items-center gap-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 h-11 sm:h-auto w-11 sm:w-auto justify-center sm:justify-start sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0 active:scale-95`}
                   >
-                    <ArrowLeft className="w-4 h-4 text-slate-600" /> KATEGORIYALARGA QAYTISH
+                    <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4 text-slate-600" />
+                    <span className="hidden sm:inline">KATEGORIYALARGA QAYTISH</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => setActiveTab('stollar')}
-                    className="flex items-center gap-2 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3.5 py-2 rounded-xl border border-orange-200 transition-all cursor-pointer"
+                    title="Stollar zaliga qaytish"
+                    className={`${showMobileSearch ? 'hidden sm:flex' : 'flex'} items-center gap-2 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 h-11 sm:h-auto w-11 sm:w-auto justify-center sm:justify-start sm:px-3.5 sm:py-2 rounded-xl border border-orange-200 transition-all cursor-pointer shrink-0 active:scale-95`}
                   >
-                    <ArrowLeft className="w-4 h-4 text-orange-500" /> STOLLAR ZALIGA QAYTISH
+                    <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4 text-orange-500" />
+                    <span className="hidden sm:inline">STOLLAR ZALIGA QAYTISH</span>
                   </button>
                 )}
 
-                <div className="relative w-full sm:w-72 shrink-0">
-                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Taom yoki ichimlik qidirish..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
-                  />
+                {/* Qidiruv maydoni: telefonda ikonka bosilgandagina ochiladi */}
+                <div
+                  className={`${showMobileSearch ? 'flex' : 'hidden'} sm:flex items-center gap-2 flex-1 sm:flex-none min-w-0`}
+                >
+                  <div className="relative flex-1 sm:w-72 sm:flex-none min-w-0">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Taom yoki ichimlik qidirish..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 h-11 sm:h-auto sm:py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setShowMobileSearch(false);
+                    }}
+                    title="Qidiruvni yopish"
+                    className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 border border-slate-200 active:scale-95 transition-transform"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
+
+                {/* Telefonda qidiruvni ochuvchi ikonka */}
+                {!showMobileSearch && (
+                  <button
+                    onClick={() => setShowMobileSearch(true)}
+                    title="Qidirish"
+                    className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 border border-slate-200 active:scale-95 transition-transform"
+                  >
+                    <Search className="w-5 h-5" />
+                  </button>
+                )}
               </div>
 
               {/* Dynamic Categories / Products Grid */}

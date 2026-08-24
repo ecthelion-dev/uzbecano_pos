@@ -49,11 +49,11 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           <img
             src={connectedCafeLogo}
             alt={connectedCafeName}
-            className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-contain bg-white border border-slate-200 shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-contain bg-white border border-slate-200 shrink-0"
           />
         ) : (
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0">
-            <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5 text-orange-500" />
           </div>
         )}
         <div className="min-w-0 hidden md:block">
@@ -69,35 +69,35 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         <button
           title="Stollar zali"
           onClick={() => onTabChange('stollar')}
-          className={`px-3 sm:px-4 py-2 sm:py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+          className={`px-5 sm:px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
             activeTab === 'stollar'
               ? 'bg-orange-500 text-white shadow-md'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white'
           }`}
         >
-          <Grid className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+          <Grid className="w-6 h-6 sm:w-3.5 sm:h-3.5" />
           <span className="hidden sm:inline">STOLLAR</span>
           <span className="hidden md:inline text-[10px] opacity-80">(F1)</span>
         </button>
         <button
           title="Menyu va kassa"
           onClick={() => onTabChange('menyu')}
-          className={`px-3 sm:px-4 py-2 sm:py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+          className={`px-5 sm:px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
             activeTab === 'menyu'
               ? 'bg-orange-500 text-white shadow-md'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white'
           }`}
         >
-          <ShoppingBag className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+          <ShoppingBag className="w-6 h-6 sm:w-3.5 sm:h-3.5" />
           <span className="hidden sm:inline">MENYU</span>
           <span className="hidden md:inline text-[10px] opacity-80">(F2)</span>
         </button>
         <button
           title="Arxiv"
           onClick={onOpenArchive}
-          className="hidden sm:flex px-3 sm:px-4 py-2 sm:py-2 rounded-lg font-semibold text-xs transition-all items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer whitespace-nowrap"
+          className="hidden sm:flex px-5 sm:px-4 py-2 rounded-lg font-semibold text-xs transition-all items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer whitespace-nowrap"
         >
-          <Receipt className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-orange-500" />
+          <Receipt className="w-6 h-6 sm:w-3.5 sm:h-3.5 text-orange-500" />
           <span className="hidden sm:inline">ARXIV</span>
           <span className="hidden md:inline text-[10px] opacity-80">(F3)</span>
         </button>
@@ -147,14 +147,14 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         {/* Telefon uchun yagona menyu tugmasi */}
         <button
           onClick={() => setMenuOpen((prev) => !prev)}
-          className={`sm:hidden w-10 h-10 flex items-center justify-center border rounded-xl transition-all cursor-pointer shadow-2xs shrink-0 ${
+          className={`sm:hidden w-11 h-11 flex items-center justify-center border rounded-xl transition-all cursor-pointer shadow-2xs shrink-0 ${
             menuOpen
               ? 'bg-slate-900 border-slate-900 text-white'
               : 'bg-white border-slate-200 text-slate-700'
           }`}
           title="Menyu"
         >
-          <MoreVertical className="w-5 h-5" />
+          <MoreVertical className="w-6 h-6" />
         </button>
       </div>
 

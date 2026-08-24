@@ -82,7 +82,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
                     Oshxonaga yuborilgan taomlar
                   </p>
                   <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md">
-                    Kegan
+                    Buyurtma keldi
                   </span>
                 </div>
                 {activeTableOrderItems.map((item: any, idx: number) => (

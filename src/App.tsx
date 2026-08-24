@@ -215,6 +215,7 @@ export default function App() {
       return 10;
     }
   });
+  const [waiterCalls, setWaiterCalls] = useState<string[]>([]);
 
   const getActiveCafeId = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -346,6 +347,22 @@ export default function App() {
         try { setTableDefs(JSON.parse(cached)); } catch { }
       }
     }
+  }, [getActiveCafeId, getAuthHeaders]);
+
+  const fetchWaiterCalls = useCallback(async () => {
+    try {
+      const cafeId = getActiveCafeId();
+      if (!cafeId) return;
+      const res = await fetch(`${API_BASE_URL}/api/waiter-calls?cafeId=${encodeURIComponent(cafeId)}`, {
+        cache: 'no-store',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setWaiterCalls(data.map((c: any) => String(c.tableNumber)));
+      }
+    } catch {}
   }, [getActiveCafeId, getAuthHeaders]);
 
   const fetchOrderHistory = useCallback(async () => {
@@ -534,7 +551,7 @@ export default function App() {
 
       // Startup is the one point where both are needed: the archive and shift
       // report must have the 7-day window before the operator can open them.
-      await Promise.all([fetchOrders(), fetchOrderHistory(), fetchTableDefs()]);
+      await Promise.all([fetchOrders(), fetchOrderHistory(), fetchTableDefs(), fetchWaiterCalls()]);
       setIsOfflineMode(false);
     } catch (err: any) {
       setApiError(`Ulanishda xatolik: ${err?.message || err}`);
@@ -548,7 +565,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [getActiveCafeId, fetchOrders, fetchOrderHistory, fetchTableDefs]);
+  }, [getActiveCafeId, fetchOrders, fetchOrderHistory, fetchTableDefs, fetchWaiterCalls]);
 
   useEffect(() => {
     fetchData();
@@ -759,17 +776,19 @@ export default function App() {
     };
   }, [syncOfflineOrders]);
 
-  // Auto-sync active orders in background with visibility optimization
+  // Auto-sync active orders and waiter calls in background with visibility optimization
   useEffect(() => {
     if (!currentWaiter) return;
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchOrders();
+        fetchWaiterCalls();
       }
-    }, 6000);
+    }, 4000);
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         fetchOrders();
+        fetchWaiterCalls();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
@@ -777,7 +796,7 @@ export default function App() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [currentWaiter, fetchOrders]);
+  }, [currentWaiter, fetchOrders, fetchWaiterCalls]);
 
   // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, ESC: Close)
   useEffect(() => {
@@ -870,6 +889,7 @@ export default function App() {
 
       const total = activeOrder ? activeOrder.total : draftTotal;
       const isOccupied = activeOrder || draftCart.length > 0;
+      const hasCall = waiterCalls.some(wn => (wn || '').trim().toLowerCase() === numStr.trim().toLowerCase());
 
       return {
         id: `table_${i + 1}`,
@@ -877,9 +897,10 @@ export default function App() {
         area: def.area,
         status: (isOccupied ? 'band' : 'bosh') as 'band' | 'bosh',
         total: total,
+        hasWaiterCall: hasCall,
       };
     });
-  }, [tableDefs, orders, tableCarts]);
+  }, [tableDefs, orders, tableCarts, waiterCalls]);
 
   const filteredTables = useMemo(() => {
     if (selectedArea === 'Barchasi') return tables;
@@ -890,7 +911,17 @@ export default function App() {
     setSelectedArchiveOrder(null);
     setSelectedTable(tableNumber);
     setActiveTab('menyu');
-  }, []);
+    // Dismiss waiter call when opening the table
+    const cafeId = getActiveCafeId();
+    if (cafeId && tableNumber) {
+      fetch(`${API_BASE_URL}/api/waiter-calls`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ cafeId, tableNumber }),
+      }).catch(() => {});
+      setWaiterCalls(prev => prev.filter(t => (t || '').trim().toLowerCase() !== tableNumber.trim().toLowerCase()));
+    }
+  }, [getActiveCafeId, getAuthHeaders]);
 
   const handleSelectCategory = useCallback((categoryName: string) => {
     setSelectedCategoryName(categoryName);

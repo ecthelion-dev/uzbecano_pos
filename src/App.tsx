@@ -1671,7 +1671,7 @@ export default function App() {
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden p-2 sm:p-4 gap-2 sm:gap-4 relative min-h-0">
         {activeTab === 'stollar' ? (
           /* Stollar Zali View */
-          <div className="flex-1 flex flex-col gap-2.5 sm:gap-4 overflow-y-auto pr-1 min-h-0 pb-2">
+          <div className="flex-1 flex flex-col gap-2.5 sm:gap-4 overflow-y-auto pr-1 min-h-0 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-2">
             {/* Top Bar for Tables */}
             <div className="flex items-center justify-between bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
               <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
@@ -1809,7 +1809,7 @@ export default function App() {
               {/* Dynamic Categories / Products Grid */}
               {!selectedCategoryName && !searchQuery ? (
                 /* STEP 1: Categories View */
-                <div className="flex-1 overflow-y-auto pr-1 pt-2.5 p-1 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-1 min-h-0">
+                <div className="flex-1 overflow-y-auto pr-1 pt-2.5 p-1 pb-[calc(9.5rem+env(safe-area-inset-bottom))] lg:pb-1 min-h-0">
                   {allCategories.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
                       <p className="text-slate-400 text-sm font-medium">Bazada kategoriyalar yoki mahsulotlar topilmadi</p>
@@ -1829,7 +1829,7 @@ export default function App() {
                 </div>
               ) : (
                 /* STEP 2: Products View */
-                <div className="flex-1 overflow-y-auto pr-1 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-0 min-h-0">
+                <div className="flex-1 overflow-y-auto pr-1 pb-[calc(9.5rem+env(safe-area-inset-bottom))] lg:pb-0 min-h-0">
                   {selectedCategoryName && (
                     <div className="flex items-center justify-between mb-3 px-1">
                       <h3 className="text-sm font-semibold text-slate-800">
@@ -1905,33 +1905,61 @@ export default function App() {
                 onOpenTableMove={() => setShowTableMoveModal(true)}
               />
             </div>
-
-            {/* Telefonda savatni ochuvchi pastki panel */}
-            {!showMobileCart && (
-              <button
-                onClick={() => setShowMobileCart(true)}
-                className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 text-white px-5 pt-4 pb-[calc(1.125rem+env(safe-area-inset-bottom))] rounded-t-2xl flex items-center justify-between gap-3 shadow-[0_-6px_20px_rgba(15,23,42,0.25)] active:bg-slate-800 transition-colors"
-              >
-                <span className="flex items-center gap-3 min-w-0">
-                  <span className="relative shrink-0">
-                    <ShoppingBag className="w-6 h-6" />
-                    {mobileCartCount > 0 && (
-                      <span className="absolute -top-2 -right-2.5 bg-orange-500 text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-900">
-                        {mobileCartCount}
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-sm font-bold truncate">{selectedTable}</span>
-                </span>
-                <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-base font-bold">{grandTotal.toLocaleString()} so'm</span>
-                  <ChevronUp className="w-5 h-5 opacity-80" />
-                </span>
-              </button>
-            )}
           </>
         )}
       </main>
+
+      {/* Telefon uchun pastki blok: savat paneli va asosiy navigatsiya */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 rounded-t-2xl overflow-hidden shadow-[0_-6px_20px_rgba(15,23,42,0.18)] pb-[env(safe-area-inset-bottom)] bg-white border-t border-slate-200">
+        {activeTab === 'menyu' && !showMobileCart && (
+          <button
+            onClick={() => setShowMobileCart(true)}
+            className="w-full bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between gap-3 active:bg-slate-800 transition-colors"
+          >
+            <span className="flex items-center gap-3 min-w-0">
+              <span className="relative shrink-0">
+                <ShoppingBag className="w-6 h-6" />
+                {mobileCartCount > 0 && (
+                  <span className="absolute -top-2 -right-2.5 bg-orange-500 text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-900">
+                    {mobileCartCount}
+                  </span>
+                )}
+              </span>
+              <span className="text-sm font-bold truncate">{selectedTable}</span>
+            </span>
+            <span className="flex items-center gap-2 shrink-0">
+              <span className="text-base font-bold">{grandTotal.toLocaleString()} so'm</span>
+              <ChevronUp className="w-5 h-5 opacity-80" />
+            </span>
+          </button>
+        )}
+
+        <div className="grid grid-cols-2">
+          {[
+            { id: 'stollar' as const, label: 'Stollar', icon: Grid },
+            { id: 'menyu' as const, label: 'Menyu', icon: ShoppingBag },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setShowMobileCart(false);
+                  setShowMobileSearch(false);
+                }}
+                className={`flex flex-col items-center justify-center gap-1 py-2.5 transition-colors ${
+                  isActive ? 'text-orange-600' : 'text-slate-400 active:text-slate-600'
+                }`}
+              >
+                <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
+                <span className="text-[11px] font-bold">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <ReceiptPreviewModal
         show={showReceiptPreview}

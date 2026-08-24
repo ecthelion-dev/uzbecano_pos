@@ -296,22 +296,26 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 !selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect
                   ? 'grid-cols-2'
                   : 'grid-cols-1'
-              } gap-2.5 sm:gap-3 pt-2 max-w-lg mx-auto w-full`}
+              } gap-2.5 pt-1 max-w-lg mx-auto w-full`}
             >
               <button
                 onClick={onPrint}
-                className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 sm:py-3.5 px-3 sm:px-8 rounded-2xl text-xs sm:text-base flex flex-col sm:flex-row items-center justify-center text-center gap-1.5 sm:gap-2.5 shadow-lg shadow-orange-500/20 transition-all cursor-pointer active:scale-98"
+                className="h-11 px-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs sm:text-sm inline-flex items-center justify-center gap-2 whitespace-nowrap shadow-sm shadow-orange-500/25 transition-all cursor-pointer active:scale-98"
               >
-                <Printer className="w-5 h-5 shrink-0" />
-                <span>CHEKNI CHOP ETISH</span>
+                <Printer className="w-4 h-4 shrink-0" />
+                <span>
+                  <span className="hidden sm:inline">CHEKNI </span>CHOP ETISH
+                </span>
               </button>
               {!selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect && (
                 <button
                   onClick={() => setShowReasonSelect(true)}
-                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 sm:py-3.5 px-3 sm:px-8 rounded-2xl text-xs sm:text-base flex flex-col sm:flex-row items-center justify-center text-center gap-1.5 sm:gap-2.5 shadow-lg shadow-rose-600/20 transition-all cursor-pointer active:scale-98"
+                  className="h-11 px-4 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold rounded-xl text-xs sm:text-sm inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all cursor-pointer active:scale-98"
                 >
-                  <RotateCcw className="w-5 h-5 shrink-0" />
-                  <span>QAYTARISH (VOZVRAT)</span>
+                  <RotateCcw className="w-4 h-4 shrink-0" />
+                  <span>
+                    QAYTARISH<span className="hidden sm:inline"> (VOZVRAT)</span>
+                  </span>
                 </button>
               )}
             </div>

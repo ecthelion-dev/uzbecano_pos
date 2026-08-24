@@ -30,7 +30,7 @@ a,
 /* iOS Safari 16px dan kichik inputga fokus tushganda ekranni zoom qiladi va
    kassir qo'lda qaytarishga majbur bo'ladi. Telefonda inputlarni 16px qilamiz. */
 @media (max-width: 1023px) {
-  input,
+  input:not([data-compact]),
   select,
   textarea {
     font-size: 16px !important;

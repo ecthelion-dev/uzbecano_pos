@@ -40,10 +40,13 @@ export const CartItemRow: React.FC<CartItemRowProps> = React.memo(({
       </div>
       <input
         type="text"
+        /* Sarlavhalardan ajralib turmasin: kichik va oddiy shrift. data-compact
+           bu maydonni telefondagi 16px qoidasidan chiqaradi. */
+        data-compact
         placeholder="Oshxonaga izoh (masalan: piyozsiz, achchiq...)"
         value={item.note || ''}
         onChange={(e) => onUpdateNote(item.product.id, e.target.value)}
-        className="w-full text-[10px] text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1 placeholder-slate-400 focus:outline-none focus:border-orange-500 font-medium transition-all"
+        className="w-full text-[11px] font-normal text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-all"
       />
     </div>
   );

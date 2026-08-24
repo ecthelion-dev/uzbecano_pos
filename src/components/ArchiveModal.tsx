@@ -362,37 +362,41 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
             {/* Custom Date & Time Range Pickers (only when custom active) */}
             {timePreset === 'custom' && (
-              <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-2xl flex flex-wrap items-center gap-3 text-xs shrink-0 animate-fadeIn">
-                <div className="flex items-center gap-1.5 flex-1 w-full min-w-0 sm:min-w-[240px]">
+              <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-2xl flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 text-xs shrink-0 animate-fadeIn">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 flex-1 w-full min-w-0 sm:min-w-[240px]">
                   <span className="font-semibold text-slate-600 text-xs shrink-0">Boshlanish:</span>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 flex-1 shadow-2xs"
-                  />
-                  <input
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs"
-                  />
+                  <div className="flex items-center gap-1.5 min-w-0 w-full sm:flex-1">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
+                    />
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-[96px] sm:w-[86px] shrink-0"
+                    />
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-1 w-full min-w-0 sm:min-w-[240px]">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 flex-1 w-full min-w-0 sm:min-w-[240px]">
                   <span className="font-semibold text-slate-600 text-xs shrink-0">Tugash:</span>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 flex-1 shadow-2xs"
-                  />
-                  <input
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs"
-                  />
+                  <div className="flex items-center gap-1.5 min-w-0 w-full sm:flex-1">
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
+                    />
+                    <input
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-[96px] sm:w-[86px] shrink-0"
+                    />
+                  </div>
                 </div>
 
                 <button
@@ -402,10 +406,11 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     setStartTime('00:00');
                     setEndTime('23:59');
                   }}
-                  className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 cursor-pointer shadow-2xs"
+                  className="self-end sm:self-auto shrink-0 h-9 sm:h-auto px-3 sm:p-1.5 flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 cursor-pointer shadow-2xs active:scale-95 transition-transform"
                   title="Qayta o'rnatish"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
+                  <span className="sm:hidden font-semibold text-xs">Bugunga qaytarish</span>
                 </button>
               </div>
             )}

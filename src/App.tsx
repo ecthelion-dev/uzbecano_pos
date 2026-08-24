@@ -1341,9 +1341,10 @@ export default function App() {
   }, [orders, tableCarts, isOfflineMode, getActiveCafeId, getAuthHeaders, queuePatchForSync, queueDeleteForSync]);
 
   const handleCloseTable = useCallback(async (tableNum?: string) => {
-    const targetTable = tableNum || selectedTable;
+    const targetTable = (typeof tableNum === 'string' && tableNum.trim()) ? tableNum.trim() : selectedTable;
+    const normTarget = targetTable.trim().toLowerCase();
     const currentCart = tableCarts[targetTable] || [];
-    const activeOrder = orders.find(o => o.tableNumber === targetTable && isActiveOrder(o.status));
+    const activeOrder = orders.find(o => (o.tableNumber || '').trim().toLowerCase() === normTarget && isActiveOrder(o.status));
 
     if (!activeOrder && currentCart.length === 0) {
       setToastMessage('Stolda hech qanday buyurtma mavjud emas!');
@@ -1370,10 +1371,10 @@ export default function App() {
       }));
 
       const sub = draftSubtotal;
-      const fee = Math.round(sub * 0.1);
+      const fee = Math.round((sub * serviceFeePercent) / 100);
       const tot = sub + fee;
 
-      const latestActive = currentOrders.find(o => o.tableNumber === targetTable && o.status !== 'served');
+      const latestActive = currentOrders.find(o => (o.tableNumber || '').trim().toLowerCase() === normTarget && isActiveOrder(o.status));
       if (latestActive) {
         let existingItems: any[] = [];
         try { existingItems = typeof latestActive.items === 'string' ? JSON.parse(latestActive.items) : (latestActive.items || []); } catch { }
@@ -1416,7 +1417,7 @@ export default function App() {
     setApiError(null);
     try {
       const currentOrders = [...ordersRef.current];
-      const latestOrder = currentOrders.find(o => o.tableNumber === targetTable && o.status !== 'served');
+      const latestOrder = currentOrders.find(o => (o.tableNumber || '').trim().toLowerCase() === normTarget && isActiveOrder(o.status));
       let closedOrder: any = null;
 
       if (latestOrder) {
@@ -1481,7 +1482,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, paymentMethod, customCashAmount, connectedCafeName, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync]);
+  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, paymentMethod, customCashAmount, connectedCafeName, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {

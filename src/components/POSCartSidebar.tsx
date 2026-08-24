@@ -81,8 +81,8 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
                   <p className="text-[10px] font-bold text-orange-600 tracking-wider uppercase">
                     Oshxonaga yuborilgan taomlar
                   </p>
-                  <span className="text-[9px] bg-orange-100 text-orange-700 font-bold px-1.5 py-0.5 rounded-md">
-                    Tayyorlanmoqda
+                  <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md">
+                    Kegan
                   </span>
                 </div>
                 {activeTableOrderItems.map((item: any, idx: number) => (
@@ -167,7 +167,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
         <div className="space-y-2 pt-2">
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={onSendToKitchen}
+              onClick={() => onSendToKitchen()}
               disabled={cart.length === 0}
               className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16"
             >
@@ -176,7 +176,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
             </button>
 
             <button
-              onClick={onCloseTable}
+              onClick={() => onCloseTable()}
               disabled={activeTableOrderItems.length === 0 && cart.length === 0}
               className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16"
             >

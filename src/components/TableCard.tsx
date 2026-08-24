@@ -1,4 +1,5 @@
 import React from 'react';
+import { Bell } from 'lucide-react';
 
 export interface TableItemData {
   id: string;
@@ -21,22 +22,24 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
   return (
     <div
       onClick={() => onSelect(table.number)}
-      className={`p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between h-32 shadow-xs hover:shadow-md cursor-pointer group active:scale-98 relative overflow-hidden ${
+      className={`p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between h-32 shadow-xs hover:shadow-md cursor-pointer group active:scale-98 relative ${
         table.hasWaiterCall
-          ? 'bg-amber-950/40 border-amber-500 ring-2 ring-amber-400 shadow-lg shadow-amber-500/20 animate-pulse'
+          ? table.status === 'band'
+            ? 'bg-[#1E2021] text-white border-amber-500 ring-2 ring-amber-400 animate-pulse shadow-lg shadow-amber-500/20'
+            : 'bg-white text-slate-800 border-amber-500 ring-2 ring-amber-400 animate-pulse shadow-lg shadow-amber-500/20'
           : table.status === 'band'
           ? 'bg-[#1E2021] border-[#2A2D2F] text-white hover:border-orange-500'
           : 'bg-white border-slate-200 text-slate-800 hover:border-orange-400'
       }`}
     >
       <div className="flex justify-between items-center gap-1 min-w-0">
-        <span className={`font-bold text-xs sm:text-sm md:text-base tracking-tight truncate whitespace-nowrap ${table.status === 'band' || table.hasWaiterCall ? 'text-white' : 'text-slate-900'}`}>
+        <span className={`font-bold text-xs sm:text-sm md:text-base tracking-tight truncate whitespace-nowrap ${table.status === 'band' ? 'text-white' : 'text-slate-900'}`}>
           {table.number}
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 shrink-0">
           {table.hasWaiterCall && (
-            <span className="bg-amber-500 text-white text-[8px] sm:text-[9px] font-black px-1.5 sm:px-2 py-0.5 rounded-full tracking-wide shrink-0 flex items-center gap-0.5 animate-bounce shadow-xs">
-              🔔 CHAQIRUV
+            <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-bounce" title="Ofitsiant chaqiruvi">
+              <Bell className="w-3 h-3 fill-white" />
             </span>
           )}
           <span

@@ -1741,7 +1741,7 @@ export default function App() {
           <>
             {/* Left Content Area */}
             <div className="flex-1 flex flex-col gap-2.5 sm:gap-4 overflow-hidden min-h-0">
-              <div className="bg-white p-2 sm:p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-2 sm:gap-4 shrink-0">
+              <div className="p-0 sm:p-3.5 sm:bg-white rounded-2xl border-0 sm:border sm:border-slate-200 sm:shadow-sm flex items-center justify-between gap-2 sm:gap-4 shrink-0">
                 {/* Orqaga: telefonda faqat ikonka, qidiruv ochiqda esa yashirin */}
                 {selectedCategoryName || searchQuery ? (
                   <button
@@ -1751,7 +1751,7 @@ export default function App() {
                       setShowMobileSearch(false);
                     }}
                     title="Kategoriyalarga qaytish"
-                    className={`${showMobileSearch ? 'hidden sm:flex' : 'flex'} items-center gap-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 h-11 sm:h-auto w-11 sm:w-auto justify-center sm:justify-start sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0 active:scale-95`}
+                    className={`${showMobileSearch ? 'hidden sm:flex' : 'flex'} items-center gap-2 text-xs font-bold text-slate-700 bg-white sm:bg-slate-100 hover:bg-slate-200 h-11 sm:h-auto w-11 sm:w-auto justify-center sm:justify-start sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0 active:scale-95`}
                   >
                     <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4 text-slate-600" />
                     <span className="hidden sm:inline">KATEGORIYALARGA QAYTISH</span>
@@ -1779,7 +1779,7 @@ export default function App() {
                       placeholder="Taom yoki ichimlik qidirish..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 h-11 sm:h-auto sm:py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
+                      className="w-full bg-white sm:bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 h-11 sm:h-auto sm:py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
                     />
                   </div>
                   <button
@@ -1788,7 +1788,7 @@ export default function App() {
                       setShowMobileSearch(false);
                     }}
                     title="Qidiruvni yopish"
-                    className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 border border-slate-200 active:scale-95 transition-transform"
+                    className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-white text-slate-600 border border-slate-200 shadow-2xs active:scale-95 transition-transform"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -1799,7 +1799,7 @@ export default function App() {
                   <button
                     onClick={() => setShowMobileSearch(true)}
                     title="Qidirish"
-                    className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 border border-slate-200 active:scale-95 transition-transform"
+                    className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-white text-slate-600 border border-slate-200 shadow-2xs active:scale-95 transition-transform"
                   >
                     <Search className="w-5 h-5" />
                   </button>

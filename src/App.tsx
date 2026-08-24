@@ -1865,9 +1865,9 @@ export default function App() {
               }}
               className={`${
                 showMobileCart
-                  ? 'fixed inset-0 z-50 flex bg-slate-900/50 p-2 pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))]'
+                  ? 'fixed inset-0 z-50 flex items-end bg-slate-900/50 animate-fadeIn'
                   : 'hidden'
-              } lg:static lg:z-auto lg:flex lg:shrink-0 lg:bg-transparent lg:p-0`}
+              } lg:static lg:z-auto lg:flex lg:items-stretch lg:shrink-0 lg:bg-transparent lg:animate-none`}
             >
               <POSCartSidebar
                 onCloseMobile={() => setShowMobileCart(false)}

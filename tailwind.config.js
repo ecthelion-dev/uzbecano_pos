@@ -36,10 +36,15 @@ module.exports = {
           '0%': { opacity: '0', transform: 'scale(.96)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
+        slideUp: {
+          '0%': { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)' },
+        },
       },
       animation: {
         fadeIn: 'fadeIn .15s ease-out',
         scaleUp: 'scaleUp .18s ease-out',
+        slideUp: 'slideUp .24s cubic-bezier(.32,.72,0,1)',
       },
     },
   },

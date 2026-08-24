@@ -58,7 +58,9 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
   onCloseMobile,
 }) => {
   return (
-    <div className="w-full lg:w-[435px] shrink-0 bg-white text-slate-900 rounded-2xl p-3.5 sm:p-5 flex flex-col shadow-md border border-slate-200 h-full lg:h-[calc(100vh-120px)] overflow-hidden">
+    <div className="w-full lg:w-[435px] shrink-0 bg-white text-slate-900 rounded-t-3xl lg:rounded-2xl p-3.5 sm:p-5 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:pb-[calc(1.25rem+env(safe-area-inset-bottom))] lg:pb-5 flex flex-col shadow-[0_-8px_30px_rgba(15,23,42,0.25)] lg:shadow-md border border-slate-200 max-h-[88dvh] lg:max-h-none lg:h-[calc(100vh-120px)] overflow-hidden animate-slideUp lg:animate-none">
+      {/* Drawer tutqichi — telefonda varaq pastdan chiqqanini bildiradi */}
+      <div className="lg:hidden mx-auto mb-2.5 h-1.5 w-10 rounded-full bg-slate-300 shrink-0" />
       <div className="flex items-center justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           {onCloseMobile && (

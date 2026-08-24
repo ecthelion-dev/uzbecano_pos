@@ -55,8 +55,8 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   ], [activeTableOrderItems, cart]);
 
   return (
-    <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4 border border-slate-200">
+    <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fadeIn">
+      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-t-3xl sm:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4 border border-slate-200 max-h-[92dvh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
             <Printer className="w-4 h-4 text-orange-500" /> Chekni oldindan ko'rish
@@ -65,7 +65,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         </div>
 
         {/* Thermal Receipt Paper Effect */}
-        <div id="printable-receipt" className="bg-amber-50/40 p-6 rounded-2xl border border-amber-200/60 font-mono text-sm text-slate-800 space-y-3.5 shadow-inner">
+        <div id="printable-receipt" className="bg-amber-50/40 p-4 sm:p-6 rounded-2xl border border-amber-200/60 font-mono text-sm text-slate-800 space-y-3.5 shadow-inner">
           <div className="text-center space-y-1.5 border-b border-dashed border-slate-400 pb-3">
             <div className="flex flex-col items-center justify-center gap-1">
               {cafeLogo ? (
@@ -171,13 +171,13 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               onClose();
               onPrint();
             }}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 cursor-pointer"
+            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 cursor-pointer"
           >
             <Printer className="w-4 h-4" /> CHOP ETISH
           </button>
           <button
             onClick={onClose}
-            className="px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+            className="px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs transition-colors cursor-pointer active:scale-95"
           >
             YOPISH
           </button>

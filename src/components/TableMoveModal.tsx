@@ -47,25 +47,25 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
   };
 
   return (
-    <div onClick={onClose} className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-6 z-50 animate-fadeIn">
-      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl p-8 max-w-xl w-full shadow-2xl flex flex-col gap-6 border border-slate-200">
+    <div onClick={onClose} className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6 z-50 animate-fadeIn">
+      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-t-3xl sm:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-8 max-w-xl w-full shadow-2xl flex flex-col gap-4 sm:gap-6 border border-slate-200 max-h-[92dvh] overflow-y-auto">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3.5">
-            <div className="bg-orange-100 p-3 rounded-2xl text-orange-600 shadow-sm">
-              <Shuffle className="w-7 h-7" />
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3 sm:pb-4">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+            <div className="bg-orange-100 p-2 sm:p-3 rounded-2xl text-orange-600 shadow-sm shrink-0">
+              <Shuffle className="w-5 h-5 sm:w-7 sm:h-7" />
             </div>
             <div>
-              <h3 className="font-bold text-2xl text-slate-900 tracking-tight">Stolni Ko'chirish / Birlashtirish</h3>
-              <p className="text-sm text-slate-500 font-medium mt-0.5">{currentTable} buyurtmasini boshqa stolga o'tkazish</p>
+              <h3 className="font-bold text-base sm:text-2xl text-slate-900 tracking-tight">Stolni Ko'chirish / Birlashtirish</h3>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">{currentTable} buyurtmasini boshqa stolga o'tkazish</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
@@ -76,9 +76,9 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
           </div>
         )}
 
-        <div className="space-y-5">
+        <div className="space-y-4 sm:space-y-5">
           {/* Mode Switcher */}
-          <div className="grid grid-cols-2 gap-2.5 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
             <button
               onClick={() => setIsMerge(false)}
               className={`py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
@@ -126,16 +126,16 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-3 border-t border-slate-100">
+        <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-3 border-t border-slate-100">
           <button
             onClick={handleSubmit}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-2xl text-base shadow-lg shadow-orange-500/20 transition-all cursor-pointer hover:scale-102 active:scale-98"
+            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base shadow-lg shadow-orange-500/20 transition-all cursor-pointer active:scale-98"
           >
             {isMerge ? 'BIRLASHTIRISH' : 'KO\'CHIRISH'}
           </button>
           <button
             onClick={onClose}
-            className="px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 rounded-2xl text-base transition-colors cursor-pointer"
+            className="px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base transition-colors cursor-pointer active:scale-95"
           >
             BEKOR QILISH
           </button>

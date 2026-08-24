@@ -38,23 +38,23 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
   });
 
   return (
-    <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl flex flex-col gap-4 border border-slate-200 max-h-[90vh]">
+    <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fadeIn">
+      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-t-3xl sm:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 max-w-lg w-full shadow-2xl flex flex-col gap-4 border border-slate-200 max-h-[92dvh]">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-slate-900">Kassa Hisoboti (Z-Report)</h3>
-              <p className="text-[11px] text-slate-500 font-medium">Bugungi kunlik kassa va ofitsiantlar hisoboti</p>
+              <h3 className="font-bold text-sm sm:text-base text-slate-900">Kassa Hisoboti (Z-Report)</h3>
+              <p className="text-[11px] text-slate-500 font-medium hidden sm:block">Bugungi kunlik kassa va ofitsiantlar hisoboti</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-semibold px-2 cursor-pointer">×</button>
         </div>
 
         <div className="space-y-4 overflow-y-auto pr-1">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3">
               <p className="text-[11px] font-medium text-orange-700">Sof Tushum</p>
               <p className="text-lg font-bold text-slate-900 mt-0.5">{netRevenue.toLocaleString()} so'm</p>
@@ -101,7 +101,7 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
           <button
             onClick={onPrint}
-            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-5 rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer"
+            className="w-full sm:w-auto justify-center bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 sm:py-2.5 px-5 rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer active:scale-95"
           >
             <Printer className="w-4 h-4" /> Z-REPORT CHOP ETISH
           </button>

@@ -117,21 +117,21 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   if (!show) return null;
 
   return (
-    <div onClick={onClose} className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+    <div onClick={onClose} className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fadeIn">
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl p-6 w-[94vw] max-w-6xl h-[90vh] shadow-2xl flex flex-col gap-4 border border-slate-200 overflow-hidden"
+        className="bg-white rounded-t-3xl sm:rounded-3xl p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-6 w-full sm:w-[94vw] max-w-6xl h-[92dvh] sm:h-[90vh] shadow-2xl flex flex-col gap-3 sm:gap-4 border border-slate-200 overflow-hidden"
       >
         
         {/* Header Bar */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="bg-orange-100 p-2.5 rounded-2xl text-orange-600 shadow-sm">
-              <Receipt className="w-6 h-6" />
+            <div className="bg-orange-100 p-2 sm:p-2.5 rounded-2xl text-orange-600 shadow-sm shrink-0">
+              <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-xl text-slate-900 tracking-tight">Arxiv Cheklar</h3>
-              <p className="text-xs text-slate-500 font-medium">Barcha yopilgan to'lovlar va cheklar tarixi</p>
+              <h3 className="font-bold text-base sm:text-xl text-slate-900 tracking-tight">Arxiv Cheklar</h3>
+              <p className="text-xs text-slate-500 font-medium hidden sm:block">Barcha yopilgan to'lovlar va cheklar tarixi</p>
             </div>
           </div>
           <button
@@ -155,7 +155,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               <ArrowLeft className="w-4 h-4" /> Ro'yxatga qaytish
             </button>
 
-            <div id="printable-receipt" className="bg-amber-50/50 p-6 rounded-3xl border-2 border-amber-200/80 font-mono text-sm text-slate-800 space-y-3.5 shadow-sm max-w-lg mx-auto">
+            <div id="printable-receipt" className="bg-amber-50/50 p-4 sm:p-6 rounded-3xl border-2 border-amber-200/80 font-mono text-sm text-slate-800 space-y-3.5 shadow-sm max-w-lg mx-auto">
               <div className="text-center space-y-1.5 border-b-2 border-dashed border-slate-400 pb-3">
                 <div className="flex flex-col items-center justify-center gap-1">
                   {cafeLogo ? (
@@ -256,7 +256,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             {showReasonSelect && (
               <div className="bg-rose-50 border border-rose-200 p-4 rounded-3xl max-w-lg mx-auto space-y-3 shadow-sm">
                 <p className="font-bold text-sm text-rose-900 text-center">Qaytarish sababini tanlang:</p>
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {['Mijoz rad etdi', 'Sifat yetarsiz', 'Xato to\'lov'].map((reason) => (
                     <button
                       key={reason}
@@ -314,7 +314,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             
             {/* Top Row: Search Input + Time Presets */}
             <div className="flex flex-wrap items-center gap-3 shrink-0">
-              <div className="relative flex-1 min-w-[280px]">
+              <div className="relative flex-1 w-full min-w-0 sm:min-w-[280px]">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
@@ -326,7 +326,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               </div>
 
               {/* Time Presets Toolbar */}
-              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200 shrink-0">
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200 w-full sm:w-auto sm:shrink-0 overflow-x-auto no-scrollbar">
                 {[
                   { id: 'all', label: 'Barchasi' },
                   { id: 'today', label: 'Bugun' },
@@ -351,7 +351,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             {/* Custom Date & Time Range Pickers (only when custom active) */}
             {timePreset === 'custom' && (
               <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-2xl flex flex-wrap items-center gap-3 text-xs shrink-0 animate-fadeIn">
-                <div className="flex items-center gap-1.5 flex-1 min-w-[240px]">
+                <div className="flex items-center gap-1.5 flex-1 w-full min-w-0 sm:min-w-[240px]">
                   <span className="font-semibold text-slate-600 text-xs shrink-0">Boshlanish:</span>
                   <input
                     type="date"
@@ -367,7 +367,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                   />
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-1 min-w-[240px]">
+                <div className="flex items-center gap-1.5 flex-1 w-full min-w-0 sm:min-w-[240px]">
                   <span className="font-semibold text-slate-600 text-xs shrink-0">Tugash:</span>
                   <input
                     type="date"
@@ -399,14 +399,14 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             )}
 
             {/* Quick Summary Bar */}
-            <div className="bg-slate-50 border border-slate-200/90 px-4 py-2 rounded-2xl flex items-center justify-between text-xs font-medium shrink-0">
+            <div className="bg-slate-50 border border-slate-200/90 px-3 sm:px-4 py-2 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs font-medium shrink-0">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-slate-600">Topildi:</span>
                 <span className="bg-white px-2.5 py-0.5 rounded-lg border border-slate-200 font-bold text-slate-900 text-xs shadow-2xs">
                   {filteredOrders.length} ta chek
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-slate-600 text-xs">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-600 text-xs">
                 <span>Naqd: <strong className="text-slate-900 font-semibold">{cashTotal.toLocaleString()} so'm</strong></span>
                 <span>•</span>
                 <span>Karta: <strong className="text-slate-900 font-semibold">{cardTotal.toLocaleString()} so'm</strong></span>
@@ -439,10 +439,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     <div
                       key={ord.id}
                       onClick={() => onSelectArchiveOrder(ord)}
-                      className="bg-white hover:bg-orange-50/50 border border-slate-200 hover:border-orange-300 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer transition-all shadow-2xs hover:shadow-xs group active:scale-[0.995]"
+                      className="bg-white hover:bg-orange-50/50 border border-slate-200 hover:border-orange-300 rounded-2xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer transition-all shadow-2xs hover:shadow-xs group active:scale-[0.995]"
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2.5">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
                           <span className="font-bold text-base text-slate-900 group-hover:text-orange-600 transition-colors">
                             {ord.tableNumber}
                           </span>
@@ -459,7 +459,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                             #{ord.id.slice(-6)}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-500 font-medium flex items-center gap-2.5">
+                        <p className="text-xs text-slate-500 font-medium flex items-center gap-2 sm:gap-2.5 flex-wrap">
                           {ord.waiterName && <span className="flex items-center gap-0.5"><User className="w-3 h-3" />{ord.waiterName}</span>}
                           <span className="flex items-center gap-0.5"><Utensils className="w-3 h-3" />{itemsCount} ta taom</span>
                           <span>•</span>
@@ -473,13 +473,13 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                         </p>
                       </div>
 
-                      <div className="text-right flex items-center gap-3.5">
+                      <div className="text-left sm:text-right flex items-center justify-between sm:justify-end gap-3.5 border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0">
                         <div>
                           <p className="font-bold text-base text-slate-900 group-hover:text-orange-600 transition-colors">
                             {(ord.total || 0).toLocaleString()} so'm
                           </p>
                           {orderDate && (
-                            <p className="text-xs font-medium text-slate-400 flex items-center justify-end gap-1 mt-0.5">
+                            <p className="text-xs font-medium text-slate-400 flex items-center justify-start sm:justify-end gap-1 mt-0.5">
                               <Calendar className="w-3 h-3" />
                               {orderDate.toLocaleDateString('uz-UZ')} {orderDate.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}
                             </p>

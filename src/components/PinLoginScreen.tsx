@@ -12,8 +12,8 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
   onPinKey,
 }) => {
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 font-sans antialiased text-slate-100 selection:bg-orange-500 selection:text-white">
-      <div className="bg-slate-800 border border-slate-700/80 rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center gap-6">
+    <div className="min-h-[100dvh] bg-slate-900 flex flex-col items-center justify-center p-4 py-[calc(1rem+env(safe-area-inset-top))] font-sans antialiased text-slate-100 selection:bg-orange-500 selection:text-white">
+      <div className="bg-slate-800 border border-slate-700/80 rounded-3xl p-5 sm:p-8 max-w-sm w-full shadow-2xl flex flex-col items-center gap-5 sm:gap-6">
         {/* Header */}
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex items-center gap-3">
@@ -47,12 +47,12 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
         )}
 
         {/* 0-9 Numpad */}
-        <div className="grid grid-cols-3 gap-3 w-full max-w-[260px]">
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-3 w-full max-w-[280px]">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'DEL'].map((key) => (
             <button
               key={key}
               onClick={() => onPinKey(key)}
-              className={`h-14 rounded-2xl font-bold text-lg transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
+              className={`h-16 sm:h-14 rounded-2xl font-bold text-lg transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
                 key === 'C'
                   ? 'bg-rose-900/40 hover:bg-rose-800/60 text-rose-300 border border-rose-700/50 text-sm'
                   : key === 'DEL'

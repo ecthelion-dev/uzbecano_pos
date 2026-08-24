@@ -4,11 +4,53 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   background-color: #f1f5f9;
   font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
   padding: 0;
+  /* Xodim o'z telefonida ishlaydi: sahifa "rubber band" bo'lib sakramasin va
+     tugmalar bosilganda kulrang highlight chiqmasin. */
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+[role='button'] {
+  touch-action: manipulation;
+}
+
+/* iOS Safari 16px dan kichik inputga fokus tushganda ekranni zoom qiladi va
+   kassir qo'lda qaytarishga majbur bo'ladi. Telefonda inputlarni 16px qilamiz. */
+@media (max-width: 1023px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
 }
 
 @media print {

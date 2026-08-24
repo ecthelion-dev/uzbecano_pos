@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ShoppingBag,
+  X,
   Send,
   CheckCircle2,
   Printer,
@@ -31,6 +32,8 @@ interface POSCartSidebarProps {
   onCloseTable: () => void;
   onOpenReceiptPreview: () => void;
   onOpenTableMove: () => void;
+  /* Telefonda savat pastdan chiquvchi panel bo'lib ochiladi — uni yopish uchun. */
+  onCloseMobile?: () => void;
 }
 
 export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
@@ -52,14 +55,24 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
   onCloseTable,
   onOpenReceiptPreview,
   onOpenTableMove,
+  onCloseMobile,
 }) => {
   return (
-    <div className="w-[435px] shrink-0 bg-white text-slate-900 rounded-2xl p-5 flex flex-col shadow-md border border-slate-200 h-[calc(100vh-120px)] overflow-hidden">
-      <div className="flex items-center justify-between pb-4 border-b border-slate-200 shrink-0">
-        <div>
-          <h2 className="font-bold text-sm text-slate-900">Buyurtma Kvitansiyasi</h2>
+    <div className="w-full lg:w-[435px] shrink-0 bg-white text-slate-900 rounded-2xl p-3.5 sm:p-5 flex flex-col shadow-md border border-slate-200 h-full lg:h-[calc(100vh-120px)] overflow-hidden">
+      <div className="flex items-center justify-between gap-2 pb-3 sm:pb-4 border-b border-slate-200 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          {onCloseMobile && (
+            <button
+              onClick={onCloseMobile}
+              className="lg:hidden w-9 h-9 -ml-1 shrink-0 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 active:scale-95 transition-transform"
+              title="Yopish"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+          <h2 className="font-bold text-sm text-slate-900 truncate">Buyurtma Kvitansiyasi</h2>
         </div>
-        <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-sm">
+        <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-sm shrink-0">
           {selectedTable}
         </span>
       </div>
@@ -129,7 +142,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
               <button
                 key={pm.id}
                 onClick={() => onSelectPaymentMethod(pm.id as any)}
-                className={`py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                className={`py-3 sm:py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1 ${
                   paymentMethod === pm.id
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -166,7 +179,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
             <button
               onClick={() => onSendToKitchen()}
               disabled={cart.length === 0}
-              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16"
+              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16 sm:h-16"
             >
               <Send className="w-4 h-4" />
               <span>BUYURTMANI TASDIQLASH</span>
@@ -175,7 +188,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
             <button
               onClick={() => onCloseTable()}
               disabled={activeTableOrderItems.length === 0 && cart.length === 0}
-              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16"
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16 sm:h-16"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>TO'LOV VA YOPISH</span>
@@ -186,14 +199,14 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
             <button
               onClick={onOpenReceiptPreview}
               disabled={activeTableOrderItems.length === 0 && cart.length === 0}
-              className="bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer"
+              className="bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer active:scale-95"
             >
               <Printer className="w-4 h-4 text-slate-500" /> CHEK CHIQARISH
             </button>
             <button
               onClick={onOpenTableMove}
               disabled={activeTableOrderItems.length === 0}
-              className="bg-orange-50 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed text-orange-700 font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer"
+              className="bg-orange-50 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed text-orange-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer active:scale-95"
             >
               <Shuffle className="w-4 h-4 text-orange-600" /> KO'CHIRISH
             </button>

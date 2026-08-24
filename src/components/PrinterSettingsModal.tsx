@@ -105,8 +105,8 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 text-slate-800 dark:text-slate-100 animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 sm:space-y-5 text-slate-800 dark:text-slate-100 animate-in fade-in zoom-in duration-200 max-h-[92dvh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-3">
@@ -114,15 +114,15 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               <Printer className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-bold text-base text-slate-900 dark:text-white">
+              <h2 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
                 Termoprinter & Chek Sozlamalari
               </h2>
-              <p className="text-xs text-slate-400">PWA Kassa va Oshxona uchun chek chiqarish</p>
+              <p className="text-xs text-slate-400 hidden sm:block">PWA Kassa va Oshxona uchun chek chiqarish</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
+            className="w-9 h-9 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -236,7 +236,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               type="checkbox"
               checked={settings.autoPrintReceipt}
               onChange={() => {}}
-              className="w-4 h-4 accent-orange-500 cursor-pointer"
+              className="w-5 h-5 shrink-0 accent-orange-500 cursor-pointer"
             />
           </div>
 
@@ -257,7 +257,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               type="checkbox"
               checked={settings.autoPrintKitchen}
               onChange={() => {}}
-              className="w-4 h-4 accent-orange-500 cursor-pointer"
+              className="w-5 h-5 shrink-0 accent-orange-500 cursor-pointer"
             />
           </div>
 
@@ -278,7 +278,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               type="checkbox"
               checked={settings.openCashDrawer}
               onChange={() => {}}
-              className="w-4 h-4 accent-orange-500 cursor-pointer"
+              className="w-5 h-5 shrink-0 accent-orange-500 cursor-pointer"
             />
           </div>
         </div>
@@ -315,13 +315,13 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
             <button
               type="button"
               onClick={handleTestPrint}
-              className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-slate-200 dark:border-slate-700"
+              className="flex-1 py-3 sm:py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
             >
               <Receipt className="w-3.5 h-3.5" /> Sinov Cheki
             </button>
             <button
               type="submit"
-              className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs shadow-md shadow-orange-500/25 cursor-pointer transition-all"
+              className="flex-1 py-3 sm:py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs shadow-md shadow-orange-500/25 cursor-pointer transition-all active:scale-95"
             >
               Saqlash
             </button>

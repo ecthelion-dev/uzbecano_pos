@@ -88,8 +88,8 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-slate-100 animate-scaleUp">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+      <div className="bg-white rounded-t-3xl sm:rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-slate-100 animate-scaleUp max-h-[92dvh] pb-[env(safe-area-inset-bottom)] sm:pb-0">
         {/* Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
@@ -154,7 +154,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleQuick(Math.round(grandTotal / 2))}
-            className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-bold px-2.5 py-1.5 rounded-md shrink-0 transition-colors"
+            className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-bold px-3 py-2 rounded-md shrink-0 transition-colors active:scale-95"
           >
             50% / 50%
           </button>
@@ -186,7 +186,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
               key={d}
               type="button"
               onClick={() => handleKey(d)}
-              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
+              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-4 sm:py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
             >
               {d}
             </button>
@@ -194,7 +194,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleKey('DEL')}
-            className="bg-orange-100 hover:bg-orange-200 active:bg-orange-300 text-orange-800 font-bold py-3 rounded-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+            className="bg-orange-100 hover:bg-orange-200 active:bg-orange-300 text-orange-800 font-bold py-4 sm:py-3 rounded-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
           >
             <Delete className="w-5 h-5" />
           </button>
@@ -204,7 +204,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
               key={d}
               type="button"
               onClick={() => handleKey(d)}
-              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
+              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-4 sm:py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
             >
               {d}
             </button>
@@ -212,7 +212,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleKey('C')}
-            className="bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-800 font-bold py-3 rounded-lg text-sm transition-all active:scale-95 cursor-pointer"
+            className="bg-rose-100 hover:bg-rose-200 active:bg-rose-300 text-rose-800 font-bold py-4 sm:py-3 rounded-lg text-sm transition-all active:scale-95 cursor-pointer"
           >
             C
           </button>
@@ -222,7 +222,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
               key={d}
               type="button"
               onClick={() => handleKey(d)}
-              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
+              className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-4 sm:py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
             >
               {d}
             </button>
@@ -239,14 +239,14 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
           <button
             type="button"
             onClick={() => handleKey('0')}
-            className="col-span-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
+            className="col-span-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-900 font-bold py-4 sm:py-3 rounded-lg text-base transition-all active:scale-95 cursor-pointer"
           >
             0
           </button>
           <button
             type="button"
             onClick={() => handleKey('000')}
-            className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold py-3 rounded-lg text-xs transition-all active:scale-95 cursor-pointer"
+            className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-bold py-4 sm:py-3 rounded-lg text-xs transition-all active:scale-95 cursor-pointer"
           >
             000
           </button>

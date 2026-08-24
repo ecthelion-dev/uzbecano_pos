@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Grid,
   ChevronRight,
+  ChevronUp,
   AlertCircle,
   Receipt,
   Sparkles,
@@ -821,6 +822,7 @@ export default function App() {
         e.preventDefault();
         setShowCashDrawerModal(prev => !prev);
       } else if (e.key === 'Escape') {
+        setShowMobileCart(false);
         setShowReceiptPreview(false);
         setShowArchiveModal(false);
         setShowShiftReport(false);
@@ -876,6 +878,8 @@ export default function App() {
   const cart = useMemo(() => tableCarts[selectedTable] || [], [tableCarts, selectedTable]);
 
   const [selectedArea, setSelectedArea] = useState<string>('Barchasi');
+  // Telefonda kvitansiya yon panel sifatida sig'maydi — pastdan chiquvchi panel.
+  const [showMobileCart, setShowMobileCart] = useState<boolean>(false);
 
   // Tables status & totals (combines DB orders and active draft carts)
   const tables = useMemo(() => {
@@ -1002,6 +1006,10 @@ export default function App() {
   const netSubtotal = useMemo(() => subtotal - discountAmount, [subtotal, discountAmount]);
   const serviceFee = useMemo(() => Math.round((netSubtotal * serviceFeePercent) / 100), [netSubtotal, serviceFeePercent]);
   const grandTotal = useMemo(() => netSubtotal + serviceFee, [netSubtotal, serviceFee]);
+  const mobileCartCount = useMemo(
+    () => activeTableOrderItems.length + cart.length,
+    [activeTableOrderItems, cart]
+  );
 
   const requestAdminPin = useCallback((action: () => void) => {
     setAdminPinAction(() => action);
@@ -1637,7 +1645,10 @@ export default function App() {
         connectedCafeName={connectedCafeName}
         connectedCafeLogo={connectedCafeLogo}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          setShowMobileCart(false);
+        }}
         onOpenArchive={() => setShowArchiveModal(true)}
         onOpenPrinterSettings={() => setShowPrinterModal(true)}
         onRefreshOrders={fetchOrders}
@@ -1647,10 +1658,10 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex overflow-hidden p-2 sm:p-4 gap-2 sm:gap-4 relative">
+      <main className="flex-1 flex flex-col lg:flex-row overflow-hidden p-2 sm:p-4 gap-2 sm:gap-4 relative min-h-0">
         {activeTab === 'stollar' ? (
           /* Stollar Zali View */
-          <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
+          <div className="flex-1 flex flex-col gap-2.5 sm:gap-4 overflow-y-auto pr-1 min-h-0 pb-2">
             {/* Top Bar for Tables */}
             <div className="flex items-center justify-between bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
               <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
@@ -1719,8 +1730,8 @@ export default function App() {
           /* Light Kassa va Menyu View */
           <>
             {/* Left Content Area */}
-            <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-              <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-4">
+            <div className="flex-1 flex flex-col gap-2.5 sm:gap-4 overflow-hidden min-h-0">
+              <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 shrink-0">
                 {selectedCategoryName || searchQuery ? (
                   <button
                     onClick={() => {
@@ -1740,7 +1751,7 @@ export default function App() {
                   </button>
                 )}
 
-                <div className="relative w-72">
+                <div className="relative w-full sm:w-72 shrink-0">
                   <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                   <input
                     type="text"
@@ -1755,13 +1766,13 @@ export default function App() {
               {/* Dynamic Categories / Products Grid */}
               {!selectedCategoryName && !searchQuery ? (
                 /* STEP 1: Categories View */
-                <div className="flex-1 overflow-y-auto pr-1 pt-2.5 p-1">
+                <div className="flex-1 overflow-y-auto pr-1 pt-2.5 p-1 pb-24 lg:pb-1 min-h-0">
                   {allCategories.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
                       <p className="text-slate-400 text-sm font-medium">Bazada kategoriyalar yoki mahsulotlar topilmadi</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4">
                       {allCategories.map((cat) => (
                         <CategoryCard
                           key={cat.id || cat.name}
@@ -1775,7 +1786,7 @@ export default function App() {
                 </div>
               ) : (
                 /* STEP 2: Products View */
-                <div className="flex-1 overflow-y-auto pr-1">
+                <div className="flex-1 overflow-y-auto pr-1 pb-24 lg:pb-0 min-h-0">
                   {selectedCategoryName && (
                     <div className="flex items-center justify-between mb-3 px-1">
                       <h3 className="text-sm font-semibold text-slate-800">
@@ -1789,7 +1800,7 @@ export default function App() {
                       <p className="text-slate-400 text-sm font-medium">Mahsulotlar topilmadi</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
                       {displayedProducts.map((p) => (
                         <ProductCard
                           key={p.id}
@@ -1803,35 +1814,78 @@ export default function App() {
               )}
             </div>
 
-            {/* Light Receipt Panel */}
-            <POSCartSidebar
-              selectedTable={selectedTable}
-              activeTableOrderItems={activeTableOrderItems}
-              cart={cart}
-              onRemoveKitchenItem={handleRemoveKitchenItem}
-              onUpdateQuantity={updateQuantity}
-              onUpdateNote={updateItemNote}
-              paymentMethod={paymentMethod}
-              onSelectPaymentMethod={(pm) => {
-                setPaymentMethod(pm);
-                if (pm === 'aralash') {
-                  setCustomCashAmount('0');
-                  setCustomCardAmount('0');
-                  setActiveAralashField('cash');
-                  setShowAralashModal(true);
-                }
+            {/* Light Receipt Panel — kompyuterda yon panel, telefonda pastdan
+                chiquvchi to'liq ekranli panel. */}
+            <div
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setShowMobileCart(false);
               }}
-              subtotal={subtotal}
-              discountPercent={discountPercent}
-              discountAmount={discountAmount}
-              serviceFeePercent={serviceFeePercent}
-              serviceFee={serviceFee}
-              grandTotal={grandTotal}
-              onSendToKitchen={handleSendToKitchen}
-              onCloseTable={handleCloseTable}
-              onOpenReceiptPreview={() => setShowReceiptPreview(true)}
-              onOpenTableMove={() => setShowTableMoveModal(true)}
-            />
+              className={`${
+                showMobileCart
+                  ? 'fixed inset-0 z-50 flex bg-slate-900/50 p-2 pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))]'
+                  : 'hidden'
+              } lg:static lg:z-auto lg:flex lg:shrink-0 lg:bg-transparent lg:p-0`}
+            >
+              <POSCartSidebar
+                onCloseMobile={() => setShowMobileCart(false)}
+                selectedTable={selectedTable}
+                activeTableOrderItems={activeTableOrderItems}
+                cart={cart}
+                onRemoveKitchenItem={handleRemoveKitchenItem}
+                onUpdateQuantity={updateQuantity}
+                onUpdateNote={updateItemNote}
+                paymentMethod={paymentMethod}
+                onSelectPaymentMethod={(pm) => {
+                  setPaymentMethod(pm);
+                  if (pm === 'aralash') {
+                    setCustomCashAmount('0');
+                    setCustomCardAmount('0');
+                    setActiveAralashField('cash');
+                    setShowAralashModal(true);
+                  }
+                }}
+                subtotal={subtotal}
+                discountPercent={discountPercent}
+                discountAmount={discountAmount}
+                serviceFeePercent={serviceFeePercent}
+                serviceFee={serviceFee}
+                grandTotal={grandTotal}
+                onSendToKitchen={() => {
+                  handleSendToKitchen();
+                  setShowMobileCart(false);
+                }}
+                onCloseTable={() => {
+                  handleCloseTable();
+                  setShowMobileCart(false);
+                }}
+                onOpenReceiptPreview={() => setShowReceiptPreview(true)}
+                onOpenTableMove={() => setShowTableMoveModal(true)}
+              />
+            </div>
+
+            {/* Telefonda savatni ochuvchi pastki panel */}
+            {!showMobileCart && (
+              <button
+                onClick={() => setShowMobileCart(true)}
+                className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 text-white px-4 pt-3.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3 shadow-[0_-6px_20px_rgba(15,23,42,0.25)] active:bg-slate-800 transition-colors"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="relative shrink-0">
+                    <ShoppingBag className="w-5 h-5" />
+                    {mobileCartCount > 0 && (
+                      <span className="absolute -top-1.5 -right-2 bg-orange-500 text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
+                        {mobileCartCount}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-xs font-bold truncate">{selectedTable}</span>
+                </span>
+                <span className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm font-bold">{grandTotal.toLocaleString()} so'm</span>
+                  <ChevronUp className="w-4 h-4 opacity-80" />
+                </span>
+              </button>
+            )}
           </>
         )}
       </main>

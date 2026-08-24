@@ -113,7 +113,7 @@ export function AdminDashboard({ orders, products }: Props) {
 
   return (
     <div className="flex-1 overflow-y-auto p-1 space-y-5">
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {[
           { icon: <ShoppingBag className="w-5 h-5" />, label: "Bugungi buyurtmalar", value: `${todayOrders.length} ta`, sub: "Yopilgan buyurtmalar", color: "orange" },
           { icon: <Wallet className="w-5 h-5" />, label: "Bugungi tushum", value: todayRevenue.toLocaleString(), sub: "so'm", color: "emerald" },
@@ -138,7 +138,7 @@ export function AdminDashboard({ orders, products }: Props) {
         })}
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
         <div className="col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4 text-orange-500" />
@@ -182,7 +182,7 @@ export function AdminDashboard({ orders, products }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
         <div className="col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <ShoppingBag className="w-4 h-4 text-emerald-500" />

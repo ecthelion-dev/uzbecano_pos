@@ -72,8 +72,8 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
   };
 
   return (
-    <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl p-6 max-w-xs w-full shadow-2xl flex flex-col items-center gap-4 border border-slate-200">
+    <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fadeIn">
+      <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-t-3xl sm:rounded-3xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-6 sm:p-6 max-w-xs w-full shadow-2xl flex flex-col items-center gap-4 border border-slate-200 max-h-[92dvh] overflow-y-auto">
         <div className="flex items-center justify-between w-full border-b border-slate-100 pb-2">
           <div className="flex items-center gap-2 text-rose-600">
             <Lock className="w-4 h-4" />
@@ -104,13 +104,13 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-2 w-full max-w-[220px]">
+        <div className="grid grid-cols-3 gap-2 w-full max-w-[260px] sm:max-w-[220px]">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'DEL'].map((key) => (
             <button
               key={key}
               disabled={checking}
               onClick={() => handleKey(key)}
-              className={`h-11 rounded-xl font-semibold text-base transition-all flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`h-14 sm:h-11 rounded-xl font-semibold text-base transition-all flex items-center justify-center cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
                 key === 'C'
                   ? 'bg-rose-50 text-rose-600 border border-rose-200 text-xs'
                   : key === 'DEL'

@@ -1665,7 +1665,7 @@ export default function App() {
             {/* Top Bar for Tables */}
             <div className="flex items-center justify-between bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
               <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-                <Grid className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" /> Restoran Stollari Joylashuvi
+                <Grid className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 shrink-0" /> Stollar Joylashuvi
               </h2>
               <div className="flex items-center gap-2 sm:gap-4 text-[11px] sm:text-xs font-medium">
                 <span className="flex items-center gap-1.5 bg-emerald-50 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-emerald-700 border border-emerald-200 whitespace-nowrap">

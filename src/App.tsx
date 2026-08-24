@@ -1809,7 +1809,7 @@ export default function App() {
               {/* Dynamic Categories / Products Grid */}
               {!selectedCategoryName && !searchQuery ? (
                 /* STEP 1: Categories View */
-                <div className="flex-1 overflow-y-auto pr-1 pt-2.5 p-1 pb-24 lg:pb-1 min-h-0">
+                <div className="flex-1 overflow-y-auto pr-1 pt-2.5 p-1 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-1 min-h-0">
                   {allCategories.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
                       <p className="text-slate-400 text-sm font-medium">Bazada kategoriyalar yoki mahsulotlar topilmadi</p>
@@ -1829,7 +1829,7 @@ export default function App() {
                 </div>
               ) : (
                 /* STEP 2: Products View */
-                <div className="flex-1 overflow-y-auto pr-1 pb-24 lg:pb-0 min-h-0">
+                <div className="flex-1 overflow-y-auto pr-1 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-0 min-h-0">
                   {selectedCategoryName && (
                     <div className="flex items-center justify-between mb-3 px-1">
                       <h3 className="text-sm font-semibold text-slate-800">
@@ -1910,22 +1910,22 @@ export default function App() {
             {!showMobileCart && (
               <button
                 onClick={() => setShowMobileCart(true)}
-                className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 text-white px-4 pt-3.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3 shadow-[0_-6px_20px_rgba(15,23,42,0.25)] active:bg-slate-800 transition-colors"
+                className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900 text-white px-5 pt-4 pb-[calc(1.125rem+env(safe-area-inset-bottom))] rounded-t-2xl flex items-center justify-between gap-3 shadow-[0_-6px_20px_rgba(15,23,42,0.25)] active:bg-slate-800 transition-colors"
               >
-                <span className="flex items-center gap-2 min-w-0">
+                <span className="flex items-center gap-3 min-w-0">
                   <span className="relative shrink-0">
-                    <ShoppingBag className="w-5 h-5" />
+                    <ShoppingBag className="w-6 h-6" />
                     {mobileCartCount > 0 && (
-                      <span className="absolute -top-1.5 -right-2 bg-orange-500 text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
+                      <span className="absolute -top-2 -right-2.5 bg-orange-500 text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-900">
                         {mobileCartCount}
                       </span>
                     )}
                   </span>
-                  <span className="text-xs font-bold truncate">{selectedTable}</span>
+                  <span className="text-sm font-bold truncate">{selectedTable}</span>
                 </span>
                 <span className="flex items-center gap-2 shrink-0">
-                  <span className="text-sm font-bold">{grandTotal.toLocaleString()} so'm</span>
-                  <ChevronUp className="w-4 h-4 opacity-80" />
+                  <span className="text-base font-bold">{grandTotal.toLocaleString()} so'm</span>
+                  <ChevronUp className="w-5 h-5 opacity-80" />
                 </span>
               </button>
             )}

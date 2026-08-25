@@ -154,9 +154,18 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
     <div id="thermal-print-area" className="period-report hidden print:block text-slate-900 print-receipt-container font-['Outfit']">
       <div className="w-full bg-white text-slate-900 space-y-2">
         {/* Sarlavha */}
-        <h2 className="text-sm font-black tracking-wide text-slate-900 print-text-dark text-center pt-1">
-          Hisobot — {fmtDateTime(data.from, false)}
-        </h2>
+        <div className="text-center pt-1 space-y-1">
+          <img
+            src={cafeLogo || '/favicon.png'}
+            alt={cafeName}
+            /* Termoprinter rasmni nuqtalarga aylantiradi — juda kichigi dog'
+               bo'lib chiqadi, shuning uchun 48px. */
+            className="w-12 h-12 object-contain mx-auto"
+          />
+          <h2 className="text-sm font-black tracking-wide text-slate-900 print-text-dark">
+            Hisobot — {fmtDateTime(data.from, false)}
+          </h2>
+        </div>
 
         {/* Davr ma'lumotlari */}
         <div className="space-y-0.5 pb-1.5 border-b border-dashed border-slate-900">

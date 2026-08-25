@@ -1030,12 +1030,37 @@ export default function App() {
   useEffect(() => {
     if (!periodPrint) return;
     document.body.classList.add('printing-report');
+    let cancelled = false;
+
+    // Logotip yuklanib bo'lmaguncha kutamiz: chop etish oynasi undan oldin
+    // ochilsa, qog'ozga bo'sh joy yoki yarim rasm tushadi.
+    const waitForImages = () => {
+      const area = document.getElementById('thermal-print-area');
+      const images = Array.from(area?.querySelectorAll('img') || []);
+      const pending = images
+        .filter((img) => !img.complete)
+        .map((img) => new Promise<void>((resolve) => {
+          img.addEventListener('load', () => resolve(), { once: true });
+          img.addEventListener('error', () => resolve(), { once: true });
+        }));
+      // Sekin tarmoqda ham kassir kutib qolmasin.
+      return Promise.race([
+        Promise.all(pending),
+        new Promise((resolve) => window.setTimeout(resolve, 1500)),
+      ]);
+    };
+
     const timer = window.setTimeout(() => {
-      window.print();
-      document.body.classList.remove('printing-report');
-      setPeriodPrint(null);
-    }, 120);
+      waitForImages().then(() => {
+        if (cancelled) return;
+        window.print();
+        document.body.classList.remove('printing-report');
+        setPeriodPrint(null);
+      });
+    }, 60);
+
     return () => {
+      cancelled = true;
       window.clearTimeout(timer);
       document.body.classList.remove('printing-report');
     };

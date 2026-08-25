@@ -96,16 +96,24 @@ a,
     font-family: 'Outfit', sans-serif !important;
   }
 
-  /* Bitta chek qisqa, shuning uchun u absolute joylashgan. Davr hisoboti esa
-     o'nlab qatordan iborat: absolute element ba'zi brauzerlarda birinchi
-     sahifada qirqiladi, shuning uchun uni oddiy oqimda chop etamiz. */
+  /* Davr hisoboti uzun, shuning uchun u absolute emas, oddiy oqimda chop
+     etiladi — aks holda ba'zi brauzerlar uni birinchi sahifada qirqadi.
+     Lekin oqimda chop etish uchun ilovaning o'zi layoutdan butunlay chiqishi
+     shart: yuqoridagi `visibility: hidden` elementni ko'rinmas qiladi, ammo
+     joyini bo'shatmaydi — hisobot metrlab bo'sh qog'ozdan keyin boshlanadi. */
+  body.printing-report #root {
+    display: none !important;
+  }
+
   #thermal-print-area.period-report {
     position: static !important;
     width: 100% !important;
     max-width: 100% !important;
+    padding: 0 2mm 6mm 2mm !important;
   }
 
-  #thermal-print-area.period-report .report-row {
+  #thermal-print-area.period-report .report-row,
+  #thermal-print-area.period-report .report-summary {
     break-inside: avoid;
     page-break-inside: avoid;
   }

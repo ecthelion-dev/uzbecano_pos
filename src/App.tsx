@@ -1024,14 +1024,21 @@ export default function App() {
     if (showMobileSearch) searchInputRef.current?.focus();
   }, [showMobileSearch]);
 
-  // Hisobot DOM ga chiqqanidan keyingina chop etish oynasi ochilsin.
+  // Hisobot DOM ga chiqqanidan keyingina chop etish oynasi ochilsin. `body` ga
+  // qo'yilgan klass chop etish paytida ilova daraxtini layoutdan butunlay
+  // olib tashlaydi — aks holda hisobot bo'sh qog'ozdan keyin boshlanadi.
   useEffect(() => {
     if (!periodPrint) return;
+    document.body.classList.add('printing-report');
     const timer = window.setTimeout(() => {
       window.print();
+      document.body.classList.remove('printing-report');
       setPeriodPrint(null);
     }, 120);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      document.body.classList.remove('printing-report');
+    };
   }, [periodPrint]);
 
   const requestAdminPin = useCallback((action: () => void) => {

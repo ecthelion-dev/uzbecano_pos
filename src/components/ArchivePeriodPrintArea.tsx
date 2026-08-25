@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { DBOrder } from '../types';
 
 export interface PeriodPrintData {
@@ -146,28 +147,20 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
 
   if (!data) return null;
 
-  return (
+  // Lenta uzunligi pul: hisobot body ga to'g'ridan-to'g'ri chiqadi, logotip yo'q
+  // (termoprinterda u baribir dog' bo'lib chiqadi), manzil va telefon ham yo'q —
+  // bu ichki hisobot, mijozga berilmaydi.
+  return createPortal(
     <div id="thermal-print-area" className="period-report hidden print:block text-slate-900 print-receipt-container font-['Outfit']">
-      <div className="w-full bg-white p-0.5 text-slate-900 space-y-2.5">
+      <div className="w-full bg-white text-slate-900 space-y-2">
         {/* Sarlavha */}
-        <div className="text-center space-y-1 pb-1">
-          <div className="flex flex-col items-center justify-center gap-0.5 pt-0.5">
-            {cafeLogo ? (
-              <img src={cafeLogo} alt={cafeName} className="w-8 h-8 object-contain rounded-lg mx-auto" />
-            ) : (
-              <img src="/favicon.png" alt="OrderPlus" className="w-7 h-7 object-contain mx-auto" />
-            )}
-          </div>
-          <h2 className="text-sm font-black tracking-wide text-slate-900 print-text-dark">
-            Hisobot — {fmtDateTime(data.from, false)}
-          </h2>
-        </div>
+        <h2 className="text-sm font-black tracking-wide text-slate-900 print-text-dark text-center pt-1">
+          Hisobot — {fmtDateTime(data.from, false)}
+        </h2>
 
         {/* Davr ma'lumotlari */}
-        <div className="space-y-1 pb-2 border-b border-dashed border-slate-900">
+        <div className="space-y-0.5 pb-1.5 border-b border-dashed border-slate-900">
           <InfoRow label="Kafe" value={cafeName || 'ORDERPLUS'} />
-          {cafeAddress && <InfoRow label="Manzil" value={cafeAddress} />}
-          {cafePhone && <InfoRow label="Tel" value={cafePhone} />}
           <InfoRow label="Ofitsiant" value={report.waiterLabel} />
           <InfoRow label="Boshlanish" value={fmtDateTime(data.from)} />
           <InfoRow label="Tugash" value={fmtDateTime(data.to)} />
@@ -175,12 +168,12 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
         </div>
 
         {/* Sotilgan taomlar */}
-        <div className="space-y-1 pb-2 border-b-2 border-slate-900">
+        <div className="space-y-0.5 pb-1.5 border-b-2 border-slate-900">
           <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 text-[10px] font-black text-slate-900 print-text-dark uppercase border-b border-slate-300 pb-1">
             <span>Nomi</span>
-            <span className="text-right w-8">Soni</span>
-            <span className="text-right w-14">Narxi</span>
-            <span className="text-right w-16">Jami</span>
+            <span className="text-right w-7">Soni</span>
+            <span className="text-right w-12">Narxi</span>
+            <span className="text-right w-14">Jami</span>
           </div>
 
           {report.rows.length === 0 ? (
@@ -191,19 +184,19 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
             report.rows.map((row, idx) => (
               <div
                 key={`${row.name}-${row.price}-${idx}`}
-                className="report-row grid grid-cols-[1fr_auto_auto_auto] gap-x-2 text-[11px] font-semibold text-slate-900 print-text-dark py-0.5 border-b border-slate-200/70"
+                className="report-row grid grid-cols-[1fr_auto_auto_auto] gap-x-1.5 text-[10px] font-semibold text-slate-900 print-text-dark py-0.5 border-b border-slate-200/70"
               >
                 <span className="leading-snug break-words">{row.name}</span>
-                <span className="text-right w-8">{row.qty}</span>
-                <span className="text-right w-14">{row.price.toLocaleString()}</span>
-                <span className="text-right w-16 font-bold">{row.sum.toLocaleString()}</span>
+                <span className="text-right w-7">{row.qty}</span>
+                <span className="text-right w-12">{row.price.toLocaleString()}</span>
+                <span className="text-right w-14 font-bold">{row.sum.toLocaleString()}</span>
               </div>
             ))
           )}
         </div>
 
         {/* Yakuniy hisob */}
-        <div className="space-y-1 pb-2 border-b border-dashed border-slate-900">
+        <div className="report-summary space-y-0.5 pb-1.5 border-b border-dashed border-slate-900">
           <TotalRow label="Buyurtmalar soni" value={`${report.orderCount} ta`} />
           <TotalRow label="Taomlar jami" value={`${report.itemsSubtotal.toLocaleString()} so'm`} />
           {report.serviceFee > 0 && (
@@ -220,15 +213,16 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
 
         <TotalRow label="JAMI TUSHUM" value={`${report.paid.toLocaleString()} so'm`} strong />
 
-        <div className="space-y-1 pt-1 border-t border-dashed border-slate-900">
+        <div className="report-summary space-y-0.5 pt-1 border-t border-dashed border-slate-900">
           <TotalRow label="Naqd to'lovlar" value={`${report.cash.toLocaleString()} so'm`} />
           <TotalRow label="Karta to'lovlar" value={`${report.card.toLocaleString()} so'm`} />
         </div>
 
-        <div className="text-center text-[10px] font-medium text-slate-600 print-text-dark pt-1.5">
+        <div className="text-center text-[10px] font-medium text-slate-600 print-text-dark pt-1">
           {fmtDateTime(new Date())} · OrderPlus POS
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

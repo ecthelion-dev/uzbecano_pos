@@ -738,6 +738,18 @@ export default function App() {
     writeSyncQueue(cafeId, queue);
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
+  /**
+   * Server javobi qaytadan urinishga arziydimi?
+   *
+   * Tarmoq uzilishi, 5xx, 429 va 408 — vaqtinchalik, keyinroq o'tadi.
+   * Qolgan 4xx esa doimiy: so'rov noto'g'ri, uni yuz marta yuborsak ham
+   * server qabul qilmaydi. Ilgari bunday element navbatda abadiy qolib,
+   * har 10 soniyada qayta yuborilardi — kassa serverni bezovta qilaverar,
+   * navbat esa hech qachon bo'shamasdi.
+   */
+  const isRetryableStatus = (status: number) =>
+    status >= 500 || status === 429 || status === 408;
+
   // Offline Sync Queue Handler — retries queued creates/patches that
   // previously failed to reach the server. Runs on an interval and on the
   // browser 'online' event. Processes strictly in FIFO order and stops
@@ -750,6 +762,7 @@ export default function App() {
 
     const remaining: SyncQueueItem[] = [];
     const failedOrderIds = new Set<string>();
+    const rejectedLabels: string[] = [];
     let anySucceeded = false;
 
     for (const item of queue) {
@@ -781,8 +794,18 @@ export default function App() {
 
         if (res.ok) {
           anySucceeded = true;
-        } else {
+        } else if (isRetryableStatus(res.status)) {
           remaining.push(item);
+          if (blockedOrderId) failedOrderIds.add(blockedOrderId);
+        } else {
+          // Server bu so'rovni printsipial rad etdi (masalan taom o'chirilgan
+          // yoki buyurtma bo'sh). Navbatda saqlab qo'yish foydasiz — kassirga
+          // aytamiz va tashlab yuboramiz, aks holda navbat tiqilib qoladi.
+          const label =
+            item.kind === 'create'
+              ? item.order?.tableNumber || 'Buyurtma'
+              : item.label || item.orderId;
+          rejectedLabels.push(String(label));
           if (blockedOrderId) failedOrderIds.add(blockedOrderId);
         }
       } catch {
@@ -792,11 +815,20 @@ export default function App() {
     }
 
     writeSyncQueue(cafeId, remaining);
-    if (anySucceeded) {
+
+    if (rejectedLabels.length > 0) {
+      setToastMessage(
+        `Server qabul qilmadi: ${rejectedLabels.slice(0, 3).join(', ')}` +
+        (rejectedLabels.length > 3 ? ` va yana ${rejectedLabels.length - 3} ta` : '') +
+        '. Qayta kiriting.'
+      );
+      setTimeout(() => setToastMessage(null), 6000);
+    } else if (anySucceeded) {
       setToastMessage("Oflayn amallar serverga sinxronlandi!");
       setTimeout(() => setToastMessage(null), 2500);
-      fetchOrders();
     }
+
+    if (anySucceeded) fetchOrders();
   }, [getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, writeSyncQueue]);
 
   useEffect(() => {

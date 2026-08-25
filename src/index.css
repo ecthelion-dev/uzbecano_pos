@@ -96,6 +96,20 @@ a,
     font-family: 'Outfit', sans-serif !important;
   }
 
+  /* Bitta chek qisqa, shuning uchun u absolute joylashgan. Davr hisoboti esa
+     o'nlab qatordan iborat: absolute element ba'zi brauzerlarda birinchi
+     sahifada qirqiladi, shuning uchun uni oddiy oqimda chop etamiz. */
+  #thermal-print-area.period-report {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  #thermal-print-area.period-report .report-row {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   .print-text-dark {
     color: #000000 !important;
     font-weight: 700 !important;

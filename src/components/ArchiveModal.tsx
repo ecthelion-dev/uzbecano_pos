@@ -16,6 +16,8 @@ interface ArchiveModalProps {
   onSearchChange: (q: string) => void;
   onSelectArchiveOrder: (ord: DBOrder | null) => void;
   onRefundOrder?: (ord: DBOrder, reason: string) => void;
+  /** Tanlangan davrdagi barcha cheklarni bitta hisobot qilib chop etadi. */
+  onPrintPeriod?: (orders: DBOrder[], periodLabel: string) => void;
   onClose: () => void;
   onPrint: () => void;
 }
@@ -36,6 +38,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   onSearchChange,
   onSelectArchiveOrder,
   onRefundOrder,
+  onPrintPeriod,
   onClose,
   onPrint,
 }) => {
@@ -51,7 +54,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   const [endTime, setEndTime] = useState('23:59');
 
   // Filtered orders list and totals
-  const { filteredOrders, totalSum, cashTotal, cardTotal } = useMemo(() => {
+  const { filteredOrders, totalSum, cashTotal, cardTotal, refundedTotal, refundedCount } = useMemo(() => {
     const served = orders.filter((o: any) => o.status === 'served');
 
     const now = new Date();
@@ -94,13 +97,20 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       return timeB - timeA;
     });
 
-    let sum = 0;
     let cash = 0;
     let card = 0;
+    let refunded = 0;
+    let refundedQty = 0;
 
+    // Qaytarilgan chek kassada pul qoldirmaydi — uni tushumga qo'shsak,
+    // ekrandagi "Jami" haqiqiy puldan katta bo'lib chiqadi.
     filtered.forEach((ord: any) => {
       const tot = ord.total || 0;
-      sum += tot;
+      if (ord.refunded) {
+        refunded += tot;
+        refundedQty += 1;
+        return;
+      }
       if (ord.paymentMethod === 'aralash') {
         cash += ord.cashAmount || 0;
         card += ord.cardAmount || 0;
@@ -111,8 +121,29 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       }
     });
 
-    return { filteredOrders: filtered, totalSum: sum, cashTotal: cash, cardTotal: card };
+    return {
+      filteredOrders: filtered,
+      totalSum: cash + card,
+      cashTotal: cash,
+      cardTotal: card,
+      refundedTotal: refunded,
+      refundedCount: refundedQty,
+    };
   }, [orders, archiveSearch, timePreset, startDate, startTime, endDate, endTime]);
+
+  const periodLabel = useMemo(() => {
+    const fmt = (d: string) => d.split('-').reverse().join('/');
+    if (timePreset === 'today') return `Bugun (${fmt(todayStr)})`;
+    if (timePreset === 'yesterday') {
+      const y = new Date();
+      y.setDate(y.getDate() - 1);
+      return `Kecha (${fmt(y.toISOString().slice(0, 10))})`;
+    }
+    if (timePreset === 'custom') {
+      return `${fmt(startDate)} ${startTime} — ${fmt(endDate)} ${endTime}`;
+    }
+    return 'Barcha davr';
+  }, [timePreset, todayStr, startDate, startTime, endDate, endTime]);
 
   if (!show) return null;
 
@@ -427,10 +458,30 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 <span>Naqd: <strong className="text-slate-900 font-semibold">{cashTotal.toLocaleString()} so'm</strong></span>
                 <span>•</span>
                 <span>Karta: <strong className="text-slate-900 font-semibold">{cardTotal.toLocaleString()} so'm</strong></span>
+                {refundedCount > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="text-rose-600">
+                      Qaytarilgan ({refundedCount} ta):{' '}
+                      <strong className="font-semibold">−{refundedTotal.toLocaleString()} so'm</strong>
+                    </span>
+                  </>
+                )}
                 <span>•</span>
                 <span className="bg-orange-500 text-white px-3 py-1 rounded-lg font-bold text-xs shadow-xs">
                   Jami: {totalSum.toLocaleString()} so'm
                 </span>
+                {onPrintPeriod && (
+                  <button
+                    onClick={() => onPrintPeriod(filteredOrders, periodLabel)}
+                    disabled={filteredOrders.length === 0}
+                    title="Tanlangan davrdagi barcha cheklarni bitta hisobot qilib chop etish"
+                    className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 border border-slate-200 font-bold text-xs shadow-2xs cursor-pointer active:scale-95 transition-transform"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Hisobotni chop etish</span>
+                  </button>
+                )}
               </div>
             </div>
 

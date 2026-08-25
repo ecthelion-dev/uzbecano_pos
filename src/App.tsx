@@ -32,6 +32,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { AdminDashboard } from './components/AdminDashboard';
+import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePeriodPrintArea';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
@@ -119,6 +120,9 @@ export default function App() {
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
   const [showReceiptPreview, setShowReceiptPreview] = useState<boolean>(false);
   const [showArchiveModal, setShowArchiveModal] = useState<boolean>(false);
+  // Davr hisoboti chop etilayotgan payt: chek chiqaruvchi blok o'rniga shu
+  // ko'rinadi (ikkalasi bitta #thermal-print-area id sini ishlatadi).
+  const [periodPrint, setPeriodPrint] = useState<PeriodPrintData | null>(null);
   const [showShiftReport, setShowShiftReport] = useState<boolean>(false);
   const [kitchenSlipData, setKitchenSlipData] = useState<{ tableNumber: string; waiterName: string; items: any[]; time: string } | null>(null);
   const [archiveSearch, setArchiveSearch] = useState<string>('');
@@ -1019,6 +1023,16 @@ export default function App() {
   useEffect(() => {
     if (showMobileSearch) searchInputRef.current?.focus();
   }, [showMobileSearch]);
+
+  // Hisobot DOM ga chiqqanidan keyingina chop etish oynasi ochilsin.
+  useEffect(() => {
+    if (!periodPrint) return;
+    const timer = window.setTimeout(() => {
+      window.print();
+      setPeriodPrint(null);
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [periodPrint]);
 
   const requestAdminPin = useCallback((action: () => void) => {
     setAdminPinAction(() => action);
@@ -1996,6 +2010,13 @@ export default function App() {
         onSearchChange={setArchiveSearch}
         onSelectArchiveOrder={setSelectedArchiveOrder}
         onRefundOrder={handleRefundOrder}
+        onPrintPeriod={(periodOrders, periodLabel) =>
+          setPeriodPrint({
+            orders: periodOrders,
+            periodLabel,
+            printedBy: currentWaiter?.name || '',
+          })
+        }
         onClose={() => setShowArchiveModal(false)}
         onPrint={() => window.print()}
       />
@@ -2077,7 +2098,16 @@ export default function App() {
 
       <ToastNotification message={toastMessage} />
 
+      <ArchivePeriodPrintArea
+        data={periodPrint}
+        cafeName={connectedCafeName || 'ORDERPLUS'}
+        cafeLogo={connectedCafeLogo}
+        cafeAddress={connectedCafeAddress}
+        cafePhone={connectedCafePhone}
+      />
+
       {/* Standalone Thermal Print Receipt Area (Rendered only on thermal paper) */}
+      {!periodPrint && (
       <ThermalPrintArea
         selectedArchiveOrder={selectedArchiveOrder}
         selectedTable={selectedTable}
@@ -2095,6 +2125,7 @@ export default function App() {
         discountAmount={discountAmount}
         grandTotal={grandTotal}
       />
+      )}
 
       {/* Thermal Printer Settings Modal */}
       <PrinterSettingsModal

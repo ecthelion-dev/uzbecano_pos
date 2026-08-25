@@ -60,6 +60,13 @@ import { FrozenCafeScreen } from './components/FrozenCafeScreen';
 import { executePrintReceipt, executePrintKitchenSlip, getPrinterSettings } from './lib/printer';
 import { Wallet } from 'lucide-react';
 
+// Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
+// olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
+// Taqqoslash faqat to'liq tenglik bo'yicha bo'lishi kerak — aks holda "Coffee"
+// va "Cold Coffee" kabi nomlar bir-birining ichiga kirib ketadi.
+const normalizeCategoryName = (name?: string | null): string =>
+  (name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
 const mapDBProductModifiers = (prods: DBProduct[]): DBProduct[] => {
   return prods.map((p: any) => {
     let variants: ProductVariant[] = p.variants || [];
@@ -840,27 +847,36 @@ export default function App() {
     };
   }, [syncOfflineOrders]);
 
-  // Auto-sync active orders and waiter calls in background with visibility optimization
+  /**
+   * Buyurtmalar va chaqiruvlarni fonda yangilab turadi.
+   *
+   * Ilgari bu har 4 soniyada, kassa nima holatda bo'lishidan qat'i nazar
+   * ishlardi — bo'sh zalda ham. Bitta kassa uchun bu ko'p emas, lekin har bir
+   * so'rov bazaga boradi va kassalar soni oshgan sari server shu ritmda
+   * yuklanadi. Endi ritm ishga qarab tanlanadi: zalda faol buyurtma yoki javob
+   * kutayotgan chaqiruv bo'lsa tez, bo'lmasa sekin.
+   */
+  const hasLiveWork = orders.some(o => o.status !== 'served') || waiterCalls.length > 0;
+
   useEffect(() => {
     if (!currentWaiter) return;
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        fetchOrders();
-        fetchWaiterCalls();
-      }
-    }, 4000);
-    const handleVisibility = () => {
+
+    const poll = () => {
       if (document.visibilityState === 'visible') {
         fetchOrders();
         fetchWaiterCalls();
       }
     };
-    document.addEventListener('visibilitychange', handleVisibility);
+
+    const interval = setInterval(poll, hasLiveWork ? 5000 : 20000);
+    // Tabga qaytilganda kutmasdan darhol yangilanadi — shuning uchun sekin
+    // ritm ekranga qarab turgan kassirga sezilmaydi.
+    document.addEventListener('visibilitychange', poll);
     return () => {
       clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibility);
+      document.removeEventListener('visibilitychange', poll);
     };
-  }, [currentWaiter, fetchOrders, fetchWaiterCalls]);
+  }, [currentWaiter, fetchOrders, fetchWaiterCalls, hasLiveWork]);
 
   // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, ESC: Close)
   useEffect(() => {
@@ -907,14 +923,14 @@ export default function App() {
   const allCategories = useMemo(() => {
     const map = new Map<string, DBCategory>();
     categoriesData.forEach(c => {
-      if (c.name && !map.has(c.name.toLowerCase().trim())) {
-        map.set(c.name.toLowerCase().trim(), c);
+      if (c.name && !map.has(normalizeCategoryName(c.name))) {
+        map.set(normalizeCategoryName(c.name), c);
       }
     });
     // Also include any categories present on products
     products.forEach(p => {
-      if (p.category && !map.has(p.category.toLowerCase().trim())) {
-        map.set(p.category.toLowerCase().trim(), {
+      if (p.category && !map.has(normalizeCategoryName(p.category))) {
+        map.set(normalizeCategoryName(p.category), {
           id: p.category,
           name: p.category,
           icon: 'UtensilsCrossed',
@@ -930,7 +946,7 @@ export default function App() {
     const counts: Record<string, number> = {};
     products.forEach(p => {
       if (p.category) {
-        const key = p.category.toLowerCase().trim();
+        const key = normalizeCategoryName(p.category);
         counts[key] = (counts[key] || 0) + 1;
       }
     });
@@ -1643,16 +1659,11 @@ export default function App() {
       return products.filter(p => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
     }
     if (selectedCategoryName) {
-      const sel = selectedCategoryName.toLowerCase().trim();
-      return products.filter(p => {
-        const prodCat = (p.category || '').toLowerCase().trim();
-        return (
-          prodCat === sel ||
-          prodCat.includes(sel) ||
-          sel.includes(prodCat) ||
-          p.category === selectedCategoryName
-        );
-      });
+      // Kategoriya nomi to'liq mos kelishi shart. Ilgari bu yerda includes()
+      // ishlatilgan edi va "Coffee" tanlanganda "Cold Coffee" taomlari ham
+      // chiqib ketardi (nom ichma-ich joylashgani uchun).
+      const sel = normalizeCategoryName(selectedCategoryName);
+      return products.filter(p => normalizeCategoryName(p.category) === sel);
     }
     return [];
   }, [searchQuery, selectedCategoryName, products]);
@@ -1661,11 +1672,10 @@ export default function App() {
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const cat of allCategories) {
-      const catKey = (cat.name || '').toLowerCase().trim();
-      counts[cat.name] = products.filter(p => {
-        const pk = (p.category || '').toLowerCase().trim();
-        return pk === catKey || pk.includes(catKey) || catKey.includes(pk);
-      }).length;
+      const catKey = normalizeCategoryName(cat.name);
+      counts[cat.name] = products.filter(
+        p => normalizeCategoryName(p.category) === catKey
+      ).length;
     }
     return counts;
   }, [allCategories, products]);

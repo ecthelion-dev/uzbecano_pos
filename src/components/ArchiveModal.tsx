@@ -16,8 +16,8 @@ interface ArchiveModalProps {
   onSearchChange: (q: string) => void;
   onSelectArchiveOrder: (ord: DBOrder | null) => void;
   onRefundOrder?: (ord: DBOrder, reason: string) => void;
-  /** Tanlangan davrdagi barcha cheklarni bitta hisobot qilib chop etadi. */
-  onPrintPeriod?: (orders: DBOrder[], periodLabel: string) => void;
+  /** Tanlangan davrdagi sotuvlarni bitta hisobot qilib chop etadi. */
+  onPrintPeriod?: (orders: DBOrder[], from: Date | null, to: Date | null) => void;
   onClose: () => void;
   onPrint: () => void;
 }
@@ -131,19 +131,30 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
     };
   }, [orders, archiveSearch, timePreset, startDate, startTime, endDate, endTime]);
 
-  const periodLabel = useMemo(() => {
-    const fmt = (d: string) => d.split('-').reverse().join('/');
-    if (timePreset === 'today') return `Bugun (${fmt(todayStr)})`;
+  // Hisobot sarlavhasidagi "Boshlanish / Tugash". 'all' uchun chegara yo'q,
+  // shuning uchun mavjud cheklarning eng eski va eng yangisini olamiz.
+  const [periodFrom, periodTo] = useMemo<[Date | null, Date | null]>(() => {
+    const now = new Date();
+    if (timePreset === 'today') {
+      return [new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0), now];
+    }
     if (timePreset === 'yesterday') {
-      const y = new Date();
-      y.setDate(y.getDate() - 1);
-      return `Kecha (${fmt(y.toISOString().slice(0, 10))})`;
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0);
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+      return [start, end];
     }
     if (timePreset === 'custom') {
-      return `${fmt(startDate)} ${startTime} — ${fmt(endDate)} ${endTime}`;
+      return [
+        new Date(`${startDate}T${startTime || '00:00'}:00`),
+        new Date(`${endDate}T${endTime || '23:59'}:59`),
+      ];
     }
-    return 'Barcha davr';
-  }, [timePreset, todayStr, startDate, startTime, endDate, endTime]);
+    const stamps = filteredOrders
+      .map((o: any) => (o.closedAt ? new Date(o.closedAt) : (o.createdAt ? new Date(o.createdAt) : null)))
+      .filter((d): d is Date => !!d && !isNaN(d.getTime()))
+      .sort((a, b) => a.getTime() - b.getTime());
+    return stamps.length ? [stamps[0], stamps[stamps.length - 1]] : [null, null];
+  }, [timePreset, startDate, startTime, endDate, endTime, filteredOrders]);
 
   if (!show) return null;
 
@@ -473,7 +484,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 </span>
                 {onPrintPeriod && (
                   <button
-                    onClick={() => onPrintPeriod(filteredOrders, periodLabel)}
+                    onClick={() => onPrintPeriod(filteredOrders, periodFrom, periodTo)}
                     disabled={filteredOrders.length === 0}
                     title="Tanlangan davrdagi barcha cheklarni bitta hisobot qilib chop etish"
                     className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 border border-slate-200 font-bold text-xs shadow-2xs cursor-pointer active:scale-95 transition-transform"

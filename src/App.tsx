@@ -2010,10 +2010,11 @@ export default function App() {
         onSearchChange={setArchiveSearch}
         onSelectArchiveOrder={setSelectedArchiveOrder}
         onRefundOrder={handleRefundOrder}
-        onPrintPeriod={(periodOrders, periodLabel) =>
+        onPrintPeriod={(periodOrders, from, to) =>
           setPeriodPrint({
             orders: periodOrders,
-            periodLabel,
+            from,
+            to,
             printedBy: currentWaiter?.name || '',
           })
         }

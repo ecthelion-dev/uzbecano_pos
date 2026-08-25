@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../constants';
+import { verifyCachedPin } from '../lib/offlineAuth';
 
 const ELEVATED_ROLES = ['admin', 'cafe_admin', 'platform_admin', 'manager'];
 
@@ -40,10 +41,10 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
       const nextPin = pin + val;
       setPin(nextPin);
       if (nextPin.length === 4) {
-        // Manager/admin-level PIN is verified live against the server —
-        // never locally, since waiter PINs are only ever stored as server-side
-        // scrypt hashes and a regular waiter's own PIN must not be able to
-        // self-approve overrides this modal is meant to gate.
+        // Manager/admin-level PIN is verified live against the server whenever
+        // there is one. Offline the only fallback is a PBKDF2 hash cached on
+        // this till when that manager last signed in here — a regular waiter's
+        // own PIN still cannot self-approve the overrides this modal gates.
         setChecking(true);
         try {
           const res = await fetch(`${API_BASE_URL}/api/auth/pin`, {
@@ -62,8 +63,22 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
             setTimeout(() => setPin(''), 400);
           }
         } catch {
-          setError("Tekshirish uchun internet aloqasi kerak");
-          setTimeout(() => setPin(''), 600);
+          // Server yo'q. Shu qurilmada oldin kirgan rahbarning keshdagi PIN
+          // hashi bilan tekshiramiz — oddiy ofitsiantning kodi qabul
+          // qilinmaydi, ya'ni u o'z vozvratini o'zi tasdiqlay olmaydi.
+          let elevated = null;
+          try {
+            elevated = await verifyCachedPin(cafeId, nextPin, { requireElevated: true });
+          } catch { /* WebCrypto yo'q */ }
+
+          if (elevated) {
+            onConfirm();
+            setPin('');
+            onClose();
+          } else {
+            setError("Aloqa yo'q. Faqat shu kassada kirgan rahbar PIN kodi qabul qilinadi");
+            setTimeout(() => setPin(''), 900);
+          }
         } finally {
           setChecking(false);
         }

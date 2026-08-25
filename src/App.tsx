@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePeriodPrintArea';
+import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib/offlineAuth';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
@@ -280,6 +281,13 @@ export default function App() {
     if (!currentWaiter) return;
     lastActivityRef.current = Date.now();
     const interval = setInterval(() => {
+      // Aloqa yo'q paytda chiqarib yuborish kassani o'ldiradi: PIN serverda
+      // tekshiriladi, ya'ni xodim qaytib kira olmaydi. Oflaynda taymer
+      // to'xtaydi va aloqa tiklangach noldan sanaydi.
+      if (!navigator.onLine || isOfflineMode) {
+        lastActivityRef.current = Date.now();
+        return;
+      }
       if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
         handleLogout();
         setToastMessage("Faolsizlik tufayli tizimdan chiqildi");
@@ -287,7 +295,7 @@ export default function App() {
       }
     }, 15000);
     return () => clearInterval(interval);
-  }, [currentWaiter, handleLogout]);
+  }, [currentWaiter, handleLogout, isOfflineMode]);
 
   // Ensure currentWaiter, cafe name, and active cafe match when URL param changes
   useEffect(() => {
@@ -1675,6 +1683,17 @@ export default function App() {
               setAuthToken(data.token);
               localStorage.setItem(`orderplus_${matchedCafeId}_auth_token`, data.token);
             }
+            // Aloqa uzilganda shu qurilmadan qayta kirish uchun. PIN emas,
+            // uning PBKDF2 hashi saqlanadi.
+            rememberCredential(matchedCafeId, {
+              pin: nextPin,
+              waiterId: loggedWaiter.id,
+              name: loggedWaiter.name,
+              role: String(data.role || 'waiter'),
+              token: data.token,
+              cafeName: matchedCafeName,
+              cafeLogo: matchedCafeLogo,
+            }).catch(() => {});
             setPinInput('');
             setIsCafeFrozen(false);
             fetchData();
@@ -1688,8 +1707,43 @@ export default function App() {
             setTimeout(() => setPinInput(''), 600);
           }
         } catch {
-          setPinError("Serverga ulanib bo'lmadi!");
-          setTimeout(() => setPinInput(''), 600);
+          // Server yo'q — keshdagi hisob ma'lumotlari bilan oflayn kiramiz.
+          const cid = getActiveCafeId();
+          let cached = null;
+          try {
+            cached = await verifyCachedPin(cid, nextPin);
+          } catch { /* WebCrypto yo'q bo'lsa oflayn kirish ham yo'q */ }
+
+          if (cached) {
+            const offlineWaiter: DBWaiter = {
+              id: cached.waiterId,
+              name: cached.name,
+              role: cached.role === 'cafe_admin' ? 'manager' : 'waiter',
+            };
+            setCurrentWaiter(offlineWaiter);
+            localStorage.setItem(`orderplus_${cid}_current_waiter`, JSON.stringify(offlineWaiter));
+            if (cached.token) {
+              // Navbatdagi buyurtmalar aloqa tiklanganda shu token bilan ketadi.
+              setAuthToken(cached.token);
+              localStorage.setItem(`orderplus_${cid}_auth_token`, cached.token);
+            }
+            if (cached.cafeName) setConnectedCafeName(cached.cafeName);
+            if (cached.cafeLogo) setConnectedCafeLogo(cached.cafeLogo);
+            setIsOfflineMode(true);
+            setPinInput('');
+            // Menyu, stollar va buyurtmalar keshdan ko'tariladi: fetchData
+            // avval localStorage ni o'qiydi, keyin tarmoqqa urinib ko'radi.
+            fetchData();
+            setToastMessage('Oflayn rejim: amallar aloqa tiklanganda yuboriladi');
+            setTimeout(() => setToastMessage(null), 3500);
+          } else {
+            setPinError(
+              hasCachedCredentials(cid)
+                ? "PIN kod noto'g'ri (oflayn tekshiruv)"
+                : "Serverga ulanib bo'lmadi!"
+            );
+            setTimeout(() => setPinInput(''), 600);
+          }
         }
       }
     }

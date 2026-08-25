@@ -447,9 +447,10 @@ export default function App() {
   }, [getActiveCafeId, getAuthHeaders, sortOrders, persistOrders, fetchOrderHistory]);
 
   // Fetch static data once (products, categories, waiters, settings)
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (): Promise<boolean> => {
     setLoading(true);
     setApiError(null);
+    let ok = false;
 
     const cafeId = getActiveCafeId();
 
@@ -559,6 +560,7 @@ export default function App() {
       // report must have the 7-day window before the operator can open them.
       await Promise.all([fetchOrders(), fetchOrderHistory(), fetchTableDefs(), fetchWaiterCalls()]);
       setIsOfflineMode(false);
+      ok = true;
     } catch (err: any) {
       setApiError(`Ulanishda xatolik: ${err?.message || err}`);
       setIsOfflineMode(true);
@@ -571,7 +573,23 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+
+    return ok;
   }, [getActiveCafeId, fetchOrders, fetchOrderHistory, fetchTableDefs, fetchWaiterCalls]);
+
+  /**
+   * Yangilash tugmasi. Avval bu faqat `fetchOrders` ni chaqirardi: u `loading`
+   * ga tegmaydi, xatolikni yutib yuboradi va menyuni ham, arxivni ham
+   * yangilamaydi — ya'ni tugma bosilganda ekranda mutlaqo hech nima
+   * o'zgarmasdi. `fetchData` esa hammasini qayta oladi va natijani ko'rsatadi.
+   */
+  const handleManualRefresh = useCallback(async () => {
+    const ok = await fetchData();
+    if (ok) {
+      setToastMessage("Ma'lumotlar yangilandi");
+      setTimeout(() => setToastMessage(null), 2000);
+    }
+  }, [fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -1707,7 +1725,7 @@ export default function App() {
         }}
         onOpenArchive={() => setShowArchiveModal(true)}
         onOpenPrinterSettings={() => setShowPrinterModal(true)}
-        onRefreshOrders={fetchOrders}
+        onRefreshOrders={handleManualRefresh}
         isLoading={loading}
         currentWaiter={currentWaiter}
         onLogout={handleLogout}

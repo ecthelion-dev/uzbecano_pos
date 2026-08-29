@@ -1794,6 +1794,15 @@ export default function App() {
     }
   }, [pinInput, fetchData, fetchOrders, getActiveCafeId]);
 
+  const handleChangeCafeId = useCallback((newCafeId: string) => {
+    const clean = newCafeId.trim().toLowerCase();
+    if (!clean) return;
+    localStorage.setItem('orderplus_cafe_id', clean);
+    setToastMessage(`Kafe tanlandi: ${clean}`);
+    setTimeout(() => setToastMessage(null), 2000);
+    fetchData();
+  }, [fetchData]);
+
   if (isCafeFrozen) {
     return <FrozenCafeScreen cafeName={connectedCafeName} onRefresh={fetchData} />;
   }
@@ -1804,7 +1813,10 @@ export default function App() {
         <PinLoginScreen
           pinInput={pinInput}
           pinError={pinError}
+          currentCafeId={getActiveCafeId()}
+          cafeName={connectedCafeName}
           onPinKey={handlePinKey}
+          onChangeCafeId={handleChangeCafeId}
         />
         <ToastNotification message={toastMessage} />
       </>

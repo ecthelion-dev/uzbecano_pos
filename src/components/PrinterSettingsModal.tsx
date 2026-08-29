@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Printer,
   Bluetooth,
@@ -19,7 +19,10 @@ import {
   connectBluetoothPrinter,
   connectSerialPrinter,
   executePrintTest,
+  listSystemPrinters,
+  SystemPrinter,
 } from '../lib/printer';
+import { IS_DESKTOP_APP } from '../constants';
 
 interface PrinterSettingsModalProps {
   isOpen: boolean;
@@ -38,6 +41,18 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
   const [connectedDevice, setConnectedDevice] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [copiedKiosk, setCopiedKiosk] = useState(false);
+  const [systemPrinters, setSystemPrinters] = useState<SystemPrinter[]>([]);
+
+  // Tizimdagi printerlar ro'yxati faqat desktop ilovada mavjud va faqat
+  // oyna ochilganda kerak.
+  useEffect(() => {
+    if (!isOpen || !IS_DESKTOP_APP) return;
+    let cancelled = false;
+    listSystemPrinters().then((list) => {
+      if (!cancelled) setSystemPrinters(list);
+    });
+    return () => { cancelled = true; };
+  }, [isOpen]);
 
   // Kiosk buyrug'i tizimga qarab farq qiladi, va noto'g'ri buyruqni ko'chirgan
   // kassir uni ishlamayapti deb hisoblaydi.
@@ -203,11 +218,48 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
           )}
         </div>
 
+        {/* Desktop ilovada chek tizim navbatiga xom ESC/POS bo'lib ketadi,
+            ya'ni hech qanday chop etish oynasi ochilmaydi. Bu yerda faqat
+            qaysi printerga yuborilishini tanlash qoladi. */}
+        {IS_DESKTOP_APP && !connectedDevice && (
+          <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 space-y-2.5">
+            <p className="text-xs font-black text-emerald-800 dark:text-emerald-300">
+              Chek printeri
+            </p>
+            <p className="text-[11px] leading-relaxed text-emerald-800/90 dark:text-emerald-300/90">
+              Chek to&apos;g&apos;ridan-to&apos;g&apos;ri printerga yuboriladi — chop etish oynasi
+              ochilmaydi.
+            </p>
+            <select
+              value={settings.systemPrinterName || ''}
+              onChange={(e) => {
+                const updated: PrinterSettings = { ...settings, systemPrinterName: e.target.value };
+                setSettings(updated);
+                savePrinterSettings(updated);
+              }}
+              className="w-full text-[11px] font-semibold bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900 rounded-lg px-2.5 py-2 text-slate-700 dark:text-slate-300 cursor-pointer"
+            >
+              <option value="">Tizimning standart printeri</option>
+              {systemPrinters.map((pr) => (
+                <option key={pr.systemName} value={pr.systemName}>
+                  {pr.name}{pr.isDefault ? ' (standart)' : ''}
+                </option>
+              ))}
+            </select>
+            {systemPrinters.length === 0 && (
+              <p className="text-[11px] text-emerald-800/70 dark:text-emerald-300/70">
+                Tizimda o&apos;rnatilgan printer topilmadi. Printerni operatsion tizimga
+                qo&apos;shing va oynani qayta oching.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Brauzer rejimida chop etish oynasi. Kassirga har safar "Print"
             bosish kerak — bu brauzerning xavfsizlik chegarasi, kod bilan
             aylanib o'tib bo'lmaydi. Yagona yo'l — Chrome'ni kiosk rejimida
             ochish yoki kassa printerini to'g'ridan ulash. */}
-        {settings.mode === 'browser' && !connectedDevice && (
+        {!IS_DESKTOP_APP && settings.mode === 'browser' && !connectedDevice && (
           <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 space-y-2.5">
             <p className="text-xs font-black text-amber-800 dark:text-amber-300">
               Chop etish oynasi chiqmasligi uchun

@@ -21,17 +21,13 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Service worker: lets the till load without a network. It never caches
+    <!-- Service worker: lets the PWA load without a network. It never caches
          /api/, so what the cashier reads about orders and tables is always the
-         server's answer. -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js').catch(function (err) {
-            console.warn('Service worker registration failed:', err);
-          });
-        });
-      }
-    </script>
+         server's answer.
+
+         Ro'yxatdan o'tkazish src/main.tsx ga ko'chirildi: u yerda Tauri
+         tekshiruvi bor (desktop ilovada assetlar binary ichida keladi, ya'ni
+         SW faqat ilova yangilangandan keyin ham omon qoladigan keshni
+         qo'shadi) va CSP script-src 'self' inline skriptga ruxsat bermaydi. -->
   </body>
 </html>

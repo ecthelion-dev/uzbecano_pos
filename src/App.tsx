@@ -34,8 +34,9 @@ import {
 import { AdminDashboard } from './components/AdminDashboard';
 import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePeriodPrintArea';
 import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib/offlineAuth';
+import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
-import { API_BASE_URL, isActiveOrder } from './constants';
+import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
 import { KitchenSlipModal } from './components/KitchenSlipModal';
@@ -144,9 +145,7 @@ export default function App() {
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(() => {
     try {
-      const cafeId = typeof window !== 'undefined'
-        ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
-        : 'uzbecano';
+      const cafeId = resolveActiveCafeId();
       const saved = localStorage.getItem(`orderplus_${cafeId}_cash_transactions`);
       return saved ? JSON.parse(saved) : [];
     } catch {
@@ -160,67 +159,42 @@ export default function App() {
   const [activeAralashField, setActiveAralashField] = useState<'cash' | 'card'>('cash');
   const [showAralashModal, setShowAralashModal] = useState<boolean>(false);
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
-  const [adminPinAction, setAdminPinAction] = useState<(() => void) | null>(null);
+  const [adminPinAction, setAdminPinAction] = useState<((approvalToken?: string) => void) | null>(null);
 
   const [waiters, setWaiters] = useState<DBWaiter[]>([]);
-  const [currentWaiter, setCurrentWaiter] = useState<DBWaiter | null>(() => {
-    try {
-      const cafeId = typeof window !== 'undefined'
-        ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
-        : 'uzbecano';
-      const saved = localStorage.getItem(`orderplus_${cafeId}_current_waiter`);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [currentWaiter, setCurrentWaiter] = useState<DBWaiter | null>(
+    () => readSession(resolveActiveCafeId())?.waiter ?? null
+  );
   // Session JWT issued by /api/auth/pin — required on every staff-authenticated
   // request (order create/update/list). Without it the backend's requireAuth
   // rejects the request with 401, which fetch does not treat as an error.
-  const [authToken, setAuthToken] = useState<string | null>(() => {
-    try {
-      const cafeId = typeof window !== 'undefined'
-        ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
-        : 'uzbecano';
-      return localStorage.getItem(`orderplus_${cafeId}_auth_token`);
-    } catch {
-      return null;
-    }
-  });
+  const [authToken, setAuthToken] = useState<string | null>(
+    () => readSession(resolveActiveCafeId())?.token ?? null
+  );
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [isCafeFrozen, setIsCafeFrozen] = useState<boolean>(() => {
     try {
-      const cafeId = typeof window !== 'undefined'
-        ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
-        : 'uzbecano';
+      const cafeId = resolveActiveCafeId();
       return localStorage.getItem(`orderplus_${cafeId}_is_frozen`) === 'true';
     } catch {
       return false;
     }
   });
   const [connectedCafeName, setConnectedCafeName] = useState<string>(() => {
-    const cafeId = typeof window !== 'undefined'
-      ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
-      : 'uzbecano';
+    const cafeId = resolveActiveCafeId();
     return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_name`) : null) || cafeId;
   });
   const [connectedCafeLogo, setConnectedCafeLogo] = useState<string>(() => {
-    const cafeId = typeof window !== 'undefined'
-      ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
-      : 'uzbecano';
+    const cafeId = resolveActiveCafeId();
     return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_logo`) : null) || '';
   });
   const [connectedCafeAddress, setConnectedCafeAddress] = useState<string>(() => {
-    const cafeId = typeof window !== 'undefined'
-      ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
-      : 'uzbecano';
+    const cafeId = resolveActiveCafeId();
     return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_address`) : null) || '';
   });
   const [connectedCafePhone, setConnectedCafePhone] = useState<string>(() => {
-    const cafeId = typeof window !== 'undefined'
-      ? (new URLSearchParams(window.location.search).get('cafe') || new URLSearchParams(window.location.search).get('cafeId') || localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase()
-      : 'uzbecano';
+    const cafeId = resolveActiveCafeId();
     return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_phone`) : null) || '';
   });
   const [showPrinterModal, setShowPrinterModal] = useState<boolean>(false);
@@ -234,24 +208,27 @@ export default function App() {
   const [waiterCalls, setWaiterCalls] = useState<string[]>([]);
 
   const getActiveCafeId = useCallback(() => {
+    const cafeId = resolveActiveCafeId();
+    // URL orqali kelgan kafe eslab qolinadi, shunda kassa keyingi safar
+    // parametrsiz ochilganda ham o'sha kafeda qoladi.
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const cafeParam = params.get('cafe') || params.get('cafeId');
-      if (cafeParam && cafeParam.trim()) {
-        const clean = cafeParam.trim().toLowerCase();
-        localStorage.setItem('orderplus_cafe_id', clean);
-        return clean;
+      if (params.get('cafe') || params.get('cafeId')) {
+        try { localStorage.setItem('orderplus_cafe_id', cafeId); } catch { /* ignore */ }
       }
-      return localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
     }
-    return 'uzbecano';
+    return cafeId;
   }, []);
 
   // Staff-authenticated backend requests (orders create/update/list) require
   // this Bearer token, issued by /api/auth/pin on login.
-  const getAuthHeaders = useCallback((): Record<string, string> => {
+  const getAuthHeaders = useCallback((approvalToken?: string): Record<string, string> => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    // Rahbar tasdig'i talab qilinadigan amallar (masalan oshxonaga ketgan
+    // taomni o'chirish) uchun ikkinchi dalil. Usiz server bu so'rovni
+    // ofitsiantning o'z qaroridan ajrata olmaydi va rad etadi.
+    if (approvalToken) headers['X-Approval-Token'] = approvalToken;
     return headers;
   }, [authToken]);
 
@@ -261,8 +238,7 @@ export default function App() {
   // button and the idle-timeout auto-lock below.
   const handleLogout = useCallback(() => {
     const cafeId = getActiveCafeId();
-    localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
-    localStorage.removeItem(`orderplus_${cafeId}_auth_token`);
+    clearSession(cafeId);
     setCurrentWaiter(null);
     setAuthToken(null);
     setTableCarts({});
@@ -309,25 +285,18 @@ export default function App() {
   // Ensure currentWaiter, cafe name, and active cafe match when URL param changes
   useEffect(() => {
     const cafeId = getActiveCafeId();
+    // Yangilanishdan oldingi versiya diskda qoldirgan ochiq tokenni o'chiramiz.
+    purgeLegacySession(cafeId);
     const frozenSaved = localStorage.getItem(`orderplus_${cafeId}_is_frozen`) === 'true';
     setIsCafeFrozen(frozenSaved);
     if (frozenSaved) {
       setCurrentWaiter(null);
       setAuthToken(null);
-      localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
-      localStorage.removeItem(`orderplus_${cafeId}_auth_token`);
+      clearSession(cafeId);
     } else {
-      const saved = localStorage.getItem(`orderplus_${cafeId}_current_waiter`);
-      if (saved) {
-        try {
-          setCurrentWaiter(JSON.parse(saved));
-        } catch {
-          setCurrentWaiter(null);
-        }
-      } else {
-        setCurrentWaiter(null);
-      }
-      setAuthToken(localStorage.getItem(`orderplus_${cafeId}_auth_token`));
+      const session = readSession(cafeId);
+      setCurrentWaiter(session?.waiter ?? null);
+      setAuthToken(session?.token ?? null);
     }
     const savedName = localStorage.getItem(`orderplus_${cafeId}_name`);
     setConnectedCafeName(savedName || cafeId);
@@ -566,8 +535,7 @@ export default function App() {
           localStorage.setItem(`orderplus_${cafeId}_is_frozen`, 'true');
           setCurrentWaiter(null);
           setAuthToken(null);
-          localStorage.removeItem(`orderplus_${cafeId}_current_waiter`);
-          localStorage.removeItem(`orderplus_${cafeId}_auth_token`);
+          clearSession(cafeId);
         } else {
           localStorage.removeItem(`orderplus_${cafeId}_is_frozen`);
         }
@@ -698,7 +666,7 @@ export default function App() {
   // whether the order synced immediately or was queued.
   type SyncQueueItem =
     | { kind: 'create'; order: any }
-    | { kind: 'patch'; orderId: string; body: any; label?: string }
+    | { kind: 'patch'; orderId: string; body: any; label?: string; approvalToken?: string }
     | { kind: 'delete'; orderId: string; label?: string };
 
   const readSyncQueue = useCallback((cafeId: string): SyncQueueItem[] => {
@@ -731,10 +699,14 @@ export default function App() {
   // Queues a PATCH (status/payment/items/refund) against an existing order
   // that failed to reach the server, so it is retried automatically instead
   // of being silently lost once the operator moves on.
-  const queuePatchForSync = useCallback((orderId: string, body: any, label?: string) => {
+  const queuePatchForSync = useCallback((orderId: string, body: any, label?: string, approvalToken?: string) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
-    queue.push({ kind: 'patch', orderId, body, label });
+    // approvalToken navbat bilan birga diskka tushadi. Bu ongli kelishuv:
+    // aloqa tiklanganda server tasdiqni tekshira olishi uchun boshqa dalil
+    // yo'q. Shuning uchun u qisqa muddatli qilib beriladi va navbat
+    // bo'shashi bilan yo'qoladi.
+    queue.push({ kind: 'patch', orderId, body, label, approvalToken });
     writeSyncQueue(cafeId, queue);
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
@@ -791,7 +763,7 @@ export default function App() {
         } else if (item.kind === 'patch') {
           res = await fetch(`${API_BASE_URL}/api/orders/${item.orderId}`, {
             method: 'PATCH',
-            headers: getAuthHeaders(),
+            headers: getAuthHeaders(item.approvalToken),
             body: JSON.stringify(item.body),
           });
         } else {
@@ -1143,13 +1115,13 @@ export default function App() {
     };
   }, [periodPrint]);
 
-  const requestAdminPin = useCallback((action: () => void) => {
+  const requestAdminPin = useCallback((action: (approvalToken?: string) => void) => {
     setAdminPinAction(() => action);
     setShowAdminPinModal(true);
   }, []);
 
   const handleRemoveKitchenItem = useCallback((itemIndex: number) => {
-    requestAdminPin(async () => {
+    requestAdminPin(async (approvalToken?: string) => {
       if (!activeTableOrder) return;
       const updatedItems = [...activeTableOrderItems];
       updatedItems.splice(itemIndex, 1);
@@ -1162,15 +1134,15 @@ export default function App() {
         try {
           const res = await fetch(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
             method: 'PATCH',
-            headers: getAuthHeaders(),
+            headers: getAuthHeaders(approvalToken),
             body: JSON.stringify(patchBody)
           });
-          if (!res.ok) queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item');
+          if (!res.ok) queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
         } catch {
-          queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item');
+          queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
         }
       } else {
-        queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item');
+        queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
       }
 
       const updatedOrders = orders.map(o => o.id === activeTableOrder.id ? { ...o, items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot } : o);
@@ -1182,26 +1154,26 @@ export default function App() {
   }, [activeTableOrder, activeTableOrderItems, orders, isOfflineMode, requestAdminPin, getActiveCafeId, getAuthHeaders, queuePatchForSync]);
 
   const handleRefundOrder = useCallback((targetOrder: DBOrder, reason: string) => {
-    requestAdminPin(async () => {
+    requestAdminPin(async (approvalToken?: string) => {
       const refundBody = { action: 'refund', refundReason: reason };
       if (!isOfflineMode) {
         try {
           const res = await fetch(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
             method: 'PATCH',
-            headers: getAuthHeaders(),
+            headers: getAuthHeaders(approvalToken),
             body: JSON.stringify(refundBody)
           });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
             setApiError(data.error || "Qaytarish serverga yozilmadi — qayta urinib ko'ring");
-            queuePatchForSync(targetOrder.id, refundBody, 'refund');
+            queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
           }
         } catch {
           setApiError("Tarmoq xatoligi: qaytarish navbatga qo'yildi, aloqa tiklanganda avtomatik yuboriladi");
-          queuePatchForSync(targetOrder.id, refundBody, 'refund');
+          queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
         }
       } else {
-        queuePatchForSync(targetOrder.id, refundBody, 'refund');
+        queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
       }
 
       const updatedOrders = orders.map(o => o.id === targetOrder.id ? {
@@ -1280,7 +1252,7 @@ export default function App() {
         const sub = draftSubtotal;
         const fee = Math.round(sub * 0.1);
         const tot = sub + fee;
-        const cafeId = localStorage.getItem('orderplus_cafe_id') || 'uzbecano';
+        const cafeId = localStorage.getItem('orderplus_cafe_id') || DEFAULT_CAFE_ID;
         const newOrderObj = {
           id: crypto.randomUUID(),
           cafeId,
@@ -1697,17 +1669,29 @@ export default function App() {
       const nextPin = pinInput + val;
       setPinInput(nextPin);
       if (nextPin.length === 4) {
-        // Live server PIN verification & Auto-Connect & Freeze Check
+        // Live server PIN verification & Auto-Connect & Freeze Check.
+        //
+        // Faqat tarmoq uzilgani oflayn yo'lga tushiradi. Ilgari bu blokda
+        // `res.json()` himoyasiz turardi: nginx 502 ni HTML sahifa bilan
+        // qaytarsa, parsing xatosi ham "server yo'q" deb hisoblanar va kirish
+        // jimgina bloki yo'q oflayn tekshiruvga tushib ketardi. Endi javob
+        // bergan server har doim server javobi sifatida ko'riladi.
+        const currentCid = getActiveCafeId();
+        let res: Response | null = null;
         try {
-          const currentCid = getActiveCafeId();
-          const res = await fetch(`${API_BASE_URL}/api/auth/pin`, {
+          res = await fetch(`${API_BASE_URL}/api/auth/pin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pin: nextPin, cafeId: currentCid }),
           });
-          const data = await res.json();
+        } catch {
+          res = null;
+        }
+
+        if (res) {
+          const data: any = await res.json().catch(() => ({}));
           if (res.ok && data.success) {
-            const matchedCafeId = data.cafe?.slug || data.cafe?.id || 'uzbecano';
+            const matchedCafeId = data.cafe?.slug || data.cafe?.id || DEFAULT_CAFE_ID;
             const matchedCafeName = data.cafe?.name || 'OrderPlus Restoran';
             const matchedCafeLogo = data.cafe?.logo || '';
 
@@ -1723,11 +1707,8 @@ export default function App() {
               role: data.role === 'cafe_admin' ? 'manager' : 'waiter',
             };
             setCurrentWaiter(loggedWaiter);
-            localStorage.setItem(`orderplus_${matchedCafeId}_current_waiter`, JSON.stringify(loggedWaiter));
-            if (data.token) {
-              setAuthToken(data.token);
-              localStorage.setItem(`orderplus_${matchedCafeId}_auth_token`, data.token);
-            }
+            setAuthToken(data.token ?? null);
+            writeSession(matchedCafeId, loggedWaiter, data.token ?? null);
             // Aloqa uzilganda shu qurilmadan qayta kirish uchun. PIN emas,
             // uning PBKDF2 hashi saqlanadi.
             rememberCredential(matchedCafeId, {
@@ -1751,27 +1732,25 @@ export default function App() {
             setPinError(data.error || "PIN kod noto'g'ri!");
             setTimeout(() => setPinInput(''), 600);
           }
-        } catch {
+        } else {
           // Server yo'q — keshdagi hisob ma'lumotlari bilan oflayn kiramiz.
-          const cid = getActiveCafeId();
-          let cached = null;
+          const cid = currentCid;
+          let result = null;
           try {
-            cached = await verifyCachedPin(cid, nextPin);
+            result = await verifyCachedPin(cid, nextPin);
           } catch { /* WebCrypto yo'q bo'lsa oflayn kirish ham yo'q */ }
 
-          if (cached) {
+          if (result && result.status === 'ok') {
+            const cached = result.credential;
             const offlineWaiter: DBWaiter = {
               id: cached.waiterId,
               name: cached.name,
               role: cached.role === 'cafe_admin' ? 'manager' : 'waiter',
             };
             setCurrentWaiter(offlineWaiter);
-            localStorage.setItem(`orderplus_${cid}_current_waiter`, JSON.stringify(offlineWaiter));
-            if (cached.token) {
-              // Navbatdagi buyurtmalar aloqa tiklanganda shu token bilan ketadi.
-              setAuthToken(cached.token);
-              localStorage.setItem(`orderplus_${cid}_auth_token`, cached.token);
-            }
+            // Navbatdagi buyurtmalar aloqa tiklanganda shu token bilan ketadi.
+            setAuthToken(result.token ?? null);
+            writeSession(cid, offlineWaiter, result.token ?? null);
             if (cached.cafeName) setConnectedCafeName(cached.cafeName);
             if (cached.cafeLogo) setConnectedCafeLogo(cached.cafeLogo);
             setIsOfflineMode(true);
@@ -1781,6 +1760,10 @@ export default function App() {
             fetchData();
             setToastMessage('Oflayn rejim: amallar aloqa tiklanganda yuboriladi');
             setTimeout(() => setToastMessage(null), 3500);
+          } else if (result && result.status === 'locked') {
+            const minutes = Math.max(1, Math.ceil(result.retryAfterSeconds / 60));
+            setPinError(`Ko'p marta xato PIN kiritildi. ${minutes} daqiqadan keyin urinib ko'ring`);
+            setTimeout(() => setPinInput(''), 1200);
           } else {
             setPinError(
               hasCachedCredentials(cid)
@@ -2227,8 +2210,8 @@ export default function App() {
         show={showAdminPinModal}
         cafeId={getActiveCafeId()}
         title="Oshxona buyurtmasi / Taomni bekor qilish uchun PIN kodni kiriting"
-        onConfirm={() => {
-          if (adminPinAction) adminPinAction();
+        onConfirm={(approvalToken) => {
+          if (adminPinAction) adminPinAction(approvalToken);
         }}
         onClose={() => {
           setShowAdminPinModal(false);

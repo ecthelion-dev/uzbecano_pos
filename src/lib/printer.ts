@@ -1,7 +1,17 @@
-// ESC/POS Thermal Printer Driver for PWA (Web Bluetooth, Web Serial, and Universal Browser Print)
+// ESC/POS Thermal Printer Driver
+// (Web Bluetooth, Web Serial, system spooler on desktop, and browser print)
+
+import { IS_DESKTOP_APP } from '../constants';
 
 export interface PrinterSettings {
   mode: 'browser' | 'bluetooth' | 'serial';
+  /**
+   * Desktop ilovada chek yuboriladigan tizim printeri.
+   *
+   * Bo'sh bo'lsa tizimning standart printeri ishlatiladi — bitta chek
+   * printeri bo'lgan kafeda hech nima sozlash kerak emas.
+   */
+  systemPrinterName?: string;
   paperWidth: '58mm' | '80mm';
   autoPrintReceipt: boolean;
   autoPrintKitchen: boolean;
@@ -12,6 +22,7 @@ export interface PrinterSettings {
 
 export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   mode: 'browser',
+  systemPrinterName: '',
   paperWidth: '58mm',
   autoPrintReceipt: true,
   autoPrintKitchen: true,
@@ -418,10 +429,68 @@ class PrintQueue {
   }
 }
 
+export interface SystemPrinter {
+  name: string;
+  systemName: string;
+  isDefault: boolean;
+}
+
+/** Desktop ilovada tizimda o'rnatilgan printerlar ro'yxati. */
+export async function listSystemPrinters(): Promise<SystemPrinter[]> {
+  if (!IS_DESKTOP_APP) return [];
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    const rows = await invoke<Array<{ name: string; system_name: string; is_default: boolean }>>('list_printers');
+    return rows.map((r) => ({ name: r.name, systemName: r.system_name, isDefault: r.is_default }));
+  } catch (e) {
+    console.warn('Printerlar ro\'yxatini olib bo\'lmadi:', e);
+    return [];
+  }
+}
+
+/**
+ * ESC/POS baytlarini tizim navbatiga xom holda yuboradi.
+ *
+ * Bu desktop ilovadagi asosiy yo'l. `window.print()` dan farqi — hech qanday
+ * dialog ochilmaydi: kassir stolni yopadi, chek chiqadi, tamom.
+ *
+ * `false` qaytsa chaqiruvchi eski usulga (brauzer chop etishiga) tushadi.
+ */
+async function sendToSystemPrinter(bytes: Uint8Array, printerName?: string): Promise<boolean> {
+  if (!IS_DESKTOP_APP) return false;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('print_raw', {
+      printer: printerName && printerName.trim() ? printerName.trim() : null,
+      data: Array.from(bytes),
+    });
+    return true;
+  } catch (e) {
+    console.warn('Tizim printeriga yuborib bo\'lmadi:', e);
+    return false;
+  }
+}
+
+/**
+ * Desktopda tizim printerini birinchi bo'lib sinaydi.
+ *
+ * Foydalanuvchi ataylab Bluetooth yoki Serial tanlagan bo'lsa aralashmaymiz —
+ * qolgan hollarda (ya'ni standart `browser` rejimida ham) desktop ilova
+ * dialogsiz chop etishi kerak.
+ */
+async function tryDesktopPrint(settings: PrinterSettings, bytes: Uint8Array): Promise<boolean> {
+  if (!IS_DESKTOP_APP) return false;
+  if (settings.mode === 'bluetooth' || settings.mode === 'serial') return false;
+  return sendToSystemPrinter(bytes, settings.systemPrinterName);
+}
+
 // Print Receipt Execution (Direct or Universal Browser Print)
 export async function executePrintReceipt(order: any, cafeName: string) {
   PrintQueue.enqueue(async () => {
     const settings = getPrinterSettings();
+
+    // Desktop: xom ESC/POS to'g'ridan-to'g'ri tizim navbatiga, dialogsiz.
+    if (await tryDesktopPrint(settings, generateEscPosReceipt(order, cafeName, settings))) return;
 
     if (settings.mode === 'bluetooth' || settings.mode === 'serial' || activeBluetoothCharacteristic || activeSerialPort) {
       try {
@@ -444,6 +513,8 @@ export async function executePrintReceipt(order: any, cafeName: string) {
 export async function executePrintKitchenSlip(data: any, cafeName: string) {
   PrintQueue.enqueue(async () => {
     const settings = getPrinterSettings();
+
+    if (await tryDesktopPrint(settings, generateEscPosKitchenSlip(data, cafeName, settings))) return;
 
     if (settings.mode === 'bluetooth' || settings.mode === 'serial' || activeBluetoothCharacteristic || activeSerialPort) {
       try {

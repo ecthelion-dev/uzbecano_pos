@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { resolveActiveCafeId } from '../constants';
 
 /**
  * Connection state and the size of the offline backlog.
@@ -10,18 +11,10 @@ import { useState, useEffect, useCallback } from 'react';
  */
 const SYNC_POLL_MS = 5000;
 
-function activeCafeId(): string {
-  if (typeof window === 'undefined') return 'uzbecano';
-  const params = new URLSearchParams(window.location.search);
-  const fromUrl = params.get('cafe') || params.get('cafeId');
-  if (fromUrl && fromUrl.trim()) return fromUrl.trim().toLowerCase();
-  return (localStorage.getItem('orderplus_cafe_id') || 'uzbecano').toLowerCase();
-}
-
 function readPendingCount(): number {
   if (typeof window === 'undefined') return 0;
   try {
-    const raw = localStorage.getItem(`orderplus_${activeCafeId()}_sync_queue`);
+    const raw = localStorage.getItem(`orderplus_${resolveActiveCafeId()}_sync_queue`);
     const queue = raw ? JSON.parse(raw) : [];
     return Array.isArray(queue) ? queue.length : 0;
   } catch {

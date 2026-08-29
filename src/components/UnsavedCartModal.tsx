@@ -76,7 +76,11 @@ export const UnsavedCartModal: React.FC<UnsavedCartModalProps> = ({
                 <div className="text-right shrink-0">
                   <span className="font-medium text-slate-600">{item.quantity} x </span>
                   <span className="font-bold text-slate-900">
-                    {((Number(item.product.price) + (item.selectedVariant?.priceModifier || 0) + (item.selectedAddons || []).reduce((s, a) => s + (a.price || 0), 0)) * item.quantity).toLocaleString()} so'm
+                    {/* Variant va qo'shimchalar narxi ProductModifierModal da
+                        product.price ichiga kiritib yuboriladi, shuning uchun
+                        bu yerda ular qayta qo'shilmaydi — aks holda qatorlar
+                        yig'indisi pastdagi "Savat summasi" bilan mos kelmaydi. */}
+                    {((Number(item.product.price) || 0) * (Number(item.quantity) || 1)).toLocaleString()} so'm
                   </span>
                 </div>
               </div>

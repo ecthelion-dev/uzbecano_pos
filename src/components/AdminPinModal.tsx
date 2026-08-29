@@ -9,7 +9,12 @@ interface AdminPinModalProps {
   show: boolean;
   cafeId: string;
   title?: string;
-  onConfirm: () => void;
+  /**
+   * Tasdiqlangan amal. Rahbarning sessiya tokeni bilan chaqiriladi — chaqiruvchi
+   * uni serverga `X-Approval-Token` sifatida yuboradi, aks holda backend bu
+   * amalni oddiy ofitsiantning o'zboshimchaligidan ajrata olmaydi.
+   */
+  onConfirm: (approvalToken?: string) => void;
   onClose: () => void;
 }
 
@@ -52,10 +57,12 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pin: nextPin, cafeId }),
           });
-          const data = await res.json().catch(() => ({}));
+          const data = await res.json().catch(() => ({} as any));
           const isValid = res.ok && data.success && ELEVATED_ROLES.includes(String(data.role || '').toLowerCase());
           if (isValid) {
-            onConfirm();
+            // approvalToken — shu amal uchun beriladigan qisqa muddatli token.
+            // Eski serverda u yo'q, shuning uchun sessiya tokeni zaxira.
+            onConfirm(data.approvalToken || data.token);
             setPin('');
             onClose();
           } else {
@@ -66,15 +73,22 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
           // Server yo'q. Shu qurilmada oldin kirgan rahbarning keshdagi PIN
           // hashi bilan tekshiramiz — oddiy ofitsiantning kodi qabul
           // qilinmaydi, ya'ni u o'z vozvratini o'zi tasdiqlay olmaydi.
-          let elevated = null;
+          let result = null;
           try {
-            elevated = await verifyCachedPin(cafeId, nextPin, { requireElevated: true });
+            result = await verifyCachedPin(cafeId, nextPin, { requireElevated: true });
           } catch { /* WebCrypto yo'q */ }
 
-          if (elevated) {
-            onConfirm();
+          if (result && result.status === 'ok') {
+            // Keshdagi rahbar tokeni. Navbatga qo'yilgan so'rov aloqa
+            // tiklanganda shu token bilan ketadi; muddati o'tgan bo'lsa
+            // server uni rad etadi va amal jurnalda tasdiqsiz qolmaydi.
+            onConfirm(result.token);
             setPin('');
             onClose();
+          } else if (result && result.status === 'locked') {
+            const minutes = Math.max(1, Math.ceil(result.retryAfterSeconds / 60));
+            setError(`Ko'p marta xato kiritildi. ${minutes} daqiqadan keyin urinib ko'ring`);
+            setTimeout(() => setPin(''), 1200);
           } else {
             setError("Aloqa yo'q. Faqat shu kassada kirgan rahbar PIN kodi qabul qilinadi");
             setTimeout(() => setPin(''), 900);

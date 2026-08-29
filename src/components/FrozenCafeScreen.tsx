@@ -1,9 +1,30 @@
 import React from 'react';
 import { Lock, RotateCw, ExternalLink } from 'lucide-react';
+import { IS_DESKTOP_APP } from '../constants';
 
 interface FrozenCafeScreenProps {
   cafeName: string;
   onRefresh: () => void;
+}
+
+/**
+ * Tashqi havolani ochadi.
+ *
+ * Brauzerda oddiy `target="_blank"` yetarli, lekin Tauri oynasida u hech nima
+ * qilmaydi — kassir "To'lov qilish" tugmasini bosadi va hech narsa
+ * o'zgarmaydi. Desktopda havola tizim brauzerida ochiladi va ilovaning o'zi
+ * joyida qoladi; aks holda kassa admin panelga o'tib ketib, orqaga qaytish
+ * tugmasi bo'lmagani uchun ilovani yopishga to'g'ri kelardi.
+ */
+async function openExternal(url: string, event: React.MouseEvent) {
+  if (!IS_DESKTOP_APP) return;
+  event.preventDefault();
+  try {
+    const { openUrl } = await import('@tauri-apps/plugin-opener');
+    await openUrl(url);
+  } catch {
+    /* opener ishlamasa havola shunchaki ochilmaydi — kassa buzilmaydi */
+  }
 }
 
 export const FrozenCafeScreen: React.FC<FrozenCafeScreenProps> = ({ cafeName, onRefresh }) => {
@@ -35,6 +56,7 @@ export const FrozenCafeScreen: React.FC<FrozenCafeScreenProps> = ({ cafeName, on
             href="https://orderplus.uz/admin"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => openExternal('https://orderplus.uz/admin', e)}
             className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer transition-all"
           >
             <span>Admin Panelga O'tish (To'lov Qilish)</span>
@@ -44,6 +66,7 @@ export const FrozenCafeScreen: React.FC<FrozenCafeScreenProps> = ({ cafeName, on
             href="https://t.me/orderplus_admin"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => openExternal('https://t.me/orderplus_admin', e)}
             className="w-full py-3 bg-slate-800/80 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all border border-slate-700"
           >
             <span>Telegram Qo'llab-quvvatlash</span>

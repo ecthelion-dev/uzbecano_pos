@@ -1,5 +1,5 @@
 {
-  "name": "uzbecano-pos",
+  "name": "orderplus-pos",
   "version": "1.0.0",
   "description": "OrderPlus POS — restoran kassa tizimi (PWA)",
   "scripts": {
@@ -10,13 +10,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-opener": "^2.5.4",
     "lucide-react": "^0.469.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/cli": "^2.11.4",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

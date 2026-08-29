@@ -10,3 +10,6 @@ dist-react
 # Flutter/Dart artefacts that were once committed here by mistake
 build/
 *.dill
+
+# JetBrains — eski Flutter loyihasidan qolgan sozlamalar
+.idea/

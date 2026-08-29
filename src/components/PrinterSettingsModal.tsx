@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Printer,
   Bluetooth,
@@ -37,6 +37,27 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
   const [settings, setSettings] = useState<PrinterSettings>(getPrinterSettings());
   const [connectedDevice, setConnectedDevice] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [copiedKiosk, setCopiedKiosk] = useState(false);
+
+  // Kiosk buyrug'i tizimga qarab farq qiladi, va noto'g'ri buyruqni ko'chirgan
+  // kassir uni ishlamayapti deb hisoblaydi.
+  const kioskCommand = useMemo(() => {
+    const url = typeof window !== 'undefined' ? window.location.href : 'https://pos.orderplus.uz';
+    const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || '');
+    return isMac
+      ? `open -na "Google Chrome" --args --kiosk-printing --app="${url}"`
+      : `chrome.exe --kiosk-printing --app="${url}"`;
+  }, []);
+
+  const copyKioskCommand = async () => {
+    try {
+      await navigator.clipboard.writeText(kioskCommand);
+      setCopiedKiosk(true);
+      setTimeout(() => setCopiedKiosk(false), 2000);
+    } catch {
+      // Ruxsat bo'lmasa buyruq baribir ekranda ko'rinib turibdi.
+    }
+  };
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -181,6 +202,44 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Brauzer rejimida chop etish oynasi. Kassirga har safar "Print"
+            bosish kerak — bu brauzerning xavfsizlik chegarasi, kod bilan
+            aylanib o'tib bo'lmaydi. Yagona yo'l — Chrome'ni kiosk rejimida
+            ochish yoki kassa printerini to'g'ridan ulash. */}
+        {settings.mode === 'browser' && !connectedDevice && (
+          <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 space-y-2.5">
+            <p className="text-xs font-black text-amber-800 dark:text-amber-300">
+              Chop etish oynasi chiqmasligi uchun
+            </p>
+            <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90">
+              Hozir chek operatsion tizim printeriga yuborilmoqda va brauzer har safar tasdiq
+              so&apos;raydi. Buni ikki yo&apos;l bilan olib tashlash mumkin:
+            </p>
+            <ol className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90 space-y-1.5 list-decimal list-inside">
+              <li>
+                <b>Kassa printerini ulang</b> — yuqoridagi Bluetooth yoki USB tugmasi orqali.
+                Shunda chek to&apos;g&apos;ridan-to&apos;g&apos;ri chiqadi, oyna umuman ochilmaydi.
+              </li>
+              <li>
+                <b>Yoki Chrome&apos;ni kiosk rejimida oching.</b> Printer tizimda{' '}
+                <b>asosiy (default)</b> qilib qo&apos;yilgan bo&apos;lishi shart:
+              </li>
+            </ol>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 min-w-0 text-[10px] font-mono bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900 rounded-lg px-2.5 py-2 text-slate-700 dark:text-slate-300 overflow-x-auto whitespace-nowrap">
+                {kioskCommand}
+              </code>
+              <button
+                type="button"
+                onClick={copyKioskCommand}
+                className="shrink-0 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold cursor-pointer"
+              >
+                {copiedKiosk ? 'Nusxa olindi' : 'Nusxa'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Paper Size */}
         <div className="space-y-2">

@@ -313,39 +313,87 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
 // Non-blocking browser print via iframe (doesn't freeze main UI)
 function printViaBrowserNonBlocking(): Promise<void> {
   return new Promise((resolve) => {
-    const printArea = document.getElementById('thermal-print-area');
-    if (!printArea) {
-      window.print();
-      resolve();
-      return;
-    }
-
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;top:-10000px;left:-10000px;width:80mm;height:auto;border:none;';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) { window.print(); resolve(); return; }
-
-    // Copy all styles
-    const styles = document.querySelectorAll('style, link[rel="stylesheet"]');
-    styles.forEach(s => doc.head.appendChild(s.cloneNode(true)));
-    doc.body.innerHTML = printArea.innerHTML;
-    doc.body.style.cssText = 'margin:0;padding:0;background:#fff;color:#000;';
-
-    const cleanup = () => {
-      try { document.body.removeChild(iframe); } catch {}
-      resolve();
+    // React holatni shu tick da hali DOM ga yozmagan bo'lishi mumkin. Stol
+    // yopilganda `setSelectedArchiveOrder` bilan chek shu zahoti chaqiriladi,
+    // va nusxa o'sha paytda olinsa, qog'ozga eski (yoki bo'shatilgan) savat
+    // tushadi. Ikki kadr kutish — React commit qilib bo'lgani kafolati.
+    //
+    // Taymer bilan poyga o'ynaladi, chunki requestAnimationFrame fonga
+    // tushgan tabda umuman chaqirilmaydi: kassir boshqa oynaga o'tib ketsa,
+    // chek chiqmay qolardi.
+    const afterPaint = (fn: () => void) => {
+      let fired = false;
+      const once = () => {
+        if (fired) return;
+        fired = true;
+        fn();
+      };
+      requestAnimationFrame(() => requestAnimationFrame(once));
+      setTimeout(once, 300);
     };
 
-    iframe.contentWindow?.addEventListener('afterprint', cleanup);
-    // Fallback timeout in case afterprint doesn't fire
-    const fallbackTimer = setTimeout(cleanup, 8000);
-    iframe.contentWindow?.addEventListener('afterprint', () => clearTimeout(fallbackTimer));
+    afterPaint(() => {
+      const printArea = document.getElementById('thermal-print-area');
+      if (!printArea) {
+        window.print();
+        resolve();
+        return;
+      }
 
-    setTimeout(() => {
-      try { iframe.contentWindow?.print(); } catch { cleanup(); }
-    }, 200);
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;top:-10000px;left:-10000px;width:80mm;height:auto;border:none;';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!doc) { window.print(); resolve(); return; }
+
+      // Copy all styles
+      const styles = document.querySelectorAll('style, link[rel="stylesheet"]');
+      styles.forEach(s => doc.head.appendChild(s.cloneNode(true)));
+
+      // Blokning O'ZI ko'chiriladi, ichidagisi emas. Chop etish uslubi
+      //   body * { visibility: hidden }
+      //   #thermal-print-area, #thermal-print-area * { visibility: visible }
+      // degan juftlikka tayanadi. Ilgari bu yerda faqat innerHTML ko'chirilar,
+      // ya'ni `#thermal-print-area` iframe ichida umuman bo'lmasdi — natijada
+      // birinchi qoida hamma narsani yashirar, ikkinchisi hech nimaga
+      // tushmasdi va printerdan oq qog'oz chiqardi.
+      doc.body.appendChild(doc.importNode(printArea, true));
+      doc.body.style.cssText = 'margin:0;padding:0;background:#fff;color:#000;';
+
+      const cleanup = () => {
+        try { document.body.removeChild(iframe); } catch {}
+        resolve();
+      };
+
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        cleanup();
+      };
+
+      iframe.contentWindow?.addEventListener('afterprint', finish);
+      const fallbackTimer = setTimeout(finish, 20000);
+      iframe.contentWindow?.addEventListener('afterprint', () => clearTimeout(fallbackTimer));
+
+      // Logotip yuklanmasdan chop etilsa, chek boshida bo'sh joy yoki yarim
+      // rasm qoladi. Sekin tarmoqda kassir kutib qolmasligi uchun cheklov bor.
+      const images = Array.from(doc.querySelectorAll('img'));
+      const pending = images
+        .filter((img) => !img.complete)
+        .map((img) => new Promise<void>((res) => {
+          img.addEventListener('load', () => res(), { once: true });
+          img.addEventListener('error', () => res(), { once: true });
+        }));
+
+      Promise.race([
+        Promise.all(pending),
+        new Promise((res) => setTimeout(res, 1500)),
+      ]).then(() => {
+        try { iframe.contentWindow?.print(); } catch { finish(); }
+      });
+    });
   });
 }
 

@@ -47,6 +47,7 @@ import { TableMoveModal } from './components/TableMoveModal';
 import { CashDrawerModal } from './components/CashDrawerModal';
 import { ProductModifierModal } from './components/ProductModifierModal';
 import { AralashNumpadModal } from './components/AralashNumpadModal';
+import { UnsavedCartModal } from './components/UnsavedCartModal';
 import { PrinterSettingsModal } from './components/PrinterSettingsModal';
 import { ThermalPrintArea } from './components/ThermalPrintArea';
 import { CategoryCard } from './components/CategoryCard';
@@ -139,6 +140,7 @@ export default function App() {
 
   const [showTableMoveModal, setShowTableMoveModal] = useState<boolean>(false);
   const [showCashDrawerModal, setShowCashDrawerModal] = useState<boolean>(false);
+  const [showUnsavedCartModal, setShowUnsavedCartModal] = useState<boolean>(false);
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(() => {
     try {
@@ -908,6 +910,7 @@ export default function App() {
         setShowShiftReport(false);
         setShowTableMoveModal(false);
         setShowCashDrawerModal(false);
+        setShowUnsavedCartModal(false);
         setKitchenSlipData(null);
       }
     };
@@ -1508,7 +1511,7 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 2500);
   }, [orders, tableCarts, isOfflineMode, getActiveCafeId, getAuthHeaders, queuePatchForSync, queueDeleteForSync]);
 
-  const handleCloseTable = useCallback(async (tableNum?: string) => {
+  const handleCloseTable = useCallback(async (tableNum?: string, skipConfirm = false) => {
     const targetTable = (typeof tableNum === 'string' && tableNum.trim()) ? tableNum.trim() : selectedTable;
     const normTarget = targetTable.trim().toLowerCase();
     const currentCart = tableCarts[targetTable] || [];
@@ -1523,10 +1526,10 @@ export default function App() {
     let currentOrders = [...ordersRef.current];
 
     if (currentCart.length > 0) {
-      const confirmClose = window.confirm(
-        `Savatchada yuborilmagan taomlar bor!\n\nUlar avtomatik oshxonaga yuborilib, to'lov qilinib stol yopilsinmi?`
-      );
-      if (!confirmClose) return;
+      if (!skipConfirm) {
+        setShowUnsavedCartModal(true);
+        return;
+      }
 
       const newItems = currentCart.map(c => ({
         id: c.product.id,
@@ -2241,6 +2244,18 @@ export default function App() {
           setCustomCardAmount(card.toString());
         }}
         onClose={() => setShowAralashModal(false)}
+      />
+
+      <UnsavedCartModal
+        show={showUnsavedCartModal}
+        tableNumber={selectedTable}
+        cart={cart}
+        subtotal={draftSubtotal}
+        onConfirm={() => {
+          setShowUnsavedCartModal(false);
+          handleCloseTable(selectedTable, true);
+        }}
+        onClose={() => setShowUnsavedCartModal(false)}
       />
 
       <ToastNotification message={toastMessage} />

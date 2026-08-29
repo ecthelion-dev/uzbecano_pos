@@ -1,13 +1,15 @@
 import React from 'react';
 import { UtensilsCrossed, Printer, PenLine } from 'lucide-react';
 import { KitchenSlipData } from '../types';
+import { printKitchenSlipDirect } from '../lib/printer';
 
 interface KitchenSlipModalProps {
   data: KitchenSlipData | null;
+  cafeName?: string;
   onClose: () => void;
 }
 
-export const KitchenSlipModal: React.FC<KitchenSlipModalProps> = ({ data, onClose }) => {
+export const KitchenSlipModal: React.FC<KitchenSlipModalProps> = ({ data, cafeName, onClose }) => {
   if (!data) return null;
 
   return (
@@ -44,8 +46,10 @@ export const KitchenSlipModal: React.FC<KitchenSlipModalProps> = ({ data, onClos
 
         <div className="flex items-center gap-3 pt-1">
           <button
-            onClick={() => {
-              window.print();
+            onClick={async () => {
+              // Avval printerga to'g'ridan-to'g'ri; ishlamasa brauzer orqali.
+              const ok = await printKitchenSlipDirect(data, cafeName || 'OrderPlus');
+              if (!ok) window.print();
               onClose();
             }}
             className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"

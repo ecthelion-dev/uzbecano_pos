@@ -59,7 +59,7 @@ import { KitchenItemRow } from './components/KitchenItemRow';
 import { POSHeader } from './components/POSHeader';
 import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
-import { executePrintReceipt, executePrintKitchenSlip, getPrinterSettings } from './lib/printer';
+import { executePrintReceipt, executePrintKitchenSlip, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, getLastPrintError } from './lib/printer';
 import { Wallet } from 'lucide-react';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
@@ -1115,6 +1115,26 @@ export default function App() {
     };
   }, [periodPrint]);
 
+  /**
+   * Qo'lda chop etish tugmalari uchun.
+   *
+   * Avval ESC/POS bilan printerga to'g'ridan-to'g'ri yuboriladi; u yo'q yoki
+   * ishlamasa, eskisidek brauzer chop etishiga tushadi — ya'ni hech qaysi
+   * tugma ishlashdan to'xtamaydi.
+   */
+  const printReceiptOrFallback = useCallback(async (order: any) => {
+    if (!order) { window.print(); return; }
+    const ok = await printReceiptDirect(order, connectedCafeName || 'OrderPlus');
+    if (!ok) {
+      const why = getLastPrintError();
+      if (why) {
+        setToastMessage(`Printerga to'g'ridan-to'g'ri yuborilmadi: ${why}`);
+        setTimeout(() => setToastMessage(null), 6000);
+      }
+      window.print();
+    }
+  }, [connectedCafeName]);
+
   const requestAdminPin = useCallback((action: (approvalToken?: string) => void) => {
     setAdminPinAction(() => action);
     setShowAdminPinModal(true);
@@ -1341,12 +1361,23 @@ export default function App() {
       cardAmount: cardAmt,
     };
 
-    // Prints the hidden ThermalPrintArea below. A printer connected over serial
-    // or Bluetooth is driven directly by lib/printer.ts on the close path; this
-    // button is the manual reprint, and goes through whatever printer the
-    // operating system owns.
-    window.print();
-  }, [activeTableOrderItems, cart, paymentMethod, customCashAmount, grandTotal, currentWaiter, selectedTable, subtotal, discountPercent, discountAmount, serviceFeePercent, serviceFee]);
+    // Avval printerga to'g'ridan-to'g'ri, bo'lmasa pastdagi yashirin
+    // ThermalPrintArea brauzer orqali chop etiladi.
+    printReceiptOrFallback({
+      id: activeTableOrder?.id || selectedTable,
+      createdAt: new Date().toISOString(),
+      tableNumber: selectedTable,
+      waiterName: currentWaiter?.name || '',
+      items: allItems,
+      subtotal,
+      discount: discountAmount,
+      serviceFee,
+      total: grandTotal,
+      paymentMethod,
+      cashAmount: cashAmt,
+      cardAmount: cardAmt,
+    });
+  }, [activeTableOrderItems, cart, paymentMethod, customCashAmount, grandTotal, currentWaiter, selectedTable, subtotal, discountPercent, discountAmount, serviceFeePercent, serviceFee, activeTableOrder, printReceiptOrFallback]);
 
   const handleAddCashTransaction = useCallback((type: 'kirim' | 'chiqim', amount: number, note: string) => {
     const newTx: CashTransaction = {
@@ -2138,7 +2169,22 @@ export default function App() {
         cafeAddress={connectedCafeAddress}
         cafePhone={connectedCafePhone}
         onClose={() => setShowReceiptPreview(false)}
-        onPrint={() => window.print()}
+        onPrint={() => printReceiptOrFallback({
+          id: activeTableOrder?.id || selectedTable,
+          createdAt: new Date().toISOString(),
+          tableNumber: selectedTable,
+          waiterName: currentWaiter?.name || '',
+          items: [...activeTableOrderItems, ...cart.map(c => ({
+            name: c.product.name, quantity: c.quantity, price: c.product.price, note: c.note,
+          }))],
+          subtotal,
+          discount: discountAmount,
+          serviceFee,
+          total: grandTotal,
+          paymentMethod,
+          cashAmount: paymentMethod === 'aralash' ? Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0)) : paymentMethod === 'naqd' ? grandTotal : 0,
+          cardAmount: paymentMethod === 'aralash' ? Math.max(0, Number(customCardAmount) || 0) : paymentMethod === 'karta' ? grandTotal : 0,
+        })}
       />
 
       <ArchiveModal
@@ -2163,11 +2209,12 @@ export default function App() {
           })
         }
         onClose={() => setShowArchiveModal(false)}
-        onPrint={() => window.print()}
+        onPrint={() => printReceiptOrFallback(selectedArchiveOrder)}
       />
 
       <KitchenSlipModal
         data={kitchenSlipData}
+        cafeName={connectedCafeName}
         onClose={() => setKitchenSlipData(null)}
       />
 

@@ -265,18 +265,47 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
 
   // Totals
   const subtotal = items.reduce((s: number, i: any) => s + ((i.quantity || 1) * (i.unitPrice || i.price || 0)), 0);
-  const serviceFee = order.serviceFee || Math.round(subtotal * 0.1);
-  const total = order.total || (subtotal + serviceFee);
+  // `|| 0.1` xizmat haqi nol bo'lgan kafeda ham 10% chiqarardi: nol qiymat
+  // JavaScript'da yolg'on hisoblanadi, ya'ni "haqi yo'q" va "haqi berilmagan"
+  // bir xil ko'rinardi. Foiz ham qotib qolgan edi — endi haqiqiy summadan
+  // hisoblanadi va chekdagi raqam bilan doim mos tushadi.
+  const serviceFee = Number.isFinite(Number(order.serviceFee)) ? Number(order.serviceFee) : 0;
+  const discount = Number(order.discount) || 0;
+  const total = Number.isFinite(Number(order.total)) ? Number(order.total) : subtotal + serviceFee - discount;
+  const feePercent = subtotal > 0 ? Math.round((serviceFee / subtotal) * 100) : 0;
 
   enc.twoColumn('Kichik jami:', `${subtotal.toLocaleString()} so'm`, settings.paperWidth);
-  enc.twoColumn('Xizmat (10%):', `${serviceFee.toLocaleString()} so'm`, settings.paperWidth);
+  if (discount > 0) {
+    enc.twoColumn('Chegirma:', `-${discount.toLocaleString()} so'm`, settings.paperWidth);
+  }
+  if (serviceFee > 0) {
+    enc.twoColumn(`Xizmat (${feePercent}%):`, `${serviceFee.toLocaleString()} so'm`, settings.paperWidth);
+  }
   enc.divider(settings.paperWidth);
 
   enc.align('center').bold(true).size(2, 2).line(`JAMI: ${total.toLocaleString()} SO'M`);
   enc.size(1, 1).bold(false);
   
+  // Kassa 'naqd' / 'karta' / 'aralash' yuboradi, bu yerda esa 'cash'
+  // tekshirilardi — ya'ni naqd to'lov ham "Plastik karta" bo'lib chiqardi.
   if (order.paymentMethod) {
-    enc.line(`To'lov turi: ${order.paymentMethod === 'cash' ? 'Naqd pul' : 'Plastik karta'}`);
+    const labels: Record<string, string> = {
+      naqd: 'Naqd pul',
+      cash: 'Naqd pul',
+      karta: 'Plastik karta',
+      card: 'Plastik karta',
+      aralash: 'Aralash',
+    };
+    enc.line(`To'lov turi: ${labels[String(order.paymentMethod)] || String(order.paymentMethod)}`);
+
+    // Aralash to'lovda qaysi qismi naqd, qaysi qismi karta ekani chekda
+    // ko'rinmasa, kassir smena oxirida kassani solishtira olmaydi.
+    const cash = Number(order.cashAmount) || 0;
+    const card = Number(order.cardAmount) || 0;
+    if (cash > 0 && card > 0) {
+      enc.twoColumn('  Naqd:', `${cash.toLocaleString()} so'm`, settings.paperWidth);
+      enc.twoColumn('  Karta:', `${card.toLocaleString()} so'm`, settings.paperWidth);
+    }
   }
 
   enc.divider(settings.paperWidth);
@@ -435,6 +464,8 @@ export interface SystemPrinter {
   isDefault: boolean;
 }
 
+let lastPrintError: string | null = null;
+
 /** Desktop ilovada tizimda o'rnatilgan printerlar ro'yxati. */
 export async function listSystemPrinters(): Promise<SystemPrinter[]> {
   if (!IS_DESKTOP_APP) return [];
@@ -457,18 +488,31 @@ export async function listSystemPrinters(): Promise<SystemPrinter[]> {
  * `false` qaytsa chaqiruvchi eski usulga (brauzer chop etishiga) tushadi.
  */
 async function sendToSystemPrinter(bytes: Uint8Array, printerName?: string): Promise<boolean> {
-  if (!IS_DESKTOP_APP) return false;
+  if (!IS_DESKTOP_APP) {
+    lastPrintError = 'Desktop ilova emas';
+    return false;
+  }
   try {
     const { invoke } = await import('@tauri-apps/api/core');
     await invoke('print_raw', {
       printer: printerName && printerName.trim() ? printerName.trim() : null,
       data: Array.from(bytes),
     });
+    lastPrintError = null;
     return true;
   } catch (e) {
+    // Sabab saqlanadi: jimgina brauzer chop etishiga tushib ketish "nega
+    // termal printerdan HTML sahifa chiqdi?" degan savolni javobsiz
+    // qoldirardi. Endi kassir ekranda sababini ko'radi.
+    lastPrintError = String((e as any)?.message || e);
     console.warn('Tizim printeriga yuborib bo\'lmadi:', e);
     return false;
   }
+}
+
+/** Oxirgi muvaffaqiyatsiz to'g'ridan-to'g'ri chop etishning sababi. */
+export function getLastPrintError(): string | null {
+  return lastPrintError;
 }
 
 /**
@@ -482,6 +526,43 @@ async function tryDesktopPrint(settings: PrinterSettings, bytes: Uint8Array): Pr
   if (!IS_DESKTOP_APP) return false;
   if (settings.mode === 'bluetooth' || settings.mode === 'serial') return false;
   return sendToSystemPrinter(bytes, settings.systemPrinterName);
+}
+
+/**
+ * Chekni to'g'ridan-to'g'ri printerga yuborishga urinadi.
+ *
+ * `false` qaytsa chaqiruvchi o'zining eski yo'liga (window.print) tushadi.
+ * Qo'lda bosiladigan chop etish tugmalari shu orqali o'tadi: ilgari ular
+ * ESC/POS yo'lini butunlay chetlab, brauzer chop etishini chaqirardi va
+ * termal printerdan HTML sahifa bo'lib chiqardi.
+ */
+export async function printReceiptDirect(order: any, cafeName: string): Promise<boolean> {
+  const settings = getPrinterSettings();
+  const bytes = generateEscPosReceipt(order, cafeName, settings);
+  if (await tryDesktopPrint(settings, bytes)) return true;
+  if (settings.mode === 'bluetooth' || settings.mode === 'serial' || activeBluetoothCharacteristic || activeSerialPort) {
+    try {
+      return await sendRawToPrinter(bytes);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+/** Oshxona kvitansiyasi uchun xuddi shunday. */
+export async function printKitchenSlipDirect(data: any, cafeName: string): Promise<boolean> {
+  const settings = getPrinterSettings();
+  const bytes = generateEscPosKitchenSlip(data, cafeName, settings);
+  if (await tryDesktopPrint(settings, bytes)) return true;
+  if (settings.mode === 'bluetooth' || settings.mode === 'serial' || activeBluetoothCharacteristic || activeSerialPort) {
+    try {
+      return await sendRawToPrinter(bytes);
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 // Print Receipt Execution (Direct or Universal Browser Print)

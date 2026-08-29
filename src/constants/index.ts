@@ -24,8 +24,13 @@ function resolveApiBaseUrl(): string {
 
   const fromBuild = (import.meta as any).env?.VITE_API_URL;
   if (fromBuild) {
-    const servedLocally = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const servedLocally = ['localhost', '127.0.0.1', 'tauri.localhost'].includes(window.location.hostname);
     if (servedLocally) return String(fromBuild).replace(/\/+$/, '');
+  }
+
+  const isDesktop = ['localhost', '127.0.0.1', 'tauri.localhost', ''].includes(window.location.hostname) || !!(window as any).__TAURI_INTERNALS__;
+  if (isDesktop) {
+    return 'https://pos.orderplus.uz';
   }
 
   return '';

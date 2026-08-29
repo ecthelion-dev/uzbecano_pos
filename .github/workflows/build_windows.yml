@@ -6,29 +6,42 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-tauri:
+    permissions:
+      contents: write
     runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          flutter-version: '3.x'
-          channel: 'stable'
+          node-version: 20
+          cache: 'npm'
 
-      - name: Enable Windows Desktop
-        run: flutter config --enable-windows-desktop
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install dependencies
-        run: flutter pub get
+        run: npm ci
 
-      - name: Build Windows EXE
-        run: flutter build windows --release
+      - name: Build Tauri Desktop App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'Uzbecano POS v__VERSION__'
+          releaseBody: 'Uzbecano POS Windows Desktop Release'
+          releaseDraft: false
+          prerelease: false
 
-      - name: Upload Artifact
+      - name: Upload Windows Bundle Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
-          path: build/windows/x64/runner/Release/
+          name: uzbecano-pos-windows
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/*.exe

@@ -433,6 +433,65 @@ export default function App() {
   }, [getActiveCafeId, getAuthHeaders, sortOrders, persistOrders, fetchOrderHistory]);
 
   // Fetch static data once (products, categories, waiters, settings)
+  /**
+   * Serverdan kelgan sozlamalarga qarab kafe muzlatilgan-muzlatilmaganini
+   * qo'llaydi.
+   *
+   * Ilgari bu hisob faqat `fetchData` ichida edi — ya'ni ilova ishga
+   * tushganda va kirishdan keyin. Daqiqalik yangilanish sozlamalarni olardi,
+   * lekin holatga qaramasdi, shuning uchun ochiq turgan kassa to'lov muddati
+   * tugagach ham smena oxirigacha ishlayverardi.
+   */
+  const applyCafeStatus = useCallback((setts: any, cafeId: string): boolean => {
+    const rawEnd = setts?.subscriptionEnd ? new Date(setts.subscriptionEnd) : null;
+    const subEnd = rawEnd && !isNaN(rawEnd.getTime()) ? rawEnd : null;
+
+    // Sana keshga yoziladi: aloqa uzilgan paytda muddatni faqat shundan
+    // bilib olamiz (pastdagi oflayn kirish shuni o'qiydi).
+    if (subEnd) {
+      localStorage.setItem(`orderplus_${cafeId}_sub_end`, subEnd.toISOString());
+    }
+
+    const frozen = setts?.status === 'frozen'
+      || setts?.status === 'expired'
+      || (subEnd !== null && subEnd.getTime() < Date.now());
+
+    setIsCafeFrozen(frozen);
+    if (frozen) {
+      localStorage.setItem(`orderplus_${cafeId}_is_frozen`, 'true');
+      setCurrentWaiter(null);
+      setAuthToken(null);
+      clearSession(cafeId);
+    } else {
+      localStorage.removeItem(`orderplus_${cafeId}_is_frozen`);
+    }
+    return frozen;
+  }, []);
+
+  /**
+   * Server buyurtmani "muzlatilgan" deb rad etgan bo'lsa, kassani darhol shu
+   * holatga o'tkazadi.
+   *
+   * Busiz rad etilgan buyurtma oflayn navbatga tushib ketardi: kassir hech
+   * qanday xato ko'rmasdan ishlashda davom etar, chek esa hech qachon
+   * serverga yozilmasdi.
+   */
+  const applyFrozenFromResponse = useCallback(async (res: Response, cafeId: string): Promise<boolean> => {
+    if (res.ok || res.status !== 402) return false;
+    try {
+      const body = await res.clone().json();
+      if (!body?.isFrozen) return false;
+    } catch {
+      return false;
+    }
+    localStorage.setItem(`orderplus_${cafeId}_is_frozen`, 'true');
+    setIsCafeFrozen(true);
+    setCurrentWaiter(null);
+    setAuthToken(null);
+    clearSession(cafeId);
+    return true;
+  }, []);
+
   const fetchData = useCallback(async (): Promise<boolean> => {
     setLoading(true);
     setApiError(null);
@@ -529,16 +588,7 @@ export default function App() {
           localStorage.setItem(`orderplus_${cafeId}_phone`, setts.phone || '');
         }
 
-        const isFrozen = setts.status === 'frozen' || setts.status === 'expired' || (setts.subscriptionEnd && new Date(setts.subscriptionEnd).getTime() < Date.now());
-        setIsCafeFrozen(Boolean(isFrozen));
-        if (isFrozen) {
-          localStorage.setItem(`orderplus_${cafeId}_is_frozen`, 'true');
-          setCurrentWaiter(null);
-          setAuthToken(null);
-          clearSession(cafeId);
-        } else {
-          localStorage.removeItem(`orderplus_${cafeId}_is_frozen`);
-        }
+        applyCafeStatus(setts, cafeId);
       }
 
       // Startup is the one point where both are needed: the archive and shift
@@ -560,7 +610,7 @@ export default function App() {
     }
 
     return ok;
-  }, [getActiveCafeId, fetchOrders, fetchOrderHistory, fetchTableDefs, fetchWaiterCalls]);
+  }, [getActiveCafeId, fetchOrders, fetchOrderHistory, fetchTableDefs, fetchWaiterCalls, applyCafeStatus]);
 
   /**
    * Yangilash tugmasi. Avval bu faqat `fetchOrders` ni chaqirardi: u `loading`
@@ -622,11 +672,14 @@ export default function App() {
           setServiceFeePercent(setts.serviceFeePercent);
           localStorage.setItem('serviceFeePercent', String(setts.serviceFeePercent));
         }
+        // Muddat shu yerda ham tekshiriladi — kassa ochiq turganda uni
+        // to'xtatadigan yagona nuqta shu.
+        if (applyCafeStatus(setts, cafeId)) return;
       }
     } catch { }
 
     fetchTableDefs();
-  }, [getActiveCafeId, fetchTableDefs]);
+  }, [getActiveCafeId, fetchTableDefs, applyCafeStatus]);
 
   // A menu changes far less often than a ticket does, so once a minute is
   // plenty; coming back to the window checks immediately, which covers the
@@ -746,7 +799,7 @@ export default function App() {
     const rejectedLabels: string[] = [];
     let anySucceeded = false;
 
-    for (const item of queue) {
+    for (const [idx, item] of queue.entries()) {
       const blockedOrderId = item.kind === 'create' ? item.order?.id : item.orderId;
       if (blockedOrderId && failedOrderIds.has(blockedOrderId)) {
         remaining.push(item);
@@ -775,6 +828,12 @@ export default function App() {
 
         if (res.ok) {
           anySucceeded = true;
+        } else if (await applyFrozenFromResponse(res, cafeId)) {
+          // Kafe muzlatilgan: navbatni davom ettirish befoyda, ekran baribir
+          // muzlatish oynasiga o'tadi. Shu amaldan boshlab hammasi navbatda
+          // qoladi va to'lovdan keyin o'zi yuboriladi.
+          remaining.push(...queue.slice(idx));
+          break;
         } else if (isRetryableStatus(res.status)) {
           remaining.push(item);
           if (blockedOrderId) failedOrderIds.add(blockedOrderId);
@@ -810,7 +869,7 @@ export default function App() {
     }
 
     if (anySucceeded) fetchOrders();
-  }, [getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, writeSyncQueue]);
+  }, [getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, writeSyncQueue, applyFrozenFromResponse]);
 
   useEffect(() => {
     const interval = setInterval(syncOfflineOrders, 10000);
@@ -1321,6 +1380,9 @@ export default function App() {
               headers: getAuthHeaders(),
               body: JSON.stringify({ ...newOrderObj, idempotencyKey: newOrderObj.id })
             });
+            // Muzlatilgan kafening buyurtmasi navbatga qo'yilmaydi: server uni
+            // hech qachon qabul qilmaydi, kassa esa shu zahoti muzlaydi.
+            if (await applyFrozenFromResponse(res, getActiveCafeId())) return;
             if (!res.ok) queueOrderForSync(newOrderObj);
           } catch {
             queueOrderForSync(newOrderObj);
@@ -1355,7 +1417,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Ulanish xatosi: ${err.message || err}`);
     }
-  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync]);
+  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse]);
 
   const handlePrint = useCallback(async () => {
     const allItems = [
@@ -1794,6 +1856,21 @@ export default function App() {
         } else {
           // Server yo'q — keshdagi hisob ma'lumotlari bilan oflayn kiramiz.
           const cid = currentCid;
+
+          // Muddat oflaynda ham tekshiriladi: aloqa uzilishidan oldin olingan
+          // sana bo'yicha. Busiz muzlatishdan qutulish uchun kassaning
+          // tarmog'ini uzib qo'yish kifoya edi.
+          const cachedEnd = localStorage.getItem(`orderplus_${cid}_sub_end`);
+          if (cachedEnd) {
+            const endMs = new Date(cachedEnd).getTime();
+            if (!isNaN(endMs) && endMs < Date.now()) {
+              localStorage.setItem(`orderplus_${cid}_is_frozen`, 'true');
+              setIsCafeFrozen(true);
+              setPinInput('');
+              return;
+            }
+          }
+
           let result = null;
           try {
             result = await verifyCachedPin(cid, nextPin);

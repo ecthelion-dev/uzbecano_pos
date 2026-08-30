@@ -71,7 +71,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
         const q = archiveSearch.toLowerCase();
         const matchTable = (ord.tableNumber || '').toLowerCase().includes(q);
         const matchId = (ord.id || '').toLowerCase().includes(q);
-        const matchWaiter = (ord.waiterName || '').toLowerCase().includes(q);
+        const matchWaiter = (ord.closedBy || ord.waiterName || '').toLowerCase().includes(q);
         if (!matchTable && !matchId && !matchWaiter) return false;
       }
 
@@ -221,7 +221,12 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                   <p className="text-xs text-slate-600 font-medium">Sana: {new Date(selectedArchiveOrder.closedAt).toLocaleString('uz-UZ')}</p>
                 )}
                 <p className="text-xs text-slate-900 font-bold mt-0.5">
-                  Offitsiant: {selectedArchiveOrder.waiterName || currentWaiter?.name || 'Xodim'}
+                  {/* closedBy — serverda qayd etilgan, to'lovni qabul qilgan
+                      xodim. Ilgari bu yerda `currentWaiter` zaxira sifatida
+                      turardi va har bir eski chekka hozir kassada turgan
+                      odamning nomini yozib qo'yardi. Ma'lum bo'lmasa ochiq
+                      aytiladi, taxmin qilinmaydi. */}
+                  Offitsiant: {selectedArchiveOrder.closedBy || selectedArchiveOrder.waiterName || "Noma'lum"}
                 </p>
               </div>
 
@@ -539,7 +544,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                           </span>
                         </div>
                         <p className="text-xs text-slate-500 font-medium flex items-center gap-2 sm:gap-2.5 flex-wrap">
-                          {ord.waiterName && <span className="flex items-center gap-0.5"><User className="w-3 h-3" />{ord.waiterName}</span>}
+                          {(ord.closedBy || ord.waiterName) && <span className="flex items-center gap-0.5"><User className="w-3 h-3" />{ord.closedBy || ord.waiterName}</span>}
                           <span className="flex items-center gap-0.5"><Utensils className="w-3 h-3" />{itemsCount} ta taom</span>
                           <span>•</span>
                           <span className="font-semibold text-slate-700">

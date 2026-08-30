@@ -55,12 +55,61 @@ export function savePrinterSettings(settings: PrinterSettings) {
 const ESC = 0x1B;
 const GS = 0x1D;
 
+/*
+ * Termal printer UTF-8 tushunmaydi.
+ *
+ * U bir baytli kod sahifasi bilan ishlaydi va qaysi biri ekanini `ESC t n`
+ * aytadi. Ilgari matn TextEncoder orqali UTF-8 bo'lib ketardi: lotin
+ * harflari tasodifan to'g'ri chiqardi, kirill va o'zbekcha `oʻ`/`gʻ` esa
+ * axlat bo'lardi. Ustiga-ustak ustunlar belgi soni bo'yicha tekislanardi,
+ * printer esa baytlarni sanaydi — ko'p baytli matnda ustunlar siljirdi.
+ *
+ * Yechim: CP866 (ESC t 17) tanlanadi — kirillni qo'llab-quvvatlaydigan eng
+ * keng tarqalgan sahifa — va matn shu sahifaga o'giriladi. Unda yo'q
+ * belgilar (`ʻ`, tire, tirnoq) ASCII muqobiliga almashtiriladi.
+ */
+const CP866_CYRILLIC = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя';
+
+/** Kod sahifasida yo'q, lekin matnda tez-tez uchraydigan belgilar. */
+const ASCII_FALLBACKS: Record<string, string> = {
+  '\u02BB': "'", '\u02BC': "'", '\u2018': "'", '\u2019': "'",
+  '\u201C': '"', '\u201D': '"',
+  '\u2013': '-', '\u2014': '-', '\u2212': '-',
+  '\u00A0': ' ', '\u2026': '...',
+};
+
+function toCp866(str: string): number[] {
+  const out: number[] = [];
+  for (const ch of str.normalize('NFC')) {
+    const mapped = ASCII_FALLBACKS[ch] ?? ch;
+    for (const c of mapped) {
+      const code = c.charCodeAt(0);
+      if (code < 0x80) { out.push(code); continue; }
+      const idx = CP866_CYRILLIC.indexOf(c);
+      if (idx >= 0) {
+        // CP866: А-п = 0x80-0xAF, р-я = 0xE0-0xEF
+        out.push(idx < 48 ? 0x80 + idx : 0xE0 + (idx - 48));
+        continue;
+      }
+      if (c === 'Ё') { out.push(0xF0); continue; }
+      if (c === 'ё') { out.push(0xF1); continue; }
+      out.push(0x3F); // '?'
+    }
+  }
+  return out;
+}
+
+/** Chop etilgandagi haqiqiy ustun kengligi (belgi soni emas, bayt soni). */
+function printedWidth(str: string): number {
+  return toCp866(str).length;
+}
+
 class EscPosEncoder {
   private buffer: number[] = [];
-  private static textEncoder = new TextEncoder();
 
   init() {
     this.buffer.push(ESC, 0x40); // Initialize printer
+    this.buffer.push(ESC, 0x74, 17); // ESC t 17 -> CP866
     return this;
   }
 
@@ -82,10 +131,7 @@ class EscPosEncoder {
   }
 
   text(str: string) {
-    const bytes = EscPosEncoder.textEncoder.encode(str);
-    for (let i = 0; i < bytes.length; i++) {
-      this.buffer.push(bytes[i]);
-    }
+    for (const b of toCp866(str)) this.buffer.push(b);
     return this;
   }
 
@@ -105,7 +151,9 @@ class EscPosEncoder {
 
   twoColumn(left: string, right: string, paperWidth: '58mm' | '80mm' = '58mm') {
     const totalCols = paperWidth === '80mm' ? 48 : 32;
-    const spaceCount = Math.max(1, totalCols - left.length - right.length);
+    // Kenglik chop etiladigan baytlar bo'yicha o'lchanadi: `.length` UTF-16
+    // birliklarini sanaydi va kirill matnda ustunlarni siljitib yuborardi.
+    const spaceCount = Math.max(1, totalCols - printedWidth(left) - printedWidth(right));
     this.line(left + ' '.repeat(spaceCount) + right);
     return this;
   }

@@ -47,6 +47,8 @@ export interface DBOrder {
   subtotal?: number;
   serviceFee?: number;
   closedAt?: string;
+  /** To'lovni qabul qilgan xodim — serverda qayd etiladi, klientda emas. */
+  closedBy?: string;
   createdAt?: string;
   discountPercent?: number;
   discountAmount?: number;

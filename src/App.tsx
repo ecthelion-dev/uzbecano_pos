@@ -1135,6 +1135,35 @@ export default function App() {
     }
   }, [connectedCafeName]);
 
+  /**
+   * Davr hisoboti uchun buyurtmalarni serverdan aniq oraliq bilan oladi.
+   *
+   * Ilgari hisobot kassadagi keshdan filtrlanardi, kesh esa serverdan faqat
+   * oxirgi 200 ta chekni olardi. Band kafeda "oxirgi oy" hisoboti ikki
+   * kunlik ma'lumotdan chiqib, to'g'ridek ko'rinardi. Endi oraliq serverga
+   * so'raladi; natija baribir kesilgan bo'lsa, kassir buni biladi.
+   */
+  const fetchOrdersForPeriod = useCallback(async (from: Date | null, to: Date | null, fallback: DBOrder[]): Promise<DBOrder[]> => {
+    if (!from && !to) return fallback;
+    try {
+      const cafeId = getActiveCafeId();
+      const params = new URLSearchParams({ cafeId, limit: '2000' });
+      if (from) params.set('from', from.toISOString());
+      if (to) params.set('to', to.toISOString());
+      const res = await fetch(`${API_BASE_URL}/api/orders?${params}`, { cache: 'no-store', headers: getAuthHeaders() });
+      if (!res.ok) return fallback;
+      const data = await res.json();
+      if (!Array.isArray(data)) return fallback;
+      if (res.headers.get('X-Result-Truncated') === '1') {
+        setToastMessage("Diqqat: davr juda katta, hisobot to'liq emas");
+        setTimeout(() => setToastMessage(null), 6000);
+      }
+      return data as DBOrder[];
+    } catch {
+      return fallback;
+    }
+  }, [getActiveCafeId, getAuthHeaders]);
+
   const requestAdminPin = useCallback((action: (approvalToken?: string) => void) => {
     setAdminPinAction(() => action);
     setShowAdminPinModal(true);
@@ -2200,14 +2229,15 @@ export default function App() {
         onSearchChange={setArchiveSearch}
         onSelectArchiveOrder={setSelectedArchiveOrder}
         onRefundOrder={handleRefundOrder}
-        onPrintPeriod={(periodOrders, from, to) =>
+        onPrintPeriod={async (periodOrders, from, to) => {
+          const full = await fetchOrdersForPeriod(from, to, periodOrders);
           setPeriodPrint({
-            orders: periodOrders,
+            orders: full,
             from,
             to,
             printedBy: currentWaiter?.name || '',
-          })
-        }
+          });
+        }}
         onClose={() => setShowArchiveModal(false)}
         onPrint={() => printReceiptOrFallback(selectedArchiveOrder)}
       />

@@ -57,7 +57,10 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
       {table.status === 'band' ? (
         <div className="bg-[#2A2D2F] p-1.5 sm:p-2 rounded-xl border border-[#3A3E41] flex items-center justify-between gap-1 min-w-0">
           <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium shrink-0">Jami:</span>
-          <span className="text-[11px] sm:text-xs text-white font-bold truncate whitespace-nowrap">{table.total.toLocaleString()} so'm</span>
+          {/* Valyuta nomi ataylab yozilmaydi: kartochka tor va "so'm" summani
+              qirqib, "15,000 s..." qilib qo'yardi — ya'ni birlik uchun eng
+              kerakli narsa, raqamning o'zi yo'qolardi. */}
+          <span className="text-[11px] sm:text-xs text-white font-bold truncate whitespace-nowrap">{table.total.toLocaleString()}</span>
         </div>
       ) : (
         <div className="py-0.5 min-w-0">

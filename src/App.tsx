@@ -1281,10 +1281,18 @@ export default function App() {
         queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
       }
 
-      const updatedOrders = orders.map(o => o.id === activeTableOrder.id ? { ...o, items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot } : o);
+      // Oxirgi taom olib tashlandi — server buyurtmani bekor qiladi va stol
+      // bo'shaydi. Shuni mahalliy holatga ham yozamiz: aks holda stol keyingi
+      // so'rovgacha (5-20 soniya) BAND bo'lib turardi.
+      const emptied = updatedItems.length === 0;
+      const updatedOrders = orders.map(o => o.id === activeTableOrder.id
+        ? { ...o, items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot, ...(emptied ? { status: 'cancelled' } : {}) }
+        : o);
       setOrders(updatedOrders);
       localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
-      setToastMessage('Taom oshxona buyurtmasidan bekor qilindi!');
+      setToastMessage(emptied
+        ? "Buyurtmada taom qolmadi — stol bo'shatildi"
+        : 'Taom oshxona buyurtmasidan bekor qilindi!');
       setTimeout(() => setToastMessage(null), 2500);
     });
   }, [activeTableOrder, activeTableOrderItems, orders, isOfflineMode, requestAdminPin, getActiveCafeId, getAuthHeaders, queuePatchForSync]);

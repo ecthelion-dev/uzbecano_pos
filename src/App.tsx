@@ -949,6 +949,22 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  /**
+   * Stollarga o'tilganda menyu boshiga qaytariladi.
+   *
+   * Tanlangan kategoriya va qidiruv ilgari bo'limlar almashganda ham saqlanib
+   * qolardi: kassir zalni ko'rish uchun STOLLAR ga chiqib, MENYU ga qaytganda
+   * kategoriyalar o'rniga oldingi taomlar ro'yxatiga tushardi. Yangi stol
+   * ochilganda ham o'sha ro'yxat chiqar, ya'ni boshqa stolning buyurtmasi
+   * eski kategoriyadan boshlanardi.
+   */
+  useEffect(() => {
+    if (activeTab !== 'stollar') return;
+    setSelectedCategoryName(null);
+    setSearchQuery('');
+    setShowMobileSearch(false);
+  }, [activeTab]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);

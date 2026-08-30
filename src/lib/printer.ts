@@ -13,8 +13,14 @@ export interface PrinterSettings {
    */
   systemPrinterName?: string;
   paperWidth: '58mm' | '80mm';
+  /**
+   * Hisob yopilganda mijoz cheki o'zi chop etiladimi.
+   *
+   * Oshxona kvitansiyasi uchun juftlik sozlama yo'q: u ataylab har doim
+   * qo'lda chiqariladi — buyurtma tasdiqlangach modal ochiladi va qog'oz
+   * faqat kassir chop etishni tanlasa ketadi.
+   */
   autoPrintReceipt: boolean;
-  autoPrintKitchen: boolean;
   headerText: string;
   footerText: string;
   openCashDrawer: boolean;
@@ -25,7 +31,6 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   systemPrinterName: '',
   paperWidth: '58mm',
   autoPrintReceipt: true,
-  autoPrintKitchen: true,
   headerText: "Xush kelibsiz!",
   footerText: "Tashrifingiz uchun rahmat!",
   openCashDrawer: true,

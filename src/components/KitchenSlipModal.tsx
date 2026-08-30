@@ -12,6 +12,37 @@ interface KitchenSlipModalProps {
 export const KitchenSlipModal: React.FC<KitchenSlipModalProps> = ({ data, cafeName, onClose }) => {
   if (!data) return null;
 
+  /**
+   * Chek faqat shu yerdan chiqadi — buyurtma tasdiqlanishi o'zi qog'oz
+   * sarflamaydi.
+   *
+   * Avval to'g'ridan-to'g'ri ESC/POS, u ishlamasa brauzer orqali. Brauzer
+   * yo'lida `body` ga klass qo'yiladi: mijoz cheki (#thermal-print-area)
+   * DOM da doim turadi va klasssiz qog'ozga oshxona buyurtmasi o'rniga
+   * o'sha tushardi. Modal esa chop etish tugagach yopiladi — aks holda
+   * kvitansiya DOM dan chop etilishga ulgurmay yo'qolib ketishi mumkin.
+   */
+  const handlePrint = async () => {
+    const ok = await printKitchenSlipDirect(data, cafeName || 'OrderPlus');
+    if (ok) {
+      onClose();
+      return;
+    }
+
+    document.body.classList.add('printing-kitchen');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      document.body.classList.remove('printing-kitchen');
+      onClose();
+    };
+    // `afterprint` ba'zi brauzerlarda umuman chaqirilmaydi — taymer zaxira.
+    window.addEventListener('afterprint', finish, { once: true });
+    setTimeout(finish, 20000);
+    window.print();
+  };
+
   return (
     <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fadeIn">
       <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-t-3xl sm:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4 border border-slate-200 max-h-[92dvh] overflow-y-auto">
@@ -22,7 +53,7 @@ export const KitchenSlipModal: React.FC<KitchenSlipModalProps> = ({ data, cafeNa
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg font-semibold cursor-pointer">×</button>
         </div>
 
-        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 font-mono text-sm text-slate-900 space-y-3">
+        <div id="kitchen-print-area" className="bg-slate-50 p-5 rounded-2xl border border-slate-200 font-mono text-sm text-slate-900 space-y-3">
           <div className="text-center border-b border-dashed border-slate-400 pb-3 space-y-1">
             <h4 className="font-bold text-base tracking-wider uppercase text-slate-900">*** OSHXONA BUYURTMASI ***</h4>
             <p className="text-xs text-slate-600 font-semibold">{data.tableNumber} • {data.time}</p>
@@ -46,12 +77,7 @@ export const KitchenSlipModal: React.FC<KitchenSlipModalProps> = ({ data, cafeNa
 
         <div className="flex items-center gap-3 pt-1">
           <button
-            onClick={async () => {
-              // Avval printerga to'g'ridan-to'g'ri; ishlamasa brauzer orqali.
-              const ok = await printKitchenSlipDirect(data, cafeName || 'OrderPlus');
-              if (!ok) window.print();
-              onClose();
-            }}
+            onClick={handlePrint}
             className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
           >
             <Printer className="w-4 h-4" /> CHOP ETISH & YOPISH

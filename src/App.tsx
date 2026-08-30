@@ -59,7 +59,7 @@ import { KitchenItemRow } from './components/KitchenItemRow';
 import { POSHeader } from './components/POSHeader';
 import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
-import { executePrintReceipt, executePrintKitchenSlip, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, getLastPrintError } from './lib/printer';
+import { executePrintReceipt, getPrinterSettings, printReceiptDirect, getLastPrintError } from './lib/printer';
 import { Wallet } from 'lucide-react';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
@@ -1344,12 +1344,11 @@ export default function App() {
         time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
         timestamp: new Date().toISOString(),
       };
+      // Oshxona kvitansiyasi avtomatik chiqmaydi: modal ochiladi, qog'oz esa
+      // faqat kassir "Chop etish" tugmasini bosgandagina ketadi. Ilgari
+      // buyurtma tasdiqlanishi bilan chek chiqib ketardi — kassir uni
+      // xohlaydimi-yo'qmi, so'ralmasdi.
       setKitchenSlipData(kitchenPayload);
-
-      const pSettings = getPrinterSettings();
-      if (pSettings.autoPrintKitchen) {
-        executePrintKitchenSlip(kitchenPayload, connectedCafeName || 'OrderPlus');
-      }
 
       setToastMessage('Buyurtma oshxonaga yuborildi!');
       setTimeout(() => setToastMessage(null), 2500);

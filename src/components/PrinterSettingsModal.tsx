@@ -351,25 +351,18 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
             />
           </div>
 
-          <div
-            onClick={() => handleToggle('autoPrintKitchen')}
-            className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-orange-400 transition-all"
-          >
-            <div className="flex items-center gap-2.5">
-              <UtensilsCrossed className="w-4 h-4 text-blue-500" />
-              <div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Oshxonaga avtomatik kvitansiya chiqarish
-                </div>
-                <div className="text-[10px] text-slate-400">Buyurtma yuborilganda oshpazga chop etadi</div>
+          {/* Oshxona kvitansiyasi uchun tugmacha yo'q: u buyurtma
+              tasdiqlangach chiqadigan modaldan qo'lda chop etiladi. */}
+          <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+            <UtensilsCrossed className="w-4 h-4 shrink-0 text-blue-500" />
+            <div>
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                Oshxona kvitansiyasi — qo&apos;lda
+              </div>
+              <div className="text-[10px] text-slate-400">
+                Buyurtma tasdiqlangach oyna ochiladi; chek faqat &laquo;Chop etish&raquo; bosilganda chiqadi
               </div>
             </div>
-            <input
-              type="checkbox"
-              checked={settings.autoPrintKitchen}
-              onChange={() => {}}
-              className="w-5 h-5 shrink-0 accent-orange-500 cursor-pointer"
-            />
           </div>
 
           <div

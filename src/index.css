@@ -118,6 +118,35 @@ a,
     page-break-inside: avoid;
   }
 
+  /* Oshxona kvitansiyasi modal ichidan chop etiladi (to'g'ridan-to'g'ri
+     ESC/POS yo'li ishlamaganda). Mijoz cheki DOM da doim turadi, shuning
+     uchun shu paytda u layoutdan olib tashlanadi — aks holda qog'ozga
+     oshxona buyurtmasi o'rniga o'sha tushadi. */
+  body.printing-kitchen #thermal-print-area {
+    display: none !important;
+  }
+
+  body.printing-kitchen #kitchen-print-area,
+  body.printing-kitchen #kitchen-print-area * {
+    visibility: visible !important;
+  }
+
+  body.printing-kitchen #kitchen-print-area {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: 0 !important;
+    width: 90% !important;
+    max-width: 90% !important;
+    margin: 0 auto !important;
+    padding: 4mm 2mm 10mm 2mm !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
   .print-text-dark {
     color: #000000 !important;
     font-weight: 700 !important;

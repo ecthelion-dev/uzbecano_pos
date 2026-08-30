@@ -1261,7 +1261,19 @@ export default function App() {
             headers: getAuthHeaders(approvalToken),
             body: JSON.stringify(patchBody)
           });
-          if (!res.ok) queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
+          if (!res.ok) {
+            if (!isRetryableStatus(res.status)) {
+              // Server printsipial rad etdi — masalan rahbar tasdig'i
+              // yaroqsiz. Mahalliy holatga tegmaymiz: ilgari taom ekrandan
+              // yo'qolar, keyingi so'rov uni qaytarib kelar va kassir nega
+              // qaytganini bilmasdi. Sababni aytamiz, taom joyida qoladi.
+              const why = await res.json().catch(() => null);
+              setToastMessage(why?.error || "Taomni o'chirib bo'lmadi");
+              setTimeout(() => setToastMessage(null), 5000);
+              return;
+            }
+            queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
+          }
         } catch {
           queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
         }

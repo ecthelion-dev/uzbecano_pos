@@ -1,7 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="128" fill="#ea580c"/>
-  <path d="M160 140v80a40 40 0 0 0 80 0v-80" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M200 140v140m0 0v100" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round"/>
-  <path d="M312 140v240M312 140c24 0 48 18 48 48v44c0 30-24 48-48 48" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="380" cy="160" r="16" fill="#fef08a"/>
+  <!--
+    OrderPlus belgisi.
+
+    Bu fayl ilgari butunlay boshqa rasm edi — to'q sariq kvadrat ichida
+    chiziqlar bilan chizilgan sanchqi shakli va sariq nuqta. Loyihaning
+    boshqa hamma joyida esa mana shu to'rt doirali belgi ishlatiladi, ya'ni
+    bitta ilova ikki xil belgi bilan yurardi.
+
+    O'lchamlar favicon.png dan olindi (709px, 512 ga keltirilgan):
+    burchak radiusi 172 -> 124, doira radiusi 123 -> 88.8, markazlar
+    226/481 -> 164/348. Ranglar ham o'sha fayldan o'qildi.
+
+    Kulrang va oq doiralar diagonal bo'yicha joylashgan: chap-yuqori bilan
+    o'ng-past kulrang, qolgan ikkitasi oq.
+  -->
+  <rect width="512" height="512" rx="124" fill="#F7771E"/>
+  <circle cx="164" cy="164" r="88.8" fill="#CCCCCC"/>
+  <circle cx="348" cy="164" r="88.8" fill="#F7F7F7"/>
+  <circle cx="164" cy="348" r="88.8" fill="#F7F7F7"/>
+  <circle cx="348" cy="348" r="88.8" fill="#CCCCCC"/>
 </svg>

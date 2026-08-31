@@ -34,18 +34,18 @@ Priority:
 # POS Client Architecture Guidelines (uzbecano_pos)
 
 ## 1. Stack & Architecture
-- **Delivery**: installable PWA (React, Vite, TypeScript) served from pos.orderplus.uz. No native shell — a fix reaches every till on the next reload.
+- **Delivery, two ways from one codebase**: a React + Vite + TypeScript app shipped both as an installable PWA at pos.orderplus.uz and as a Tauri 2 desktop build (`src-tauri/`, Windows NSIS/MSI and macOS dmg, released on a git tag). The web build is the fast path — a fix reaches every till on the next reload; the desktop build exists for tills that need a real window and OS-owned printers. Anything added must work in both, and the desktop origins (`tauri://localhost`, `http://tauri.localhost`) are on the backend CORS allowlist for exactly that reason.
 - **Offline**: service worker for the app shell, `localStorage` for the menu cache and the sync queue. `/api/` is never cached: a stale answer about orders or tables is worse than a visible error.
 - **Printing**: ESC/POS over Web Serial or Web Bluetooth (`src/lib/printer.ts`), with the browser print dialog as the fallback for a printer the operating system owns.
 
-## 2. Local-First, Schema Migration & Offline Synchronization
+## 2. Local-First & Offline Synchronization
 - **Offline First**: All critical POS functions (cart, checkout, receipt generation, table management) must operate smoothly without active internet.
-- **SQLite Versioning & Migrations**: Schema versioning and deterministic local migrations are mandatory.
-- **Backup, Integrity & Rollback**: Automatic backup before app updates, integrity checks (`PRAGMA integrity_check`) after migration, and an explicit rollback/recovery strategy are required.
-- **Zero Data Loss**: Migrations must never cause data loss; never overwrite existing local/production user databases without verified backups.
-- **Sync Engine & Conflict Resolution**: Mutations performed offline must be queued locally with deterministic IDs and synced idempotently when online. Resolve general conflicts with server-authoritative timestamps.
+- **There is no local SQLite**: local state is `localStorage` only — the menu cache, the sync queue, the offline credential cache (`src/lib/offlineAuth.ts`), and the printer settings. This section used to mandate SQLite schema versioning, deterministic migrations and `PRAGMA integrity_check`; none of that exists or applies, and writing to a rule that describes no code is how a checklist stops being read. If a local database is ever introduced, restore those rules with it.
+- **Versioned local records**: a stored shape that can change carries a version number and is discarded rather than guessed at when it does not match — `offlineAuth.ts` `SCHEMA_VERSION` is the pattern. Dropping a stale record is safe here precisely because none of this is the system of record; the server is.
+- **Zero Data Loss where it counts**: the sync queue is the one local store whose loss costs money. Never clear it except after a confirmed server acknowledgement.
+- **Sync Engine & Conflict Resolution**: Mutations performed offline must be queued locally with deterministic IDs (`crypto.randomUUID()` at creation, reused as the `idempotencyKey`) and synced idempotently when online. Resolve general conflicts with server-authoritative timestamps.
 - **Payment/Refund Conflicts**: Payment and refund conflicts must never be automatically overwritten and must retain a manual review status.
-- **Mandatory Offline Testing**: Offline network drops, retries, duplicate submission prevention, sync conflicts, unexpected app restarts, and printer failures must be thoroughly tested.
+- **Mandatory Offline Testing**: Offline network drops, retries, duplicate submission prevention, sync conflicts, unexpected app restarts, and printer failures must be tested. Run with `npm test`; pure logic (offline auth, sync queue, receipt math) is tested directly, and anything that cannot be reached without a browser is stated as such rather than skipped silently.
 
 ## 3. Hardware & Peripheral Safety
 - **Printer & Hardware**: Isolate receipt/kitchen printer drivers and ESC-POS formatting routines. Handle printer disconnections, paper-out errors, and timeouts gracefully without crashing the renderer.

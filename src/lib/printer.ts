@@ -579,19 +579,34 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
    */
   const row = (str: string = '') => enc.line(padEndTo(str, cols));
 
-  /** "Nomi<bo'shliq>Qiymat" — qiymat har doim bitta ustundan boshlanadi. */
+  /**
+   * "Nomi<bo'shliq>Qiymat" — qiymat har doim bitta ustundan boshlanadi.
+   *
+   * Yorliq qalin, qiymat oddiy: shrift kattaligini oshirmasdan ko'z ikki
+   * ustunni ajratadi. Poster cheki ham aynan shunday qilingan.
+   */
   const metaRow = (label: string, value: string) => {
     const valueLines = wrapText(value, cols - labelCol);
-    row(padEndTo(label, labelCol) + valueLines[0]);
+    enc.bold(true).text(padEndTo(label, labelCol)).bold(false);
+    enc.line(padEndTo(valueLines[0], cols - labelCol));
     for (const extra of valueLines.slice(1)) {
       row(' '.repeat(labelCol) + extra);
     }
   };
 
-  /** "TO'LOVGA ......... 80 000 so'm" — nuqtali chiziq ikki chekkani bog'laydi. */
-  const leaderRow = (left: string, right: string) => {
-    const gap = cols - printedWidth(left) - printedWidth(right) - 2;
-    row(`${left} ${'.'.repeat(Math.max(1, gap))} ${right}`);
+  /**
+   * "TO'LOVGA ......... 80 000 so'm" — nuqtali chiziq ikki chekkani bog'laydi.
+   *
+   * Chekda faqat shu summa yirik: balandligi ikki barobar, kengligi esa
+   * o'zgarmaydi, shuning uchun nuqtalar hisobi buzilmaydi.
+   */
+  const totalRow = (left: string, right: string) => {
+    const gap = Math.max(1, cols - printedWidth(left) - printedWidth(right) - 2);
+    enc.lineSpacing(BIG_LINE_DOTS);
+    enc.bold(true).text(left).bold(false);
+    enc.text(` ${'.'.repeat(gap)} `);
+    enc.bold(true).size(1, 2).line(right).size(1, 1).bold(false);
+    enc.lineSpacing(LINE_DOTS);
   };
 
   // 1. Logotip va kafe nomi
@@ -641,10 +656,8 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
 
   // 3. Taomlar jadvali
   //
-  // Jadval ikki barobar balandlikda: kenglik o'zgarmaydi, ya'ni 48 ustun
-  // joyida qoladi-yu, mijoz eng ko'p qaraydigan qism — taom va narx —
-  // chekning qolganidan yirikroq chiqadi.
-  enc.size(1, 2).lineSpacing(BIG_LINE_DOTS);
+  // Oddiy balandlikda: ikki barobar qilinganda satrlar yo'g'onlashib chekni
+  // o'qishga qiyinlashtirgan edi. Sarlavha qalin, qatorlar oddiy.
   enc.bold(true);
   row(inlineNumbers
     ? padEndTo('Nomi', nameCol) + padStartTo('Soni', qtyCol) +
@@ -681,7 +694,6 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
     }
   }
 
-  enc.size(1, 1).lineSpacing(LINE_DOTS);
   row('-'.repeat(cols));
 
   // 4. Hisob-kitob
@@ -704,13 +716,8 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
     row();
   }
 
-  // Ikki barobar balandlik, lekin oddiy kenglik: harf kattaroq ko'rinadi-yu,
-  // ustunlar soni o'zgarmaydi, ya'ni nuqtali chiziq joyida qoladi.
-  enc.bold(true).size(1, 2).lineSpacing(BIG_LINE_DOTS);
-  leaderRow("TO'LOVGA", `${fmtPrice(total)} so'm`);
-  enc.size(1, 1).bold(false).lineSpacing(LINE_DOTS);
-  // Bo'sh satr "To'lov turi" ni summadan uzoqlashtiradi.
-  row();
+  totalRow("TO'LOVGA", `${fmtPrice(total)} so'm`);
+  row('-'.repeat(cols));
 
   const paidCash = Number(order.cashAmount) || 0;
   const paidCard = Number(order.cardAmount) || 0;

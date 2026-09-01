@@ -433,6 +433,17 @@ function rasterizeLogo(img: HTMLImageElement, dotWidth: number): { width: number
   }
 }
 
+/**
+ * Satr qadami nuqtalarda.
+ *
+ * Font A harfi 24 nuqta baland, ikki barobar balandlikda esa 48 — printerning
+ * standart ~30 nuqtalik qadami undan KICHIK, shuning uchun yirik satr
+ * o'zidan keyingisiga tegib, "TO'LOVGA" qatori tiqilib qolardi. Har ikkala
+ * qadam ham harf balandligidan kattaroq qilib olindi.
+ */
+const LINE_DOTS = 40;
+const BIG_LINE_DOTS = 62;
+
 /** Logotip balandligi cheki: undan kattasi qog'ozni behuda yeydi. */
 const MAX_LOGO_DOTS = 160;
 /** Yorug'lik chegarasi: bundan qorasi bosiladi. */
@@ -593,6 +604,7 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   }
 
   const headerName = cafeName || 'OrderPlus';
+  enc.lineSpacing(BIG_LINE_DOTS);
   enc.bold(true).size(1, 2).line(headerName).size(1, 1).bold(false);
   if (settings.headerText) {
     enc.line(settings.headerText);
@@ -600,7 +612,7 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
 
   // Satrlar orasi kengaytiriladi: standart 30 nuqta zich chiqadi, 42 esa
   // metadata va taomlar ro'yxatini "nafas oladigan" qiladi.
-  enc.lineSpacing(42);
+  enc.lineSpacing(LINE_DOTS);
   enc.line();
 
   // 2. Metadata bloki
@@ -628,6 +640,11 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   row('- '.repeat(Math.floor(cols / 2)).trimEnd());
 
   // 3. Taomlar jadvali
+  //
+  // Jadval ikki barobar balandlikda: kenglik o'zgarmaydi, ya'ni 48 ustun
+  // joyida qoladi-yu, mijoz eng ko'p qaraydigan qism — taom va narx —
+  // chekning qolganidan yirikroq chiqadi.
+  enc.size(1, 2).lineSpacing(BIG_LINE_DOTS);
   enc.bold(true);
   row(inlineNumbers
     ? padEndTo('Nomi', nameCol) + padStartTo('Soni', qtyCol) +
@@ -664,6 +681,7 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
     }
   }
 
+  enc.size(1, 1).lineSpacing(LINE_DOTS);
   row('-'.repeat(cols));
 
   // 4. Hisob-kitob
@@ -688,9 +706,11 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
 
   // Ikki barobar balandlik, lekin oddiy kenglik: harf kattaroq ko'rinadi-yu,
   // ustunlar soni o'zgarmaydi, ya'ni nuqtali chiziq joyida qoladi.
-  enc.bold(true).size(1, 2);
+  enc.bold(true).size(1, 2).lineSpacing(BIG_LINE_DOTS);
   leaderRow("TO'LOVGA", `${fmtPrice(total)} so'm`);
-  enc.size(1, 1).bold(false);
+  enc.size(1, 1).bold(false).lineSpacing(LINE_DOTS);
+  // Bo'sh satr "To'lov turi" ni summadan uzoqlashtiradi.
+  row();
 
   const paidCash = Number(order.cashAmount) || 0;
   const paidCard = Number(order.cardAmount) || 0;

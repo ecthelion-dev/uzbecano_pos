@@ -154,6 +154,30 @@ class EscPosEncoder {
     return this;
   }
 
+  /** Poster uslubidagi siyrak punktir — metadata blokini taomlardan ajratadi. */
+  dashDivider(paperWidth: '58mm' | '80mm' = '58mm') {
+    const len = paperWidth === '80mm' ? 48 : 32;
+    this.align('left');
+    this.line('- '.repeat(Math.floor(len / 2)).trimEnd());
+    return this;
+  }
+
+  /**
+   * Monoxrom rasterni GS v 0 bilan chop etadi.
+   *
+   * Eski `ESC *` rejimi emas: u rasmni satrma-satr yuboradi va ko'p
+   * printerlarda satrlar orasida oq chiziq qoldiradi. GS v 0 butun blokni
+   * bitta buyruq bilan oladi.
+   */
+  raster(img: { width: number; height: number; data: Uint8Array }) {
+    const bytesPerRow = img.width / 8;
+    this.buffer.push(GS, 0x76, 0x30, 0);
+    this.buffer.push(bytesPerRow & 0xff, (bytesPerRow >> 8) & 0xff);
+    this.buffer.push(img.height & 0xff, (img.height >> 8) & 0xff);
+    for (const b of img.data) this.buffer.push(b);
+    return this;
+  }
+
   twoColumn(left: string, right: string, paperWidth: '58mm' | '80mm' = '58mm') {
     const totalCols = paperWidth === '80mm' ? 48 : 32;
     // Kenglik chop etiladigan baytlar bo'yicha o'lchanadi: `.length` UTF-16
@@ -298,10 +322,180 @@ function normalizeItems(items: any): any[] {
   return [];
 }
 
+/**
+ * Chekning yuqorisiga bosiladigan logotip.
+ *
+ * Rasm dekodlash asinxron, chek yig'ish esa sinxron (uchta chaqiruvchi ham
+ * baytlarni darhol kutadi). Shuning uchun dekodlangan rasm shu yerda saqlanadi
+ * va rasterga aylantirish chek yig'ilayotganda, qog'oz kengligiga qarab
+ * bajariladi — canvas amallari rasm tayyor bo'lgach sinxron.
+ */
+let receiptLogo: HTMLImageElement | null = null;
+
+/**
+ * Chek logotipini oldindan yuklab qo'yadi. Kafe logotipi o'zgarganda
+ * chaqiriladi; `src` bo'sh bo'lsa logotip olib tashlanadi.
+ *
+ * Xato hech qachon tashqariga chiqmaydi: logotipsiz chek — chek chiqmaganidan
+ * ming marta yaxshi.
+ */
+export async function setReceiptLogo(src: string): Promise<void> {
+  if (typeof document === 'undefined' || !src) {
+    receiptLogo = null;
+    return;
+  }
+  try {
+    receiptLogo = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      // Uzoqdagi rasm CORS sarlavhasisiz kelsa canvas "tainted" bo'ladi va
+      // getImageData xato beradi — o'shanda logotipsiz davom etamiz.
+      if (!src.startsWith('data:')) img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('logotip yuklanmadi'));
+      img.src = src;
+    });
+  } catch {
+    receiptLogo = null;
+  }
+}
+
+/**
+ * Logotipni 1-bitli rasterga aylantiradi.
+ *
+ * Ditherlash ataylab qilinmagan: termal printerda logotip kabi qat'iy
+ * shakllar ditherlanganda kulrang "shovqin" bo'lib chiqadi. Oddiy chegara
+ * (threshold) qora belgini qora, oqni oq qoldiradi.
+ */
+function rasterizeLogo(img: HTMLImageElement, dotWidth: number): { width: number; height: number; data: Uint8Array } | null {
+  if (typeof document === 'undefined') return null;
+  const naturalW = img.naturalWidth || img.width;
+  const naturalH = img.naturalHeight || img.height;
+  if (!naturalW || !naturalH) return null;
+
+  // Kenglik 8 ga karrali bo'lishi shart: GS v 0 satrni to'liq baytlarda oladi.
+  const width = Math.max(8, Math.floor(dotWidth / 8) * 8);
+  let height = Math.round((naturalH / naturalW) * width);
+  if (height < 1) return null;
+  if (height > MAX_LOGO_DOTS) height = MAX_LOGO_DOTS;
+
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    // Shaffof fon oq bo'lsin — aks holda alfa kanali qora bo'lib bosiladi.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const px = ctx.getImageData(0, 0, width, height).data;
+    const bytesPerRow = width / 8;
+    const data = new Uint8Array(bytesPerRow * height);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+        if (lum < LOGO_THRESHOLD) {
+          data[y * bytesPerRow + (x >> 3)] |= 0x80 >> (x & 7);
+        }
+      }
+    }
+    return { width, height, data };
+  } catch {
+    // Tainted canvas yoki xotira yetishmasligi — logotipsiz davom etamiz.
+    return null;
+  }
+}
+
+/** Logotip balandligi cheki: undan kattasi qog'ozni behuda yeydi. */
+const MAX_LOGO_DOTS = 160;
+/** Yorug'lik chegarasi: bundan qorasi bosiladi. */
+const LOGO_THRESHOLD = 170;
+
+/**
+ * Matnni ustun kengligiga sig'diradi.
+ *
+ * Kenglik chop etiladigan baytlarda o'lchanadi (`printedWidth`), chunki
+ * kirill harfi CP866 da bitta bayt, UTF-16 da esa `.length` uni ham bitta
+ * deb sanaydi-yu, aralash matnda ustunlar siljib ketadi.
+ */
+function wrapText(str: string, cols: number): string[] {
+  const words = String(str).trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [''];
+  const lines: string[] = [];
+  let line = '';
+  for (let word of words) {
+    // Ustundan uzun bitta so'z — bo'g'inlab bo'lmaydi, majburan kesamiz.
+    while (printedWidth(word) > cols) {
+      if (line) { lines.push(line); line = ''; }
+      let cut = '';
+      for (const ch of word) {
+        if (printedWidth(cut + ch) > cols) break;
+        cut += ch;
+      }
+      lines.push(cut);
+      word = word.slice(cut.length);
+    }
+    const candidate = line ? `${line} ${word}` : word;
+    if (printedWidth(candidate) > cols) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+/** Matnni ustun kengligiga o'ngga tekislaydi. */
+function padStartTo(str: string, cols: number): string {
+  const pad = cols - printedWidth(str);
+  return pad > 0 ? ' '.repeat(pad) + str : str;
+}
+
+/** Matnni ustun kengligiga chapga tekislaydi. */
+function padEndTo(str: string, cols: number): string {
+  const pad = cols - printedWidth(str);
+  return pad > 0 ? str + ' '.repeat(pad) : str;
+}
+
+const UZ_MONTHS = [
+  'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
+  'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr',
+];
+
+/**
+ * Poster chekidagi kabi sana.
+ *
+ * 80mm da to'liq: "01 sentabr 2026 20:43". 58mm da qiymat ustuniga 18 belgi
+ * qoladi, shuning uchun raqamli ko'rinish: "01.09.2026 20:43".
+ */
+function fmtReceiptDate(d: Date, long: boolean): string {
+  const day = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  if (long) return `${day} ${UZ_MONTHS[d.getMonth()]} ${d.getFullYear()} ${hh}:${mm}`;
+  return `${day}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${hh}:${mm}`;
+}
+
 function fmtPrice(val: number): string {
   return Math.round(Number(val) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
+/**
+ * Chek maketi — Poster POS chekiga qarab qurilgan.
+ *
+ * Asosiy farq eski maketdan: metadata qiymatlari qog'oz chetiga emas, qat'iy
+ * ustundan boshlanadi. O'ngga tekislanganda "Chek No" va "Ofitsiant"
+ * qiymatlari har xil joydan boshlanib, ko'z ularni ustun sifatida o'qiy
+ * olmasdi; qat'iy ustun esa yagona vertikal chiziq hosil qiladi.
+ *
+ * Ustunlar (chop etiladigan baytlarda):
+ *   58mm = 32:  nom 12 | soni 4 | narx 8 | jami 8
+ *   80mm = 48:  nom 22 | soni 5 | narx 10 | jami 11
+ */
 export function generateEscPosReceipt(order: any, cafeName: string, settings: PrinterSettings): Uint8Array {
   const enc = new EscPosEncoder();
   enc.init();
@@ -311,74 +505,93 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   }
 
   const is80 = settings.paperWidth === '80mm';
+  const cols = is80 ? 48 : 32;
+  const labelCol = is80 ? 16 : 14;
+  const nameCol = is80 ? 22 : 12;
+  const qtyCol = is80 ? 5 : 4;
+  const priceCol = is80 ? 10 : 8;
+  const totalCol = is80 ? 11 : 8;
 
-  // 1. Sarlavha (Markazda)
-  const headerName = cafeName || 'ORDERPLUS';
-  enc.align('center').bold(true).line(headerName).bold(false);
-  if (settings.headerText) {
-    enc.align('center').line(settings.headerText);
+  /** "Nomi<bo'shliq>Qiymat" — qiymat har doim bitta ustundan boshlanadi. */
+  const metaRow = (label: string, value: string) => {
+    const valueLines = wrapText(value, cols - labelCol);
+    enc.line(padEndTo(label, labelCol) + valueLines[0]);
+    for (const extra of valueLines.slice(1)) {
+      enc.line(' '.repeat(labelCol) + extra);
+    }
+  };
+
+  /** "TO'LOVGA ......... 80 000 so'm" — nuqtali chiziq ikki chekkani bog'laydi. */
+  const leaderRow = (left: string, right: string) => {
+    const gap = cols - printedWidth(left) - printedWidth(right) - 2;
+    enc.line(`${left} ${'.'.repeat(Math.max(1, gap))} ${right}`);
+  };
+
+  // 1. Logotip va kafe nomi
+  if (receiptLogo) {
+    const raster = rasterizeLogo(receiptLogo, is80 ? 288 : 192);
+    if (raster) {
+      enc.align('center').raster(raster).line();
+    }
   }
-  enc.divider(settings.paperWidth);
+
+  const headerName = cafeName || 'OrderPlus';
+  enc.align('center').bold(true).size(1, 2).line(headerName).size(1, 1).bold(false);
+  if (settings.headerText) {
+    enc.line(settings.headerText);
+  }
+  enc.align('left').line();
 
   // 2. Metadata bloki
-  const orderDate = new Date(order.createdAt || Date.now());
-  const dateStr = `${String(orderDate.getDate()).padStart(2, '0')}.${String(orderDate.getMonth() + 1).padStart(2, '0')}.${orderDate.getFullYear()}`;
-  const timeStr = orderDate.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+  const openedAt = new Date(order.createdAt || Date.now());
+  const printedAt = new Date();
 
   const rawTable = String(order.tableNumber || '').trim();
   const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
-  const orderNum = order.orderNumber ? String(order.orderNumber) : (order.id || '').slice(-4).toUpperCase();
-  const checkNum = (order.id || '').slice(-8).toUpperCase();
+  // Poster bitta raqam ko'rsatadi. Buyurtma raqami bo'lsa o'sha, bo'lmasa
+  // id ning oxiri — qo'llab-quvvatlashda buyurtmani topish uchun yetarli.
+  const checkNum = order.orderNumber
+    ? String(order.orderNumber)
+    : String(order.id || '').slice(-4).toUpperCase();
 
-  enc.twoColumn('Chek No:', checkNum, settings.paperWidth);
-  enc.twoColumn('Sana:', `${dateStr}  ${timeStr}`, settings.paperWidth);
+  metaRow('Chek No', checkNum);
+  // Kassada olib ketish oqimi yo'q — har bir buyurtma stolga yoziladi.
+  metaRow('Buyurtma turi', 'Zalda');
+  metaRow('Ofitsiant', order.waiterName || 'Admin');
+  metaRow('Ochilgan', fmtReceiptDate(openedAt, is80));
+  metaRow('Chop etilgan', fmtReceiptDate(printedAt, is80));
   if (cleanTable) {
-    enc.twoColumn('Kassa / Stol:', cleanTable, settings.paperWidth);
+    metaRow('Stol No', cleanTable);
   }
-  enc.twoColumn('Operator:', order.waiterName || 'Admin', settings.paperWidth);
-  enc.twoColumn('Buyurtma No:', orderNum, settings.paperWidth);
 
-  enc.divider(settings.paperWidth);
+  enc.dashDivider(settings.paperWidth);
 
-  // 3. Taomlar jadvali (NOMI, SONI, NARXI, SUMMA)
-  if (is80) {
-    enc.bold(true).line('NOMI                     SONI      NARXI      SUMMA').bold(false);
-  } else {
-    enc.bold(true).line('NOMI           SONI  NARXI   SUMMA').bold(false);
-  }
-  enc.divider(settings.paperWidth);
+  // 3. Taomlar jadvali
+  enc.bold(true).line(
+    padEndTo('Nomi', nameCol) +
+    padStartTo('Soni', qtyCol) +
+    padStartTo('Narxi', priceCol) +
+    padStartTo('Jami', totalCol)
+  ).bold(false);
 
   const items = normalizeItems(order.items);
   for (const it of items) {
     const name = String(it.product?.name || it.name || 'Taom').trim();
     const qty = Number(it.quantity || 1);
     const price = Number(it.unitPrice || it.price || 0);
-    const sum = Number(it.total || (qty * price));
+    const sum = Number(it.total || qty * price);
 
-    const qtyStr = String(qty);
-    const priceStr = fmtPrice(price);
-    const sumStr = fmtPrice(sum);
+    const numbers =
+      padStartTo(String(qty), qtyCol) +
+      padStartTo(fmtPrice(price), priceCol) +
+      padStartTo(fmtPrice(sum), totalCol);
 
-    if (is80) {
-      const nameCol = 22;
-      const numPart = `${qtyStr.padStart(5)} ${priceStr.padStart(10)} ${sumStr.padStart(10)}`;
-      if (printedWidth(name) <= nameCol) {
-        const padName = name + ' '.repeat(nameCol - printedWidth(name));
-        enc.line(`${padName}${numPart}`);
-      } else {
-        enc.bold(true).line(name).bold(false);
-        enc.line(' '.repeat(nameCol) + numPart);
-      }
-    } else {
-      const nameCol = 13;
-      const numPart = `${qtyStr.padStart(4)} ${priceStr.padStart(6)} ${sumStr.padStart(7)}`;
-      if (printedWidth(name) <= nameCol) {
-        const padName = name + ' '.repeat(nameCol - printedWidth(name));
-        enc.line(`${padName}${numPart}`);
-      } else {
-        enc.bold(true).line(name).bold(false);
-        enc.line(' '.repeat(nameCol) + numPart);
-      }
+    // Raqamlar nomning BIRINCHI qatoriga tekislanadi, davomi esa pastda
+    // yolg'iz qoladi — Poster chekidagi "Limon choy / choynak" kabi.
+    const nameLines = wrapText(name, nameCol);
+    enc.line(padEndTo(nameLines[0], nameCol) + numbers);
+    for (const extra of nameLines.slice(1)) {
+      enc.line(extra);
     }
 
     if (it.note) {
@@ -388,40 +601,43 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
 
   enc.divider(settings.paperWidth);
 
-  // 4. Hisob-kitob bloki
-  const subtotal = items.reduce((s: number, i: any) => s + ((i.quantity || 1) * (i.unitPrice || i.price || 0)), 0);
+  // 4. Hisob-kitob
+  const subtotal = items.reduce((acc: number, i: any) => acc + (i.quantity || 1) * (i.unitPrice || i.price || 0), 0);
   const serviceFee = Number.isFinite(Number(order.serviceFee)) ? Number(order.serviceFee) : 0;
   const discount = Number(order.discount) || 0;
   const total = Number.isFinite(Number(order.total)) ? Number(order.total) : subtotal + serviceFee - discount;
   const feePercent = subtotal > 0 ? Math.round((serviceFee / subtotal) * 100) : 0;
 
+  // Chegirma yoki xizmat haqi bo'lmasa oraliq summa "Jami" ustunining
+  // takroriga aylanadi — Poster ham uni bunday holatda ko'rsatmaydi.
   if (discount > 0 || serviceFee > 0) {
-    enc.twoColumn('JAMI:', fmtPrice(subtotal), settings.paperWidth);
+    metaRow('Oraliq summa', fmtPrice(subtotal));
     if (discount > 0) {
-      enc.twoColumn('CHEGIRMA:', `-${fmtPrice(discount)}`, settings.paperWidth);
+      metaRow('Chegirma', `-${fmtPrice(discount)}`);
     }
     if (serviceFee > 0) {
-      enc.twoColumn(`XIZMAT (${feePercent}%):`, fmtPrice(serviceFee), settings.paperWidth);
+      metaRow(`Xizmat (${feePercent}%)`, fmtPrice(serviceFee));
     }
+    enc.line();
   }
 
-  // YAKUNIY SUMMA
-  enc.bold(true).twoColumn('YAKUNIY SUMMA:', fmtPrice(total), settings.paperWidth).bold(false);
+  // Ikki barobar balandlik, lekin oddiy kenglik: harf kattaroq ko'rinadi-yu,
+  // ustunlar soni o'zgarmaydi, ya'ni nuqtali chiziq joyida qoladi.
+  enc.bold(true).size(1, 2);
+  leaderRow("TO'LOVGA", `${fmtPrice(total)} so'm`);
+  enc.size(1, 1).bold(false);
 
-  // Naqd / To'langan / Qaytim
   const paidCash = Number(order.cashAmount) || 0;
   const paidCard = Number(order.cardAmount) || 0;
   if (paidCash > total && (order.paymentMethod === 'naqd' || order.paymentMethod === 'cash')) {
-    enc.twoColumn("TO'LANGAN:", fmtPrice(paidCash), settings.paperWidth);
-    enc.twoColumn('QAYTIM:', fmtPrice(paidCash - total), settings.paperWidth);
+    metaRow("To'langan", fmtPrice(paidCash));
+    metaRow('Qaytim', fmtPrice(paidCash - total));
   } else if (order.paymentMethod === 'aralash' && paidCash > 0 && paidCard > 0) {
-    enc.twoColumn('  Naqd:', fmtPrice(paidCash), settings.paperWidth);
-    enc.twoColumn('  Karta:', fmtPrice(paidCard), settings.paperWidth);
+    metaRow('Naqd', fmtPrice(paidCash));
+    metaRow('Karta', fmtPrice(paidCard));
   }
 
-  enc.divider(settings.paperWidth);
-
-  // 5. To'lov turi va Minnatdorchilik
+  // 5. To'lov turi va pastki matn
   const paymentLabels: Record<string, string> = {
     naqd: 'NAQD',
     cash: 'NAQD',
@@ -430,9 +646,11 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
     aralash: 'ARALASH',
   };
   const payMethodStr = paymentLabels[String(order.paymentMethod)] || String(order.paymentMethod || 'NAQD').toUpperCase();
-  enc.align('center').bold(true).line(`TO'LOV TURI: ${payMethodStr}`).bold(false);
+  metaRow("To'lov turi", payMethodStr);
+
+  enc.dashDivider(settings.paperWidth);
   enc.align('center').line(settings.footerText || 'Xaridingiz uchun rahmat!');
-  enc.align('center').line('OrderPlus POS tizimi');
+  enc.line('OrderPlus POS tizimi');
 
   enc.feed(3);
   enc.cut();

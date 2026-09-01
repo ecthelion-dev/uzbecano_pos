@@ -59,7 +59,7 @@ import { KitchenItemRow } from './components/KitchenItemRow';
 import { POSHeader } from './components/POSHeader';
 import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
-import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, getLastPrintError } from './lib/printer';
+import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, getLastPrintError, setReceiptLogo } from './lib/printer';
 import { Wallet } from 'lucide-react';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
@@ -252,6 +252,13 @@ export default function App() {
   // activity, per the mandatory operator session policy. Any mouse/keyboard/
   // touch activity resets the timer; the check itself runs on a coarse
   // interval rather than a timer-per-keystroke to keep this cheap.
+  // Chek logotipini oldindan dekodlab qo'yamiz: chek yig'ilishi sinxron, ya'ni
+  // chop etish payti rasm yuklashni kutib turolmaydi. Kafe logotipi bo'lmasa
+  // OrderPlus belgisi ketadi — u ilova bilan birga keladi va har doim bor.
+  useEffect(() => {
+    void setReceiptLogo(connectedCafeLogo || '/favicon.png');
+  }, [connectedCafeLogo]);
+
   const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
   const lastActivityRef = React.useRef<number>(Date.now());
   useEffect(() => {

@@ -434,15 +434,16 @@ function rasterizeLogo(img: HTMLImageElement, dotWidth: number): { width: number
 }
 
 /**
- * Satr qadami nuqtalarda.
+ * Satr qadami nuqtalarda — harfning balandligi emas, satrdan satrga masofa.
  *
- * Font A harfi 24 nuqta baland, ikki barobar balandlikda esa 48 — printerning
- * standart ~30 nuqtalik qadami undan KICHIK, shuning uchun yirik satr
- * o'zidan keyingisiga tegib, "TO'LOVGA" qatori tiqilib qolardi. Har ikkala
- * qadam ham harf balandligidan kattaroq qilib olindi.
+ * Font A harfi 24 nuqta baland, ikki barobar balandlikda esa 48. Printerning
+ * standart ~30 nuqtalik qadami ikkinchisidan KICHIK, ya'ni yirik satr o'zidan
+ * keyingisiga tegib ketardi. Qadam endi ikkalasida ham harf balandligidan
+ * ancha katta: qog'ozda satrlar yopishmaydi, chek "nafas oladi".
  */
-const LINE_DOTS = 40;
-const BIG_LINE_DOTS = 62;
+const GLYPH_DOTS = 24;
+const LINE_DOTS = 52;
+const BIG_LINE_DOTS = 76;
 
 /** Logotip balandligi cheki: undan kattasi qog'ozni behuda yeydi. */
 const MAX_LOGO_DOTS = 160;
@@ -832,12 +833,13 @@ export function renderReceiptHtml(order: any, cafeName: string, settings: Printe
     /* Ustunlar bo'shliq bilan tekislangan — shrift albatta monoshirift. */
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     font-size: 12px;
-    line-height: 1.6;
+    /* Qog'ozdagi qadam bilan bir xil nisbat — ikkalasi bitta joydan. */
+    line-height: ${(LINE_DOTS / GLYPH_DOTS).toFixed(2)};
     white-space: pre;
   }
   .chek .logo { display: block; margin: 0 auto 4px; max-width: 55%; }
   .chek .banner { text-align: center; }
-  .chek .banner.big { font-size: 1.7em; line-height: 1.25; }
+  .chek .banner.big { font-size: 1.7em; line-height: ${(BIG_LINE_DOTS / (2 * GLYPH_DOTS)).toFixed(2)}; }
   .chek .b { font-weight: 700; }
   .chek .flexrow { display: flex; align-items: baseline; }
   .chek .fill { flex: 1 1 auto; overflow: hidden; }

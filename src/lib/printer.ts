@@ -441,7 +441,6 @@ function rasterizeLogo(img: HTMLImageElement, dotWidth: number): { width: number
  * keyingisiga tegib ketardi. Qadam endi ikkalasida ham harf balandligidan
  * ancha katta: qog'ozda satrlar yopishmaydi, chek "nafas oladi".
  */
-const GLYPH_DOTS = 24;
 const LINE_DOTS = 52;
 const BIG_LINE_DOTS = 84;
 
@@ -819,11 +818,17 @@ export function renderReceiptHtml(order: any, cafeName: string, settings: Printe
       const cls = ['banner', line.bold ? 'b' : '', line.big ? 'tall' : ''].filter(Boolean).join(' ');
       return `<div class="${cls}">${inner || '&nbsp;'}</div>`;
     }
+    // Butun satr yirik bo'lsa, brauzerda u kattalashtirilmaydi. Termal
+    // printerda ikkilantirish kerak, chunki Font A qog'ozda juda mayda; lazer
+    // printer esa 12px ni ham tiniq bosadi va kattalashtirilgan chek A4 ga
+    // sig'may, ikkinchi varaqqa oshib ketardi. Satrlar va ustunlar ikkalasida
+    // bir xil — faqat yirik ko'rsatiladigan joyi boshqacha.
+    const wholeRowBig = line.segments.every((seg) => seg.big);
     const span = (seg: ReceiptSegment) => {
-      const cls = [seg.bold ? 'b' : '', seg.big ? 'big' : ''].filter(Boolean).join(' ');
+      const cls = [seg.bold ? 'b' : '', seg.big && !wholeRowBig ? 'big' : ''].filter(Boolean).join(' ');
       return cls ? `<span class="${cls}">${escapeHtml(seg.text)}</span>` : escapeHtml(seg.text);
     };
-    const tall = line.segments.some((seg) => seg.big) ? ' class="tall"' : '';
+    const tall = !wholeRowBig && line.segments.some((seg) => seg.big) ? ' class="tall"' : '';
     return `<div${tall}>${line.segments.map(span).join('') || '&nbsp;'}</div>`;
   }).join('\n');
 
@@ -837,8 +842,9 @@ export function renderReceiptHtml(order: any, cafeName: string, settings: Printe
     /* Ustunlar bo'shliq bilan tekislangan — shrift albatta monoshirift. */
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     font-size: 12px;
-    /* Qog'ozdagi qadam bilan bir xil nisbat — ikkalasi bitta joydan. */
-    line-height: ${(LINE_DOTS / GLYPH_DOTS).toFixed(2)};
+    /* Qog'ozdagi nuqta qadami emas, oddiy tipografik oraliq: termal chekdagi
+       qadam A4 da chekni ikki varaqqa cho'zib yuborardi. */
+    line-height: 1.5;
     white-space: pre;
   }
   .chek .logo { display: block; margin: 0 auto 4px; max-width: 55%; }
@@ -846,8 +852,8 @@ export function renderReceiptHtml(order: any, cafeName: string, settings: Printe
   .chek .b { font-weight: 700; }
   /* Printer harfni faqat BO'YIGA cho'zadi, eniga emas — shuning uchun bu
      yerda ham font-size emas, scaleY: ustunlar joyidan siljimaydi. */
-  .chek .tall { line-height: ${(BIG_LINE_DOTS / GLYPH_DOTS).toFixed(2)}; }
-  .chek .big { display: inline-block; transform: scaleY(2); transform-origin: center; }
+  .chek .tall { line-height: 2.4; }
+  .chek .big { display: inline-block; transform: scaleY(1.9); transform-origin: center; }
 </style></head><body><div class="chek">
 ${body}
 </div></body></html>`;

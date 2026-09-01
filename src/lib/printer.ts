@@ -298,6 +298,10 @@ function normalizeItems(items: any): any[] {
   return [];
 }
 
+function fmtPrice(val: number): string {
+  return Math.round(Number(val) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
 export function generateEscPosReceipt(order: any, cafeName: string, settings: PrinterSettings): Uint8Array {
   const enc = new EscPosEncoder();
   enc.init();
@@ -306,41 +310,85 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
     enc.kickDrawer();
   }
 
-  // Header
+  const is80 = settings.paperWidth === '80mm';
+
+  // 1. Sarlavha (Markazda)
   const headerName = cafeName || 'ORDERPLUS';
   enc.align('center').bold(true).line(headerName).bold(false);
-  if (settings.headerText) enc.line(settings.headerText);
-  enc.line(`Buyurtma #${(order.id || '').slice(-6).toUpperCase()}`);
-  enc.line(`Sana: ${new Date(order.createdAt || Date.now()).toLocaleString('uz-UZ')}`);
-  
-  const rawTable = String(order.tableNumber || '').trim();
-  const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
-  if (cleanTable) {
-    enc.bold(true).line(`Stol: ${cleanTable}`).bold(false);
+  if (settings.headerText) {
+    enc.align('center').line(settings.headerText);
   }
-  if (order.waiterName) enc.line(`Offitsiant: ${order.waiterName}`);
-  
   enc.divider(settings.paperWidth);
 
-  // Taomlar ro'yxati
-  enc.bold(true).twoColumn('Taom / Narx', 'Jami', settings.paperWidth).bold(false);
+  // 2. Metadata bloki
+  const orderDate = new Date(order.createdAt || Date.now());
+  const dateStr = `${String(orderDate.getDate()).padStart(2, '0')}.${String(orderDate.getMonth() + 1).padStart(2, '0')}.${orderDate.getFullYear()}`;
+  const timeStr = orderDate.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+
+  const rawTable = String(order.tableNumber || '').trim();
+  const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
+  const orderNum = order.orderNumber ? String(order.orderNumber) : (order.id || '').slice(-4).toUpperCase();
+  const checkNum = (order.id || '').slice(-8).toUpperCase();
+
+  enc.twoColumn('Chek No:', checkNum, settings.paperWidth);
+  enc.twoColumn('Sana:', `${dateStr}  ${timeStr}`, settings.paperWidth);
+  if (cleanTable) {
+    enc.twoColumn('Kassa / Stol:', cleanTable, settings.paperWidth);
+  }
+  enc.twoColumn('Operator:', order.waiterName || 'Admin', settings.paperWidth);
+  enc.twoColumn('Buyurtma No:', orderNum, settings.paperWidth);
+
+  enc.divider(settings.paperWidth);
+
+  // 3. Taomlar jadvali (NOMI, SONI, NARXI, SUMMA)
+  if (is80) {
+    enc.bold(true).line('NOMI                     SONI      NARXI      SUMMA').bold(false);
+  } else {
+    enc.bold(true).line('NOMI           SONI  NARXI   SUMMA').bold(false);
+  }
   enc.divider(settings.paperWidth);
 
   const items = normalizeItems(order.items);
   for (const it of items) {
-    const name = it.product?.name || it.name || 'Taom';
-    const qty = it.quantity || 1;
-    const price = it.unitPrice || it.price || 0;
-    const sum = it.total || (qty * price);
+    const name = String(it.product?.name || it.name || 'Taom').trim();
+    const qty = Number(it.quantity || 1);
+    const price = Number(it.unitPrice || it.price || 0);
+    const sum = Number(it.total || (qty * price));
 
-    enc.bold(true).line(name).bold(false);
-    enc.twoColumn(`  ${qty} x ${price.toLocaleString()}`, `${sum.toLocaleString()} so'm`, settings.paperWidth);
-    if (it.note) enc.line(`  * Izoh: ${it.note}`);
+    const qtyStr = String(qty);
+    const priceStr = fmtPrice(price);
+    const sumStr = fmtPrice(sum);
+
+    if (is80) {
+      const nameCol = 22;
+      const numPart = `${qtyStr.padStart(5)} ${priceStr.padStart(10)} ${sumStr.padStart(10)}`;
+      if (printedWidth(name) <= nameCol) {
+        const padName = name + ' '.repeat(nameCol - printedWidth(name));
+        enc.line(`${padName}${numPart}`);
+      } else {
+        enc.bold(true).line(name).bold(false);
+        enc.line(' '.repeat(nameCol) + numPart);
+      }
+    } else {
+      const nameCol = 13;
+      const numPart = `${qtyStr.padStart(4)} ${priceStr.padStart(6)} ${sumStr.padStart(7)}`;
+      if (printedWidth(name) <= nameCol) {
+        const padName = name + ' '.repeat(nameCol - printedWidth(name));
+        enc.line(`${padName}${numPart}`);
+      } else {
+        enc.bold(true).line(name).bold(false);
+        enc.line(' '.repeat(nameCol) + numPart);
+      }
+    }
+
+    if (it.note) {
+      enc.line(`  * Izoh: ${it.note}`);
+    }
   }
 
   enc.divider(settings.paperWidth);
 
-  // Hisob-kitob qismi
+  // 4. Hisob-kitob bloki
   const subtotal = items.reduce((s: number, i: any) => s + ((i.quantity || 1) * (i.unitPrice || i.price || 0)), 0);
   const serviceFee = Number.isFinite(Number(order.serviceFee)) ? Number(order.serviceFee) : 0;
   const discount = Number(order.discount) || 0;
@@ -348,41 +396,42 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   const feePercent = subtotal > 0 ? Math.round((serviceFee / subtotal) * 100) : 0;
 
   if (discount > 0 || serviceFee > 0) {
-    enc.twoColumn('Kichik jami:', `${subtotal.toLocaleString()} so'm`, settings.paperWidth);
+    enc.twoColumn('JAMI:', fmtPrice(subtotal), settings.paperWidth);
     if (discount > 0) {
-      enc.twoColumn('Chegirma:', `-${discount.toLocaleString()} so'm`, settings.paperWidth);
+      enc.twoColumn('CHEGIRMA:', `-${fmtPrice(discount)}`, settings.paperWidth);
     }
     if (serviceFee > 0) {
-      enc.twoColumn(`Xizmat (${feePercent}%):`, `${serviceFee.toLocaleString()} so'm`, settings.paperWidth);
+      enc.twoColumn(`XIZMAT (${feePercent}%):`, fmtPrice(serviceFee), settings.paperWidth);
     }
-    enc.divider(settings.paperWidth);
   }
 
-  // JAMI qatori
-  enc.bold(true).twoColumn('JAMI:', `${total.toLocaleString()} SO'M`, settings.paperWidth).bold(false);
+  // YAKUNIY SUMMA
+  enc.bold(true).twoColumn('YAKUNIY SUMMA:', fmtPrice(total), settings.paperWidth).bold(false);
 
-  // To'lov turi
-  if (order.paymentMethod) {
-    enc.divider(settings.paperWidth);
-    const labels: Record<string, string> = {
-      naqd: 'Naqd pul',
-      cash: 'Naqd pul',
-      karta: 'Plastik karta',
-      card: 'Plastik karta',
-      aralash: 'Aralash',
-    };
-    enc.twoColumn("To'lov turi:", labels[String(order.paymentMethod)] || String(order.paymentMethod), settings.paperWidth);
-
-    const cash = Number(order.cashAmount) || 0;
-    const card = Number(order.cardAmount) || 0;
-    if (cash > 0 && card > 0) {
-      enc.twoColumn('  Naqd:', `${cash.toLocaleString()} so'm`, settings.paperWidth);
-      enc.twoColumn('  Karta:', `${card.toLocaleString()} so'm`, settings.paperWidth);
-    }
+  // Naqd / To'langan / Qaytim
+  const paidCash = Number(order.cashAmount) || 0;
+  const paidCard = Number(order.cardAmount) || 0;
+  if (paidCash > total && (order.paymentMethod === 'naqd' || order.paymentMethod === 'cash')) {
+    enc.twoColumn("TO'LANGAN:", fmtPrice(paidCash), settings.paperWidth);
+    enc.twoColumn('QAYTIM:', fmtPrice(paidCash - total), settings.paperWidth);
+  } else if (order.paymentMethod === 'aralash' && paidCash > 0 && paidCard > 0) {
+    enc.twoColumn('  Naqd:', fmtPrice(paidCash), settings.paperWidth);
+    enc.twoColumn('  Karta:', fmtPrice(paidCard), settings.paperWidth);
   }
 
   enc.divider(settings.paperWidth);
-  if (settings.footerText) enc.align('center').line(settings.footerText);
+
+  // 5. To'lov turi va Minnatdorchilik
+  const paymentLabels: Record<string, string> = {
+    naqd: 'NAQD',
+    cash: 'NAQD',
+    karta: 'KARTA',
+    card: 'KARTA',
+    aralash: 'ARALASH',
+  };
+  const payMethodStr = paymentLabels[String(order.paymentMethod)] || String(order.paymentMethod || 'NAQD').toUpperCase();
+  enc.align('center').bold(true).line(`TO'LOV TURI: ${payMethodStr}`).bold(false);
+  enc.align('center').line(settings.footerText || 'Xaridingiz uchun rahmat!');
   enc.align('center').line('OrderPlus POS tizimi');
 
   enc.feed(3);
@@ -407,10 +456,9 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
   enc.divider(settings.paperWidth);
 
   // Meta ma'lumotlar
-  enc.align('left');
-  if (data.waiterName) enc.line(`Offitsiant: ${data.waiterName}`);
   const timeStr = data.time || (data.timestamp ? new Date(data.timestamp).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }));
-  enc.line(`Vaqt: ${timeStr}`);
+  if (data.waiterName) enc.twoColumn('Offitsiant:', data.waiterName, settings.paperWidth);
+  enc.twoColumn('Vaqt:', timeStr, settings.paperWidth);
 
   enc.divider(settings.paperWidth);
   enc.align('left').bold(true).line('BUYURTMA TARKIBI:').bold(false);
@@ -418,8 +466,8 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
 
   const items = normalizeItems(data.items);
   for (const it of items) {
-    const name = it.product?.name || it.name || 'Taom';
-    const qty = it.quantity || 1;
+    const name = String(it.product?.name || it.name || 'Taom').trim();
+    const qty = Number(it.quantity || 1);
     enc.bold(true).line(`${qty} x ${name}`).bold(false);
     if (it.note) {
       enc.line(`   >> IZOH: ${it.note}`);

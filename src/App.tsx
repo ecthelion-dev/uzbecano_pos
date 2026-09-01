@@ -39,7 +39,7 @@ import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, Ca
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
-import { KitchenSlipModal } from './components/KitchenSlipModal';
+import { KitchenPrintArea } from './components/KitchenPrintArea';
 import { ReceiptPreviewModal } from './components/ReceiptPreviewModal';
 import { ArchiveModal } from './components/ArchiveModal';
 import { ShiftReportModal } from './components/ShiftReportModal';
@@ -59,7 +59,7 @@ import { KitchenItemRow } from './components/KitchenItemRow';
 import { POSHeader } from './components/POSHeader';
 import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
-import { executePrintReceipt, getPrinterSettings, printReceiptDirect, getLastPrintError } from './lib/printer';
+import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, getLastPrintError } from './lib/printer';
 import { Wallet } from 'lucide-react';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
@@ -942,7 +942,6 @@ export default function App() {
         setShowTableMoveModal(false);
         setShowCashDrawerModal(false);
         setShowUnsavedCartModal(false);
-        setKitchenSlipData(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -1189,6 +1188,45 @@ export default function App() {
       document.body.classList.remove('printing-report');
     };
   }, [periodPrint]);
+
+  /**
+   * Oshxona kvitansiyasini avtomatik chop etadi.
+   *
+   * Effekt DOM commit dan keyin ishlaydi, ya'ni brauzer yo'liga tushganda
+   * `#kitchen-print-area` qog'ozga tayyor turadi. `printing-kitchen` klassi
+   * mijoz chekini layoutdan olib tashlaydi — u DOM da doim turadi va
+   * klasssiz qog'ozga oshxona buyurtmasi o'rniga o'sha tushardi.
+   */
+  useEffect(() => {
+    if (!kitchenSlipData) return;
+    let cancelled = false;
+
+    (async () => {
+      const ok = await printKitchenSlipDirect(kitchenSlipData, connectedCafeName || 'OrderPlus');
+      if (cancelled) return;
+      if (ok) {
+        setKitchenSlipData(null);
+        return;
+      }
+
+      document.body.classList.add('printing-kitchen');
+      let done = false;
+      let timer = 0;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        window.clearTimeout(timer);
+        document.body.classList.remove('printing-kitchen');
+        setKitchenSlipData(null);
+      };
+      // `afterprint` ba'zi brauzerlarda umuman chaqirilmaydi — taymer zaxira.
+      window.addEventListener('afterprint', finish, { once: true });
+      timer = window.setTimeout(finish, 20000);
+      window.print();
+    })();
+
+    return () => { cancelled = true; };
+  }, [kitchenSlipData, connectedCafeName]);
 
   /**
    * Qo'lda chop etish tugmalari uchun.
@@ -1442,10 +1480,11 @@ export default function App() {
         time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
         timestamp: new Date().toISOString(),
       };
-      // Oshxona kvitansiyasi avtomatik chiqmaydi: modal ochiladi, qog'oz esa
-      // faqat kassir "Chop etish" tugmasini bosgandagina ketadi. Ilgari
-      // buyurtma tasdiqlanishi bilan chek chiqib ketardi — kassir uni
-      // xohlaydimi-yo'qmi, so'ralmasdi.
+      // Oshxona kvitansiyasi buyurtma tasdiqlanishi bilan o'zi chiqadi.
+      // Oraliqdagi "Chop etish" modali olib tashlandi: band kafeda u har bir
+      // buyurtmaga qo'shimcha bosish qo'shar, kassir esa baribir doim chop
+      // etardi. Chop etishning o'zi quyidagi effektda — chek DOM ga
+      // chiqqanidan keyin.
       setKitchenSlipData(kitchenPayload);
 
       setToastMessage('Buyurtma oshxonaga yuborildi!');
@@ -1712,11 +1751,19 @@ export default function App() {
 
         currentOrders.push(newOrderObj);
       }
+
+      // Savatdan qo'shilgan taomlar shu yerda ro'yxatga yozilishi shart.
+      // Ilgari `currentOrders` faqat mahalliy o'zgaruvchi bo'lib qolar,
+      // pastdagi to'lov bloki esa `ordersRef.current` ni qaytadan o'qirdi:
+      // yangi ochilgan buyurtma unda yo'q edi, ya'ni "To'lov va yopish"
+      // bosilganda hech nima yopilmas, chek ham chiqmasdi.
+      ordersRef.current = currentOrders;
+      setOrders(currentOrders);
+      localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(currentOrders));
     }
 
     setApiError(null);
     try {
-      const currentOrders = [...ordersRef.current];
       const latestOrder = currentOrders.find(o => (o.tableNumber || '').trim().toLowerCase() === normTarget && isActiveOrder(o.status));
       let closedOrder: any = null;
 
@@ -2354,11 +2401,7 @@ export default function App() {
         onPrint={() => printReceiptOrFallback(selectedArchiveOrder)}
       />
 
-      <KitchenSlipModal
-        data={kitchenSlipData}
-        cafeName={connectedCafeName}
-        onClose={() => setKitchenSlipData(null)}
-      />
+      <KitchenPrintArea data={kitchenSlipData} />
 
       <ShiftReportModal
         show={showShiftReport}

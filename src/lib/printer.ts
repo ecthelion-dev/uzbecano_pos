@@ -277,6 +277,27 @@ async function sendRawToPrinter(bytes: Uint8Array): Promise<boolean> {
 }
 
 // Build ESC/POS Customer Receipt
+/**
+ * Buyurtma taomlarini har qanday ko'rinishdan massivga keltiradi.
+ *
+ * Server (va localStorage) `items` ni JSON matn sifatida saqlaydi. Ilgari bu
+ * yerda `order.items || []` yozilgan edi: matn massiv emas, lekin u ham
+ * iteratsiya qilinadi — chekka har bir harf uchun bittadan "Taom / 0 so'm"
+ * qatori tushardi, haqiqiy taomlar esa umuman chiqmasdi.
+ */
+function normalizeItems(items: any): any[] {
+  if (Array.isArray(items)) return items;
+  if (typeof items === 'string') {
+    try {
+      const parsed = JSON.parse(items);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 export function generateEscPosReceipt(order: any, cafeName: string, settings: PrinterSettings): Uint8Array {
   const enc = new EscPosEncoder();
   enc.init();
@@ -302,7 +323,7 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   enc.bold(false);
   enc.divider(settings.paperWidth);
 
-  const items = order.items || [];
+  const items = normalizeItems(order.items);
   for (const it of items) {
     const name = it.product?.name || it.name || 'Taom';
     const qty = it.quantity || 1;
@@ -386,7 +407,7 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
   enc.align('left').bold(true).line('BUYURTMA TARKIBI:').bold(false);
   enc.divider(settings.paperWidth);
 
-  const items = data.items || [];
+  const items = normalizeItems(data.items);
   for (const it of items) {
     const name = it.product?.name || it.name || 'Taom';
     const qty = it.quantity || 1;

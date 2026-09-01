@@ -1,12 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { UpdateBanner } from './components/UpdateBanner';
+import { initAutoUpdater } from './lib/autoUpdater';
 import './index.css';
 import { IS_DESKTOP_APP } from './constants';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
+    <UpdateBanner />
   </React.StrictMode>
 );
 
@@ -27,6 +30,4 @@ if ('serviceWorker' in navigator && !IS_DESKTOP_APP) {
   });
 }
 
-import('./lib/autoUpdater').then(({ initAutoUpdater }) => {
-  initAutoUpdater();
-}).catch(() => {});
+initAutoUpdater();

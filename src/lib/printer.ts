@@ -33,7 +33,7 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   autoPrintReceipt: true,
   headerText: "Xush kelibsiz!",
   footerText: "Tashrifingiz uchun rahmat!",
-  openCashDrawer: true,
+  openCashDrawer: false,
 };
 
 // Bluetooth device instance cache
@@ -308,29 +308,22 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
 
   // Header
   const headerName = cafeName || 'ORDERPLUS';
-  const maxDoubleWidth = settings.paperWidth === '80mm' ? 24 : 16;
-  if (headerName.length <= maxDoubleWidth) {
-    enc.align('center').bold(true).size(2, 2).line(headerName);
-  } else {
-    enc.align('center').bold(true).size(1, 2).line(headerName);
-  }
-  enc.size(1, 1).bold(false);
+  enc.align('center').bold(true).line(headerName).bold(false);
   if (settings.headerText) enc.line(settings.headerText);
   enc.line(`Buyurtma #${(order.id || '').slice(-6).toUpperCase()}`);
   enc.line(`Sana: ${new Date(order.createdAt || Date.now()).toLocaleString('uz-UZ')}`);
-  if (order.tableNumber) {
-    const rawTable = String(order.tableNumber).trim();
-    const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
-    enc.bold(true).line(`Stol: ${cleanTable || rawTable}`).bold(false);
+  
+  const rawTable = String(order.tableNumber || '').trim();
+  const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
+  if (cleanTable) {
+    enc.bold(true).line(`Stol: ${cleanTable}`).bold(false);
   }
   if (order.waiterName) enc.line(`Offitsiant: ${order.waiterName}`);
   
   enc.divider(settings.paperWidth);
 
-  // Items
-  enc.bold(true);
-  enc.twoColumn('Taom / Narx', 'Jami', settings.paperWidth);
-  enc.bold(false);
+  // Taomlar ro'yxati
+  enc.bold(true).twoColumn('Taom / Narx', 'Jami', settings.paperWidth).bold(false);
   enc.divider(settings.paperWidth);
 
   const items = normalizeItems(order.items);
@@ -347,37 +340,30 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
 
   enc.divider(settings.paperWidth);
 
-  // Totals
+  // Hisob-kitob qismi
   const subtotal = items.reduce((s: number, i: any) => s + ((i.quantity || 1) * (i.unitPrice || i.price || 0)), 0);
-  // `|| 0.1` xizmat haqi nol bo'lgan kafeda ham 10% chiqarardi: nol qiymat
-  // JavaScript'da yolg'on hisoblanadi, ya'ni "haqi yo'q" va "haqi berilmagan"
-  // bir xil ko'rinardi. Foiz ham qotib qolgan edi — endi haqiqiy summadan
-  // hisoblanadi va chekdagi raqam bilan doim mos tushadi.
   const serviceFee = Number.isFinite(Number(order.serviceFee)) ? Number(order.serviceFee) : 0;
   const discount = Number(order.discount) || 0;
   const total = Number.isFinite(Number(order.total)) ? Number(order.total) : subtotal + serviceFee - discount;
   const feePercent = subtotal > 0 ? Math.round((serviceFee / subtotal) * 100) : 0;
 
-  enc.twoColumn('Kichik jami:', `${subtotal.toLocaleString()} so'm`, settings.paperWidth);
-  if (discount > 0) {
-    enc.twoColumn('Chegirma:', `-${discount.toLocaleString()} so'm`, settings.paperWidth);
+  if (discount > 0 || serviceFee > 0) {
+    enc.twoColumn('Kichik jami:', `${subtotal.toLocaleString()} so'm`, settings.paperWidth);
+    if (discount > 0) {
+      enc.twoColumn('Chegirma:', `-${discount.toLocaleString()} so'm`, settings.paperWidth);
+    }
+    if (serviceFee > 0) {
+      enc.twoColumn(`Xizmat (${feePercent}%):`, `${serviceFee.toLocaleString()} so'm`, settings.paperWidth);
+    }
+    enc.divider(settings.paperWidth);
   }
-  if (serviceFee > 0) {
-    enc.twoColumn(`Xizmat (${feePercent}%):`, `${serviceFee.toLocaleString()} so'm`, settings.paperWidth);
-  }
-  enc.divider(settings.paperWidth);
 
-  const totalLine = `JAMI: ${total.toLocaleString()} SO'M`;
-  if (totalLine.length <= maxDoubleWidth) {
-    enc.align('center').bold(true).size(2, 2).line(totalLine);
-  } else {
-    enc.align('center').bold(true).size(1, 2).line(totalLine);
-  }
-  enc.size(1, 1).bold(false);
-  
-  // Kassa 'naqd' / 'karta' / 'aralash' yuboradi, bu yerda esa 'cash'
-  // tekshirilardi — ya'ni naqd to'lov ham "Plastik karta" bo'lib chiqardi.
+  // JAMI qatori
+  enc.bold(true).twoColumn('JAMI:', `${total.toLocaleString()} SO'M`, settings.paperWidth).bold(false);
+
+  // To'lov turi
   if (order.paymentMethod) {
+    enc.divider(settings.paperWidth);
     const labels: Record<string, string> = {
       naqd: 'Naqd pul',
       cash: 'Naqd pul',
@@ -385,10 +371,8 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
       card: 'Plastik karta',
       aralash: 'Aralash',
     };
-    enc.line(`To'lov turi: ${labels[String(order.paymentMethod)] || String(order.paymentMethod)}`);
+    enc.twoColumn("To'lov turi:", labels[String(order.paymentMethod)] || String(order.paymentMethod), settings.paperWidth);
 
-    // Aralash to'lovda qaysi qismi naqd, qaysi qismi karta ekani chekda
-    // ko'rinmasa, kassir smena oxirida kassani solishtira olmaydi.
     const cash = Number(order.cashAmount) || 0;
     const card = Number(order.cardAmount) || 0;
     if (cash > 0 && card > 0) {
@@ -401,6 +385,7 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   if (settings.footerText) enc.align('center').line(settings.footerText);
   enc.align('center').line('OrderPlus POS tizimi');
 
+  enc.feed(3);
   enc.cut();
   return enc.encode();
 }
@@ -410,27 +395,21 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
   const enc = new EscPosEncoder();
   enc.init();
 
-  const maxDoubleWidth = settings.paperWidth === '80mm' ? 24 : 16;
-
-  // Sarlavha: size(1, 2) (kenglik 1x, balandlik 2x) termal printerda hech qachon qirqilmaydi va chiroyli chiqadi
-  enc.align('center').bold(true).size(1, 2).line('OSHXONA BUYURTMASI');
-  enc.size(1, 1).bold(false);
+  // Sarlavha
+  enc.align('center').bold(true).line('*** OSHXONA BUYURTMASI ***').bold(false);
   if (cafeName) enc.align('center').line(cafeName);
 
   // Stol raqami
+  enc.divider(settings.paperWidth);
   const rawTable = String(data.tableNumber || 'Zal').trim();
   const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
-  const tableLabel = cleanTable ? `STOL: ${cleanTable}` : 'STOL: Zal';
-  if (tableLabel.length <= maxDoubleWidth) {
-    enc.align('center').bold(true).size(2, 2).line(tableLabel);
-  } else {
-    enc.align('center').bold(true).size(1, 2).line(tableLabel);
-  }
-  enc.size(1, 1).bold(false);
+  enc.align('center').bold(true).line(`STOL: ${cleanTable || 'Zal'}`).bold(false);
+  enc.divider(settings.paperWidth);
 
+  // Meta ma'lumotlar
   enc.align('left');
   if (data.waiterName) enc.line(`Offitsiant: ${data.waiterName}`);
-  const timeStr = data.time || (data.timestamp ? new Date(data.timestamp).toLocaleTimeString('uz-UZ') : new Date().toLocaleTimeString('uz-UZ'));
+  const timeStr = data.time || (data.timestamp ? new Date(data.timestamp).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }));
   enc.line(`Vaqt: ${timeStr}`);
 
   enc.divider(settings.paperWidth);
@@ -441,11 +420,9 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
   for (const it of items) {
     const name = it.product?.name || it.name || 'Taom';
     const qty = it.quantity || 1;
-    // Taom va miqdori katta balandlikda (size 1, 2) oshpazga aniq ko'rinadi, kenglik esa qatordan oshib ketmaydi
-    enc.bold(true).size(1, 2).line(`${qty} x ${name}`);
-    enc.size(1, 1).bold(false);
+    enc.bold(true).line(`${qty} x ${name}`).bold(false);
     if (it.note) {
-      enc.bold(true).line(`   >> IZOH: ${it.note}`).bold(false);
+      enc.line(`   >> IZOH: ${it.note}`);
     }
   }
 

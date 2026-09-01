@@ -133,6 +133,19 @@ class EscPosEncoder {
     return this;
   }
 
+  /**
+   * Satrlar orasidagi masofa (nuqtalarda).
+   *
+   * `null` — printerning standarti (`ESC 2`, taxminan 30 nuqta). Katta qiymat
+   * chekni siyraklashtiradi: mayda emas, katta shriftda ham satrlar bir-biriga
+   * yopishmaydi.
+   */
+  lineSpacing(dots: number | null) {
+    if (dots === null) this.buffer.push(ESC, 0x32);
+    else this.buffer.push(ESC, 0x33, Math.max(0, Math.min(255, Math.round(dots))));
+    return this;
+  }
+
   bold(enable: boolean) {
     this.buffer.push(ESC, 0x45, enable ? 1 : 0);
     return this;
@@ -530,47 +543,58 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   }
 
   const is80 = settings.paperWidth === '80mm';
-  // Chek tanasi Font B da: 58mm qog'ozda 32 emas 42 ustun chiqadi, ya'ni
-  // taom nomiga 20 belgi qoladi va "Iced Americano" kabi nomlar ikkiga
-  // bo'linmaydi. Kafe nomi bundan mustasno — u Font A da yirik qoladi.
-  const cols = columnsFor(settings.paperWidth, 'B');
-  const labelCol = is80 ? 18 : 16;
-  const nameCol = is80 ? 32 : 20;
-  const qtyCol = is80 ? 6 : 5;
-  const priceCol = is80 ? 12 : 8;
-  const totalCol = is80 ? 14 : 9;
+  // Butun chek Font A da: kassir uni qo'lida ushlab o'qiydi, shuning uchun
+  // harf kattaligi ustunlar sonidan muhimroq. To'rt ustunli jadval 32 ta
+  // belgiga sig'magani uchun taom ikki qatorga yoziladi (pastga qarang).
+  const cols = columnsFor(settings.paperWidth, 'A');
+  const labelCol = is80 ? 16 : 14;
+  const totalCol = is80 ? 14 : 11;
   const longDate = cols - labelCol >= 22;
+
+  /**
+   * Bitta satr.
+   *
+   * Satr aynan `cols` belgiga to'ldiriladi va markazga tekislangan holda
+   * yuboriladi: printer tekislashni HAQIQIY qog'oz kengligi bo'yicha
+   * hisoblaydi, shuning uchun blok 58mm da ham, 80mm da ham qog'oz o'rtasida
+   * turadi va chap chetga yopishib qolmaydi.
+   */
+  const row = (str: string = '') => enc.line(padEndTo(str, cols));
 
   /** "Nomi<bo'shliq>Qiymat" — qiymat har doim bitta ustundan boshlanadi. */
   const metaRow = (label: string, value: string) => {
     const valueLines = wrapText(value, cols - labelCol);
-    enc.line(padEndTo(label, labelCol) + valueLines[0]);
+    row(padEndTo(label, labelCol) + valueLines[0]);
     for (const extra of valueLines.slice(1)) {
-      enc.line(' '.repeat(labelCol) + extra);
+      row(' '.repeat(labelCol) + extra);
     }
   };
 
   /** "TO'LOVGA ......... 80 000 so'm" — nuqtali chiziq ikki chekkani bog'laydi. */
   const leaderRow = (left: string, right: string) => {
     const gap = cols - printedWidth(left) - printedWidth(right) - 2;
-    enc.line(`${left} ${'.'.repeat(Math.max(1, gap))} ${right}`);
+    row(`${left} ${'.'.repeat(Math.max(1, gap))} ${right}`);
   };
 
   // 1. Logotip va kafe nomi
+  enc.align('center');
   if (receiptLogo) {
     const raster = rasterizeLogo(receiptLogo, is80 ? 288 : 192);
     if (raster) {
-      enc.align('center').raster(raster).line();
+      enc.raster(raster).line();
     }
   }
 
   const headerName = cafeName || 'OrderPlus';
-  enc.font('A').align('center').bold(true).size(1, 2).line(headerName).size(1, 1).bold(false);
-  enc.font('B');
+  enc.bold(true).size(1, 2).line(headerName).size(1, 1).bold(false);
   if (settings.headerText) {
     enc.line(settings.headerText);
   }
-  enc.align('left').line();
+
+  // Satrlar orasi kengaytiriladi: standart 30 nuqta zich chiqadi, 42 esa
+  // metadata va taomlar ro'yxatini "nafas oladigan" qiladi.
+  enc.lineSpacing(42);
+  enc.line();
 
   // 2. Metadata bloki
   const openedAt = new Date(order.createdAt || Date.now());
@@ -586,7 +610,7 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
 
   metaRow('Chek No', checkNum);
   // Kassada olib ketish oqimi yo'q — har bir buyurtma stolga yoziladi.
-  metaRow('Buyurtma turi', 'Zalda');
+  metaRow('Turi', 'Zalda');
   metaRow('Ofitsiant', order.waiterName || 'Admin');
   metaRow('Ochilgan', fmtReceiptDate(openedAt, longDate));
   metaRow('Chop etilgan', fmtReceiptDate(printedAt, longDate));
@@ -594,15 +618,17 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
     metaRow('Stol No', cleanTable);
   }
 
-  enc.dashDivider(cols);
+  row('- '.repeat(Math.floor(cols / 2)).trimEnd());
 
   // 3. Taomlar jadvali
-  enc.bold(true).line(
-    padEndTo('Nomi', nameCol) +
-    padStartTo('Soni', qtyCol) +
-    padStartTo('Narxi', priceCol) +
-    padStartTo('Jami', totalCol)
-  ).bold(false);
+  //
+  // Nom va raqamlar bitta satrda emas: Font A da 58mm qog'ozga 32 belgi
+  // sig'adi, raqamlar 20 tasini oladi va nomga 12 qoladi — "Bubble tea Taro"
+  // shu yerda ikkiga bo'linardi. Endi nom butun bir satr, raqamlar esa
+  // pastida "1 x 35 000 ....... 35 000" ko'rinishida.
+  enc.bold(true);
+  row(padEndTo('Nomi', cols - totalCol) + padStartTo('Jami', totalCol));
+  enc.bold(false);
 
   const items = normalizeItems(order.items);
   for (const it of items) {
@@ -611,25 +637,20 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
     const price = Number(it.unitPrice || it.price || 0);
     const sum = Number(it.total || qty * price);
 
-    const numbers =
-      padStartTo(String(qty), qtyCol) +
-      padStartTo(fmtPrice(price), priceCol) +
-      padStartTo(fmtPrice(sum), totalCol);
-
-    // Raqamlar nomning BIRINCHI qatoriga tekislanadi, davomi esa pastda
-    // yolg'iz qoladi — Poster chekidagi "Limon choy / choynak" kabi.
-    const nameLines = wrapText(name, nameCol);
-    enc.line(padEndTo(nameLines[0], nameCol) + numbers);
-    for (const extra of nameLines.slice(1)) {
-      enc.line(extra);
+    for (const nameLine of wrapText(name, cols)) {
+      row(nameLine);
     }
+    const calc = `  ${qty} x ${fmtPrice(price)}`;
+    row(padEndTo(calc, cols - totalCol) + padStartTo(fmtPrice(sum), totalCol));
 
     if (it.note) {
-      enc.line(`  * Izoh: ${it.note}`);
+      for (const noteLine of wrapText(`* Izoh: ${it.note}`, cols - 2)) {
+        row('  ' + noteLine);
+      }
     }
   }
 
-  enc.divider(cols);
+  row('-'.repeat(cols));
 
   // 4. Hisob-kitob
   const subtotal = items.reduce((acc: number, i: any) => acc + (i.quantity || 1) * (i.unitPrice || i.price || 0), 0);
@@ -648,7 +669,7 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
     if (serviceFee > 0) {
       metaRow(`Xizmat (${feePercent}%)`, fmtPrice(serviceFee));
     }
-    enc.line();
+    row();
   }
 
   // Ikki barobar balandlik, lekin oddiy kenglik: harf kattaroq ko'rinadi-yu,
@@ -678,10 +699,12 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   const payMethodStr = paymentLabels[String(order.paymentMethod)] || String(order.paymentMethod || 'NAQD').toUpperCase();
   metaRow("To'lov turi", payMethodStr);
 
-  enc.dashDivider(cols);
-  enc.align('center').line(settings.footerText || 'Xaridingiz uchun rahmat!');
+  row('- '.repeat(Math.floor(cols / 2)).trimEnd());
+  row();
+  enc.line(settings.footerText || 'Xaridingiz uchun rahmat!');
   enc.line('OrderPlus POS tizimi');
 
+  enc.lineSpacing(null);
   enc.feed(3);
   enc.cut();
   return enc.encode();

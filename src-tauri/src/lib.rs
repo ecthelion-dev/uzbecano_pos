@@ -8,6 +8,8 @@ pub fn run() {
     // havola esa kassani ilovadan olib chiqib ketardi — orqaga qaytish
     // tugmasi yo'q, ya'ni xodim ilovani yopishga majbur bo'lardi.
     .plugin(tauri_plugin_opener::init())
+    .plugin(tauri_plugin_process::init())
+    .plugin(tauri_plugin_updater::Builder::new().build())
     .invoke_handler(tauri::generate_handler![
       printing::list_printers,
       printing::print_raw,

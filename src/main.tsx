@@ -26,3 +26,7 @@ if ('serviceWorker' in navigator && !IS_DESKTOP_APP) {
     });
   });
 }
+
+import('./lib/autoUpdater').then(({ initAutoUpdater }) => {
+  initAutoUpdater();
+}).catch(() => {});

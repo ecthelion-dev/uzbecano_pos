@@ -47,18 +47,14 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Eslatma: bu yerda TAURI_SIGNING_PRIVATE_KEY yo'q — u faqat
-          # updater artefaktlarini imzolaydi, updater esa sozlanmagan.
-          # Windows Authenticode imzosi butunlay boshqa narsa va u
-          # tauri.conf.json > bundle > windows orqali beriladi (README ga qarang).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
           # Reliz faqat teg push qilinganda yaratiladi.
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('OrderPlus POS {0}', github.ref_name) || '' }}
           releaseBody: ${{ startsWith(github.ref, 'refs/tags/') && 'OrderPlus POS Windows Desktop Release' || '' }}
-          # Reliz qoralama bo'lib chiqadi: nashr qilishdan oldin odam
-          # o'rnatib ko'radi. Kassaga tekshirilmagan build tushmasligi kerak.
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
 
       - name: Upload Windows Bundle Artifacts

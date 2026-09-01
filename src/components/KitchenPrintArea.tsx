@@ -17,11 +17,15 @@ import { KitchenSlipData } from '../types';
 export const KitchenPrintArea: React.FC<{ data: KitchenSlipData | null }> = ({ data }) => {
   if (!data) return null;
 
+  const rawTable = String(data.tableNumber || 'Zal').trim();
+  const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
+  const tableLabel = cleanTable ? `Stol ${cleanTable}` : 'Zal';
+
   return (
     <div id="kitchen-print-area" className="hidden print:block font-mono text-slate-900">
       <div className="text-center border-b border-dashed border-slate-900 pb-2 space-y-1">
-        <h4 className="font-bold text-base tracking-wider uppercase text-slate-900 print-text-dark">*** OSHXONA BUYURTMASI ***</h4>
-        <p className="text-xs text-slate-800 print-text-dark font-semibold">{data.tableNumber} • {data.time}</p>
+        <h4 className="font-bold text-base tracking-wider uppercase text-slate-900 print-text-dark">OSHXONA BUYURTMASI</h4>
+        <p className="text-xs text-slate-800 print-text-dark font-semibold">{tableLabel} • {data.time}</p>
         {data.waiterName && (
           <p className="text-xs text-slate-800 print-text-dark font-medium">Offitsiant: {data.waiterName}</p>
         )}

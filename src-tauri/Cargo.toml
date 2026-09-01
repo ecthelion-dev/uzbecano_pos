@@ -1,6 +1,10 @@
 [package]
 name = "orderplus-pos"
-version = "1.0.0"
+# Ilova versiyasi bu yerdan olinmaydi: tauri.conf.json dagi
+# "version": "../package.json" ustunlik qiladi. Bu maydonni sinxron ushlab
+# turishga urinish faqat chalg'itadi — reliz paytida package.json bumb
+# qilinadi-yu, bu yerdagi raqam eskirib qoladi.
+version = "0.0.0"
 description = "OrderPlus POS — restoran kassa tizimi"
 authors = ["OrderPlus"]
 license = ""

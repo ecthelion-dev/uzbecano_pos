@@ -124,6 +124,15 @@ class EscPosEncoder {
     return this;
   }
 
+  /**
+   * Shriftni tanlaydi. Font B tor va past (58mm da 42 ustun, Font A da 32) —
+   * to'rt ustunli jadval faqat shu shrift bilan tor qog'ozga sig'adi.
+   */
+  font(name: 'A' | 'B') {
+    this.buffer.push(ESC, 0x4d, name === 'B' ? 1 : 0);
+    return this;
+  }
+
   bold(enable: boolean) {
     this.buffer.push(ESC, 0x45, enable ? 1 : 0);
     return this;
@@ -146,19 +155,22 @@ class EscPosEncoder {
     return this;
   }
 
-  divider(paperWidth: '58mm' | '80mm' = '58mm') {
-    const len = paperWidth === '80mm' ? 48 : 32;
+  /**
+   * `cols` — qog'oz kengligi emas, HOZIRGI shriftdagi ustunlar soni: Font B
+   * ga o'tilganda bir xil qog'ozga ko'proq belgi sig'adi va chiziq qog'oz
+   * o'rtasida uzilib qolmasligi kerak.
+   */
+  divider(cols: number) {
     this.align('center');
-    this.line('-'.repeat(len));
+    this.line('-'.repeat(cols));
     this.align('left');
     return this;
   }
 
   /** Poster uslubidagi siyrak punktir — metadata blokini taomlardan ajratadi. */
-  dashDivider(paperWidth: '58mm' | '80mm' = '58mm') {
-    const len = paperWidth === '80mm' ? 48 : 32;
+  dashDivider(cols: number) {
     this.align('left');
-    this.line('- '.repeat(Math.floor(len / 2)).trimEnd());
+    this.line('- '.repeat(Math.floor(cols / 2)).trimEnd());
     return this;
   }
 
@@ -461,6 +473,18 @@ function padEndTo(str: string, cols: number): string {
   return pad > 0 ? str + ' '.repeat(pad) : str;
 }
 
+/**
+ * Qog'ozga sig'adigan ustunlar soni.
+ *
+ * Font A — 12 nuqta kenglikdagi harf, Font B — 9 nuqta. Ya'ni shriftni
+ * almashtirish qog'ozni kengaytirish bilan barobar: 58mm da 32 o'rniga 42
+ * ustun, va taom nomiga 12 emas 20 belgi qoladi.
+ */
+function columnsFor(paperWidth: '58mm' | '80mm', font: 'A' | 'B'): number {
+  if (font === 'B') return paperWidth === '80mm' ? 64 : 42;
+  return paperWidth === '80mm' ? 48 : 32;
+}
+
 const UZ_MONTHS = [
   'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
   'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr',
@@ -469,8 +493,9 @@ const UZ_MONTHS = [
 /**
  * Poster chekidagi kabi sana.
  *
- * 80mm da to'liq: "01 sentabr 2026 20:43". 58mm da qiymat ustuniga 18 belgi
- * qoladi, shuning uchun raqamli ko'rinish: "01.09.2026 20:43".
+ * Joy yetsa oy nomi bilan: "01 sentabr 2026 20:43" (21 belgi). Sig'masa
+ * raqamli: "01.09.2026 20:43" (16). Qaror qog'ozdan emas, qiymat ustunining
+ * kengligidan kelib chiqadi — Font B da tor qog'ozga ham uzun shakl sig'adi.
  */
 function fmtReceiptDate(d: Date, long: boolean): string {
   const day = String(d.getDate()).padStart(2, '0');
@@ -505,12 +530,16 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   }
 
   const is80 = settings.paperWidth === '80mm';
-  const cols = is80 ? 48 : 32;
-  const labelCol = is80 ? 16 : 14;
-  const nameCol = is80 ? 22 : 12;
-  const qtyCol = is80 ? 5 : 4;
-  const priceCol = is80 ? 10 : 8;
-  const totalCol = is80 ? 11 : 8;
+  // Chek tanasi Font B da: 58mm qog'ozda 32 emas 42 ustun chiqadi, ya'ni
+  // taom nomiga 20 belgi qoladi va "Iced Americano" kabi nomlar ikkiga
+  // bo'linmaydi. Kafe nomi bundan mustasno — u Font A da yirik qoladi.
+  const cols = columnsFor(settings.paperWidth, 'B');
+  const labelCol = is80 ? 18 : 16;
+  const nameCol = is80 ? 32 : 20;
+  const qtyCol = is80 ? 6 : 5;
+  const priceCol = is80 ? 12 : 8;
+  const totalCol = is80 ? 14 : 9;
+  const longDate = cols - labelCol >= 22;
 
   /** "Nomi<bo'shliq>Qiymat" — qiymat har doim bitta ustundan boshlanadi. */
   const metaRow = (label: string, value: string) => {
@@ -536,7 +565,8 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   }
 
   const headerName = cafeName || 'OrderPlus';
-  enc.align('center').bold(true).size(1, 2).line(headerName).size(1, 1).bold(false);
+  enc.font('A').align('center').bold(true).size(1, 2).line(headerName).size(1, 1).bold(false);
+  enc.font('B');
   if (settings.headerText) {
     enc.line(settings.headerText);
   }
@@ -558,13 +588,13 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   // Kassada olib ketish oqimi yo'q — har bir buyurtma stolga yoziladi.
   metaRow('Buyurtma turi', 'Zalda');
   metaRow('Ofitsiant', order.waiterName || 'Admin');
-  metaRow('Ochilgan', fmtReceiptDate(openedAt, is80));
-  metaRow('Chop etilgan', fmtReceiptDate(printedAt, is80));
+  metaRow('Ochilgan', fmtReceiptDate(openedAt, longDate));
+  metaRow('Chop etilgan', fmtReceiptDate(printedAt, longDate));
   if (cleanTable) {
     metaRow('Stol No', cleanTable);
   }
 
-  enc.dashDivider(settings.paperWidth);
+  enc.dashDivider(cols);
 
   // 3. Taomlar jadvali
   enc.bold(true).line(
@@ -599,7 +629,7 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
     }
   }
 
-  enc.divider(settings.paperWidth);
+  enc.divider(cols);
 
   // 4. Hisob-kitob
   const subtotal = items.reduce((acc: number, i: any) => acc + (i.quantity || 1) * (i.unitPrice || i.price || 0), 0);
@@ -648,7 +678,7 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   const payMethodStr = paymentLabels[String(order.paymentMethod)] || String(order.paymentMethod || 'NAQD').toUpperCase();
   metaRow("To'lov turi", payMethodStr);
 
-  enc.dashDivider(settings.paperWidth);
+  enc.dashDivider(cols);
   enc.align('center').line(settings.footerText || 'Xaridingiz uchun rahmat!');
   enc.line('OrderPlus POS tizimi');
 
@@ -667,20 +697,20 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
   if (cafeName) enc.align('center').line(cafeName);
 
   // Stol raqami
-  enc.divider(settings.paperWidth);
+  enc.divider(columnsFor(settings.paperWidth, 'A'));
   const rawTable = String(data.tableNumber || 'Zal').trim();
   const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
   enc.align('center').bold(true).line(`STOL: ${cleanTable || 'Zal'}`).bold(false);
-  enc.divider(settings.paperWidth);
+  enc.divider(columnsFor(settings.paperWidth, 'A'));
 
   // Meta ma'lumotlar
   const timeStr = data.time || (data.timestamp ? new Date(data.timestamp).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }));
   if (data.waiterName) enc.twoColumn('Offitsiant:', data.waiterName, settings.paperWidth);
   enc.twoColumn('Vaqt:', timeStr, settings.paperWidth);
 
-  enc.divider(settings.paperWidth);
+  enc.divider(columnsFor(settings.paperWidth, 'A'));
   enc.align('left').bold(true).line('BUYURTMA TARKIBI:').bold(false);
-  enc.divider(settings.paperWidth);
+  enc.divider(columnsFor(settings.paperWidth, 'A'));
 
   const items = normalizeItems(data.items);
   for (const it of items) {
@@ -692,7 +722,7 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
     }
   }
 
-  enc.divider(settings.paperWidth);
+  enc.divider(columnsFor(settings.paperWidth, 'A'));
   enc.feed(3);
   enc.cut();
   return enc.encode();

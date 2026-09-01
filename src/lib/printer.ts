@@ -443,7 +443,7 @@ function rasterizeLogo(img: HTMLImageElement, dotWidth: number): { width: number
  */
 const GLYPH_DOTS = 24;
 const LINE_DOTS = 52;
-const BIG_LINE_DOTS = 76;
+const BIG_LINE_DOTS = 84;
 
 /** Logotip balandligi cheki: undan kattasi qog'ozni behuda yeydi. */
 const MAX_LOGO_DOTS = 160;
@@ -587,15 +587,25 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
   /** Ustun kengligiga to'ldirilgan oddiy satr. */
   const row = (str: string = '') => push([{ text: padEndTo(str, cols) }]);
 
+  /**
+   * Chekning o'qiladigan qismi — metadata va taomlar — ikki barobar
+   * balandlikda.
+   *
+   * ESC/POS da oraliq o'lcham yo'q: Font A dan keyingi qadam aynan 2 barobar.
+   * Kenglik o'zgarmaydi, ya'ni 48 ustun va nuqtali chiziq joyida qoladi;
+   * satrlar esa BIG_LINE_DOTS qadam bilan suriladi va yopishmaydi.
+   */
+  const bodyRow = (str: string) => push([{ text: padEndTo(str, cols), big: true }]);
+
   /** "Nomi<bo'shliq>Qiymat" — yorliq qalin, qiymat qat'iy ustundan boshlanadi. */
   const metaRow = (label: string, value: string) => {
     const valueLines = wrapText(value, cols - labelCol);
     push([
-      { text: padEndTo(label, labelCol), bold: true },
-      { text: padEndTo(valueLines[0], cols - labelCol) },
+      { text: padEndTo(label, labelCol), bold: true, big: true },
+      { text: padEndTo(valueLines[0], cols - labelCol), big: true },
     ]);
     for (const extra of valueLines.slice(1)) {
-      row(' '.repeat(labelCol) + extra);
+      bodyRow(' '.repeat(labelCol) + extra);
     }
   };
 
@@ -648,6 +658,7 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
         padStartTo('Narxi', priceCol) + padStartTo('Jami', totalCol)
       : padEndTo('Nomi', cols - totalCol) + padStartTo('Jami', totalCol),
     bold: true,
+    big: true,
   }]);
 
   const items = normalizeItems(order.items);
@@ -664,17 +675,17 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
         padStartTo(fmtPrice(sum), totalCol);
       // Raqamlar nomning BIRINCHI qatoriga tekislanadi, davomi pastda qoladi.
       const nameLines = wrapText(name, nameCol);
-      row(padEndTo(nameLines[0], nameCol) + numbers);
-      for (const extra of nameLines.slice(1)) row(extra);
+      bodyRow(padEndTo(nameLines[0], nameCol) + numbers);
+      for (const extra of nameLines.slice(1)) bodyRow(extra);
     } else {
-      for (const nameLine of wrapText(name, cols)) row(nameLine);
+      for (const nameLine of wrapText(name, cols)) bodyRow(nameLine);
       const calc = `  ${qty} x ${fmtPrice(price)}`;
-      row(padEndTo(calc, cols - totalCol) + padStartTo(fmtPrice(sum), totalCol));
+      bodyRow(padEndTo(calc, cols - totalCol) + padStartTo(fmtPrice(sum), totalCol));
     }
 
     if (it.note) {
       for (const noteLine of wrapText(`* Izoh: ${it.note}`, cols - 2)) {
-        row('  ' + noteLine);
+        bodyRow('  ' + noteLine);
       }
     }
   }
@@ -804,23 +815,16 @@ export function renderReceiptHtml(order: any, cafeName: string, settings: Printe
       return logoSrc ? `<img class="logo" src="${escapeHtml(logoSrc)}" alt="">` : '';
     }
     if (line.kind === 'banner') {
-      const cls = ['banner', line.bold ? 'b' : '', line.big ? 'big' : ''].filter(Boolean).join(' ');
-      return `<div class="${cls}">${escapeHtml(line.text) || '&nbsp;'}</div>`;
+      const inner = line.big ? `<span class="big">${escapeHtml(line.text)}</span>` : escapeHtml(line.text);
+      const cls = ['banner', line.bold ? 'b' : '', line.big ? 'tall' : ''].filter(Boolean).join(' ');
+      return `<div class="${cls}">${inner || '&nbsp;'}</div>`;
     }
-    // Yirik bo'lak satrni ustunlardan kengaytirib yuboradi, shuning uchun
-    // bunday satr flex bo'ladi: nuqtali chiziq qisqaradi, summa esa to'liq
-    // ko'rinadi va o'ng chekkada qoladi.
-    const span = (seg: ReceiptSegment) => (seg.bold
-      ? `<span class="b">${escapeHtml(seg.text)}</span>`
-      : escapeHtml(seg.text));
-
-    if (line.segments.some((seg) => seg.big)) {
-      const head = line.segments.filter((seg) => !seg.big).map(span).join('');
-      const tail = line.segments.filter((seg) => seg.big)
-        .map((seg) => `<span class="big">${escapeHtml(seg.text)}</span>`).join('');
-      return `<div class="flexrow"><span class="fill">${head}</span>${tail}</div>`;
-    }
-    return `<div>${line.segments.map(span).join('') || '&nbsp;'}</div>`;
+    const span = (seg: ReceiptSegment) => {
+      const cls = [seg.bold ? 'b' : '', seg.big ? 'big' : ''].filter(Boolean).join(' ');
+      return cls ? `<span class="${cls}">${escapeHtml(seg.text)}</span>` : escapeHtml(seg.text);
+    };
+    const tall = line.segments.some((seg) => seg.big) ? ' class="tall"' : '';
+    return `<div${tall}>${line.segments.map(span).join('') || '&nbsp;'}</div>`;
   }).join('\n');
 
   return `<!doctype html>
@@ -839,11 +843,11 @@ export function renderReceiptHtml(order: any, cafeName: string, settings: Printe
   }
   .chek .logo { display: block; margin: 0 auto 4px; max-width: 55%; }
   .chek .banner { text-align: center; }
-  .chek .banner.big { font-size: 1.7em; line-height: ${(BIG_LINE_DOTS / (2 * GLYPH_DOTS)).toFixed(2)}; }
   .chek .b { font-weight: 700; }
-  .chek .flexrow { display: flex; align-items: baseline; }
-  .chek .fill { flex: 1 1 auto; overflow: hidden; }
-  .chek .big { font-size: 1.7em; font-weight: 700; white-space: pre; }
+  /* Printer harfni faqat BO'YIGA cho'zadi, eniga emas — shuning uchun bu
+     yerda ham font-size emas, scaleY: ustunlar joyidan siljimaydi. */
+  .chek .tall { line-height: ${(BIG_LINE_DOTS / GLYPH_DOTS).toFixed(2)}; }
+  .chek .big { display: inline-block; transform: scaleY(2); transform-origin: center; }
 </style></head><body><div class="chek">
 ${body}
 </div></body></html>`;

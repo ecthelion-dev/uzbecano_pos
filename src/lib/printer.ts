@@ -29,7 +29,7 @@ export interface PrinterSettings {
 export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   mode: 'browser',
   systemPrinterName: '',
-  paperWidth: '58mm',
+  paperWidth: '80mm',
   autoPrintReceipt: true,
   headerText: "Xush kelibsiz!",
   footerText: "Tashrifingiz uchun rahmat!",
@@ -548,7 +548,14 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   // belgiga sig'magani uchun taom ikki qatorga yoziladi (pastga qarang).
   const cols = columnsFor(settings.paperWidth, 'A');
   const labelCol = is80 ? 16 : 14;
-  const totalCol = is80 ? 14 : 11;
+  const qtyCol = is80 ? 4 : 4;
+  const priceCol = is80 ? 11 : 9;
+  const totalCol = is80 ? 13 : 11;
+  // 80mm qog'ozda soni/narxi/jami nomdan keyin bitta satrga sig'adi (48 - 28
+  // = 20 belgi nomga). 58mm da esa nomga 8 belgi qolardi, shuning uchun u
+  // yerda raqamlar nomning ostiga tushadi.
+  const nameCol = cols - qtyCol - priceCol - totalCol;
+  const inlineNumbers = nameCol >= 18;
   const longDate = cols - labelCol >= 22;
 
   /**
@@ -621,13 +628,11 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   row('- '.repeat(Math.floor(cols / 2)).trimEnd());
 
   // 3. Taomlar jadvali
-  //
-  // Nom va raqamlar bitta satrda emas: Font A da 58mm qog'ozga 32 belgi
-  // sig'adi, raqamlar 20 tasini oladi va nomga 12 qoladi — "Bubble tea Taro"
-  // shu yerda ikkiga bo'linardi. Endi nom butun bir satr, raqamlar esa
-  // pastida "1 x 35 000 ....... 35 000" ko'rinishida.
   enc.bold(true);
-  row(padEndTo('Nomi', cols - totalCol) + padStartTo('Jami', totalCol));
+  row(inlineNumbers
+    ? padEndTo('Nomi', nameCol) + padStartTo('Soni', qtyCol) +
+      padStartTo('Narxi', priceCol) + padStartTo('Jami', totalCol)
+    : padEndTo('Nomi', cols - totalCol) + padStartTo('Jami', totalCol));
   enc.bold(false);
 
   const items = normalizeItems(order.items);
@@ -637,11 +642,20 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
     const price = Number(it.unitPrice || it.price || 0);
     const sum = Number(it.total || qty * price);
 
-    for (const nameLine of wrapText(name, cols)) {
-      row(nameLine);
+    if (inlineNumbers) {
+      const numbers =
+        padStartTo(String(qty), qtyCol) +
+        padStartTo(fmtPrice(price), priceCol) +
+        padStartTo(fmtPrice(sum), totalCol);
+      // Raqamlar nomning BIRINCHI qatoriga tekislanadi, davomi pastda qoladi.
+      const nameLines = wrapText(name, nameCol);
+      row(padEndTo(nameLines[0], nameCol) + numbers);
+      for (const extra of nameLines.slice(1)) row(extra);
+    } else {
+      for (const nameLine of wrapText(name, cols)) row(nameLine);
+      const calc = `  ${qty} x ${fmtPrice(price)}`;
+      row(padEndTo(calc, cols - totalCol) + padStartTo(fmtPrice(sum), totalCol));
     }
-    const calc = `  ${qty} x ${fmtPrice(price)}`;
-    row(padEndTo(calc, cols - totalCol) + padStartTo(fmtPrice(sum), totalCol));
 
     if (it.note) {
       for (const noteLine of wrapText(`* Izoh: ${it.note}`, cols - 2)) {

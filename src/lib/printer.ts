@@ -533,33 +533,44 @@ function fmtPrice(val: number): string {
   return Math.round(Number(val) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
+/** Satr ichidagi bir bo'lak: qalinligi va kattaligi o'ziga xos bo'lishi mumkin. */
+type ReceiptSegment = { text: string; bold?: boolean; big?: boolean };
+
+/**
+ * Chek maketining bitta satri.
+ *
+ * `banner` — qog'oz o'rtasiga tekislanadigan erkin matn (kafe nomi, pastki
+ * yozuv), `row` — ustunlarga to'ldirilgan satr, `logo` — rasm.
+ */
+type ReceiptLine =
+  | { kind: 'logo' }
+  | { kind: 'banner'; text: string; bold?: boolean; big?: boolean }
+  | { kind: 'row'; segments: ReceiptSegment[] };
+
+interface ReceiptLayout {
+  /** Satr kengligi belgilarda — 58mm da 32, 80mm da 48. */
+  cols: number;
+  lines: ReceiptLine[];
+  openCashDrawer: boolean;
+}
+
 /**
  * Chek maketi — Poster POS chekiga qarab qurilgan.
  *
- * Asosiy farq eski maketdan: metadata qiymatlari qog'oz chetiga emas, qat'iy
- * ustundan boshlanadi. O'ngga tekislanganda "Chek No" va "Ofitsiant"
- * qiymatlari har xil joydan boshlanib, ko'z ularni ustun sifatida o'qiy
- * olmasdi; qat'iy ustun esa yagona vertikal chiziq hosil qiladi.
+ * Maket ataylab baytlardan ajratilgan: xuddi shu tavsifdan ham termal
+ * printerga ESC/POS, ham brauzer chop etishiga HTML chiqadi. Ilgari brauzer
+ * cheki alohida React komponentida yozilgan edi va ikkalasi bir-biridan
+ * uzoqlashib ketgandi — qog'ozdan ikki xil chek chiqardi.
  *
- * Ustunlar (chop etiladigan baytlarda):
- *   58mm = 32:  nom 12 | soni 4 | narx 8 | jami 8
- *   80mm = 48:  nom 22 | soni 5 | narx 10 | jami 11
+ * Asosiy tamoyil: ustunlar KATTALIK bilan emas, QALINLIK bilan ajratiladi.
+ * Yorliqlar qalin, qiymatlar oddiy, hammasi bitta o'lchamda; faqat to'lanishi
+ * kerak summa yirik. Poster ham shunday qiladi.
  */
-export function generateEscPosReceipt(order: any, cafeName: string, settings: PrinterSettings): Uint8Array {
-  const enc = new EscPosEncoder();
-  enc.init();
-
-  if (settings.openCashDrawer) {
-    enc.kickDrawer();
-  }
-
+function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSettings): ReceiptLayout {
   const is80 = settings.paperWidth === '80mm';
-  // Butun chek Font A da: kassir uni qo'lida ushlab o'qiydi, shuning uchun
-  // harf kattaligi ustunlar sonidan muhimroq. To'rt ustunli jadval 32 ta
-  // belgiga sig'magani uchun taom ikki qatorga yoziladi (pastga qarang).
   const cols = columnsFor(settings.paperWidth, 'A');
   const labelCol = is80 ? 16 : 14;
-  const qtyCol = is80 ? 4 : 4;
+  const qtyCol = 4;
   const priceCol = is80 ? 11 : 9;
   const totalCol = is80 ? 13 : 11;
   // 80mm qog'ozda soni/narxi/jami nomdan keyin bitta satrga sig'adi (48 - 28
@@ -569,66 +580,41 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   const inlineNumbers = nameCol >= 18;
   const longDate = cols - labelCol >= 22;
 
-  /**
-   * Bitta satr.
-   *
-   * Satr aynan `cols` belgiga to'ldiriladi va markazga tekislangan holda
-   * yuboriladi: printer tekislashni HAQIQIY qog'oz kengligi bo'yicha
-   * hisoblaydi, shuning uchun blok 58mm da ham, 80mm da ham qog'oz o'rtasida
-   * turadi va chap chetga yopishib qolmaydi.
-   */
-  const row = (str: string = '') => enc.line(padEndTo(str, cols));
+  const lines: ReceiptLine[] = [];
+  const push = (segments: ReceiptSegment[]) => lines.push({ kind: 'row', segments });
 
-  /**
-   * "Nomi<bo'shliq>Qiymat" — qiymat har doim bitta ustundan boshlanadi.
-   *
-   * Yorliq qalin, qiymat oddiy: shrift kattaligini oshirmasdan ko'z ikki
-   * ustunni ajratadi. Poster cheki ham aynan shunday qilingan.
-   */
+  /** Ustun kengligiga to'ldirilgan oddiy satr. */
+  const row = (str: string = '') => push([{ text: padEndTo(str, cols) }]);
+
+  /** "Nomi<bo'shliq>Qiymat" — yorliq qalin, qiymat qat'iy ustundan boshlanadi. */
   const metaRow = (label: string, value: string) => {
     const valueLines = wrapText(value, cols - labelCol);
-    enc.bold(true).text(padEndTo(label, labelCol)).bold(false);
-    enc.line(padEndTo(valueLines[0], cols - labelCol));
+    push([
+      { text: padEndTo(label, labelCol), bold: true },
+      { text: padEndTo(valueLines[0], cols - labelCol) },
+    ]);
     for (const extra of valueLines.slice(1)) {
       row(' '.repeat(labelCol) + extra);
     }
   };
 
-  /**
-   * "TO'LOVGA ......... 80 000 so'm" — nuqtali chiziq ikki chekkani bog'laydi.
-   *
-   * Chekda faqat shu summa yirik: balandligi ikki barobar, kengligi esa
-   * o'zgarmaydi, shuning uchun nuqtalar hisobi buzilmaydi.
-   */
+  /** "TO'LOVGA ......... 80 000 so'm" — nuqtali chiziq ikki chekkani bog'laydi. */
   const totalRow = (left: string, right: string) => {
     const gap = Math.max(1, cols - printedWidth(left) - printedWidth(right) - 2);
-    enc.lineSpacing(BIG_LINE_DOTS);
-    enc.bold(true).text(left).bold(false);
-    enc.text(` ${'.'.repeat(gap)} `);
-    enc.bold(true).size(1, 2).line(right).size(1, 1).bold(false);
-    enc.lineSpacing(LINE_DOTS);
+    push([
+      { text: left, bold: true },
+      { text: ` ${'.'.repeat(gap)} ` },
+      { text: right, bold: true, big: true },
+    ]);
   };
 
   // 1. Logotip va kafe nomi
-  enc.align('center');
-  if (receiptLogo) {
-    const raster = rasterizeLogo(receiptLogo, is80 ? 288 : 192);
-    if (raster) {
-      enc.raster(raster).line();
-    }
-  }
-
-  const headerName = cafeName || 'OrderPlus';
-  enc.lineSpacing(BIG_LINE_DOTS);
-  enc.bold(true).size(1, 2).line(headerName).size(1, 1).bold(false);
+  lines.push({ kind: 'logo' });
+  lines.push({ kind: 'banner', text: cafeName || 'OrderPlus', bold: true, big: true });
   if (settings.headerText) {
-    enc.line(settings.headerText);
+    lines.push({ kind: 'banner', text: settings.headerText });
   }
-
-  // Satrlar orasi kengaytiriladi: standart 30 nuqta zich chiqadi, 42 esa
-  // metadata va taomlar ro'yxatini "nafas oladigan" qiladi.
-  enc.lineSpacing(LINE_DOTS);
-  enc.line();
+  row();
 
   // 2. Metadata bloki
   const openedAt = new Date(order.createdAt || Date.now());
@@ -655,15 +641,13 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   row('- '.repeat(Math.floor(cols / 2)).trimEnd());
 
   // 3. Taomlar jadvali
-  //
-  // Oddiy balandlikda: ikki barobar qilinganda satrlar yo'g'onlashib chekni
-  // o'qishga qiyinlashtirgan edi. Sarlavha qalin, qatorlar oddiy.
-  enc.bold(true);
-  row(inlineNumbers
-    ? padEndTo('Nomi', nameCol) + padStartTo('Soni', qtyCol) +
-      padStartTo('Narxi', priceCol) + padStartTo('Jami', totalCol)
-    : padEndTo('Nomi', cols - totalCol) + padStartTo('Jami', totalCol));
-  enc.bold(false);
+  push([{
+    text: inlineNumbers
+      ? padEndTo('Nomi', nameCol) + padStartTo('Soni', qtyCol) +
+        padStartTo('Narxi', priceCol) + padStartTo('Jami', totalCol)
+      : padEndTo('Nomi', cols - totalCol) + padStartTo('Jami', totalCol),
+    bold: true,
+  }]);
 
   const items = normalizeItems(order.items);
   for (const it of items) {
@@ -742,8 +726,53 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
 
   row('- '.repeat(Math.floor(cols / 2)).trimEnd());
   row();
-  enc.line(settings.footerText || 'Xaridingiz uchun rahmat!');
-  enc.line('OrderPlus POS tizimi');
+  lines.push({ kind: 'banner', text: settings.footerText || 'Xaridingiz uchun rahmat!' });
+  lines.push({ kind: 'banner', text: 'OrderPlus POS tizimi' });
+
+  return { cols, lines, openCashDrawer: !!settings.openCashDrawer };
+}
+
+/** Maketni termal printer baytlariga aylantiradi. */
+export function generateEscPosReceipt(order: any, cafeName: string, settings: PrinterSettings): Uint8Array {
+  const layout = buildReceiptLayout(order, cafeName, settings);
+  const is80 = settings.paperWidth === '80mm';
+  const enc = new EscPosEncoder();
+  enc.init();
+
+  if (layout.openCashDrawer) {
+    enc.kickDrawer();
+  }
+
+  // Satr aynan `cols` belgiga to'ldirilgan va markazga tekislangan holda
+  // yuboriladi: printer tekislashni HAQIQIY qog'oz kengligi bo'yicha
+  // hisoblaydi, shuning uchun blok 58mm da ham, 80mm da ham qog'oz o'rtasida
+  // turadi va chap chetga yopishib qolmaydi.
+  enc.align('center');
+
+  for (const line of layout.lines) {
+    if (line.kind === 'logo') {
+      if (!receiptLogo) continue;
+      const raster = rasterizeLogo(receiptLogo, is80 ? 288 : 192);
+      if (raster) enc.raster(raster).line();
+      continue;
+    }
+
+    const big = line.kind === 'banner' ? !!line.big : line.segments.some((seg) => seg.big);
+    enc.lineSpacing(big ? BIG_LINE_DOTS : LINE_DOTS);
+
+    if (line.kind === 'banner') {
+      enc.bold(!!line.bold).size(1, line.big ? 2 : 1).line(line.text);
+    } else {
+      for (const seg of line.segments) {
+        enc.bold(!!seg.bold).size(1, seg.big ? 2 : 1).text(seg.text);
+      }
+      enc.line();
+    }
+    // Kattalik satr OXIRIDA qaytariladi: printer satr balandligini qog'oz
+    // surilganda o'lchaydi, shuning uchun reset qatordan oldin kelsa yirik
+    // satr past qadam bilan surilib, keyingisiga tegib ketardi.
+    enc.bold(false).size(1, 1);
+  }
 
   enc.lineSpacing(null);
   enc.feed(3);
@@ -751,6 +780,72 @@ export function generateEscPosReceipt(order: any, cafeName: string, settings: Pr
   return enc.encode();
 }
 
+function escapeHtml(str: string): string {
+  return str.replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
+  ));
+}
+
+/**
+ * Xuddi shu maketni brauzer chop etishi uchun HTML ga aylantiradi.
+ *
+ * Hujjat butunlay o'zicha yashaydi — sahifaning uslublariga tayanmaydi.
+ * Ilgari chek iframe ga Tailwind klasslari bilan ko'chirilar, uslub fayli esa
+ * `print()` chaqirilgunga qadar yuklanib ulgurmasdi: qog'ozga jadvalsiz,
+ * chegarasiz "yalang'och" matn tushardi.
+ */
+export function renderReceiptHtml(order: any, cafeName: string, settings: PrinterSettings): string {
+  const layout = buildReceiptLayout(order, cafeName, settings);
+  const logoSrc = receiptLogo?.src || '';
+
+  const body = layout.lines.map((line) => {
+    if (line.kind === 'logo') {
+      return logoSrc ? `<img class="logo" src="${escapeHtml(logoSrc)}" alt="">` : '';
+    }
+    if (line.kind === 'banner') {
+      const cls = ['banner', line.bold ? 'b' : '', line.big ? 'big' : ''].filter(Boolean).join(' ');
+      return `<div class="${cls}">${escapeHtml(line.text) || '&nbsp;'}</div>`;
+    }
+    // Yirik bo'lak satrni ustunlardan kengaytirib yuboradi, shuning uchun
+    // bunday satr flex bo'ladi: nuqtali chiziq qisqaradi, summa esa to'liq
+    // ko'rinadi va o'ng chekkada qoladi.
+    const span = (seg: ReceiptSegment) => (seg.bold
+      ? `<span class="b">${escapeHtml(seg.text)}</span>`
+      : escapeHtml(seg.text));
+
+    if (line.segments.some((seg) => seg.big)) {
+      const head = line.segments.filter((seg) => !seg.big).map(span).join('');
+      const tail = line.segments.filter((seg) => seg.big)
+        .map((seg) => `<span class="big">${escapeHtml(seg.text)}</span>`).join('');
+      return `<div class="flexrow"><span class="fill">${head}</span>${tail}</div>`;
+    }
+    return `<div>${line.segments.map(span).join('') || '&nbsp;'}</div>`;
+  }).join('\n');
+
+  return `<!doctype html>
+<html lang="uz"><head><meta charset="utf-8"><title>Chek</title><style>
+  @page { size: auto; margin: 4mm; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+  .chek {
+    width: ${layout.cols}ch;
+    margin: 0 auto;
+    /* Ustunlar bo'shliq bilan tekislangan — shrift albatta monoshirift. */
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre;
+  }
+  .chek .logo { display: block; margin: 0 auto 4px; max-width: 55%; }
+  .chek .banner { text-align: center; }
+  .chek .banner.big { font-size: 1.7em; line-height: 1.25; }
+  .chek .b { font-weight: 700; }
+  .chek .flexrow { display: flex; align-items: baseline; }
+  .chek .fill { flex: 1 1 auto; overflow: hidden; }
+  .chek .big { font-size: 1.7em; font-weight: 700; white-space: pre; }
+</style></head><body><div class="chek">
+${body}
+</div></body></html>`;
+}
 // Build ESC/POS Kitchen Slip
 export function generateEscPosKitchenSlip(data: any, cafeName: string, settings: PrinterSettings): Uint8Array {
   const enc = new EscPosEncoder();
@@ -793,6 +888,66 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
 }
 
 // Non-blocking browser print via iframe (doesn't freeze main UI)
+/**
+ * Chekni brauzer orqali chop etadi — termal printer ulanmagan bo'lsa.
+ *
+ * Hujjat `renderReceiptHtml` dan olinadi, ya'ni qog'ozdan aynan termal
+ * chekdagi maket chiqadi. Sahifaning uslub fayllari ko'chirilmaydi: ular
+ * iframe ichida asinxron yuklanadi va `print()` ko'pincha ulardan oldin
+ * chaqirilib, qog'ozga uslubsiz matn tushardi.
+ */
+export function printReceiptViaBrowser(
+  order: any,
+  cafeName: string,
+  settings: PrinterSettings = getPrinterSettings(),
+): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof document === 'undefined') { resolve(); return; }
+
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.cssText = 'position:fixed;top:-10000px;left:-10000px;width:100mm;height:200mm;border:none;';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) { try { document.body.removeChild(iframe); } catch {} resolve(); return; }
+
+    doc.open();
+    doc.write(renderReceiptHtml(order, cafeName, settings));
+    doc.close();
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      try { document.body.removeChild(iframe); } catch {}
+      resolve();
+    };
+
+    const fallbackTimer = setTimeout(finish, 20000);
+    iframe.contentWindow?.addEventListener('afterprint', () => {
+      clearTimeout(fallbackTimer);
+      finish();
+    });
+
+    // Logotip yuklanmasdan chop etilsa, chek boshida bo'sh joy qoladi. Sekin
+    // tarmoqda kassir kutib qolmasligi uchun cheklov bor.
+    const pending = Array.from(doc.querySelectorAll('img'))
+      .filter((img) => !img.complete)
+      .map((img) => new Promise<void>((res) => {
+        img.addEventListener('load', () => res(), { once: true });
+        img.addEventListener('error', () => res(), { once: true });
+      }));
+
+    Promise.race([
+      Promise.all(pending),
+      new Promise((res) => setTimeout(res, 1500)),
+    ]).then(() => {
+      try { iframe.contentWindow?.print(); } catch { finish(); }
+    });
+  });
+}
+
 function printViaBrowserNonBlocking(): Promise<void> {
   return new Promise((resolve) => {
     // React holatni shu tick da hali DOM ga yozmagan bo'lishi mumkin. Stol
@@ -1025,9 +1180,9 @@ export async function executePrintReceipt(order: any, cafeName: string) {
       }
     }
 
-    // Browser iframe fallback (non-blocking)
+    // Termal printer yo'q — chek brauzer orqali qog'ozga tushadi.
     if (typeof window !== 'undefined') {
-      await printViaBrowserNonBlocking();
+      await printReceiptViaBrowser(order, cafeName, settings);
     }
   });
 }

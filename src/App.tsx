@@ -50,7 +50,6 @@ import { ProductModifierModal } from './components/ProductModifierModal';
 import { AralashNumpadModal } from './components/AralashNumpadModal';
 import { UnsavedCartModal } from './components/UnsavedCartModal';
 import { PrinterSettingsModal } from './components/PrinterSettingsModal';
-import { ThermalPrintArea } from './components/ThermalPrintArea';
 import { CategoryCard } from './components/CategoryCard';
 import { ProductCard } from './components/ProductCard';
 import { TableCard } from './components/TableCard';
@@ -59,7 +58,7 @@ import { KitchenItemRow } from './components/KitchenItemRow';
 import { POSHeader } from './components/POSHeader';
 import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
-import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, getLastPrintError, setReceiptLogo } from './lib/printer';
+import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, printReceiptViaBrowser, getLastPrintError, setReceiptLogo } from './lib/printer';
 import { Wallet } from 'lucide-react';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
@@ -130,8 +129,8 @@ export default function App() {
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
   const [showReceiptPreview, setShowReceiptPreview] = useState<boolean>(false);
   const [showArchiveModal, setShowArchiveModal] = useState<boolean>(false);
-  // Davr hisoboti chop etilayotgan payt: chek chiqaruvchi blok o'rniga shu
-  // ko'rinadi (ikkalasi bitta #thermal-print-area id sini ishlatadi).
+  // Davr hisoboti chop etilayotgan payt. Hisobot `window.print()` bilan
+  // sahifadan chiqadi (`#thermal-print-area`), chek esa alohida hujjatda.
   const [periodPrint, setPeriodPrint] = useState<PeriodPrintData | null>(null);
   const [showShiftReport, setShowShiftReport] = useState<boolean>(false);
   const [kitchenSlipData, setKitchenSlipData] = useState<{ tableNumber: string; waiterName: string; items: any[]; time: string } | null>(null);
@@ -1243,7 +1242,7 @@ export default function App() {
    * tugma ishlashdan to'xtamaydi.
    */
   const printReceiptOrFallback = useCallback(async (order: any) => {
-    if (!order) { window.print(); return; }
+    if (!order) return;
     const ok = await printReceiptDirect(order, connectedCafeName || 'OrderPlus');
     if (!ok) {
       const why = getLastPrintError();
@@ -1251,7 +1250,9 @@ export default function App() {
         setToastMessage(`Printerga to'g'ridan-to'g'ri yuborilmadi: ${why}`);
         setTimeout(() => setToastMessage(null), 6000);
       }
-      window.print();
+      // `window.print()` emas: u butun sahifani qog'ozga oladi. Chek termal
+      // printerdagi maketning aynan o'zi bo'lib, alohida hujjatda chiqadi.
+      await printReceiptViaBrowser(order, connectedCafeName || 'OrderPlus');
     }
   }, [connectedCafeName]);
 
@@ -2501,27 +2502,6 @@ export default function App() {
         cafeAddress={connectedCafeAddress}
         cafePhone={connectedCafePhone}
       />
-
-      {/* Standalone Thermal Print Receipt Area (Rendered only on thermal paper) */}
-      {!periodPrint && (
-      <ThermalPrintArea
-        selectedArchiveOrder={selectedArchiveOrder}
-        selectedTable={selectedTable}
-        activeTableOrder={activeTableOrder}
-        activeTableOrderItems={activeTableOrderItems}
-        cart={cart}
-        currentWaiter={currentWaiter}
-        connectedCafeName={connectedCafeName || 'ORDERPLUS'}
-        connectedCafeLogo={connectedCafeLogo}
-        connectedCafeAddress={connectedCafeAddress}
-        connectedCafePhone={connectedCafePhone}
-        serviceFeePercent={serviceFeePercent}
-        serviceFee={serviceFee}
-        discountPercent={discountPercent}
-        discountAmount={discountAmount}
-        grandTotal={grandTotal}
-      />
-      )}
 
       {/* Thermal Printer Settings Modal */}
       <PrinterSettingsModal

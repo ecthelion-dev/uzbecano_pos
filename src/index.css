@@ -122,10 +122,6 @@ a,
      ESC/POS yo'li ishlamaganda). Mijoz cheki DOM da doim turadi, shuning
      uchun shu paytda u layoutdan olib tashlanadi — aks holda qog'ozga
      oshxona buyurtmasi o'rniga o'sha tushadi. */
-  body.printing-kitchen #thermal-print-area {
-    display: none !important;
-  }
-
   body.printing-kitchen #kitchen-print-area,
   body.printing-kitchen #kitchen-print-area * {
     visibility: visible !important;

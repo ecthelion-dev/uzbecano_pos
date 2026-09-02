@@ -168,3 +168,17 @@ export function writeGlobalText(key: GlobalKey, value: string): boolean {
 export function removeGlobalKey(key: GlobalKey): void {
   removeKey(GLOBAL_KEYS[key]);
 }
+
+/**
+ * Kafeni ajratishdan oldingi versiyalar qoldirgan yozuvlarni o'chiradi.
+ *
+ * O'sha versiyalar kafe nomi, logotipi, manzili va telefonini kafega
+ * bog'lanmagan kalitlarda ham saqlar edi. Ular endi hech kim tomonidan
+ * o'qilmaydi, lekin diskda qolib ketmasin: bitta qurilmada bir nechta kafe
+ * ochilgan bo'lsa, u yerda oxirgi ulangan kafening ma'lumoti yotadi.
+ */
+export function purgeLegacyCafeKeys(): void {
+  for (const key of ['orderplus_cafe_name', 'orderplus_cafe_logo', 'orderplus_cafe_address', 'orderplus_cafe_phone']) {
+    removeKey(key);
+  }
+}

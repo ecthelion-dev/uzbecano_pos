@@ -35,6 +35,16 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePeriodPrintArea';
 import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib/offlineAuth';
 import { nextDailyNumber } from './lib/dailySequence';
+import {
+  readCafeText,
+  writeCafeText,
+  readCafeJson,
+  writeCafeJson,
+  removeCafeKey,
+  readGlobalText,
+  writeGlobalText,
+  purgeLegacyCafeKeys,
+} from './lib/storage';
 import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID } from './constants';
@@ -146,7 +156,7 @@ export default function App() {
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(() => {
     try {
       const cafeId = resolveActiveCafeId();
-      const saved = localStorage.getItem(`orderplus_${cafeId}_cash_transactions`);
+      const saved = readCafeText(cafeId, 'cash_transactions');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -176,31 +186,31 @@ export default function App() {
   const [isCafeFrozen, setIsCafeFrozen] = useState<boolean>(() => {
     try {
       const cafeId = resolveActiveCafeId();
-      return localStorage.getItem(`orderplus_${cafeId}_is_frozen`) === 'true';
+      return readCafeText(cafeId, 'is_frozen') === 'true';
     } catch {
       return false;
     }
   });
   const [connectedCafeName, setConnectedCafeName] = useState<string>(() => {
     const cafeId = resolveActiveCafeId();
-    return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_name`) : null) || cafeId;
+    return readCafeText(cafeId, 'name') || cafeId;
   });
   const [connectedCafeLogo, setConnectedCafeLogo] = useState<string>(() => {
     const cafeId = resolveActiveCafeId();
-    return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_logo`) : null) || '';
+    return readCafeText(cafeId, 'logo') || '';
   });
   const [connectedCafeAddress, setConnectedCafeAddress] = useState<string>(() => {
     const cafeId = resolveActiveCafeId();
-    return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_address`) : null) || '';
+    return readCafeText(cafeId, 'address') || '';
   });
   const [connectedCafePhone, setConnectedCafePhone] = useState<string>(() => {
     const cafeId = resolveActiveCafeId();
-    return (typeof window !== 'undefined' ? localStorage.getItem(`orderplus_${cafeId}_phone`) : null) || '';
+    return readCafeText(cafeId, 'phone') || '';
   });
   const [showPrinterModal, setShowPrinterModal] = useState<boolean>(false);
   const [serviceFeePercent, setServiceFeePercent] = useState<number>(() => {
     try {
-      return typeof window !== 'undefined' ? Number(localStorage.getItem('serviceFeePercent') ?? 10) : 10;
+      return Number(readGlobalText('serviceFeePercent') ?? 10);
     } catch {
       return 10;
     }
@@ -214,7 +224,7 @@ export default function App() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       if (params.get('cafe') || params.get('cafeId')) {
-        try { localStorage.setItem('orderplus_cafe_id', cafeId); } catch { /* ignore */ }
+        writeGlobalText('cafeId', cafeId);
       }
     }
     return cafeId;
@@ -294,7 +304,8 @@ export default function App() {
     const cafeId = getActiveCafeId();
     // Yangilanishdan oldingi versiya diskda qoldirgan ochiq tokenni o'chiramiz.
     purgeLegacySession(cafeId);
-    const frozenSaved = localStorage.getItem(`orderplus_${cafeId}_is_frozen`) === 'true';
+    purgeLegacyCafeKeys();
+    const frozenSaved = readCafeText(cafeId, 'is_frozen') === 'true';
     setIsCafeFrozen(frozenSaved);
     if (frozenSaved) {
       setCurrentWaiter(null);
@@ -305,9 +316,9 @@ export default function App() {
       setCurrentWaiter(session?.waiter ?? null);
       setAuthToken(session?.token ?? null);
     }
-    const savedName = localStorage.getItem(`orderplus_${cafeId}_name`);
+    const savedName = readCafeText(cafeId, 'name');
     setConnectedCafeName(savedName || cafeId);
-    const savedLogo = localStorage.getItem(`orderplus_${cafeId}_logo`);
+    const savedLogo = readCafeText(cafeId, 'logo');
     setConnectedCafeLogo(savedLogo || '');
   }, [getActiveCafeId]);
 
@@ -318,7 +329,7 @@ export default function App() {
 
   const persistOrders = useCallback((list: DBOrder[]) => {
     const cafeId = getActiveCafeId();
-    localStorage.setItem(`orderplus_${cafeId}_orders`, JSON.stringify(list));
+    writeCafeJson(cafeId, 'orders', list);
   }, [getActiveCafeId]);
 
   // The full 7-day window, which only the archive and shift report read. It is
@@ -326,7 +337,6 @@ export default function App() {
   // the poll and pulled when something actually needs it.
   const fetchTableDefs = useCallback(async () => {
     const cafeId = getActiveCafeId();
-    const cacheKey = `orderplus_${cafeId}_tables`;
     try {
       const res = await fetch(`${API_BASE_URL}/api/tables?cafeId=${encodeURIComponent(cafeId)}`, {
         cache: 'no-store',
@@ -337,14 +347,12 @@ export default function App() {
       if (!Array.isArray(data)) throw new Error('bad payload');
       const defs = data.map((t: any) => ({ number: String(t.name), area: String(t.area || 'Zonasiz') }));
       setTableDefs(defs);
-      localStorage.setItem(cacheKey, JSON.stringify(defs));
+      writeCafeJson(cafeId, 'tables', defs);
     } catch {
       // A till that loses the network keeps serving the floor it last knew;
       // only a till that has never synced has nothing to show.
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        try { setTableDefs(JSON.parse(cached)); } catch { }
-      }
+      const cached = readCafeJson<any[] | null>(cafeId, 'tables', null);
+      if (Array.isArray(cached)) setTableDefs(cached);
     }
   }, [getActiveCafeId, getAuthHeaders]);
 
@@ -379,18 +387,14 @@ export default function App() {
       // sync queue was still holding it, so the food was on its way to the
       // kitchen with nothing left on screen to charge for. Keep anything the
       // queue still owns; drop the rest, which really is gone.
-      let pendingIds = new Set<string>();
-      try {
-        const raw = localStorage.getItem(`orderplus_${cafeId}_sync_queue`);
-        const queue = raw ? JSON.parse(raw) : [];
-        if (Array.isArray(queue)) {
-          pendingIds = new Set(
-            queue
+      const queued = readCafeJson<unknown>(cafeId, 'sync_queue', []);
+      const pendingIds = new Set<string>(
+        Array.isArray(queued)
+          ? queued
               .map((q: any) => (q?.kind === 'create' ? q?.order?.id : q?.orderId))
               .filter((id: any): id is string => typeof id === 'string')
-          );
-        }
-      } catch { }
+          : []
+      );
 
       const serverIds = new Set(data.map((o) => o.id));
       const unsynced = pendingIds.size
@@ -456,7 +460,7 @@ export default function App() {
     // Sana keshga yoziladi: aloqa uzilgan paytda muddatni faqat shundan
     // bilib olamiz (pastdagi oflayn kirish shuni o'qiydi).
     if (subEnd) {
-      localStorage.setItem(`orderplus_${cafeId}_sub_end`, subEnd.toISOString());
+      writeCafeText(cafeId, 'sub_end', subEnd.toISOString());
     }
 
     const frozen = setts?.status === 'frozen'
@@ -465,12 +469,12 @@ export default function App() {
 
     setIsCafeFrozen(frozen);
     if (frozen) {
-      localStorage.setItem(`orderplus_${cafeId}_is_frozen`, 'true');
+      writeCafeText(cafeId, 'is_frozen', 'true');
       setCurrentWaiter(null);
       setAuthToken(null);
       clearSession(cafeId);
     } else {
-      localStorage.removeItem(`orderplus_${cafeId}_is_frozen`);
+      removeCafeKey(cafeId, 'is_frozen');
     }
     return frozen;
   }, []);
@@ -491,7 +495,7 @@ export default function App() {
     } catch {
       return false;
     }
-    localStorage.setItem(`orderplus_${cafeId}_is_frozen`, 'true');
+    writeCafeText(cafeId, 'is_frozen', 'true');
     setIsCafeFrozen(true);
     setCurrentWaiter(null);
     setAuthToken(null);
@@ -506,12 +510,12 @@ export default function App() {
 
     const cafeId = getActiveCafeId();
 
-    // Load static data from localStorage strictly scoped by cafeId
-    const localCats = localStorage.getItem(`orderplus_${cafeId}_categories`);
-    const localProds = localStorage.getItem(`orderplus_${cafeId}_products`);
-    const localWaiters = localStorage.getItem(`orderplus_${cafeId}_waiters`);
-    const localOrds = localStorage.getItem(`orderplus_${cafeId}_orders`);
-    const localCafeName = localStorage.getItem(`orderplus_${cafeId}_name`);
+    // Load static data from the per-cafe records
+    const localCats = readCafeText(cafeId, 'categories');
+    const localProds = readCafeText(cafeId, 'products');
+    const localWaiters = readCafeText(cafeId, 'waiters');
+    const localOrds = readCafeText(cafeId, 'orders');
+    const localCafeName = readCafeText(cafeId, 'name');
     if (localCafeName) setConnectedCafeName(localCafeName);
 
     if (localProds) {
@@ -551,48 +555,44 @@ export default function App() {
         const rawProds = await prodRes.json();
         if (Array.isArray(rawProds)) {
           setProducts(mapDBProductModifiers(rawProds));
-          localStorage.setItem(`orderplus_${cafeId}_products`, JSON.stringify(rawProds));
+          writeCafeJson(cafeId, 'products', rawProds);
         }
       }
       if (catRes && catRes.ok) {
         const cats = await catRes.json();
         if (Array.isArray(cats)) {
           setCategoriesData(cats);
-          localStorage.setItem(`orderplus_${cafeId}_categories`, JSON.stringify(cats));
+          writeCafeJson(cafeId, 'categories', cats);
         }
       }
       if (waitRes && waitRes.ok) {
         const ws = await waitRes.json();
         if (Array.isArray(ws)) {
           setWaiters(ws);
-          localStorage.setItem(`orderplus_${cafeId}_waiters`, JSON.stringify(ws));
+          writeCafeJson(cafeId, 'waiters', ws);
         }
       }
       if (settRes && settRes.ok) {
         const setts = await settRes.json();
         if (typeof setts.serviceFeePercent === 'number') {
           setServiceFeePercent(setts.serviceFeePercent);
-          localStorage.setItem('serviceFeePercent', String(setts.serviceFeePercent));
+          writeGlobalText('serviceFeePercent', String(setts.serviceFeePercent));
         }
         if (setts.name) {
           setConnectedCafeName(setts.name);
-          localStorage.setItem('orderplus_cafe_name', setts.name);
-          localStorage.setItem(`orderplus_${cafeId}_name`, setts.name);
+          writeCafeText(cafeId, 'name', setts.name);
         }
         if (setts.logo !== undefined) {
           setConnectedCafeLogo(setts.logo || '');
-          localStorage.setItem('orderplus_cafe_logo', setts.logo || '');
-          localStorage.setItem(`orderplus_${cafeId}_logo`, setts.logo || '');
+          writeCafeText(cafeId, 'logo', setts.logo || '');
         }
         if (setts.address !== undefined) {
           setConnectedCafeAddress(setts.address || '');
-          localStorage.setItem('orderplus_cafe_address', setts.address || '');
-          localStorage.setItem(`orderplus_${cafeId}_address`, setts.address || '');
+          writeCafeText(cafeId, 'address', setts.address || '');
         }
         if (setts.phone !== undefined) {
           setConnectedCafePhone(setts.phone || '');
-          localStorage.setItem('orderplus_cafe_phone', setts.phone || '');
-          localStorage.setItem(`orderplus_${cafeId}_phone`, setts.phone || '');
+          writeCafeText(cafeId, 'phone', setts.phone || '');
         }
 
         applyCafeStatus(setts, cafeId);
@@ -663,21 +663,21 @@ export default function App() {
         const rawProds = await prodRes.json();
         if (Array.isArray(rawProds)) {
           setProducts(mapDBProductModifiers(rawProds));
-          localStorage.setItem(`orderplus_${cafeId}_products`, JSON.stringify(rawProds));
+          writeCafeJson(cafeId, 'products', rawProds);
         }
       }
       if (catRes && catRes.ok) {
         const cats = await catRes.json();
         if (Array.isArray(cats)) {
           setCategoriesData(cats);
-          localStorage.setItem(`orderplus_${cafeId}_categories`, JSON.stringify(cats));
+          writeCafeJson(cafeId, 'categories', cats);
         }
       }
       if (settRes && settRes.ok) {
         const setts = await settRes.json();
         if (typeof setts.serviceFeePercent === 'number') {
           setServiceFeePercent(setts.serviceFeePercent);
-          localStorage.setItem('serviceFeePercent', String(setts.serviceFeePercent));
+          writeGlobalText('serviceFeePercent', String(setts.serviceFeePercent));
         }
         // Muddat shu yerda ham tekshiriladi — kassa ochiq turganda uni
         // to'xtatadigan yagona nuqta shu.
@@ -730,19 +730,12 @@ export default function App() {
     | { kind: 'delete'; orderId: string; label?: string };
 
   const readSyncQueue = useCallback((cafeId: string): SyncQueueItem[] => {
-    try {
-      const raw = localStorage.getItem(`orderplus_${cafeId}_sync_queue`);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    const parsed = readCafeJson<unknown>(cafeId, 'sync_queue', []);
+    return Array.isArray(parsed) ? parsed : [];
   }, []);
 
   const writeSyncQueue = useCallback((cafeId: string, queue: SyncQueueItem[]) => {
-    try {
-      localStorage.setItem(`orderplus_${cafeId}_sync_queue`, JSON.stringify(queue));
-    } catch { }
+    writeCafeJson(cafeId, 'sync_queue', queue);
   }, []);
 
   // Queues an order that failed to reach the server (offline, timeout, 5xx) so
@@ -1027,8 +1020,8 @@ export default function App() {
       const activeOrder = orders.find(o => o.tableNumber === numStr && isActiveOrder(o.status));
       const draftCart = tableCarts[numStr] || [];
       const draftSubtotal = draftCart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-      // Holatdan o'qiladi, localStorage dan emas: sozlama o'zgarganda bu memo
-      // qayta hisoblanishi kerak, localStorage esa React ga hech nima demaydi.
+      // Holatdan o'qiladi, diskdan emas: sozlama o'zgarganda bu memo qayta
+      // hisoblanishi kerak, disk esa React ga hech nima demaydi.
       const draftTotal = draftSubtotal + Math.round((draftSubtotal * serviceFeePercent) / 100);
 
       const total = activeOrder ? activeOrder.total : draftTotal;
@@ -1337,7 +1330,7 @@ export default function App() {
         ? { ...o, items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot, ...(emptied ? { status: 'cancelled' } : {}) }
         : o);
       setOrders(updatedOrders);
-      localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
+      writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
       setToastMessage(emptied
         ? "Buyurtmada taom qolmadi — stol bo'shatildi"
         : 'Taom oshxona buyurtmasidan bekor qilindi!');
@@ -1377,7 +1370,7 @@ export default function App() {
       } : o);
 
       setOrders(updatedOrders);
-      localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
+      writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
       setSelectedArchiveOrder(prev => prev && prev.id === targetOrder.id ? {
         ...prev,
         refunded: true,
@@ -1444,7 +1437,7 @@ export default function App() {
         const sub = draftSubtotal;
         const fee = Math.round((sub * serviceFeePercent) / 100);
         const tot = sub + fee;
-        const cafeId = localStorage.getItem('orderplus_cafe_id') || DEFAULT_CAFE_ID;
+        const cafeId = readGlobalText('cafeId') || DEFAULT_CAFE_ID;
         const newOrderObj: {
           id: string;
           cafeId: string;
@@ -1501,7 +1494,7 @@ export default function App() {
 
       ordersRef.current = updatedOrders;
       setOrders(updatedOrders);
-      localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
+      writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
       setTableCarts(prev => ({ ...prev, [selectedTable]: [] }));
 
       const kitchenPayload: KitchenSlipData = {
@@ -1591,7 +1584,7 @@ export default function App() {
     };
     const updated = [newTx, ...cashTransactions];
     setCashTransactions(updated);
-    localStorage.setItem(`orderplus_${getActiveCafeId()}_cash_transactions`, JSON.stringify(updated));
+    writeCafeJson(getActiveCafeId(), 'cash_transactions', updated);
     setToastMessage(`Kassa ${type === 'kirim' ? 'kirimi' : 'chiqimi'} saqlandi!`);
     setTimeout(() => setToastMessage(null), 2500);
   }, [cashTransactions, currentWaiter]);
@@ -1710,7 +1703,7 @@ export default function App() {
     });
 
     setOrders(updatedOrders);
-    localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
+    writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
     setSelectedTable(targetTable);
     setTimeout(() => setToastMessage(null), 2500);
   }, [orders, tableCarts, isOfflineMode, serviceFeePercent, getActiveCafeId, getAuthHeaders, queuePatchForSync, queueDeleteForSync]);
@@ -1795,7 +1788,7 @@ export default function App() {
       // bosilganda hech nima yopilmas, chek ham chiqmasdi.
       ordersRef.current = currentOrders;
       setOrders(currentOrders);
-      localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(currentOrders));
+      writeCafeJson(getActiveCafeId(), 'orders', currentOrders);
     }
 
     setApiError(null);
@@ -1851,7 +1844,7 @@ export default function App() {
 
         ordersRef.current = updatedOrders;
         setOrders(updatedOrders);
-        localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
+        writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
         setSelectedArchiveOrder(closedOrder);
       }
       setTableCarts(prev => ({ ...prev, [targetTable]: [] }));
@@ -1935,9 +1928,9 @@ export default function App() {
             const matchedCafeName = data.cafe?.name || 'OrderPlus Restoran';
             const matchedCafeLogo = data.cafe?.logo || '';
 
-            localStorage.setItem('orderplus_cafe_id', matchedCafeId);
-            localStorage.setItem(`orderplus_${matchedCafeId}_name`, matchedCafeName);
-            if (matchedCafeLogo) localStorage.setItem(`orderplus_${matchedCafeId}_logo`, matchedCafeLogo);
+            writeGlobalText('cafeId', matchedCafeId);
+            writeCafeText(matchedCafeId, 'name', matchedCafeName);
+            if (matchedCafeLogo) writeCafeText(matchedCafeId, 'logo', matchedCafeLogo);
             setConnectedCafeName(matchedCafeName);
             setConnectedCafeLogo(matchedCafeLogo);
 
@@ -1979,11 +1972,11 @@ export default function App() {
           // Muddat oflaynda ham tekshiriladi: aloqa uzilishidan oldin olingan
           // sana bo'yicha. Busiz muzlatishdan qutulish uchun kassaning
           // tarmog'ini uzib qo'yish kifoya edi.
-          const cachedEnd = localStorage.getItem(`orderplus_${cid}_sub_end`);
+          const cachedEnd = readCafeText(cid, 'sub_end');
           if (cachedEnd) {
             const endMs = new Date(cachedEnd).getTime();
             if (!isNaN(endMs) && endMs < Date.now()) {
-              localStorage.setItem(`orderplus_${cid}_is_frozen`, 'true');
+              writeCafeText(cid, 'is_frozen', 'true');
               setIsCafeFrozen(true);
               setPinInput('');
               return;
@@ -2011,7 +2004,7 @@ export default function App() {
             setIsOfflineMode(true);
             setPinInput('');
             // Menyu, stollar va buyurtmalar keshdan ko'tariladi: fetchData
-            // avval localStorage ni o'qiydi, keyin tarmoqqa urinib ko'radi.
+            // avval diskdagi keshni o'qiydi, keyin tarmoqqa urinib ko'radi.
             fetchData();
             setToastMessage('Oflayn rejim: amallar aloqa tiklanganda yuboriladi');
             setTimeout(() => setToastMessage(null), 3500);
@@ -2035,7 +2028,7 @@ export default function App() {
   const handleChangeCafeId = useCallback((newCafeId: string) => {
     const clean = newCafeId.trim().toLowerCase();
     if (!clean) return;
-    localStorage.setItem('orderplus_cafe_id', clean);
+    writeGlobalText('cafeId', clean);
     setToastMessage(`Kafe tanlandi: ${clean}`);
     setTimeout(() => setToastMessage(null), 2000);
     fetchData();

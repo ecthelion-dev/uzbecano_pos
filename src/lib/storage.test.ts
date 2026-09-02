@@ -16,6 +16,7 @@ const {
   readCafeText,
   writeCafeText,
   removeCafeKey,
+  purgeLegacyCafeKeys,
 } = await import('./storage');
 
 beforeEach(() => {
@@ -88,5 +89,20 @@ describe('diskdagi yozuvlar', () => {
 
   it('kalitlar ro\'yxatida takror yo\'q', () => {
     expect(new Set(CAFE_KEYS).size).toBe(CAFE_KEYS.length);
+  });
+
+  it('kafega bog\'lanmagan eski yozuvlarni tozalaydi', () => {
+    // Ular endi hech kim tomonidan o'qilmaydi, lekin diskda oxirgi ulangan
+    // kafening nomi va logotipi bo'lib qolib ketardi.
+    localStorage.setItem('orderplus_cafe_name', 'Eski kafe');
+    localStorage.setItem('orderplus_cafe_logo', 'data:image/png;base64,AAA');
+    writeCafeText('uzbecano', 'name', 'Uzbecano');
+
+    purgeLegacyCafeKeys();
+
+    expect(localStorage.getItem('orderplus_cafe_name')).toBe(null);
+    expect(localStorage.getItem('orderplus_cafe_logo')).toBe(null);
+    // Kafega bog'langan yozuvga tegmaydi.
+    expect(readCafeText('uzbecano', 'name')).toBe('Uzbecano');
   });
 });

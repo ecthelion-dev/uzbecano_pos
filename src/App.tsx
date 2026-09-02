@@ -1444,7 +1444,18 @@ export default function App() {
         const fee = Math.round(sub * 0.1);
         const tot = sub + fee;
         const cafeId = localStorage.getItem('orderplus_cafe_id') || DEFAULT_CAFE_ID;
-        const newOrderObj = {
+        const newOrderObj: {
+          id: string;
+          cafeId: string;
+          tableNumber: string;
+          waiterName: string;
+          items: string;
+          subtotal: number;
+          serviceFee: number;
+          total: number;
+          status: string;
+          dailyNumber?: number;
+        } = {
           id: crypto.randomUUID(),
           cafeId,
           tableNumber: selectedTable,
@@ -1466,7 +1477,17 @@ export default function App() {
             // Muzlatilgan kafening buyurtmasi navbatga qo'yilmaydi: server uni
             // hech qachon qabul qilmaydi, kassa esa shu zahoti muzlaydi.
             if (await applyFrozenFromResponse(res, getActiveCafeId())) return;
-            if (!res.ok) queueOrderForSync(newOrderObj);
+            if (!res.ok) {
+              queueOrderForSync(newOrderObj);
+            } else {
+              // Chek raqamini javobning o'zidan olamiz. Aks holda u faqat
+              // keyingi so'rovda kelardi, va tez yopilgan stolning chekiga
+              // raqam o'rniga id ning oxiri tushib qolardi.
+              try {
+                const created = await res.clone().json();
+                if (Number(created?.dailyNumber) > 0) newOrderObj.dailyNumber = Number(created.dailyNumber);
+              } catch {}
+            }
           } catch {
             queueOrderForSync(newOrderObj);
           }
@@ -1543,6 +1564,7 @@ export default function App() {
     // ThermalPrintArea brauzer orqali chop etiladi.
     printReceiptOrFallback({
       id: activeTableOrder?.id || selectedTable,
+      dailyNumber: activeTableOrder?.dailyNumber,
       createdAt: new Date().toISOString(),
       tableNumber: selectedTable,
       waiterName: currentWaiter?.name || '',

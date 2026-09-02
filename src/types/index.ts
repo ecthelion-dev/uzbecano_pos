@@ -39,6 +39,14 @@ export interface CartItem {
 
 export interface DBOrder {
   id: string;
+  /**
+   * Chekdagi kunlik tartib raqami — serverdan keladi.
+   *
+   * Oflayn yaratilgan buyurtmada u serverga yetguncha bo'lmaydi; o'shanda
+   * chekka id ning oxiri bosiladi. Kassa bu raqamni o'zi hisoblamaydi:
+   * ikkinchi kassa qo'shilgan kuni raqamlar takrorlanib ketardi.
+   */
+  dailyNumber?: number | null;
   tableNumber: string;
   total: number;
   status: string;

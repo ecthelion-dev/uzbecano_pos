@@ -641,10 +641,13 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
 
   const rawTable = String(order.tableNumber || '').trim();
   const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
-  // Poster bitta raqam ko'rsatadi. Buyurtma raqami bo'lsa o'sha, bo'lmasa
-  // id ning oxiri — qo'llab-quvvatlashda buyurtmani topish uchun yetarli.
-  const checkNum = order.orderNumber
-    ? String(order.orderNumber)
+  // Kunlik tartib raqami serverdan keladi. Oflayn buyurtmada u hali yo'q —
+  // o'shanda id ning oxiri bosiladi: chiroyli emas, lekin qo'llab-quvvatlashda
+  // buyurtmani topish uchun yetarli va hech qachon boshqa chek bilan
+  // adashmaydi.
+  const dailyNumber = Number(order.dailyNumber ?? order.orderNumber);
+  const checkNum = dailyNumber > 0
+    ? String(dailyNumber)
     : String(order.id || '').slice(-4).toUpperCase();
 
   metaRow('Chek No', checkNum);

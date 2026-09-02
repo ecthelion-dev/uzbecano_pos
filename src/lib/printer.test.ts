@@ -295,6 +295,26 @@ describe('chek maketi', () => {
     }
   });
 
+  it('chek raqami sifatida serverning kunlik raqamini bosadi', () => {
+    const lines = asLayout(generateEscPosReceipt(
+      { ...posterOrder, orderNumber: undefined, dailyNumber: 14, id: 'aaaa-bbbb-cc53e6' },
+      'Uzbecano',
+      settings,
+    ));
+    expect(lines.find((l) => l.startsWith('Chek No'))).toMatch(/^Chek No {2,}14$/);
+  });
+
+  it('raqam yo\'q oflayn chekda id ning oxirini bosadi', () => {
+    // Oflayn buyurtma raqamni serverga yetganda oladi. Raqamsiz chek bo'lishi
+    // mumkin, noto'g'ri raqamli chek esa yo'q.
+    const lines = asLayout(generateEscPosReceipt(
+      { ...posterOrder, orderNumber: undefined, dailyNumber: null, id: 'aaaa-bbbb-cc53e6' },
+      'Uzbecano',
+      settings,
+    ));
+    expect(lines.find((l) => l.startsWith('Chek No'))).toMatch(/^Chek No {2,}53E6$/);
+  });
+
   it('brauzer cheki termal chek bilan bir xil satrlardan yig\'iladi', () => {
     // Ikkalasi bitta maketdan chiqadi — ilgari brauzer cheki alohida React
     // komponentida yozilgan va ikkalasi bir-biridan uzoqlashib ketgan edi.

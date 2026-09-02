@@ -75,6 +75,8 @@ export interface KitchenSlipData {
   items: any[];
   time: string;
   timestamp?: string;
+  /** Kunlik tartib raqami — har kuni birdan boshlanadi. */
+  slipNumber?: number;
 }
 
 export interface CashTransaction {

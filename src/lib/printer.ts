@@ -876,6 +876,14 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
   enc.align('center').bold(true).line('*** OSHXONA BUYURTMASI ***').bold(false);
   if (cafeName) enc.align('center').line(cafeName);
 
+  // Kunlik tartib raqami — oshpaz bilan ofitsiant shu raqam bilan gaplashadi,
+  // shuning uchun u kvitansiyadagi eng yirik narsa.
+  if (Number(data.slipNumber) > 0) {
+    enc.lineSpacing(BIG_LINE_DOTS);
+    enc.align('center').bold(true).size(2, 2).line(`№ ${Number(data.slipNumber)}`);
+    enc.size(1, 1).bold(false).lineSpacing(null);
+  }
+
   // Stol raqami
   enc.divider(columnsFor(settings.paperWidth, 'A'));
   const rawTable = String(data.tableNumber || 'Zal').trim();

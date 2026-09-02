@@ -3,7 +3,7 @@ import { installMemoryStorage } from './testStorage';
 
 installMemoryStorage();
 
-const { generateEscPosReceipt, renderReceiptHtml, DEFAULT_PRINTER_SETTINGS } = await import('./printer');
+const { generateEscPosReceipt, generateEscPosKitchenSlip, renderReceiptHtml, DEFAULT_PRINTER_SETTINGS } = await import('./printer');
 
 beforeEach(() => {
   installMemoryStorage();
@@ -336,5 +336,28 @@ describe('chek maketi', () => {
       { ...settings, paperWidth: '80mm' },
     )).find((l) => l.startsWith('Xizmat haqi'))!;
     expect(line).toMatch(/^Xizmat haqi \(10%\) {2,}8 000$/);
+  });
+});
+
+describe('oshxona kvitansiyasi', () => {
+  const slip = {
+    tableNumber: '7',
+    waiterName: 'Ravshan',
+    time: '10:49',
+    items: [{ name: 'Osh', quantity: 2 }],
+  };
+
+  it('kunlik tartib raqamini yirik qilib bosadi', () => {
+    const bytes = generateEscPosKitchenSlip({ ...slip, slipNumber: 7 }, 'Uzbecano', settings);
+    const text = asAscii(bytes);
+    expect(text).toContain('7');
+    // GS ! 0x11 — eni ham, bo'yi ham ikki barobar.
+    expect(Array.from(bytes).join(',')).toContain([0x1d, 0x21, 0x11].join(','));
+  });
+
+  it('raqam berilmasa kvitansiyani baribir chiqaradi', () => {
+    const text = asAscii(generateEscPosKitchenSlip(slip, 'Uzbecano', settings));
+    expect(text).toContain('OSHXONA BUYURTMASI');
+    expect(text).not.toContain('N ');
   });
 });

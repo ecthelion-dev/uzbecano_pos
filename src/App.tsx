@@ -34,6 +34,7 @@ import {
 import { AdminDashboard } from './components/AdminDashboard';
 import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePeriodPrintArea';
 import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib/offlineAuth';
+import { nextDailyNumber } from './lib/dailySequence';
 import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID } from './constants';
@@ -1487,6 +1488,10 @@ export default function App() {
         items: newItems,
         time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
         timestamp: new Date().toISOString(),
+        // Raqam chop etishda emas, TASDIQLASHDA beriladi: kvitansiya qayta
+        // chiqarilsa ham o'sha raqam bilan chiqsin, aks holda oshxonadagi
+        // qog'oz bilan kassadagi raqam bir-biriga to'g'ri kelmay qolardi.
+        slipNumber: nextDailyNumber(getActiveCafeId()),
       };
       // Oshxona kvitansiyasi buyurtma tasdiqlanishi bilan o'zi chiqadi.
       // Oraliqdagi "Chop etish" modali olib tashlandi: band kafeda u har bir

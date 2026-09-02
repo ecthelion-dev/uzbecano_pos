@@ -25,6 +25,9 @@ export const KitchenPrintArea: React.FC<{ data: KitchenSlipData | null }> = ({ d
     <div id="kitchen-print-area" className="hidden print:block font-mono text-slate-900">
       <div className="text-center border-b border-dashed border-slate-900 pb-2 space-y-1">
         <h4 className="font-bold text-base tracking-wider uppercase text-slate-900 print-text-dark">OSHXONA BUYURTMASI</h4>
+        {Number(data.slipNumber) > 0 && (
+          <p className="text-3xl font-black text-slate-900 print-text-dark leading-none">№ {Number(data.slipNumber)}</p>
+        )}
         <p className="text-xs text-slate-800 print-text-dark font-semibold">{tableLabel} • {data.time}</p>
         {data.waiterName && (
           <p className="text-xs text-slate-800 print-text-dark font-medium">Offitsiant: {data.waiterName}</p>

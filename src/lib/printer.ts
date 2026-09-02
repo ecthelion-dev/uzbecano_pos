@@ -587,8 +587,7 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
   const row = (str: string = '') => push([{ text: padEndTo(str, cols) }]);
 
   /**
-   * Chekning o'qiladigan qismi — metadata va taomlar — ikki barobar
-   * balandlikda.
+   * Taomlar jadvalining satri — ikki barobar balandlikda.
    *
    * ESC/POS da oraliq o'lcham yo'q: Font A dan keyingi qadam aynan 2 barobar.
    * Kenglik o'zgarmaydi, ya'ni 48 ustun va nuqtali chiziq joyida qoladi;
@@ -596,15 +595,21 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
    */
   const bodyRow = (str: string) => push([{ text: padEndTo(str, cols), big: true }]);
 
-  /** "Nomi<bo'shliq>Qiymat" — yorliq qalin, qiymat qat'iy ustundan boshlanadi. */
+  /**
+   * "Nomi<bo'shliq>Qiymat" — yorliq qalin, qiymat qat'iy ustundan boshlanadi.
+   *
+   * Oddiy balandlikda: metadata chekni qidirganda bir marta o'qiladi, taom va
+   * narx esa har safar. Yiriklikni ikkalasiga berish chekni ikki barobar
+   * uzaytiribgina qo'yardi.
+   */
   const metaRow = (label: string, value: string) => {
     const valueLines = wrapText(value, cols - labelCol);
     push([
-      { text: padEndTo(label, labelCol), bold: true, big: true },
-      { text: padEndTo(valueLines[0], cols - labelCol), big: true },
+      { text: padEndTo(label, labelCol), bold: true },
+      { text: padEndTo(valueLines[0], cols - labelCol) },
     ]);
     for (const extra of valueLines.slice(1)) {
-      bodyRow(' '.repeat(labelCol) + extra);
+      row(' '.repeat(labelCol) + extra);
     }
   };
 

@@ -1027,8 +1027,9 @@ export default function App() {
       const activeOrder = orders.find(o => o.tableNumber === numStr && isActiveOrder(o.status));
       const draftCart = tableCarts[numStr] || [];
       const draftSubtotal = draftCart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-      const feeRate = typeof window !== 'undefined' ? (Number(localStorage.getItem('serviceFeePercent') ?? 10) / 100) : 0.1;
-      const draftTotal = draftSubtotal + Math.round(draftSubtotal * feeRate);
+      // Holatdan o'qiladi, localStorage dan emas: sozlama o'zgarganda bu memo
+      // qayta hisoblanishi kerak, localStorage esa React ga hech nima demaydi.
+      const draftTotal = draftSubtotal + Math.round((draftSubtotal * serviceFeePercent) / 100);
 
       const total = activeOrder ? activeOrder.total : draftTotal;
       const isOccupied = activeOrder || draftCart.length > 0;
@@ -1043,7 +1044,7 @@ export default function App() {
         hasWaiterCall: hasCall,
       };
     });
-  }, [tableDefs, orders, tableCarts, waiterCalls]);
+  }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent]);
 
   const filteredTables = useMemo(() => {
     if (selectedArea === 'Barchasi') return tables;
@@ -1441,7 +1442,7 @@ export default function App() {
         updatedOrders = updatedOrders.map(o => o.id === activeTableOrder.id ? { ...o, items: JSON.stringify(combinedItems), total: combinedTotal } : o);
       } else {
         const sub = draftSubtotal;
-        const fee = Math.round(sub * 0.1);
+        const fee = Math.round((sub * serviceFeePercent) / 100);
         const tot = sub + fee;
         const cafeId = localStorage.getItem('orderplus_cafe_id') || DEFAULT_CAFE_ID;
         const newOrderObj: {
@@ -1526,7 +1527,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Ulanish xatosi: ${err.message || err}`);
     }
-  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse]);
+  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, serviceFeePercent, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse]);
 
   const handlePrint = useCallback(async () => {
     const allItems = [
@@ -1614,7 +1615,7 @@ export default function App() {
 
         const mergedItems = [...tgtItems, ...srcItems];
         const sub = mergedItems.reduce((sum: number, i: any) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
-        const fee = Math.round(sub * 0.1);
+        const fee = Math.round((sub * serviceFeePercent) / 100);
         const tot = sub + fee;
 
         const mergeTablePatchBody = {
@@ -1712,7 +1713,7 @@ export default function App() {
     localStorage.setItem(`orderplus_${getActiveCafeId()}_orders`, JSON.stringify(updatedOrders));
     setSelectedTable(targetTable);
     setTimeout(() => setToastMessage(null), 2500);
-  }, [orders, tableCarts, isOfflineMode, getActiveCafeId, getAuthHeaders, queuePatchForSync, queueDeleteForSync]);
+  }, [orders, tableCarts, isOfflineMode, serviceFeePercent, getActiveCafeId, getAuthHeaders, queuePatchForSync, queueDeleteForSync]);
 
   const handleCloseTable = useCallback(async (tableNum?: string, skipConfirm = false) => {
     const targetTable = (typeof tableNum === 'string' && tableNum.trim()) ? tableNum.trim() : selectedTable;

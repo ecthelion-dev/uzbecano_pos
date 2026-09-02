@@ -2,6 +2,7 @@
 // (Web Bluetooth, Web Serial, system spooler on desktop, and browser print)
 
 import { IS_DESKTOP_APP } from '../constants';
+import { GLOBAL_KEYS, readJson, writeJson } from './storage';
 
 export interface PrinterSettings {
   mode: 'browser' | 'bluetooth' | 'serial';
@@ -42,18 +43,12 @@ let activeBluetoothCharacteristic: any = null;
 let activeSerialPort: any = null;
 
 export function getPrinterSettings(): PrinterSettings {
-  if (typeof window === 'undefined') return DEFAULT_PRINTER_SETTINGS;
-  try {
-    const saved = localStorage.getItem('orderplus_printer_settings');
-    if (saved) return { ...DEFAULT_PRINTER_SETTINGS, ...JSON.parse(saved) };
-  } catch {}
-  return DEFAULT_PRINTER_SETTINGS;
+  const saved = readJson<Partial<PrinterSettings>>(GLOBAL_KEYS.printerSettings, {});
+  return { ...DEFAULT_PRINTER_SETTINGS, ...saved };
 }
 
 export function savePrinterSettings(settings: PrinterSettings) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('orderplus_printer_settings', JSON.stringify(settings));
-  }
+  writeJson(GLOBAL_KEYS.printerSettings, settings);
 }
 
 // ESC/POS Byte Commands

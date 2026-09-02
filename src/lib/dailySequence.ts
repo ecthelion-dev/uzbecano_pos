@@ -13,6 +13,8 @@
  * chekning o'z raqami ishlatiladi, bu emas.
  */
 
+import { readCafeJson, writeCafeJson } from './storage';
+
 /** Kalendar kuni — soat mintaqasi kassanikidan olinadi. */
 function today(now: Date): string {
   const y = now.getFullYear();
@@ -21,8 +23,9 @@ function today(now: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function storageKey(cafeId: string): string {
-  return `orderplus_${cafeId}_kitchen_seq`;
+interface DailyCount {
+  day?: string;
+  n?: number;
 }
 
 /**
@@ -34,31 +37,14 @@ function storageKey(cafeId: string): string {
  */
 export function nextDailyNumber(cafeId: string, now: Date = new Date()): number {
   const day = today(now);
-  const key = storageKey(cafeId);
-
-  let last: { day?: string; n?: number } = {};
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) last = JSON.parse(raw) || {};
-  } catch {
-    last = {};
-  }
-
+  const last = readCafeJson<DailyCount>(cafeId, 'kitchen_seq', {});
   const n = last.day === day && Number.isFinite(Number(last.n)) ? Number(last.n) + 1 : 1;
-  try {
-    localStorage.setItem(key, JSON.stringify({ day, n }));
-  } catch {}
+  writeCafeJson(cafeId, 'kitchen_seq', { day, n });
   return n;
 }
 
 /** Hozirgi holat — raqam bermasdan. Hisobot va testlar uchun. */
 export function peekDailyNumber(cafeId: string, now: Date = new Date()): number {
-  try {
-    const raw = localStorage.getItem(storageKey(cafeId));
-    if (!raw) return 0;
-    const last = JSON.parse(raw);
-    return last?.day === today(now) ? Number(last.n) || 0 : 0;
-  } catch {
-    return 0;
-  }
+  const last = readCafeJson<DailyCount>(cafeId, 'kitchen_seq', {});
+  return last.day === today(now) ? Number(last.n) || 0 : 0;
 }

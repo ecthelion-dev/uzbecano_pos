@@ -13,6 +13,8 @@
  * ocha oladi.
  */
 
+import { readCafeJson, writeCafeJson, removeCafeKey } from './storage';
+
 const ITERATIONS = 210_000;
 /** 256 bit tekshiruv hashi + 256 bit AES kaliti, bitta PBKDF2 yurishida. */
 const DERIVED_BITS = 512;
@@ -52,14 +54,6 @@ export type OfflineVerifyResult =
   | { status: 'ok'; credential: CachedCredential; token?: string }
   | { status: 'invalid'; remainingAttempts: number }
   | { status: 'locked'; retryAfterSeconds: number };
-
-function storageKey(cafeId: string) {
-  return `orderplus_${cafeId}_offline_auth`;
-}
-
-function lockKey(cafeId: string) {
-  return `orderplus_${cafeId}_offline_lock`;
-}
 
 function toB64(buf: ArrayBuffer | Uint8Array): string {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
@@ -119,25 +113,17 @@ function equalConstantTime(a: string, b: string): boolean {
 }
 
 function readAll(cafeId: string): CachedCredential[] {
-  try {
-    const raw = localStorage.getItem(storageKey(cafeId));
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
-    // Eski formatdagi yozuvlar tashlab yuboriladi: ularda token ochiq matnda,
-    // ya'ni ularni saqlab qolish tuzatilayotgan kamchilikni saqlab qolish
-    // bo'lardi. Xodim bir marta onlayn kirsa, kesh qaytadan yoziladi.
-    return parsed.filter((c: any) => c && c.version === SCHEMA_VERSION);
-  } catch {
-    return [];
-  }
+  const parsed = readCafeJson<unknown>(cafeId, 'offline_auth', []);
+  if (!Array.isArray(parsed)) return [];
+  // Eski formatdagi yozuvlar tashlab yuboriladi: ularda token ochiq matnda,
+  // ya'ni ularni saqlab qolish tuzatilayotgan kamchilikni saqlab qolish
+  // bo'lardi. Xodim bir marta onlayn kirsa, kesh qaytadan yoziladi.
+  return parsed.filter((c: any) => c && c.version === SCHEMA_VERSION);
 }
 
 function writeAll(cafeId: string, list: CachedCredential[]): void {
-  try {
-    localStorage.setItem(storageKey(cafeId), JSON.stringify(list));
-  } catch {
-    /* kvota to'lgan bo'lsa oflayn kirish shunchaki ishlamaydi */
-  }
+  // Kvota to'lgan bo'lsa oflayn kirish shunchaki ishlamaydi.
+  writeCafeJson(cafeId, 'offline_auth', list);
 }
 
 /* ------------------------------------------------------------------ *
@@ -156,24 +142,16 @@ interface LockState {
 }
 
 function readLock(cafeId: string): LockState {
-  try {
-    const raw = localStorage.getItem(lockKey(cafeId));
-    const parsed = raw ? JSON.parse(raw) : null;
-    if (parsed && typeof parsed.attempts === 'number' && typeof parsed.lockedUntil === 'number') {
-      return parsed;
-    }
-  } catch {
-    /* buzilgan yozuv - noldan boshlaymiz */
+  const parsed = readCafeJson<any>(cafeId, 'offline_lock', null);
+  if (parsed && typeof parsed.attempts === 'number' && typeof parsed.lockedUntil === 'number') {
+    return parsed;
   }
+  // Buzilgan yoki yo'q yozuv — noldan boshlaymiz.
   return { attempts: 0, lockedUntil: 0 };
 }
 
 function writeLock(cafeId: string, state: LockState): void {
-  try {
-    localStorage.setItem(lockKey(cafeId), JSON.stringify(state));
-  } catch {
-    /* ignore */
-  }
+  writeCafeJson(cafeId, 'offline_lock', state);
 }
 
 /** Hozir oflayn urinishga ruxsat bormi. */
@@ -187,11 +165,7 @@ export function offlineLockStatus(cafeId: string): { locked: boolean; retryAfter
 }
 
 function resetLock(cafeId: string): void {
-  try {
-    localStorage.removeItem(lockKey(cafeId));
-  } catch {
-    /* ignore */
-  }
+  removeCafeKey(cafeId, 'offline_lock');
 }
 
 /** Onlayn kirish muvaffaqiyatli bo'lganda chaqiriladi. */

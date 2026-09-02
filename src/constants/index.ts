@@ -1,3 +1,4 @@
+import { GLOBAL_KEYS, readText, writeText, removeKey } from '../lib/storage';
 
 const LOCAL_HOSTS = ['localhost', '127.0.0.1', 'tauri.localhost', ''];
 
@@ -11,22 +12,18 @@ const PRODUCTION_API_URL = 'https://pos.orderplus.uz';
  * o'qiladi, aks holda allaqachon sozlab qo'yilgan kassalar yangilanishdan
  * keyin standart manzilga qaytib ketardi.
  */
-const API_URL_KEY = 'orderplus_api_url';
+const API_URL_KEY = GLOBAL_KEYS.apiUrl;
 const LEGACY_API_URL_KEY = 'uzbecano_api_url';
 
 function readManualApiUrl(): string | null {
-  try {
-    const current = localStorage.getItem(API_URL_KEY);
-    if (current && current.trim()) return current;
+  const current = readText(API_URL_KEY);
+  if (current && current.trim()) return current;
 
-    const legacy = localStorage.getItem(LEGACY_API_URL_KEY);
-    if (legacy && legacy.trim()) {
-      localStorage.setItem(API_URL_KEY, legacy);
-      localStorage.removeItem(LEGACY_API_URL_KEY);
-      return legacy;
-    }
-  } catch {
-    /* localStorage yopiq */
+  const legacy = readText(LEGACY_API_URL_KEY);
+  if (legacy && legacy.trim()) {
+    writeText(API_URL_KEY, legacy);
+    removeKey(LEGACY_API_URL_KEY);
+    return legacy;
   }
   return null;
 }
@@ -81,7 +78,7 @@ function resolveApiBaseUrl(): string {
     if (isAllowedApiUrl(clean)) return clean;
     // Yaroqsiz qiymat jimgina ishlatilmaydi: uni qoldirsak kassa har safar
     // yuklanganda o'sha manzilga urinaveradi.
-    try { localStorage.removeItem(API_URL_KEY); } catch { /* ignore */ }
+    removeKey(API_URL_KEY);
   }
 
   const fromBuild = (import.meta as any).env?.VITE_API_URL;
@@ -120,11 +117,11 @@ export function resolveActiveCafeId(): string {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = params.get('cafe') || params.get('cafeId');
     if (fromUrl && fromUrl.trim()) return fromUrl.trim().toLowerCase();
-    const stored = localStorage.getItem('orderplus_cafe_id');
-    if (stored && stored.trim()) return stored.trim().toLowerCase();
   } catch {
-    /* localStorage yopiq bo'lsa standart kafe */
+    /* window.location o'qib bo'lmasa standart kafe */
   }
+  const stored = readText(GLOBAL_KEYS.cafeId);
+  if (stored && stored.trim()) return stored.trim().toLowerCase();
   return DEFAULT_CAFE_ID;
 }
 

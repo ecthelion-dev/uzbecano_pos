@@ -1,4 +1,5 @@
 import { DBWaiter } from '../types';
+import { cafeKey, readJson, writeJson, removeKey } from './storage';
 
 /**
  * Kassaning tirik sessiyasi: kim kirgan va uning serverdagi tokeni.
@@ -19,10 +20,6 @@ interface StoredSession {
   token: string | null;
 }
 
-function key(cafeId: string) {
-  return `orderplus_${cafeId}_session`;
-}
-
 /** Eski versiyalar diskda qoldirgan ochiq tokenlar va sessiyalar. */
 const LEGACY_KEYS = ['_current_waiter', '_auth_token'];
 
@@ -32,40 +29,23 @@ const LEGACY_KEYS = ['_current_waiter', '_auth_token'];
  * diskda qolib ketaveradi.
  */
 export function purgeLegacySession(cafeId: string): void {
-  try {
-    for (const suffix of LEGACY_KEYS) {
-      localStorage.removeItem(`orderplus_${cafeId}${suffix}`);
-    }
-  } catch {
-    /* ignore */
+  for (const suffix of LEGACY_KEYS) {
+    removeKey(`orderplus_${cafeId}${suffix}`);
   }
 }
 
 export function readSession(cafeId: string): StoredSession | null {
-  try {
-    const raw = sessionStorage.getItem(key(cafeId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || !parsed.waiter) return null;
-    return { waiter: parsed.waiter as DBWaiter, token: parsed.token ?? null };
-  } catch {
-    return null;
-  }
+  const parsed = readJson<any>(cafeKey(cafeId, 'session'), null, 'session');
+  if (!parsed || !parsed.waiter) return null;
+  return { waiter: parsed.waiter as DBWaiter, token: parsed.token ?? null };
 }
 
 export function writeSession(cafeId: string, waiter: DBWaiter, token: string | null): void {
-  try {
-    sessionStorage.setItem(key(cafeId), JSON.stringify({ waiter, token }));
-  } catch {
-    /* sessionStorage yopiq bo'lsa sessiya faqat xotirada qoladi */
-  }
+  // sessionStorage yopiq bo'lsa sessiya faqat xotirada qoladi.
+  writeJson(cafeKey(cafeId, 'session'), { waiter, token }, 'session');
 }
 
 export function clearSession(cafeId: string): void {
-  try {
-    sessionStorage.removeItem(key(cafeId));
-  } catch {
-    /* ignore */
-  }
+  removeKey(cafeKey(cafeId, 'session'), 'session');
   purgeLegacySession(cafeId);
 }

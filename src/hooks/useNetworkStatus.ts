@@ -1,25 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { resolveActiveCafeId } from '../constants';
+import { readCafeJson } from '../lib/storage';
 
 /**
  * Connection state and the size of the offline backlog.
  *
- * The backlog lives in localStorage under `orderplus_<cafe>_sync_queue`, written
- * by App.tsx whenever an order or a payment fails to reach the server. Reading
- * it here keeps one source of truth: this hook only reports what that queue
- * holds, it never owns any state of its own.
+ * The backlog lives in the `sync_queue` record, written by App.tsx whenever an
+ * order or a payment fails to reach the server. Reading it here keeps one
+ * source of truth: this hook only reports what that queue holds, it never owns
+ * any state of its own.
  */
 const SYNC_POLL_MS = 5000;
 
 function readPendingCount(): number {
-  if (typeof window === 'undefined') return 0;
-  try {
-    const raw = localStorage.getItem(`orderplus_${resolveActiveCafeId()}_sync_queue`);
-    const queue = raw ? JSON.parse(raw) : [];
-    return Array.isArray(queue) ? queue.length : 0;
-  } catch {
-    return 0;
-  }
+  const queue = readCafeJson<unknown>(resolveActiveCafeId(), 'sync_queue', []);
+  return Array.isArray(queue) ? queue.length : 0;
 }
 
 export function useNetworkStatus() {

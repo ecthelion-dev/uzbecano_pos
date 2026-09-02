@@ -135,7 +135,8 @@ describe('taomlar JSON matn bo\'lganda', () => {
     expect(text).toContain('Choy');
     // Har bir harf uchun bittadan qator tushmasligi kerak.
     expect(text).not.toContain('Taom\n');
-    expect(text).toContain('65 000');
+    // Ikkinchi taomning jamisi — ya'ni ro'yxat oxirigacha o'qilgan.
+    expect(text).toContain('60 000');
   });
 
   it('buzuq JSON da chekni yiqitmaydi', () => {
@@ -316,12 +317,24 @@ describe('chek maketi', () => {
     expect(html).toContain('monospace');
   });
 
-  it('chegirma va xizmat haqi bo\'lmaganda oraliq summani ko\'rsatmaydi', () => {
-    expect(linesOf('58mm').some((l) => l.startsWith('Oraliq summa'))).toBe(false);
+  it('oraliq summani umuman ko\'rsatmaydi', () => {
+    // Jadvaldagi raqamlar va pastdagi yakuniy summa yetarli — o'rtadagi
+    // uchinchi raqam faqat chalg'itadi.
     const withFee = asAscii(generateEscPosReceipt(
       { ...posterOrder, serviceFee: 8000, total: 88000 }, 'Uzbecano', settings,
     ));
-    expect(withFee).toContain('Oraliq summa');
-    expect(withFee).toContain('Xizmat (10%)');
+    expect(withFee).not.toContain('Oraliq summa');
+    expect(withFee).toContain('Xizmat haqi (10%)');
+  });
+
+  it('ustundan uzun yorliqni qiymatga yopishtirmaydi', () => {
+    // "Xizmat haqi (10%)" 17 belgi — yorliq ustuni 80mm da 16 ta. Ustun o'sha
+    // satr uchun kengayadi, aks holda raqam yorliqqa tegib ketardi.
+    const line = asLayout(generateEscPosReceipt(
+      { ...posterOrder, serviceFee: 8000, total: 88000 },
+      'Uzbecano',
+      { ...settings, paperWidth: '80mm' },
+    )).find((l) => l.startsWith('Xizmat haqi'))!;
+    expect(line).toMatch(/^Xizmat haqi \(10%\) {2,}8 000$/);
   });
 });

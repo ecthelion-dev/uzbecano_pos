@@ -603,13 +603,17 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
    * uzaytiribgina qo'yardi.
    */
   const metaRow = (label: string, value: string) => {
-    const valueLines = wrapText(value, cols - labelCol);
+    // Yorliq ustundan uzun bo'lsa (masalan "Xizmat haqi (10%)"), ustun o'sha
+    // satr uchun kengayadi: aks holda yorliq bilan qiymat bo'shliqsiz
+    // yopishib, "Xizmat haqi (10%)8 300" bo'lib chiqardi.
+    const col = Math.max(labelCol, printedWidth(label) + 2);
+    const valueLines = wrapText(value, cols - col);
     push([
-      { text: padEndTo(label, labelCol), bold: true },
-      { text: padEndTo(valueLines[0], cols - labelCol) },
+      { text: padEndTo(label, col), bold: true },
+      { text: padEndTo(valueLines[0], cols - col) },
     ]);
     for (const extra of valueLines.slice(1)) {
-      row(' '.repeat(labelCol) + extra);
+      row(' '.repeat(col) + extra);
     }
   };
 
@@ -703,15 +707,15 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
   const total = Number.isFinite(Number(order.total)) ? Number(order.total) : subtotal + serviceFee - discount;
   const feePercent = subtotal > 0 ? Math.round((serviceFee / subtotal) * 100) : 0;
 
-  // Chegirma yoki xizmat haqi bo'lmasa oraliq summa "Jami" ustunining
-  // takroriga aylanadi — Poster ham uni bunday holatda ko'rsatmaydi.
+  // Oraliq summa ko'rsatilmaydi: taomlar ustunidagi raqamlar allaqachon shu
+  // yerda turibdi, pastda esa yakuniy summa — o'rtadagi uchinchi raqam
+  // kassirni ham, mijozni ham chalg'itardi.
   if (discount > 0 || serviceFee > 0) {
-    metaRow('Oraliq summa', fmtPrice(subtotal));
     if (discount > 0) {
       metaRow('Chegirma', `-${fmtPrice(discount)}`);
     }
     if (serviceFee > 0) {
-      metaRow(`Xizmat (${feePercent}%)`, fmtPrice(serviceFee));
+      metaRow(`Xizmat haqi (${feePercent}%)`, fmtPrice(serviceFee));
     }
     row();
   }

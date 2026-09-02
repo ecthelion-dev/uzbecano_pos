@@ -613,7 +613,7 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
     }
   };
 
-  /** "TO'LOVGA ......... 80 000 so'm" — nuqtali chiziq ikki chekkani bog'laydi. */
+  /** "JAMI ......... 80 000 so'm" — nuqtali chiziq ikki chekkani bog'laydi. */
   const totalRow = (left: string, right: string) => {
     const gap = Math.max(1, cols - printedWidth(left) - printedWidth(right) - 2);
     push([
@@ -716,7 +716,7 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
     row();
   }
 
-  totalRow("TO'LOVGA", `${fmtPrice(total)} so'm`);
+  totalRow('JAMI', `${fmtPrice(total)} so'm`);
   row('-'.repeat(cols));
 
   const paidCash = Number(order.cashAmount) || 0;

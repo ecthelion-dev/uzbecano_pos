@@ -1039,10 +1039,23 @@ export default function App() {
     });
   }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent]);
 
+  /* Zonalar kafening o'z stollaridan olinadi. Ilgari bu ro'yxat kodda
+     qattiq yozilgan edi ("Asosiy Zal", "VIP Kabinalar"...), shuning uchun
+     adminkada qo'shilgan har qanday zona kassa ekranida yo'q edi, kodda
+     turgan to'rttasi esa doim 0 ta stol ko'rsatib turardi. */
+  const areas = useMemo(() => {
+    const seen = new Set<string>();
+    for (const t of tables) if (t.area) seen.add(t.area);
+    return ['Barchasi', ...Array.from(seen).sort((a, b) => a.localeCompare(b, 'uz'))];
+  }, [tables]);
+
+  /* Tanlangan zona o'chirilsa yoki qayta nomlansa, ro'yxat bo'sh chiqmasin. */
+  const activeArea = areas.includes(selectedArea) ? selectedArea : 'Barchasi';
+
   const filteredTables = useMemo(() => {
-    if (selectedArea === 'Barchasi') return tables;
-    return tables.filter(t => t.area === selectedArea);
-  }, [tables, selectedArea]);
+    if (activeArea === 'Barchasi') return tables;
+    return tables.filter(t => t.area === activeArea);
+  }, [tables, activeArea]);
 
   const handleSelectTable = useCallback((tableNumber: string) => {
     setSelectedArchiveOrder(null);
@@ -2095,20 +2108,20 @@ export default function App() {
 
             {/* Area Zone Filters */}
             <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {['Barchasi', 'Asosiy Zal', '2-Qavat', 'VIP Kabinalar', 'Alohida Xonalar'].map((area) => {
+              {areas.map((area) => {
                 const areaCount = tables.filter(t => area === 'Barchasi' || t.area === area).length;
                 const occupiedCount = tables.filter(t => (area === 'Barchasi' || t.area === area) && t.status === 'band').length;
                 return (
                   <button
                     key={area}
                     onClick={() => setSelectedArea(area)}
-                    className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 sm:gap-2 border whitespace-nowrap shadow-2xs cursor-pointer ${selectedArea === area
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 sm:gap-2 border whitespace-nowrap shadow-2xs cursor-pointer ${activeArea === area
                         ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                   >
                     <span>{area}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${selectedArea === area ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeArea === area ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
                       {areaCount}
                     </span>

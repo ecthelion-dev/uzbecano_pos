@@ -31,6 +31,7 @@ export const CAFE_KEYS = [
   'cash_transactions',
   'categories',
   'is_frozen',
+  'kitchen_printed',
   'kitchen_seq',
   'logo',
   'name',

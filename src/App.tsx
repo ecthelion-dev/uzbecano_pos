@@ -35,6 +35,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePeriodPrintArea';
 import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib/offlineAuth';
 import { nextDailyNumber } from './lib/dailySequence';
+import { nextQrSlip } from './lib/qrKitchenQueue';
 import {
   readCafeText,
   writeCafeText,
@@ -144,7 +145,10 @@ export default function App() {
   // sahifadan chiqadi (`#thermal-print-area`), chek esa alohida hujjatda.
   const [periodPrint, setPeriodPrint] = useState<PeriodPrintData | null>(null);
   const [showShiftReport, setShowShiftReport] = useState<boolean>(false);
-  const [kitchenSlipData, setKitchenSlipData] = useState<{ tableNumber: string; waiterName: string; items: any[]; time: string } | null>(null);
+  // Turi `KitchenSlipData` — ilgari bu yerda uning qisqartirilgan nusxasi
+  // yozilgandi va `timestamp` bilan `slipNumber` ko'rinmasdi, ya'ni raqamli
+  // kvitansiya turni chetlab o'tib qo'yilardi.
+  const [kitchenSlipData, setKitchenSlipData] = useState<KitchenSlipData | null>(null);
   const [archiveSearch, setArchiveSearch] = useState<string>('');
   const [selectedArchiveOrder, setSelectedArchiveOrder] = useState<any | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -1241,6 +1245,52 @@ export default function App() {
 
     return () => { cancelled = true; };
   }, [kitchenSlipData, connectedCafeName]);
+
+  /**
+   * QR menyudan kelgan buyurtmani oshxonaga o'zi chop etadi.
+   *
+   * Kassada berilgan buyurtmaning kvitansiyasi tasdiqlash paytida chiqadi.
+   * QR buyurtmani esa hech kim tasdiqlamaydi — kassa uni o'zi bosib
+   * chiqarmasa, oshxona buyurtmani umuman ko'rmaydi va ofitsiant ekranga
+   * qarab turib og'zaki aytishi kerak bo'ladi.
+   *
+   * `source` maydoni serverdan keladi. U yo'q bo'lsa (eski server) hech
+   * narsa chop etilmaydi: taxmin qilinsa, kassir tasdiqlagan har bir
+   * buyurtma ikkinchi marta qog'ozga chiqardi.
+   */
+  useEffect(() => {
+    if (!currentWaiter) return;
+    if (!getPrinterSettings().autoPrintQrKitchenSlip) return;
+    // Kvitansiya uyasi bitta: bittasi chop etilib bo'lguncha keyingisi kutadi.
+    if (kitchenSlipData) return;
+
+    const cafeId = getActiveCafeId();
+    const { print, save } = nextQrSlip(
+      orders,
+      readCafeJson<string[] | null>(cafeId, 'kitchen_printed', null),
+    );
+    if (save) writeCafeJson(cafeId, 'kitchen_printed', save);
+    if (!print) return;
+
+    const next = orders.find((o) => o.id === print);
+    if (!next) return;
+
+    let items: any[] = [];
+    try {
+      items = typeof next.items === 'string' ? JSON.parse(next.items) : (next.items || []);
+    } catch { items = []; }
+
+    setKitchenSlipData({
+      tableNumber: next.tableNumber,
+      // Ofitsiant yo'q — buyurtmani mijozning o'zi bergan. Oshpaz qog'ozga
+      // qarab kimdan so'rashini bilishi kerak, "Offitsiant: —" esa aytmaydi.
+      waiterName: 'QR menyu',
+      items,
+      time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
+      slipNumber: nextDailyNumber(cafeId),
+    });
+  }, [orders, kitchenSlipData, currentWaiter, getActiveCafeId]);
 
   /**
    * Qo'lda chop etish tugmalari uchun.

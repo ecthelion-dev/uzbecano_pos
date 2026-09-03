@@ -14,14 +14,20 @@ export interface PrinterSettings {
    */
   systemPrinterName?: string;
   paperWidth: '58mm' | '80mm';
-  /**
-   * Hisob yopilganda mijoz cheki o'zi chop etiladimi.
-   *
-   * Oshxona kvitansiyasi uchun juftlik sozlama yo'q: u ataylab har doim
-   * qo'lda chiqariladi — buyurtma tasdiqlangach modal ochiladi va qog'oz
-   * faqat kassir chop etishni tanlasa ketadi.
-   */
+  /** Hisob yopilganda mijoz cheki o'zi chop etiladimi. */
   autoPrintReceipt: boolean;
+  /**
+   * QR menyudan kelgan buyurtma oshxonaga o'zi chop etiladimi.
+   *
+   * Kassada berilgan buyurtmaning kvitansiyasi tasdiqlashda chiqadi, QR
+   * buyurtmani esa hech kim tasdiqlamaydi — kassa uni o'zi bosib chiqarmasa,
+   * oshxona buyurtmani umuman ko'rmaydi.
+   *
+   * Sozlama qurilmaniki: kafeda ikkinchi kassa paydo bo'lganda ikkalasi ham
+   * bir xil buyurtmani so'rab turadi va oshxonaga har bir buyurtmadan ikkita
+   * qog'oz chiqadi. O'shanda buni faqat bitta kassada yoqib qo'yiladi.
+   */
+  autoPrintQrKitchenSlip: boolean;
   headerText: string;
   footerText: string;
   openCashDrawer: boolean;
@@ -32,6 +38,7 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   systemPrinterName: '',
   paperWidth: '80mm',
   autoPrintReceipt: true,
+  autoPrintQrKitchenSlip: true,
   headerText: "Xush kelibsiz!",
   footerText: "Tashrifingiz uchun rahmat!",
   openCashDrawer: false,

@@ -10,7 +10,8 @@ import {
   Sliders,
   X,
   FileText,
-  DollarSign
+  DollarSign,
+  QrCode
 } from 'lucide-react';
 import {
   PrinterSettings,
@@ -351,18 +352,44 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
             />
           </div>
 
-          {/* Oshxona kvitansiyasi uchun tugmacha yo'q: u buyurtma
-              tasdiqlangach chiqadigan modaldan qo'lda chop etiladi. */}
+          {/* Kassada berilgan buyurtma uchun tugmacha yo'q — kvitansiya
+              tasdiqlash bilan chiqadi. Oraliqdagi modal olib tashlangan:
+              band kafeda u har bir buyurtmaga qo'shimcha bosish qo'shardi,
+              kassir esa baribir doim chop etardi. */}
           <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
             <UtensilsCrossed className="w-4 h-4 shrink-0 text-blue-500" />
             <div>
               <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Oshxona kvitansiyasi — qo&apos;lda
+                Oshxona kvitansiyasi — avtomatik
               </div>
               <div className="text-[10px] text-slate-400">
-                Buyurtma tasdiqlangach oyna ochiladi; chek faqat &laquo;Chop etish&raquo; bosilganda chiqadi
+                Buyurtma tasdiqlanishi bilan oshxonaga chiqadi
               </div>
             </div>
+          </div>
+
+          <div
+            onClick={() => handleToggle('autoPrintQrKitchenSlip')}
+            className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-orange-400 transition-all"
+          >
+            <div className="flex items-center gap-2.5">
+              <QrCode className="w-4 h-4 shrink-0 text-blue-500" />
+              <div>
+                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  QR buyurtmani oshxonaga chiqarish
+                </div>
+                <div className="text-[10px] text-slate-400">
+                  Mijoz telefonidan bergan buyurtmani kassa o&apos;zi bosib chiqaradi.
+                  Ikkinchi kassa qo&apos;shilsa, buni faqat bittasida yoqib qo&apos;ying.
+                </div>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={settings.autoPrintQrKitchenSlip}
+              onChange={() => {}}
+              className="w-5 h-5 shrink-0 accent-orange-500 cursor-pointer"
+            />
           </div>
 
           <div

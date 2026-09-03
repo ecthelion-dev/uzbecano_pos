@@ -47,6 +47,15 @@ export interface DBOrder {
    * ikkinchi kassa qo'shilgan kuni raqamlar takrorlanib ketardi.
    */
   dailyNumber?: number | null;
+  /**
+   * Buyurtma qayerdan kelgani: `'pos'` — kassa yoki panel, `'qr'` — mijoz
+   * o'z telefonidan yuborgan.
+   *
+   * Ixtiyoriy: eski serverda bu maydon yo'q, o'shanda kassa hech narsa chop
+   * etmaydi. Taxmin qilinmaydi — bilinmagan buyurtmani oshxonaga yubormagan
+   * ma'qul, aks holda kassir tasdiqlagan har bir buyurtma ikki marta chiqadi.
+   */
+  source?: string;
   tableNumber: string;
   total: number;
   status: string;

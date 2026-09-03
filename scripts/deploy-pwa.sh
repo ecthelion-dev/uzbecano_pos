@@ -60,13 +60,24 @@ if [ -d "$LIVE" ]; then mv "$LIVE" "$OLD"; fi
 mv "$NEW" "$LIVE"
 rm -rf "$OLD"
 
+# Tekshiruv jonli manzil orqali. 127.0.0.1 ga urinish 301 qaytaradi —
+# nginx HTTP'ni HTTPS'ga yo'naltiradi, ya'ni o'sha tekshiruv hech nima
+# tasdiqlamaydi va birinchi yurgizishda shunday bo'ldi ham.
 echo "==> Tekshiruv"
-ASSET=$(sed -n 's/.*src="\(\/assets\/[^"]*\.js\)".*/\1/p' "$LIVE/index.html" | head -1)
-for path in / /manifest.json /sw.js "$ASSET"; do
-  [ -z "$path" ] && continue
-  printf "  %-40s %s\n" "$path" \
-    "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: pos.orderplus.uz' "http://127.0.0.1$path")"
+BASE="https://pos.orderplus.uz"
+# Vite yo'lni `./assets/...` deb yozadi, boshida `/` bilan emas.
+ASSET=$(grep -o 'assets/[^"]*\.js' "$LIVE/index.html" | head -1)
+FAILED=0
+for path in / /manifest.json /sw.js "/$ASSET"; do
+  [ "$path" = "/" ] || [ -n "${path#/}" ] || continue
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$BASE$path")
+  printf "  %-40s %s\n" "$path" "$CODE"
+  [ "$CODE" = "200" ] || FAILED=1
 done
+if [ "$FAILED" != "0" ]; then
+  echo "  XATO: yuqoridagi manzillardan biri 200 qaytarmadi"
+  exit 1
+fi
 
 echo "==> Versiya"
 node -e 'console.log("  package.json:", require("./package.json").version)'

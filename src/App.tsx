@@ -916,7 +916,13 @@ export default function App() {
       if (getPrinterSettings().autoPrintQrKitchenSlip) fetchOrders();
     };
 
-    const interval = setInterval(poll, hasLiveWork ? 5000 : 20000);
+    // Bo'sh zalda ritm sekinlashadi — server yukini kamaytirish uchun. Lekin
+    // QR buyurtma aynan o'sha paytda keladi: zal bo'sh, kassir band emas,
+    // hech kim ekranga qaramaydi. 20 soniya kutish oshxonani shuncha
+    // kechiktiradi, shuning uchun QR kuzatuvi yoqilgan bo'lsa ritm doim tez.
+    // Bitta kassa uchun bu daqiqasiga 12 ta so'rov — sezilarli yuk emas.
+    const watchingQr = getPrinterSettings().autoPrintQrKitchenSlip;
+    const interval = setInterval(poll, hasLiveWork || watchingQr ? 5000 : 20000);
     // Tabga qaytilganda kutmasdan darhol yangilanadi — shuning uchun sekin
     // ritm ekranga qarab turgan kassirga sezilmaydi.
     document.addEventListener('visibilitychange', poll);
@@ -1301,6 +1307,12 @@ export default function App() {
       timestamp: new Date().toISOString(),
       slipNumber: nextDailyNumber(cafeId),
     });
+
+    // Kassir ekranga qaramay turgan bo'lishi mumkin, lekin qarasa —
+    // buyurtmani printer o'zi olganini bilishi kerak. Bu belgisiz "chiqdimi
+    // yo'qmi" degan savolga faqat oshxonaga borib javob topiladi.
+    setToastMessage(`QR buyurtma: ${next.tableNumber} — oshxonaga chiqarildi`);
+    window.setTimeout(() => setToastMessage(null), 4000);
   }, [orders, kitchenSlipData, currentWaiter, getActiveCafeId]);
 
   /**

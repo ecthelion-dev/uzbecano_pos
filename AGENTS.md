@@ -59,3 +59,17 @@ Priority:
 - **Idempotency & Audit Logs**: Local transactions, refunds, cancellations, discount overrides, and cash register open/close events must be logged with timestamp and user ID.
 - **Production Data Protection**: Never run destructive operations against local databases or backend sync targets.
 - **Minimal Scope**: Keep code changes scoped strictly to the requested feature or fix.
+
+## Yetkazish
+
+Kassa ikki yo'l bilan yetkaziladi va ular **mustaqil**:
+
+- **Windows ilovasi** — `v*` tegi qo'yilganda GitHub Actions yig'adi, avtomatik
+  yangilanish orqali kassaga tushadi. Faqat teg qo'yish kifoya.
+- **PWA** (`pos.orderplus.uz`) — VPS'dagi `/var/www/uzbecano_pos/dist-react`
+  papkasini nginx statik tarqatadi. Uni `scripts/deploy-pwa.sh` yig'adi va
+  boshqa hech nima yig'maydi.
+
+Reliz teglash PWA'ga **tegmaydi**. Ikkinchisini yurgizmaslik bir kunda PWA'ni
+o'n to'rt commit orqada qoldirdi: ilovada chek tuzatilgan, PWA'da eskisi.
+Repo ildizidagi `vercel.json` chalg'itadi — jonli manzil Vercel emas.

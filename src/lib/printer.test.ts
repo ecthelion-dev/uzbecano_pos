@@ -196,11 +196,68 @@ describe('chek maketi', () => {
     return out.split('\n').map((l) => l.replace(/\s+$/, ''));
   };
 
+  /**
+   * Har bir satr uchun matn va o'sha satr IKKI BAROBAR balandlikda
+   * bosilganmi. GS ! ning past yarim bayti — balandlik ko'paytirgichi.
+   *
+   * Kerak, chunki qog'ozdagi eng yomon nuqson maketda ko'rinmaydi: jadval
+   * yirik bo'lsa, sarlavha qatori pastdagi taom qatoriga kirib ketadi.
+   */
+  const tallLines = (bytes: Uint8Array): { text: string; tall: boolean }[] => {
+    const out: { text: string; tall: boolean }[] = [];
+    let text = '';
+    let tall = false;
+    let height = 0;
+    for (let i = 0; i < bytes.length; i++) {
+      const b = bytes[i];
+      if (b === 0x1b) {
+        const cmd = bytes[i + 1];
+        i += cmd === 0x40 || cmd === 0x32 ? 1 : cmd === 0x70 ? 4 : 2;
+        continue;
+      }
+      if (b === 0x1d) {
+        if (bytes[i + 1] === 0x21) height = bytes[i + 2] & 0x0f;
+        i += bytes[i + 1] === 0x56 ? 3 : 2;
+        continue;
+      }
+      if (b === 0x0a) {
+        out.push({ text: text.replace(/\s+$/, ''), tall });
+        text = '';
+        tall = false;
+        continue;
+      }
+      if (b >= 0x20 && b < 0x7f) {
+        text += String.fromCharCode(b);
+        if (height > 0) tall = true;
+      }
+    }
+    return out;
+  };
+
   const padTo = (str: string, cols: number) => str + ' '.repeat(Math.max(0, cols - str.length));
   const padStart = (str: string, cols: number) => ' '.repeat(Math.max(0, cols - str.length)) + str;
 
   const linesOf = (paperWidth: '58mm' | '80mm') =>
     asLayout(generateEscPosReceipt(posterOrder, 'Uzbecano', { ...settings, paperWidth }));
+
+  /* Jadval bir vaqtlar ikki barobar balandlikda edi va qog'ozda sarlavha
+     qatori taom qatoriga kirib ketardi. Yiriklik faqat kafe nomi va
+     to'lanishi kerak summada qoladi — chekning qolgani bir o'lchamda. */
+  it('taomlar jadvalini oddiy balandlikda bosadi, summani esa yirik', () => {
+    const rows = tallLines(generateEscPosReceipt(posterOrder, 'Uzbecano', { ...settings, paperWidth: '80mm' }));
+
+    const header = rows.find((r) => r.text.startsWith('Nomi'));
+    const item = rows.find((r) => r.text.startsWith('Limon choy'));
+    const jami = rows.find((r) => r.text.startsWith('JAMI'));
+
+    expect(header, 'jadval sarlavhasi yo\'q').toBeDefined();
+    expect(item, 'taom qatori yo\'q').toBeDefined();
+    expect(jami, 'JAMI qatori yo\'q').toBeDefined();
+
+    expect(header!.tall).toBe(false);
+    expect(item!.tall).toBe(false);
+    expect(jami!.tall).toBe(true);
+  });
 
   it('metadata qiymatlarini qat\'iy ustundan boshlaydi', () => {
     const lines = linesOf('58mm');

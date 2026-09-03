@@ -586,13 +586,15 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
   const row = (str: string = '') => push([{ text: padEndTo(str, cols) }]);
 
   /**
-   * Taomlar jadvalining satri — ikki barobar balandlikda.
+   * Taomlar jadvalining satri — oddiy balandlikda.
    *
-   * ESC/POS da oraliq o'lcham yo'q: Font A dan keyingi qadam aynan 2 barobar.
-   * Kenglik o'zgarmaydi, ya'ni 48 ustun va nuqtali chiziq joyida qoladi;
-   * satrlar esa BIG_LINE_DOTS qadam bilan suriladi va yopishmaydi.
+   * ESC/POS da oraliq o'lcham yo'q: Font A dan keyingi qadam aynan 2 barobar,
+   * va jadval o'sha qadamga qo'yilganda chek haddan tashqari yirik chiqdi —
+   * sarlavha qatori pastdagi taom qatoriga kirib ketardi. Jadval yuqoridagi
+   * tamoyilga qaytdi: ustunlar qalinlik bilan ajraladi, yiriklik esa faqat
+   * to'lanishi kerak summada qoladi.
    */
-  const bodyRow = (str: string) => push([{ text: padEndTo(str, cols), big: true }]);
+  const bodyRow = (str: string) => row(str);
 
   /**
    * "Nomi<bo'shliq>Qiymat" — yorliq qalin, qiymat qat'iy ustundan boshlanadi.
@@ -668,7 +670,6 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
         padStartTo('Narxi', priceCol) + padStartTo('Jami', totalCol)
       : padEndTo('Nomi', cols - totalCol) + padStartTo('Jami', totalCol),
     bold: true,
-    big: true,
   }]);
 
   const items = normalizeItems(order.items);

@@ -340,6 +340,36 @@ async function sendRawToPrinter(bytes: Uint8Array): Promise<boolean> {
  * iteratsiya qilinadi — chekka har bir harf uchun bittadan "Taom / 0 so'm"
  * qatori tushardi, haqiqiy taomlar esa umuman chiqmasdi.
  */
+/**
+ * Taomning chekda ko'rinadigan nomi — o'lchami bilan.
+ *
+ * Kassa o'lchamni nomning ichiga yozadi ("Latte (Standart)"), QR menyu esa
+ * nomni toza qoldirib, o'lchamni alohida `selectedSize` maydoniga soladi:
+ * narxni server o'zi tekshiradi va nomga ishonmaydi. Natijada QR orqali
+ * berilgan buyurtmaning chekida o'lcham umuman ko'rinmasdi — bir xil nomli
+ * ikki xil narxdagi ikki qator.
+ */
+function itemName(it: any): string {
+  const base = String(it?.product?.name || it?.name || 'Taom').trim();
+  const size = String(
+    it?.selectedSize?.label ?? it?.selectedSize ?? it?.size ?? '',
+  ).trim();
+  if (!size) return base;
+  // Kassa yo'lida o'lcham allaqachon nomda: ikkinchi marta qo'shilmasin.
+  if (base.toLowerCase().includes(size.toLowerCase())) return base;
+  return `${base} (${size})`;
+}
+
+/**
+ * Taomga yozilgan izoh.
+ *
+ * Kassa `note`, server esa `notes` deb saqlaydi. Bittasini o'qib, ikkinchisini
+ * unutish izohni jimgina yo'qotadi — oshxonada bu xato taom degani.
+ */
+function itemNote(it: any): string {
+  return String(it?.note ?? it?.notes ?? '').trim();
+}
+
 function normalizeItems(items: any): any[] {
   if (Array.isArray(items)) return items;
   if (typeof items === 'string') {
@@ -686,7 +716,7 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
 
   const items = normalizeItems(order.items);
   items.forEach((it: any, idx: number) => {
-    const name = String(it.product?.name || it.name || 'Taom').trim();
+    const name = itemName(it);
     const qty = Number(it.quantity || 1);
     const price = Number(it.unitPrice || it.price || 0);
     const sum = Number(it.total || qty * price);
@@ -706,8 +736,9 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
       bodyRow(padEndTo(calc, cols - totalCol) + padStartTo(fmtPrice(sum), totalCol));
     }
 
-    if (it.note) {
-      for (const noteLine of wrapText(`* Izoh: ${it.note}`, cols - 2)) {
+    const note = itemNote(it);
+    if (note) {
+      for (const noteLine of wrapText(`* Izoh: ${note}`, cols - 2)) {
         bodyRow('  ' + noteLine);
       }
     }
@@ -923,11 +954,12 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
 
   const items = normalizeItems(data.items);
   items.forEach((it: any, idx: number) => {
-    const name = String(it.product?.name || it.name || 'Taom').trim();
+    const name = itemName(it);
     const qty = Number(it.quantity || 1);
     enc.bold(true).line(`${qty} x ${name}`).bold(false);
-    if (it.note) {
-      enc.line(`   >> IZOH: ${it.note}`);
+    const note = itemNote(it);
+    if (note) {
+      enc.line(`   >> IZOH: ${note}`);
     }
     // Asosiy chekdagi kabi: uzun nom o'ralib ketadi va izoh o'z satrini
     // oladi, ya'ni chiziqchasiz izoh qaysi taomniki ekani bilinmaydi —

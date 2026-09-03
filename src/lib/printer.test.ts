@@ -294,6 +294,52 @@ describe('chek maketi', () => {
     expect(jami!.tall).toBe(true);
   });
 
+  /*
+   * Kassa o'lchamni nomning ichiga yozadi ("Latte (Standart)"), QR menyu esa
+   * nomni toza qoldirib, o'lchamni alohida maydonga soladi — narxni server
+   * o'zi tekshiradi va nomga ishonmaydi. Ikkinchisi chekda ko'rinmasdi:
+   * bir xil nomli, ikki xil narxdagi ikki qator.
+   */
+  it('QR buyurtmadagi o\'lchamni nomga qo\'shib bosadi', () => {
+    const text = asLayout(generateEscPosReceipt({
+      ...posterOrder,
+      items: [
+        { name: 'Bubble tea', selectedSize: { label: 'Katta' }, quantity: 1, price: 40000, total: 40000 },
+        { name: 'Choy', quantity: 1, price: 5000, total: 5000 },
+      ],
+    }, 'Uzbecano', { ...settings, paperWidth: '80mm' })).join('\n');
+
+    expect(text).toContain('Bubble tea (Katta)');
+    // O'lchami yo'q taom o'zgarmaydi — bo'sh qavs qo'shilmaydi.
+    expect(text).toContain('Choy');
+    expect(text).not.toContain('Choy (');
+  });
+
+  it('kassa yo\'lida o\'lchamni ikki marta yozmaydi', () => {
+    // Kassa nomni allaqachon "Latte (Standart)" qilib yuboradi.
+    const text = asLayout(generateEscPosReceipt({
+      ...posterOrder,
+      items: [{ name: 'Latte (Standart)', selectedSize: { label: 'Standart' }, quantity: 1, price: 20000, total: 20000 }],
+    }, 'Uzbecano', { ...settings, paperWidth: '80mm' })).join('\n');
+
+    expect(text).toContain('Latte (Standart)');
+    // Sanab tekshiriladi, matn qidirib emas: uzun nom satrga bo'linadi va
+    // takrorlangan qism qog'ozda yonma-yon turmaydi — ya'ni "yonma-yon
+    // yo'q" degan tekshiruv hech nimani isbotlamaydi.
+    expect(text.match(/Standart/g) ?? []).toHaveLength(1);
+  });
+
+  it('serverning `notes` maydonidagi izohni ham bosadi', () => {
+    // Kassa `note`, server `notes` deb saqlaydi. Bittasini o'qib ikkinchisini
+    // unutish izohni jimgina yo'qotadi.
+    const text = asLayout(generateEscPosReceipt({
+      ...posterOrder,
+      items: [{ name: 'Osh', notes: 'sarimsoqsiz', quantity: 1, price: 35000, total: 35000 }],
+    }, 'Uzbecano', { ...settings, paperWidth: '80mm' })).join('\n');
+
+    expect(text).toContain('sarimsoqsiz');
+  });
+
   it('metadata qiymatlarini qat\'iy ustundan boshlaydi', () => {
     const lines = linesOf('58mm');
     const labelCol = 14;
@@ -479,6 +525,18 @@ describe('oshxona kvitansiyasi', () => {
   /* Oshxonada chalkashish xato taom degani: izoh qaysi taomniki ekani
      chiziqchasiz bilinmaydi. Brauzer varianti (KitchenPrintArea) buni
      `last:border-b-0` bilan allaqachon qilardi — termal chek ham shunday. */
+  it('o\'lcham va izohni oshxona kvitansiyasida ham bosadi', () => {
+    // Oshxonada o'lchamsiz kvitansiya xato taom degani: oshpaz kattasini
+    // kichigidan ajratmaydi.
+    const text = asAscii(generateEscPosKitchenSlip({
+      ...slip,
+      items: [{ name: 'Bubble tea', selectedSize: { label: 'Katta' }, quantity: 2, notes: 'muzsiz' }],
+    }, 'Uzbecano', settings));
+
+    expect(text).toContain('Bubble tea (Katta)');
+    expect(text).toContain('muzsiz');
+  });
+
   it('taomlar orasiga ajratuvchi qo\'yadi, oxirgisidan keyin esa yo\'q', () => {
     const bytes = generateEscPosKitchenSlip(
       { ...slip, items: [{ name: 'Osh', quantity: 2, note: 'sarimsoqsiz' }, { name: 'Choy', quantity: 1 }] },

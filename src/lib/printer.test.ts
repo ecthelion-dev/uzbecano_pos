@@ -506,6 +506,22 @@ describe('oshxona kvitansiyasi', () => {
     expect(after[closing + 1] ?? '').not.toMatch(/-{20,}/);
   });
 
+  /* Buzuq buyurtma butun oqimni to'xtatmasligi kerak: kvitansiya yig'ilishida
+     otilgan xatoni kassada hech kim ushlamaydi, uya bo'shamay qoladi va
+     KEYINGI QR buyurtmalar ham chop etilmaydi. */
+  it('buzuq ma\'lumotdan ham kvitansiya yig\'adi, xato otmaydi', () => {
+    const junk: any[] = [
+      { ...slip, items: 'buzuq json' },
+      { ...slip, items: null },
+      { ...slip, items: [{ name: null, quantity: 'ikkita' }] },
+      { ...slip, tableNumber: null, waiterName: undefined, items: [] },
+      {},
+    ];
+    for (const data of junk) {
+      expect(() => generateEscPosKitchenSlip(data, 'Uzbecano', settings)).not.toThrow();
+    }
+  });
+
   it('raqam berilmasa kvitansiyani baribir chiqaradi', () => {
     const text = asAscii(generateEscPosKitchenSlip(slip, 'Uzbecano', settings));
     expect(text).toContain('OSHXONA BUYURTMASI');

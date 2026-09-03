@@ -1258,7 +1258,12 @@ export default function App() {
       window.addEventListener('afterprint', finish, { once: true });
       timer = window.setTimeout(finish, 20000);
       window.print();
-    })();
+    })().catch((e) => {
+      // Uya har qanday holatda bo'shashi shart. U band qolsa keyingi
+      // buyurtmalar ham chop etilmaydi — bitta xato butun oqimni to'xtatadi.
+      console.warn('Oshxona kvitansiyasi chop etilmadi:', e);
+      if (!cancelled) setKitchenSlipData(null);
+    });
 
     return () => { cancelled = true; };
   }, [kitchenSlipData, connectedCafeName]);

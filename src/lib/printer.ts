@@ -1205,7 +1205,18 @@ export async function printReceiptDirect(order: any, cafeName: string): Promise<
 /** Oshxona kvitansiyasi uchun xuddi shunday. */
 export async function printKitchenSlipDirect(data: any, cafeName: string): Promise<boolean> {
   const settings = getPrinterSettings();
-  const bytes = generateEscPosKitchenSlip(data, cafeName, settings);
+  let bytes: Uint8Array;
+  try {
+    bytes = generateEscPosKitchenSlip(data, cafeName, settings);
+  } catch (e) {
+    // Kvitansiyani YIG'ISHDAGI xato ilgari chaqiruvchiga otilardi. Kassada
+    // uni hech kim ushlamaydi, ya'ni kvitansiya uyasi bo'shamay qolardi —
+    // va o'sha uya bo'shamaguncha KEYINGI QR buyurtmalar ham chop
+    // etilmasdi. Bitta buzuq buyurtma butun oshxona oqimini to'xtatardi.
+    lastPrintError = String((e as any)?.message || e);
+    console.warn('Oshxona kvitansiyasini yig\'ib bo\'lmadi:', e);
+    return false;
+  }
   if (await tryDesktopPrint(settings, bytes)) return true;
   if (settings.mode === 'bluetooth' || settings.mode === 'serial' || activeBluetoothCharacteristic || activeSerialPort) {
     try {

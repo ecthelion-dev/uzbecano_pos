@@ -1278,7 +1278,7 @@ export default function App() {
     const cafeId = getActiveCafeId();
     const { print, save } = nextQrSlip(
       orders,
-      readCafeJson<string[] | null>(cafeId, 'kitchen_printed', null),
+      readCafeJson<unknown>(cafeId, 'kitchen_printed', null),
     );
     if (save) writeCafeJson(cafeId, 'kitchen_printed', save);
     if (!print) return;

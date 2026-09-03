@@ -240,6 +240,29 @@ describe('chek maketi', () => {
   const linesOf = (paperWidth: '58mm' | '80mm') =>
     asLayout(generateEscPosReceipt(posterOrder, 'Uzbecano', { ...settings, paperWidth }));
 
+  /* Uzun nom ikki satrga bo'linadi, izoh ham o'z satrini oladi — chiziqchasiz
+     qaysi raqam qaysi taomniki ekani qog'ozda bilinmaydi. */
+  it('har bir taomdan keyin ajratuvchi qo\'yadi, oxirgisidan keyin esa yo\'q', () => {
+    const cols = 48;
+    const rule = '-'.repeat(cols);
+    const lines = linesOf('80mm');
+
+    const first = lines.findIndex((l) => l.startsWith('Limon choy'));
+    const second = lines.findIndex((l) => l.startsWith('Mojito'));
+    expect(first, 'birinchi taom yo\'q').toBeGreaterThan(-1);
+    expect(second, 'ikkinchi taom yo\'q').toBeGreaterThan(first);
+
+    // Ikki taom orasida aynan bitta chiziqcha.
+    const between = lines.slice(first + 1, second).filter((l) => l === rule);
+    expect(between).toHaveLength(1);
+
+    // Oxirgi taomdan keyin jadvalni yopadigan bitta chiziqcha — ikkita emas.
+    const after = lines.slice(second + 1);
+    const closing = after.findIndex((l) => l === rule);
+    expect(closing, 'jadvalni yopadigan chiziq yo\'q').toBeGreaterThan(-1);
+    expect(after[closing + 1]).not.toBe(rule);
+  });
+
   /* Sarlavha bilan taomlar bir xil o'lchamda, shuning uchun ular faqat
      bo'sh satr bilan ajraladi — usiz qog'ozda bitta blok bo'lib ko'rinadi. */
   it('jadval sarlavhasi bilan birinchi taom orasida bo\'sh satr qoldiradi', () => {

@@ -678,7 +678,7 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
   row();
 
   const items = normalizeItems(order.items);
-  for (const it of items) {
+  items.forEach((it: any, idx: number) => {
     const name = String(it.product?.name || it.name || 'Taom').trim();
     const qty = Number(it.quantity || 1);
     const price = Number(it.unitPrice || it.price || 0);
@@ -704,7 +704,13 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
         bodyRow('  ' + noteLine);
       }
     }
-  }
+
+    // Taomlar orasidagi ajratuvchi. Uzun nom ikki satrga bo'linadi va
+    // izoh ham o'z satrini oladi, ya'ni qaysi raqam qaysi taomniki
+    // ekani chiziqchasiz bilinmaydi. Oxirgisidan keyin qo'yilmaydi:
+    // jadvalni yopadigan chiziq allaqachon pastda turibdi.
+    if (idx < items.length - 1) row('-'.repeat(cols));
+  });
 
   row('-'.repeat(cols));
 

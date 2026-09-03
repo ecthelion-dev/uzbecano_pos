@@ -52,8 +52,8 @@ Priority:
 - **Cash Drawer & Barcode Scanner**: Handle serial/USB scanner inputs cleanly with debouncing and focus-independent listener safety.
 
 ## 4. Security, Auth & Data Integrity Rules
-- **Operator Auth & Session Policy**: Cashier PIN authentication, waiter switching, lock screen, and idle timeouts must strictly adhere to server and session policies.
-- **Lock & Logout Sanitization**: On lock or logout, sensitive order, payment, and operator session state must be cleared from the active renderer so it is never exposed to the next user.
+- **Operator Auth & Session Policy**: Cashier PIN authentication and waiter switching must strictly adhere to server and session policies. There is deliberately **no idle auto-logout**: a till left alone for a few minutes is normal service, and the timer only ever fired mid-order. The session is bounded by `sessionStorage` (dies when the app closes) and the server token's own lifetime — do not reintroduce an inactivity timer.
+- **Logout Sanitization**: On logout, sensitive order, payment, and operator session state must be cleared from the active renderer so it is never exposed to the next user.
 - **No Direct Secrets**: Never store unencrypted sensitive tokens or private keys in localStorage or plaintext config files.
 - **Calculation Integrity**: Verify calculations, discounts, split bills, and totals with strict arithmetic validation.
 - **Idempotency & Audit Logs**: Local transactions, refunds, cancellations, discount overrides, and cash register open/close events must be logged with timestamp and user ID.

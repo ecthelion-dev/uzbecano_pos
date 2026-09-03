@@ -262,8 +262,8 @@ export default function App() {
 
   // Logs the operator out and sanitizes renderer state (cart, discount,
   // payment entry) so the next person at the terminal never sees the
-  // previous operator's session or draft data. Shared by the manual logout
-  // button and the idle-timeout auto-lock below.
+  // previous operator's session or draft data. Called from the logout button —
+  // leaving the till is now a deliberate act, not something a timer decides.
   const handleLogout = useCallback(() => {
     const cafeId = getActiveCafeId();
     clearSession(cafeId);
@@ -276,10 +276,6 @@ export default function App() {
     setPaymentMethod('naqd');
   }, [getActiveCafeId]);
 
-  // Idle timeout: auto-lock the terminal after a period of no operator
-  // activity, per the mandatory operator session policy. Any mouse/keyboard/
-  // touch activity resets the timer; the check itself runs on a coarse
-  // interval rather than a timer-per-keystroke to keep this cheap.
   // Chek logotipini oldindan dekodlab qo'yamiz: chek yig'ilishi sinxron, ya'ni
   // chop etish payti rasm yuklashni kutib turolmaydi. Kafe logotipi bo'lmasa
   // OrderPlus belgisi ketadi — u ilova bilan birga keladi va har doim bor.
@@ -287,35 +283,22 @@ export default function App() {
     void setReceiptLogo(connectedCafeLogo || '/favicon.png');
   }, [connectedCafeLogo]);
 
-  const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
-  const lastActivityRef = React.useRef<number>(Date.now());
-  useEffect(() => {
-    const markActivity = () => { lastActivityRef.current = Date.now(); };
-    const events: Array<keyof WindowEventMap> = ['mousedown', 'keydown', 'touchstart', 'wheel'];
-    events.forEach(ev => window.addEventListener(ev, markActivity, { passive: true }));
-    return () => {
-      events.forEach(ev => window.removeEventListener(ev, markActivity));
-    };
-  }, []);
-  useEffect(() => {
-    if (!currentWaiter) return;
-    lastActivityRef.current = Date.now();
-    const interval = setInterval(() => {
-      // Aloqa yo'q paytda chiqarib yuborish kassani o'ldiradi: PIN serverda
-      // tekshiriladi, ya'ni xodim qaytib kira olmaydi. Oflaynda taymer
-      // to'xtaydi va aloqa tiklangach noldan sanaydi.
-      if (!navigator.onLine || isOfflineMode) {
-        lastActivityRef.current = Date.now();
-        return;
-      }
-      if (Date.now() - lastActivityRef.current >= IDLE_TIMEOUT_MS) {
-        handleLogout();
-        setToastMessage("Faolsizlik tufayli tizimdan chiqildi");
-        setTimeout(() => setToastMessage(null), 3000);
-      }
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [currentWaiter, handleLogout, isOfflineMode]);
+  /*
+   * Faolsizlik bo'yicha avtomatik chiqarish YO'Q — ataylab.
+   *
+   * Ilgari kassa 5 daqiqa tegilmasa xodimni o'zi chiqarib yuborardi. Kafe
+   * ishida bu doim noto'g'ri paytga to'g'ri kelardi: ofitsiant zalga chiqib
+   * kelguncha, oshpaz bilan gaplashguncha kassa yopilib, buyurtma o'rtasida
+   * yana PIN so'ralardi. Xavfsizlik jihatidan ham u ko'ringanidek kuchli
+   * emas edi — kassa zalda, o'zi yoqiq turadi va uni tark etgan odam
+   * baribir 5 daqiqa ichida qaytib kelmaydi.
+   *
+   * Sessiya hali ham cheksiz emas, uni ikki narsa yopadi:
+   *   - sessionStorage — ilova yopilishi bilan token o'chadi;
+   *   - serverdagi token muddati (24 soat).
+   * Xodim almashganda "Chiqish" tugmasi bosiladi, bu esa savat va chegirmani
+   * ham tozalaydi.
+   */
 
   // Ensure currentWaiter, cafe name, and active cafe match when URL param changes
   useEffect(() => {

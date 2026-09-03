@@ -10,9 +10,10 @@ import { cafeKey, readJson, writeJson, removeKey } from './storage';
  * sessionStorage da: sahifa yangilanishidan omon qoladi (kassir uchun hech
  * nima o'zgarmaydi), lekin ilova yopilishi bilan o'chadi.
  *
- * Bu 5 daqiqalik faolsizlik blokirovkasi bilan bir xil mantiq: kassa tark
- * etilgan bo'lsa, sessiya ham tugagan bo'lishi kerak. Ilova qayta ochilganda
- * xodim PIN kiritadi — aloqa bo'lmasa ham, oflayn kesh shu uchun bor.
+ * Faolsizlik taymeri olib tashlangach sessiyani cheklaydigan narsa shu bo'lib
+ * qoldi: ilova ochiq turganda xodim ishlayveradi, yopilishi bilan sessiya
+ * tugaydi. Qayta ochilganda PIN kiritiladi — aloqa bo'lmasa ham, oflayn kesh
+ * shu uchun bor.
  */
 
 interface StoredSession {

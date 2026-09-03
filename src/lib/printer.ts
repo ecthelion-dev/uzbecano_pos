@@ -76,6 +76,10 @@ const ASCII_FALLBACKS: Record<string, string> = {
   '\u201C': '"', '\u201D': '"',
   '\u2013': '-', '\u2014': '-', '\u2212': '-',
   '\u00A0': ' ', '\u2026': '...',
+  // CP866 da № belgisi 0xFC da turadi, lekin printer haqiqatda qaysi
+  // kod jadvalini yuklaganini bilmaymiz — chekning qolgan hammasi ASCII.
+  // Shuning uchun uni asosiy chekdagi "Chek No" bilan bir xil yozamiz.
+  '\u2116': 'No',
 };
 
 function toCp866(str: string): number[] {

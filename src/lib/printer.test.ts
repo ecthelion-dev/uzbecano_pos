@@ -375,6 +375,15 @@ describe('oshxona kvitansiyasi', () => {
     expect(Array.from(bytes).join(',')).toContain([0x1d, 0x21, 0x11].join(','));
   });
 
+  /* Printer CP866 da ishlaydi va unda № belgisi bor, lekin qurilma
+     haqiqatda qaysi jadvalni yuklaganini bilmaymiz: qog'ozga "? 3" bosilgan.
+     Chekning qolgan hammasi ASCII, shuning uchun raqam ham ASCII bo'lsin. */
+  it('tartib raqamini ASCII bilan yozadi, savol belgisi bilan emas', () => {
+    const text = asAscii(generateEscPosKitchenSlip({ ...slip, slipNumber: 3 }, 'Uzbecano', settings));
+    expect(text).toContain('No 3');
+    expect(text).not.toContain('?');
+  });
+
   it('raqam berilmasa kvitansiyani baribir chiqaradi', () => {
     const text = asAscii(generateEscPosKitchenSlip(slip, 'Uzbecano', settings));
     expect(text).toContain('OSHXONA BUYURTMASI');

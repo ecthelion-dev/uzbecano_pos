@@ -902,7 +902,18 @@ export default function App() {
       if (document.visibilityState === 'visible') {
         fetchOrders();
         fetchWaiterCalls();
+        return;
       }
+      // Oyna ko'rinmayotganda odatda hech narsa so'ralmaydi: ekranga hech kim
+      // qaramayotgan bo'lsa yangilashning ma'nosi yo'q.
+      //
+      // QR buyurtma bundan mustasno. Uni kassir kiritmaydi, ya'ni "kvitansiya
+      // o'zi chiqadi" degani faqat shu holda ma'noga ega: ilova yig'ib
+      // qo'yilgan bo'lsa ham buyurtma oshxonaga yetib borishi kerak. Aks
+      // holda mijoz kutib o'tiradi, kassir esa ilovaga qaytmaguncha bundan
+      // bexabar qoladi. Chaqiruvlar bu yerda so'ralmaydi — ularga javob
+      // beradigan odam baribir ekran oldida bo'lishi kerak.
+      if (getPrinterSettings().autoPrintQrKitchenSlip) fetchOrders();
     };
 
     const interval = setInterval(poll, hasLiveWork ? 5000 : 20000);

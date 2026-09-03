@@ -12,6 +12,7 @@ import {
 import { CartItem } from '../types';
 import { CartItemRow } from './CartItemRow';
 import { KitchenItemRow } from './KitchenItemRow';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface POSCartSidebarProps {
   selectedTable: string;
@@ -57,6 +58,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
   onOpenTableMove,
   onCloseMobile,
 }) => {
+  const t = useT();
   return (
     <div className="w-full lg:w-[435px] shrink-0 bg-white text-slate-900 rounded-t-3xl lg:rounded-2xl p-3.5 sm:p-5 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:pb-[calc(1.25rem+env(safe-area-inset-bottom))] lg:pb-5 flex flex-col shadow-[0_-8px_30px_rgba(15,23,42,0.25)] lg:shadow-md border border-slate-200 max-h-[88dvh] lg:max-h-none lg:h-[calc(100vh-120px)] overflow-hidden animate-slideUp lg:animate-none">
       {/* Drawer tutqichi — telefonda varaq pastdan chiqqanini bildiradi */}
@@ -84,8 +86,8 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
         {activeTableOrderItems.length === 0 && cart.length === 0 ? (
           <div className="text-center py-16 text-slate-400">
             <ShoppingBag className="w-10 h-10 mx-auto opacity-30 mb-2" />
-            <p className="text-xs font-medium">Savat bo'sh</p>
-            <p className="text-[10px] text-slate-400 mt-1">Menyudan taom tanlang</p>
+            <p className="text-xs font-medium">{t('cart.empty')}</p>
+            <p className="text-[10px] text-slate-400 mt-1">{t('cart.emptyHint')}</p>
           </div>
         ) : (
           <>
@@ -134,7 +136,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
       <div className="pt-3 border-t border-slate-200 space-y-2 shrink-0">
         {/* Payment Method Selector */}
         <div className="space-y-1">
-          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">To'lov Turi:</span>
+          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{t('cart.paymentType')}</span>
           <div className="grid grid-cols-3 gap-1">
             {[
               { id: 'naqd', label: 'Naqd', icon: <Banknote className="w-4 h-4" /> },
@@ -158,7 +160,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
         </div>
 
         <div className="flex justify-between text-xs text-slate-500 font-medium pt-1">
-          <span>Jami taomlar:</span>
+          <span>{t('cart.itemsTotal')}</span>
           <span className="text-slate-900 font-medium">{subtotal.toLocaleString()} so'm</span>
         </div>
         {discountAmount > 0 && (
@@ -184,7 +186,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
               className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16 sm:h-16"
             >
               <Send className="w-4 h-4" />
-              <span>BUYURTMANI TASDIQLASH</span>
+              <span>{t('cart.sendToKitchen')}</span>
             </button>
 
             <button
@@ -193,7 +195,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
               className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16 sm:h-16"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>TO'LOV VA YOPISH</span>
+              <span>{t('cart.payAndClose')}</span>
             </button>
           </div>
 

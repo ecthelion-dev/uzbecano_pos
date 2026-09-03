@@ -11,6 +11,8 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import { DBWaiter } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface POSHeaderProps {
   connectedCafeName: string;
@@ -37,6 +39,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   currentWaiter,
   onLogout,
 }) => {
+  const t = useT();
   // Telefonda sarlavhaga hamma tugma sig'maydi: ikkinchi darajali amallar
   // (arxiv, printer, yangilash, chiqish) shu menyu ostiga yig'ilgan.
   const [menuOpen, setMenuOpen] = useState(false);
@@ -67,7 +70,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
       {/* Tab Navigation */}
       <div className="hidden lg:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
         <button
-          title="Stollar zali"
+          title={t('header.tablesTitle')}
           onClick={() => onTabChange('stollar')}
           className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
             activeTab === 'stollar'
@@ -76,11 +79,11 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           }`}
         >
           <Grid className="w-3.5 h-3.5" />
-          <span>STOLLAR</span>
+          <span>{t('header.tables')}</span>
           <span className="hidden md:inline text-[10px] opacity-80">(F1)</span>
         </button>
         <button
-          title="Menyu va kassa"
+          title={t('header.menuTitle')}
           onClick={() => onTabChange('menyu')}
           className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
             activeTab === 'menyu'
@@ -89,16 +92,16 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           }`}
         >
           <ShoppingBag className="w-3.5 h-3.5" />
-          <span>MENYU</span>
+          <span>{t('header.menu')}</span>
           <span className="hidden md:inline text-[10px] opacity-80">(F2)</span>
         </button>
         <button
-          title="Arxiv"
+          title={t('header.archiveTitle')}
           onClick={onOpenArchive}
           className="flex px-4 py-2 rounded-lg font-semibold text-xs transition-all items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer whitespace-nowrap"
         >
           <Receipt className="w-3.5 h-3.5 text-orange-500" />
-          <span>ARXIV</span>
+          <span>{t('header.archive')}</span>
           <span className="hidden md:inline text-[10px] opacity-80">(F3)</span>
         </button>
       </div>
@@ -108,7 +111,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         <button
           onClick={onOpenPrinterSettings}
           className="hidden lg:flex w-10 h-10 items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs shrink-0"
-          title="Termoprinter va Chek Sozlamalari"
+          title={t('header.printerTitle')}
         >
           <Printer className="w-4 h-4 text-orange-500 shrink-0" />
         </button>
@@ -116,7 +119,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         <button
           onClick={onRefreshOrders}
           className="hidden lg:flex w-10 h-10 items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs shrink-0"
-          title="Qayta yuklash"
+          title={t('common.reload')}
         >
           <RotateCw className={`w-4 h-4 text-slate-500 ${isLoading ? 'animate-spin text-orange-500' : ''}`} />
         </button>
@@ -134,10 +137,13 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                 {currentWaiter.role === 'admin' ? 'Kassir' : 'Offitsiant'}
               </p>
             </div>
-            <button
+            {/* Til — chiqish tugmasidan oldin: xodim uni bir marta bosadi,
+              lekin topa olishi kerak. */}
+          <LanguageSwitcher className="mr-1" />
+          <button
               onClick={onLogout}
               className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-              title="Chiqish"
+              title={t('common.logout')}
             >
               <LogOut className="w-4 h-4" />
             </button>

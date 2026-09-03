@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import App from './App'
+import { LanguageProvider } from './lib/i18n/LanguageProvider';
 import { UpdateBanner } from './components/UpdateBanner';
 import { initAutoUpdater } from './lib/autoUpdater';
 import './index.css';
@@ -8,7 +9,9 @@ import { IS_DESKTOP_APP } from './constants';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
     <UpdateBanner />
   </React.StrictMode>
 );

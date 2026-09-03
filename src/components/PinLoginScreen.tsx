@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Building2, Settings, Check, X } from 'lucide-react';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface PinLoginScreenProps {
   pinInput: string;
@@ -18,6 +19,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
   onPinKey,
   onChangeCafeId,
 }) => {
+  const t = useT();
   const [showCafeModal, setShowCafeModal] = useState(false);
   const [inputCafeId, setInputCafeId] = useState(currentCafeId);
 
@@ -55,7 +57,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
             <Settings className="w-3 h-3 text-slate-400 group-hover:text-orange-400 transition-colors ml-0.5" />
           </button>
 
-          <p className="text-xs text-slate-400 font-medium mt-1">Offitsiant PIN kodini kiriting</p>
+          <p className="text-xs text-slate-400 font-medium mt-1">{t('login.pinPrompt')}</p>
         </div>
 
         {/* 4 PIN Dots */}
@@ -126,7 +128,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
             <div className="flex items-center justify-between border-b border-slate-700 pb-3">
               <div className="flex items-center gap-2 text-white font-bold text-base">
                 <Building2 className="w-5 h-5 text-orange-500" />
-                <span>Kafe / Filialni sozlash</span>
+                <span>{t('login.cafeSetup')}</span>
               </div>
               <button
                 onClick={() => setShowCafeModal(false)}
@@ -145,7 +147,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
                   type="text"
                   value={inputCafeId}
                   onChange={(e) => setInputCafeId(e.target.value)}
-                  placeholder="masalan: uzbecano, safia"
+                  placeholder={t('login.cafePlaceholder')}
                   className="w-full bg-slate-900 border border-slate-700 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder:text-slate-500 focus:outline-none transition-colors"
                   autoFocus
                   required

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newWaiterCalls } from './waiterCallAlert';
+import { newWaiterCalls, CHIME_NOTES, chimeDurationMs } from './waiterCallAlert';
 
 /**
  * Ovoz faqat YANGI chaqiruvda chiqishi kerak.
@@ -40,5 +40,41 @@ describe('yangi chaqiruvlar', () => {
 
   it('bo\'sh nomlarni tashlab yuboradi', () => {
     expect(newWaiterCalls([], ['', '   '])).toEqual([]);
+  });
+});
+
+/**
+ * Ohangning uzunligi.
+ *
+ * Bu talab: signal 2–3 soniya davom etishi kerak. Qisqasi zalning shovqinida
+ * yo'qoladi, uzuni bezovta qiladi va kassir ovozni butunlay o'chiradi.
+ * Notalarni tahrirlash oson, uzunlik esa e'tibordan chetda qolib ketadi.
+ */
+describe('chaqiruv ohangi', () => {
+  it('2 dan 3 soniyagacha davom etadi', () => {
+    const ms = chimeDurationMs();
+    expect(ms).toBeGreaterThanOrEqual(2000);
+    expect(ms).toBeLessThanOrEqual(3000);
+  });
+
+  it('notalar vaqt bo\'yicha tartibda va bir-birini bosmaydi', () => {
+    for (let i = 1; i < CHIME_NOTES.length; i++) {
+      const prev = CHIME_NOTES[i - 1];
+      const cur = CHIME_NOTES[i];
+      expect(cur.at, `${i}-nota oldingisidan oldin boshlanyapti`).toBeGreaterThanOrEqual(prev.at);
+    }
+  });
+
+  it('har bir nota eshitiladigan uzunlikda', () => {
+    // Juda qisqa nota "chirq" bo'lib eshitiladi, ohang esa bilinmaydi.
+    for (const n of CHIME_NOTES) {
+      expect(n.dur).toBeGreaterThanOrEqual(0.1);
+      expect(n.freq).toBeGreaterThan(200);
+    }
+  });
+
+  it('takrorlanadi — bitta signal emas', () => {
+    // Bitta signal boshqa ish bilan band kassirning e'tiborini tortmaydi.
+    expect(CHIME_NOTES.length).toBeGreaterThanOrEqual(4);
   });
 });

@@ -240,6 +240,18 @@ describe('chek maketi', () => {
   const linesOf = (paperWidth: '58mm' | '80mm') =>
     asLayout(generateEscPosReceipt(posterOrder, 'Uzbecano', { ...settings, paperWidth }));
 
+  /* Sarlavha bilan taomlar bir xil o'lchamda, shuning uchun ular faqat
+     bo'sh satr bilan ajraladi — usiz qog'ozda bitta blok bo'lib ko'rinadi. */
+  it('jadval sarlavhasi bilan birinchi taom orasida bo\'sh satr qoldiradi', () => {
+    for (const width of ['58mm', '80mm'] as const) {
+      const lines = linesOf(width);
+      const i = lines.findIndex((l) => l.startsWith('Nomi'));
+      expect(i, `${width}: jadval sarlavhasi yo'q`).toBeGreaterThan(-1);
+      expect(lines[i + 1], `${width}: sarlavhadan keyin bo'sh satr yo'q`).toBe('');
+      expect(lines[i + 2], `${width}: taom qatori yo'q`).not.toBe('');
+    }
+  });
+
   /* Jadval bir vaqtlar ikki barobar balandlikda edi va qog'ozda sarlavha
      qatori taom qatoriga kirib ketardi. Yiriklik faqat kafe nomi va
      to'lanishi kerak summada qoladi — chekning qolgani bir o'lchamda. */

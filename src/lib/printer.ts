@@ -672,6 +672,11 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
     bold: true,
   }]);
 
+  // Sarlavha bilan birinchi taom orasidagi bo'sh satr. Ikkalasi endi bir xil
+  // o'lchamda bo'lgani uchun qog'ozda bir-biriga yopishib ko'rinardi:
+  // qayeri sarlavha, qayeri taom — bir qarashda ajralmasdi.
+  row();
+
   const items = normalizeItems(order.items);
   for (const it of items) {
     const name = String(it.product?.name || it.name || 'Taom').trim();

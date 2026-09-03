@@ -34,7 +34,6 @@ import {
 import { AdminDashboard } from './components/AdminDashboard';
 import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePeriodPrintArea';
 import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib/offlineAuth';
-import { nextDailyNumber } from './lib/dailySequence';
 import { nextQrSlip } from './lib/qrKitchenQueue';
 import { newWaiterCalls, playCallChime } from './lib/waiterCallAlert';
 import {
@@ -1375,7 +1374,9 @@ export default function App() {
       items,
       time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
       timestamp: new Date().toISOString(),
-      slipNumber: nextDailyNumber(cafeId),
+      // Serverning raqami — kassa o'z hisobini yuritmaydi, aks holda har bir
+      // qurilmada raqamlar boshqacha ketardi.
+      slipNumber: Number((next as any).dailyNumber) || 0,
     });
 
     // Kassir ekranga qaramay turgan bo'lishi mumkin, lekin qarasa —
@@ -1645,9 +1646,14 @@ export default function App() {
       // Kvitansiya qaysi buyurtmaga tegishli. Telefonda chop etib bo'lmaydi,
       // ya'ni u chop etish navbatiga yoziladi va navbat havola bilan ishlaydi.
       let kitchenOrderId = '';
+      // Serverning kunlik raqami. Oflayn buyurtmada u hali yo'q — o'shanda
+      // kvitansiyaga id ning oxiri bosiladi: raqamsiz qog'oz bo'lishi
+      // mumkin, ikkita bir xil raqamli qog'oz esa yo'q.
+      let kitchenDailyNumber = 0;
 
       if (activeTableOrder) {
         kitchenOrderId = String(activeTableOrder.id || '');
+        kitchenDailyNumber = Number((activeTableOrder as any).dailyNumber) || 0;
         const itemMap = new Map<string, { productId?: string; name: string; price: number; quantity: number; note?: string }>();
         activeTableOrderItems.forEach((i: any, idx: number) => {
           const key = `${i.name}_${i.note || ''}_${idx}`;
@@ -1732,7 +1738,10 @@ export default function App() {
               // raqam o'rniga id ning oxiri tushib qolardi.
               try {
                 const created = await res.clone().json();
-                if (Number(created?.dailyNumber) > 0) newOrderObj.dailyNumber = Number(created.dailyNumber);
+                if (Number(created?.dailyNumber) > 0) {
+                  newOrderObj.dailyNumber = Number(created.dailyNumber);
+                  kitchenDailyNumber = Number(created.dailyNumber);
+                }
               } catch {}
             }
           } catch {
@@ -1757,10 +1766,19 @@ export default function App() {
         items: newItems,
         time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
         timestamp: new Date().toISOString(),
-        // Raqam chop etishda emas, TASDIQLASHDA beriladi: kvitansiya qayta
-        // chiqarilsa ham o'sha raqam bilan chiqsin, aks holda oshxonadagi
-        // qog'oz bilan kassadagi raqam bir-biriga to'g'ri kelmay qolardi.
-        slipNumber: nextDailyNumber(getActiveCafeId()),
+        /*
+         * Raqam SERVERDAN — buyurtmaning kunlik tartib raqami.
+         *
+         * Ilgari uni kassa o'zi hisoblardi. Bitta kassa bilan bu ishlardi,
+         * ikkinchisi qo'shilganda esa har biri o'z hisobini yuritib, bir
+         * kunda ikkita "No 7" paydo bo'lardi — va yangi qurilmada hisob
+         * yana birdan boshlanardi. Oshpaz bilan ofitsiant esa bir-birini
+         * aynan shu raqam bilan tushunadi.
+         *
+         * Server raqami chekdagi raqam bilan bir xil, ya'ni oshxonadagi
+         * qog'oz, kassadagi ekran va mijozning cheki bitta narsani aytadi.
+         */
+        slipNumber: kitchenDailyNumber,
       };
       // Oshxona kvitansiyasi buyurtma tasdiqlanishi bilan o'zi chiqadi.
       // Oraliqdagi "Chop etish" modali olib tashlandi: band kafeda u har bir

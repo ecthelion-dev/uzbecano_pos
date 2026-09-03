@@ -928,11 +928,25 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
   enc.align('center').bold(true).line('*** OSHXONA BUYURTMASI ***').bold(false);
   if (cafeName) enc.align('center').line(cafeName);
 
-  // Kunlik tartib raqami — oshpaz bilan ofitsiant shu raqam bilan gaplashadi,
-  // shuning uchun u kvitansiyadagi eng yirik narsa.
-  if (Number(data.slipNumber) > 0) {
+  /*
+   * Kunlik tartib raqami — oshpaz bilan ofitsiant shu raqam bilan gaplashadi,
+   * shuning uchun u kvitansiyadagi eng yirik narsa.
+   *
+   * Raqamni SERVER beradi va u chekdagi raqam bilan bir xil: oshxonadagi
+   * qog'oz, kassadagi ekran va mijozning cheki bitta narsani aytadi.
+   *
+   * Oflayn buyurtmada raqam hali yo'q — o'shanda buyurtma id sining oxiri
+   * bosiladi, xuddi mijoz chekidagidek. Chiroyli emas, lekin oshpaz bilan
+   * ofitsiant baribir bir xil narsani ko'rsatib gaplasha oladi; raqamsiz
+   * qog'oz esa hech nima demaydi.
+   */
+  const slipNumber = Number(data.slipNumber) || 0;
+  const slipRef = slipNumber > 0
+    ? `No ${slipNumber}`
+    : String(data.orderId || '').slice(-4).toUpperCase();
+  if (slipRef) {
     enc.lineSpacing(BIG_LINE_DOTS);
-    enc.align('center').bold(true).size(2, 2).line(`№ ${Number(data.slipNumber)}`);
+    enc.align('center').bold(true).size(2, 2).line(slipRef);
     enc.size(1, 1).bold(false).lineSpacing(null);
   }
 

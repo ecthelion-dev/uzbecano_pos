@@ -580,6 +580,31 @@ describe('oshxona kvitansiyasi', () => {
     }
   });
 
+  /*
+   * Raqamni server beradi, kassa emas. Ilgari har bir kassa o'z hisobini
+   * yuritardi: ikkinchi qurilma qo'shilganda bir kunda ikkita "No 7" paydo
+   * bo'lardi va yangi kassada hisob birdan boshlanardi.
+   */
+  it('oflayn buyurtmada raqam o\'rniga id ning oxirini bosadi', () => {
+    const text = asAscii(generateEscPosKitchenSlip(
+      { ...slip, orderId: 'abc123def4f1a', slipNumber: 0 },
+      'Uzbecano',
+      settings,
+    ));
+    expect(text).toContain('F1A');
+    expect(text).not.toContain('No 0');
+  });
+
+  it('raqam bo\'lsa id ning oxirini bosmaydi', () => {
+    const text = asAscii(generateEscPosKitchenSlip(
+      { ...slip, orderId: 'abc123def4f1a', slipNumber: 7 },
+      'Uzbecano',
+      settings,
+    ));
+    expect(text).toContain('No 7');
+    expect(text).not.toContain('F1A');
+  });
+
   it('raqam berilmasa kvitansiyani baribir chiqaradi', () => {
     const text = asAscii(generateEscPosKitchenSlip(slip, 'Uzbecano', settings));
     expect(text).toContain('OSHXONA BUYURTMASI');

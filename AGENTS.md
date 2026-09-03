@@ -90,3 +90,16 @@ topshiriqni olib, bosa olmay, navbatdan o'chirib tashlagan bo'lardi.
 
 Oshxona kvitansiyasi tarkibi topshiriq bilan ketadi: kvitansiya buyurtmaning
 hammasini emas, o'sha safar qo'shilgan taomlarni bosadi.
+
+## Kvitansiya raqami
+
+Oshxona kvitansiyasidagi raqam — buyurtmaning **serverdagi** kunlik tartib
+raqami (`Order.dailyNumber`), ya'ni mijoz chekidagi raqam bilan bir xil.
+Oshxonadagi qog'oz, kassadagi ekran va chek bitta narsani aytadi.
+
+Kassa uni O'ZI hisoblamaydi. Ilgari shunday edi va bitta kassa bilan
+ishlardi; ikkinchi qurilma qo'shilganda har biri o'z hisobini yuritib, bir
+kunda ikkita "No 7" chiqardi, yangi kassada esa hisob birdan boshlanardi.
+
+Oflayn buyurtmada raqam hali yo'q — o'shanda id ning oxirgi to'rt belgisi
+bosiladi. Raqamsiz qog'oz bo'lishi mumkin, noto'g'ri raqamli qog'oz esa yo'q.

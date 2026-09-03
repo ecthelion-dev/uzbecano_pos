@@ -32,7 +32,6 @@ export const CAFE_KEYS = [
   'categories',
   'is_frozen',
   'kitchen_printed',
-  'kitchen_seq',
   'logo',
   'name',
   'offline_auth',

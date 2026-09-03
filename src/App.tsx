@@ -36,6 +36,7 @@ import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePer
 import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib/offlineAuth';
 import { nextDailyNumber } from './lib/dailySequence';
 import { nextQrSlip } from './lib/qrKitchenQueue';
+import { newWaiterCalls, playCallChime } from './lib/waiterCallAlert';
 import {
   enqueuePrintJob,
   fetchPrintJobs,
@@ -226,6 +227,14 @@ export default function App() {
     }
   });
   const [waiterCalls, setWaiterCalls] = useState<string[]>([]);
+  /*
+   * Oxirgi ko'rilgan chaqiruvlar — `state` emas, `ref`.
+   *
+   * Solishtirish so'rov ichida, o'sha zahoti kerak. `state` orqali qilinsa
+   * `fetchWaiterCalls` unga bog'lanib qolardi va har chaqiruvda qayta
+   * yaratilib, uni chaqiradigan intervalni ham qaytadan qurardi.
+   */
+  const waiterCallsRef = React.useRef<string[]>([]);
 
   const getActiveCafeId = useCallback(() => {
     const cafeId = resolveActiveCafeId();
@@ -377,7 +386,30 @@ export default function App() {
       if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data)) {
-        setWaiterCalls(data.map((c: any) => String(c.tableNumber)));
+        const tables = data.map((c: any) => String(c.tableNumber));
+
+        /*
+         * Yangi chaqiruv eshitiladi.
+         *
+         * Ilgari chaqiruv faqat stol kartochkasidagi nuqta bo'lib ko'rinardi
+         * va kassir ekranga qaramay turgan bo'lsa mehmon kutib o'tiraverardi.
+         *
+         * Ovoz faqat YANGISIDA: har so'rovda chalinsa, javobsiz chaqiruv
+         * kassirni ilovaning ovozini butunlay o'chirishga majbur qilardi.
+         */
+        const fresh = newWaiterCalls(waiterCallsRef.current, tables);
+        waiterCallsRef.current = tables;
+        if (fresh.length > 0) {
+          playCallChime();
+          setToastMessage(
+            fresh.length === 1
+              ? `${fresh[0]} — ofitsiant chaqirilyapti`
+              : `${fresh.length} stol ofitsiant chaqiryapti`,
+          );
+          window.setTimeout(() => setToastMessage(null), 6000);
+        }
+
+        setWaiterCalls(tables);
       }
     } catch {}
   }, [getActiveCafeId, getAuthHeaders]);

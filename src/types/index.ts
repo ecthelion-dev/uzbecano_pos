@@ -87,6 +87,15 @@ export interface DBWaiter {
 }
 
 export interface KitchenSlipData {
+  /**
+   * Kvitansiya qaysi buyurtmaga tegishli.
+   *
+   * Telefonda chop etib bo'lmaydi — kvitansiya chop etish navbatiga
+   * yoziladi va navbat buyurtmaga havola bilan ishlaydi. Oflayn
+   * yaratilgan buyurtmada id hali serverda yo'q, o'shanda navbatga
+   * yozilmaydi ham.
+   */
+  orderId?: string;
   tableNumber: string;
   waiterName: string;
   items: any[];

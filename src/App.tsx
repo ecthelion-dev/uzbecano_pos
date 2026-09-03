@@ -37,6 +37,12 @@ import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib
 import { nextDailyNumber } from './lib/dailySequence';
 import { nextQrSlip } from './lib/qrKitchenQueue';
 import {
+  enqueuePrintJob,
+  fetchPrintJobs,
+  claimPrintJob,
+  closePrintJob,
+} from './lib/printQueue';
+import {
   readCafeText,
   writeCafeText,
   readCafeJson,
@@ -48,7 +54,7 @@ import {
 } from './lib/storage';
 import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
-import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID } from './constants';
+import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
 import { KitchenPrintArea } from './components/KitchenPrintArea';
@@ -1237,6 +1243,33 @@ export default function App() {
     let cancelled = false;
 
     (async () => {
+      /*
+       * Telefonda kvitansiya navbatga yoziladi. Tarkib birga ketadi:
+       * kvitansiya buyurtmaning hammasini emas, o'sha safar qo'shilgan
+       * taomlarni bosadi, va buni serverdagi buyurtmadan bilib bo'lmaydi.
+       */
+      if (!IS_DESKTOP_APP && kitchenSlipData.orderId) {
+        const queued = await enqueuePrintJob(
+          getAuthHeaders(),
+          kitchenSlipData.orderId,
+          'kitchen',
+          {
+            items: kitchenSlipData.items,
+            waiterName: kitchenSlipData.waiterName,
+            tableNumber: kitchenSlipData.tableNumber,
+            time: kitchenSlipData.time,
+            slipNumber: kitchenSlipData.slipNumber,
+          },
+        );
+        if (cancelled) return;
+        if (queued) {
+          setKitchenSlipData(null);
+          setToastMessage('Oshxona kvitansiyasi kassa printeriga yuborildi');
+          window.setTimeout(() => setToastMessage(null), 4000);
+          return;
+        }
+      }
+
       const ok = await printKitchenSlipDirect(kitchenSlipData, connectedCafeName || 'OrderPlus');
       if (cancelled) return;
       if (ok) {
@@ -1266,7 +1299,7 @@ export default function App() {
     });
 
     return () => { cancelled = true; };
-  }, [kitchenSlipData, connectedCafeName]);
+  }, [kitchenSlipData, connectedCafeName, getAuthHeaders]);
 
   /**
    * QR menyudan kelgan buyurtmani oshxonaga o'zi chop etadi.
@@ -1321,6 +1354,81 @@ export default function App() {
   }, [orders, kitchenSlipData, currentWaiter, getActiveCafeId]);
 
   /**
+   * Chop etish navbatini bo'shatadi — faqat printer ulangan desktop kassada.
+   *
+   * Telefondagi ofitsiant chekni o'z qurilmasida bosa olmaydi va navbatga
+   * yozadi. Shu yerda o'sha navbat o'qiladi va qog'oz kassadan chiqadi.
+   *
+   * Brauzerda ishlayotgan kassa buni QILMAYDI: u ham printerga tega olmaydi,
+   * ya'ni topshiriqni olib, bosa olmay, navbatdan chiqarib tashlagan bo'lardi
+   * — chek esa hech qayerda chiqmasdi.
+   */
+  useEffect(() => {
+    if (!IS_DESKTOP_APP) return;
+    if (!currentWaiter) return;
+
+    let stopped = false;
+
+    const drain = async () => {
+      if (stopped) return;
+      // Oyna yig'ilgan bo'lsa ham bo'shatiladi: qog'oz chiqishi kassirning
+      // ekranga qarab turishiga bog'liq bo'lmasligi kerak.
+      const headers = getAuthHeaders();
+      const jobs = await fetchPrintJobs(headers);
+      if (stopped) return;
+
+      for (const job of jobs) {
+        if (stopped) return;
+        // Band qilish chop etishdan OLDIN: aks holda keyingi so'rov o'sha
+        // topshiriqni yana olib, ikkinchi qog'ozni chiqarardi.
+        if (!claimPrintJob(job.id)) continue;
+
+        let ok = false;
+        let why: string | null = null;
+        try {
+          if (job.kind === 'receipt' && job.order) {
+            ok = await printReceiptDirect(job.order, connectedCafeName || 'OrderPlus');
+            if (!ok) why = getLastPrintError() || 'printerga yuborilmadi';
+          } else if (job.kind === 'kitchen') {
+            const extra = job.payload ? JSON.parse(job.payload) : null;
+            const data = {
+              tableNumber: extra?.tableNumber || job.order?.tableNumber || 'Zal',
+              waiterName: extra?.waiterName || job.order?.waiterName || 'Offitsiant',
+              // Tarkib topshiriqdan olinadi: buyurtmadagi to'liq ro'yxatdan
+              // chop etilsa, oshpaz allaqachon tayyorlagan taomni qaytadan
+              // qilardi.
+              items: extra?.items ?? job.order?.items,
+              time: extra?.time,
+              slipNumber: extra?.slipNumber,
+            };
+            ok = await printKitchenSlipDirect(data, connectedCafeName || 'OrderPlus');
+            if (!ok) why = getLastPrintError() || 'printerga yuborilmadi';
+          } else {
+            why = 'buyurtma topilmadi';
+          }
+        } catch (e: unknown) {
+          why = e instanceof Error ? e.message : String(e);
+        }
+
+        await closePrintJob(headers, job.id, ok, why);
+        if (stopped) return;
+        if (ok) {
+          setToastMessage(
+            job.kind === 'kitchen'
+              ? 'Oshxona kvitansiyasi chop etildi'
+              : 'Chek chop etildi',
+          );
+          window.setTimeout(() => setToastMessage(null), 3000);
+        }
+      }
+    };
+
+    void drain();
+    const interval = window.setInterval(() => { void drain(); }, 5000);
+    return () => { stopped = true; window.clearInterval(interval); };
+  }, [currentWaiter, getAuthHeaders, connectedCafeName]);
+
+  /**
    * Qo'lda chop etish tugmalari uchun.
    *
    * Avval ESC/POS bilan printerga to'g'ridan-to'g'ri yuboriladi; u yo'q yoki
@@ -1329,6 +1437,22 @@ export default function App() {
    */
   const printReceiptOrFallback = useCallback(async (order: any) => {
     if (!order) return;
+
+    /*
+     * Telefondagi PWA kassadagi printerga tega olmaydi, shuning uchun chek
+     * navbatga yoziladi va printer ulangan kassa uni bosadi. Bu urinish
+     * DESKTOPDA qilinmaydi: u chekni o'zi bosa oladi va serverga borib
+     * kelish faqat kechikish qo'shardi.
+     */
+    if (!IS_DESKTOP_APP && order.id) {
+      if (await enqueuePrintJob(getAuthHeaders(), String(order.id), 'receipt')) {
+        setToastMessage('Chek kassa printeriga yuborildi');
+        window.setTimeout(() => setToastMessage(null), 4000);
+        return;
+      }
+      // Navbatga yozilmadi — chek yo'qolmasin, brauzer yo'liga tushamiz.
+    }
+
     const ok = await printReceiptDirect(order, connectedCafeName || 'OrderPlus');
     if (!ok) {
       const why = getLastPrintError();
@@ -1340,7 +1464,7 @@ export default function App() {
       // printerdagi maketning aynan o'zi bo'lib, alohida hujjatda chiqadi.
       await printReceiptViaBrowser(order, connectedCafeName || 'OrderPlus');
     }
-  }, [connectedCafeName]);
+  }, [connectedCafeName, getAuthHeaders]);
 
   /**
    * Davr hisoboti uchun buyurtmalarni serverdan aniq oraliq bilan oladi.
@@ -1486,7 +1610,12 @@ export default function App() {
       // whatever the poll had just learned from the server.
       let updatedOrders = [...ordersRef.current];
 
+      // Kvitansiya qaysi buyurtmaga tegishli. Telefonda chop etib bo'lmaydi,
+      // ya'ni u chop etish navbatiga yoziladi va navbat havola bilan ishlaydi.
+      let kitchenOrderId = '';
+
       if (activeTableOrder) {
+        kitchenOrderId = String(activeTableOrder.id || '');
         const itemMap = new Map<string, { productId?: string; name: string; price: number; quantity: number; note?: string }>();
         activeTableOrderItems.forEach((i: any, idx: number) => {
           const key = `${i.name}_${i.note || ''}_${idx}`;
@@ -1551,6 +1680,7 @@ export default function App() {
           total: tot,
           status: 'sent_to_kitchen'
         };
+        kitchenOrderId = newOrderObj.id;
 
         if (!isOfflineMode) {
           try {
@@ -1589,6 +1719,7 @@ export default function App() {
       setTableCarts(prev => ({ ...prev, [selectedTable]: [] }));
 
       const kitchenPayload: KitchenSlipData = {
+        orderId: kitchenOrderId,
         tableNumber: selectedTable,
         waiterName: currentWaiter?.name || 'Offitsiant',
         items: newItems,
@@ -1944,7 +2075,12 @@ export default function App() {
 
       const pSettings = getPrinterSettings();
       if (pSettings.autoPrintReceipt && closedOrder) {
-        executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus');
+        // Telefonda chop etib bo'lmaydi — chek kassa navbatiga yoziladi.
+        if (!IS_DESKTOP_APP && closedOrder.id) {
+          void enqueuePrintJob(getAuthHeaders(), String(closedOrder.id), 'receipt');
+        } else {
+          executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus');
+        }
       }
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);

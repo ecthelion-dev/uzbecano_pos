@@ -73,3 +73,20 @@ Kassa ikki yo'l bilan yetkaziladi va ular **mustaqil**:
 Reliz teglash PWA'ga **tegmaydi**. Ikkinchisini yurgizmaslik bir kunda PWA'ni
 o'n to'rt commit orqada qoldirdi: ilovada chek tuzatilgan, PWA'da eskisi.
 Repo ildizidagi `vercel.json` chalg'itadi — jonli manzil Vercel emas.
+
+## Chop etish navbati
+
+Telefondagi PWA kassadagi termal printerga **tega olmaydi**: brauzer na tizim
+printerini, na xom TCP ulanishini beradi, va sahifa HTTPS bo'lgani uchun
+mahalliy tarmoqdagi printerga ham ulanolmaydi.
+
+Shuning uchun `IS_DESKTOP_APP` bo'lmaganda chek `POST /api/print-jobs` ga
+yoziladi (`src/lib/printQueue.ts`), desktop kassa esa har 5 soniyada navbatni
+o'qib chop etadi va yopadi. Desktop o'z amallarini navbatga YOZMAYDI — u
+chekni o'zi bosa oladi va serverga borib kelish faqat kechikish qo'shardi.
+
+Brauzerdagi kassa navbatni bo'shatmaydi: u ham printerga tega olmaydi, ya'ni
+topshiriqni olib, bosa olmay, navbatdan o'chirib tashlagan bo'lardi.
+
+Oshxona kvitansiyasi tarkibi topshiriq bilan ketadi: kvitansiya buyurtmaning
+hammasini emas, o'sha safar qo'shilgan taomlarni bosadi.

@@ -476,6 +476,36 @@ describe('oshxona kvitansiyasi', () => {
     expect(text).not.toContain('?');
   });
 
+  /* Oshxonada chalkashish xato taom degani: izoh qaysi taomniki ekani
+     chiziqchasiz bilinmaydi. Brauzer varianti (KitchenPrintArea) buni
+     `last:border-b-0` bilan allaqachon qilardi — termal chek ham shunday. */
+  it('taomlar orasiga ajratuvchi qo\'yadi, oxirgisidan keyin esa yo\'q', () => {
+    const bytes = generateEscPosKitchenSlip(
+      { ...slip, items: [{ name: 'Osh', quantity: 2, note: 'sarimsoqsiz' }, { name: 'Choy', quantity: 1 }] },
+      'Uzbecano',
+      settings,
+    );
+    const lines = asAscii(bytes).split('\n').map((l) => l.trim());
+    // `asAscii` buyruq baytlarini bo'shliqqa aylantiradi, ya'ni chiziq
+    // satrida ESC a dan qolgan harflar ham turadi — faqat chiziqni qidiramiz.
+    const rule = (l: string) => /-{20,}/.test(l);
+
+    const first = lines.findIndex((l) => l.includes('2 x Osh'));
+    const second = lines.findIndex((l) => l.includes('1 x Choy'));
+    expect(first, 'birinchi taom yo\'q').toBeGreaterThan(-1);
+    expect(second, 'ikkinchi taom yo\'q').toBeGreaterThan(first);
+
+    // Izoh birinchi taom bilan bitta blokda qoladi, ajratuvchi esa undan keyin.
+    expect(lines.slice(first + 1, second).some((l) => l.includes('IZOH'))).toBe(true);
+    expect(lines.slice(first + 1, second).filter(rule)).toHaveLength(1);
+
+    // Oxirgi taomdan keyin ro'yxatni yopadigan bitta chiziq — ikkita emas.
+    const after = lines.slice(second + 1);
+    const closing = after.findIndex(rule);
+    expect(closing, 'yopuvchi chiziq yo\'q').toBeGreaterThan(-1);
+    expect(after[closing + 1] ?? '').not.toMatch(/-{20,}/);
+  });
+
   it('raqam berilmasa kvitansiyani baribir chiqaradi', () => {
     const text = asAscii(generateEscPosKitchenSlip(slip, 'Uzbecano', settings));
     expect(text).toContain('OSHXONA BUYURTMASI');

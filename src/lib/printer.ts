@@ -915,14 +915,19 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
   enc.divider(columnsFor(settings.paperWidth, 'A'));
 
   const items = normalizeItems(data.items);
-  for (const it of items) {
+  items.forEach((it: any, idx: number) => {
     const name = String(it.product?.name || it.name || 'Taom').trim();
     const qty = Number(it.quantity || 1);
     enc.bold(true).line(`${qty} x ${name}`).bold(false);
     if (it.note) {
       enc.line(`   >> IZOH: ${it.note}`);
     }
-  }
+    // Asosiy chekdagi kabi: uzun nom o'ralib ketadi va izoh o'z satrini
+    // oladi, ya'ni chiziqchasiz izoh qaysi taomniki ekani bilinmaydi —
+    // oshxonada bu xato taom degani. Oxirgisidan keyin qo'yilmaydi:
+    // ro'yxatni yopadigan chiziq quyida turibdi.
+    if (idx < items.length - 1) enc.divider(columnsFor(settings.paperWidth, 'A'));
+  });
 
   enc.divider(columnsFor(settings.paperWidth, 'A'));
   enc.feed(3);

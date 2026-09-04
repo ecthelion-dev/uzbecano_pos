@@ -34,7 +34,19 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
 
   return (
     <div className="min-h-[100dvh] bg-slate-100 flex flex-col items-center justify-center p-4 py-[calc(1rem+env(safe-area-inset-top))] font-sans antialiased text-slate-800 selection:bg-orange-500 selection:text-white">
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 max-w-[288px] w-full flex flex-col items-center gap-3.5 relative">
+      {/*
+        * Kartochka yo'q: na fon, na chegara, na soya.
+        *
+        * Oq to'rtburchak oq doiralarni o'rab turardi va ikkalasi bir xil
+        * rangda bo'lgani uchun chegarasi shunchaki qo'shimcha chiziq bo'lib
+        * ko'rinardi. Endi doiralar to'g'ridan-to'g'ri `slate-100` fonda
+        * turadi — ular bilan fon orasidagi farq oq ustidagidan kattaroq,
+        * ya'ni tugmalar aslida yaxshiroq ajraladi.
+        *
+        * `p-5` qoladi: u endi ko'rinmaydigan qutining ichki chekkasi emas,
+        * tor telefonda kontentni ekran chetiga yopishtirmaydigan oraliq.
+        */}
+      <div className="p-5 max-w-[288px] w-full flex flex-col items-center gap-3.5 relative">
         {/* Header */}
         <div className="flex flex-col items-center gap-2 text-center w-full">
           <div className="flex items-center gap-3">

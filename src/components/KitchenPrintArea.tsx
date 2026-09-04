@@ -1,6 +1,7 @@
 import React from 'react';
 import { PenLine } from 'lucide-react';
 import { KitchenSlipData } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 /**
  * Oshxona kvitansiyasining qog'ozdagi ko'rinishi.
@@ -13,24 +14,29 @@ import { KitchenSlipData } from '../types';
  * `hidden print:block` juftligi mijoz cheki bilan bir xil: ekranda yo'q,
  * chop etishda bor. Qaysi biri qog'ozga tushishini `body.printing-kitchen`
  * klassi hal qiladi — index.css dagi qoidalarga qarang.
+ *
+ * Yozuvlari termal kvitansiya bilan bitta lug'atdan: ikkalasi bir xil
+ * qog'ozning ikki yo'li, oshxona qaysi yo'l bilan kelganini bilmasligi
+ * kerak.
  */
 export const KitchenPrintArea: React.FC<{ data: KitchenSlipData | null }> = ({ data }) => {
+  const t = useT();
   if (!data) return null;
 
-  const rawTable = String(data.tableNumber || 'Zal').trim();
+  const rawTable = String(data.tableNumber || '').trim();
   const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
-  const tableLabel = cleanTable ? `Stol ${cleanTable}` : 'Zal';
+  const tableLabel = cleanTable ? `${t('print.tableWord')} ${cleanTable}` : t('print.hall');
 
   return (
     <div id="kitchen-print-area" className="hidden print:block font-mono text-slate-900">
       <div className="text-center border-b border-dashed border-slate-900 pb-2 space-y-1">
-        <h4 className="font-bold text-base tracking-wider uppercase text-slate-900 print-text-dark">OSHXONA BUYURTMASI</h4>
+        <h4 className="font-bold text-base tracking-wider uppercase text-slate-900 print-text-dark">{t('print.kitchenTitle')}</h4>
         {Number(data.slipNumber) > 0 && (
           <p className="text-3xl font-black text-slate-900 print-text-dark leading-none">№ {Number(data.slipNumber)}</p>
         )}
         <p className="text-xs text-slate-800 print-text-dark font-semibold">{tableLabel} • {data.time}</p>
         {data.waiterName && (
-          <p className="text-xs text-slate-800 print-text-dark font-medium">Offitsiant: {data.waiterName}</p>
+          <p className="text-xs text-slate-800 print-text-dark font-medium">{t('print.waiter')}: {data.waiterName}</p>
         )}
       </div>
 
@@ -40,7 +46,7 @@ export const KitchenPrintArea: React.FC<{ data: KitchenSlipData | null }> = ({ d
             <div className="min-w-0 pr-2">
               <p className="font-bold text-sm text-slate-900 print-text-dark">{item.name}</p>
               {item.note && (
-                <p className="text-xs font-semibold text-amber-950 print-text-dark"><PenLine className="w-3 h-3 inline mr-0.5" />Izoh: {item.note}</p>
+                <p className="text-xs font-semibold text-amber-950 print-text-dark"><PenLine className="w-3 h-3 inline mr-0.5" />{t('print.note')}: {item.note}</p>
               )}
             </div>
             <span className="font-bold text-base text-slate-900 print-text-dark whitespace-nowrap">x{item.quantity}</span>

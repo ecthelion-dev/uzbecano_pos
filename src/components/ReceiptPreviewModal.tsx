@@ -27,13 +27,17 @@ interface ReceiptPreviewModalProps {
 }
 
 /*
- * Oynaning CHETI tarjima qilinadi, chek TANASI esa yo'q.
+ * Chek TANASI ham tarjima qilinadi.
  *
- * Tanadagi matn printerdan chiqadigan qog'ozning aynan o'zi. Uni bu yerda
- * tarjima qilib, qog'ozda o'zbekcha qoldirsak, kassir ekranda bir narsani
- * ko'rib, qo'lida boshqasini ushlab turardi. Qog'oz tili alohida qaror:
- * u mijozga ketadi, kassirning ekran tiliga emas, kafening tanloviga
- * bog'liq bo'lishi kerak.
+ * Ilgari bu yerda teskarisi yozilgan edi: tana qog'ozning aynan o'zi, qog'oz
+ * esa o'zbekcha qolsin degan. Xulosa noto'g'ri chiqqan — kassir ruscha
+ * ishlab, mijozga o'zbekcha chek uzatardi. To'g'ri yechim qog'ozni o'zbekcha
+ * qoldirish emas, uni ham tanlangan tilga o'tkazish edi; endi `printer.ts`
+ * xuddi shu `print.*` kalitlarini ishlatadi, ya'ni bu oynadagi ko'rinish
+ * qo'lga chiqadigan qog'oz bilan bir xil.
+ *
+ * Kafe o'zi yozadigan narsalar (nomi, manzili, taom nomlari) tarjima
+ * qilinmaydi: ular ma'lumot.
  */
 export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   show,
@@ -59,6 +63,12 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 }) => {
   const t = useT();
   if (!show) return null;
+
+  /* Bazadagi qiymat ("naqd"/"karta"/"aralash") — ekranga o'sha emas, tarjimasi chiqadi. */
+  const payLabel =
+    paymentMethod === 'karta' ? t('common.card')
+    : paymentMethod === 'aralash' ? t('common.mixed')
+    : t('common.cash');
 
   const combinedItems = useMemo(() => [
     ...activeTableOrderItems,
@@ -92,14 +102,14 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
             {cafeAddress && <p className="text-xs text-slate-600 font-medium">{cafeAddress}</p>}
             {cafePhone && <p className="text-xs text-slate-600 font-medium">{cafePhone.startsWith('Tel') ? cafePhone : `Tel: ${cafePhone}`}</p>}
             {currentWaiter?.name && (
-              <p className="text-xs text-slate-900 font-bold mt-1">Ofitsiant: {currentWaiter.name}</p>
+              <p className="text-xs text-slate-900 font-bold mt-1">{t('print.waiter')}: {currentWaiter.name}</p>
             )}
           </div>
 
           <div className="flex justify-between items-center text-xs font-semibold text-slate-800 border-b border-dashed border-slate-400 pb-2">
             <span className="font-bold text-sm">{selectedTable}</span>
             <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold text-xs uppercase">
-              {paymentMethod} • TO'LANGAN
+              {payLabel} • {t('archive.paid')}
             </span>
             <span>{new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
@@ -107,18 +117,18 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
           {/* Items List */}
           <div className="space-y-2 border-b border-dashed border-slate-400 pb-3 pt-1 max-h-56 overflow-y-auto pr-1">
             {combinedItems.length === 0 ? (
-              <p className="text-center text-xs text-slate-400 py-2">Taomlar yo'q</p>
+              <p className="text-center text-xs text-slate-400 py-2">{t('receipt.noItems')}</p>
             ) : (
               combinedItems.map((item: any, idx: number) => (
                 <div key={idx} className="flex justify-between items-start text-xs pb-1 border-b border-slate-100 last:border-b-0">
                   <div className="flex-1 pr-2">
                     <p className="font-semibold text-slate-900 text-sm">{item.name}</p>
-                    <p className="text-xs text-slate-600 font-medium">{item.quantity} x {(item.price || 0).toLocaleString()} so'm</p>
+                    <p className="text-xs text-slate-600 font-medium">{item.quantity} x {(item.price || 0).toLocaleString()} {t('common.currency')}</p>
                     {item.note && (
-                      <p className="text-xs font-semibold text-amber-900 mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />Izoh: {item.note}</p>
+                      <p className="text-xs font-semibold text-amber-900 mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />{t('print.note')}: {item.note}</p>
                     )}
                   </div>
-                  <span className="font-bold text-slate-900 text-sm">{((item.price || 0) * (item.quantity || 1)).toLocaleString()} so'm</span>
+                  <span className="font-bold text-slate-900 text-sm">{((item.price || 0) * (item.quantity || 1)).toLocaleString()} {t('common.currency')}</span>
                 </div>
               ))
             )}
@@ -127,51 +137,51 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
           {/* Calculations */}
           <div className="space-y-1.5 border-b border-dashed border-slate-400 pb-2.5 text-xs font-medium">
             <div className="flex justify-between text-slate-700">
-              <span>Jami taomlar:</span>
-              <span className="font-semibold">{subtotal.toLocaleString()} so'm</span>
+              <span>{t('print.itemsSubtotal')}</span>
+              <span className="font-semibold">{subtotal.toLocaleString()} {t('common.currency')}</span>
             </div>
             {discountAmount > 0 && (
               <div className="flex justify-between text-emerald-700 font-semibold">
-                <span>Chegirma ({discountPercent}%):</span>
-                <span>-{discountAmount.toLocaleString()} so'm</span>
+                <span>{t('print.discountPct', { n: discountPercent })}:</span>
+                <span>-{discountAmount.toLocaleString()} {t('common.currency')}</span>
               </div>
             )}
             <div className="flex justify-between text-slate-700">
-              <span>Xizmat haqi (10%):</span>
-              <span className="font-semibold">{serviceFee.toLocaleString()} so'm</span>
+              <span>{t('print.serviceFeePct', { n: 10 })}:</span>
+              <span className="font-semibold">{serviceFee.toLocaleString()} {t('common.currency')}</span>
             </div>
           </div>
 
           <div className="space-y-1.5 border-t border-dashed border-slate-400 pt-2.5 mt-1 text-xs font-medium">
             <div className="flex justify-between font-bold text-base text-slate-900 pb-1">
-              <span>JAMI TO'LOV:</span>
-              <span className="text-[#0F172A] text-lg">{grandTotal.toLocaleString()} so'm</span>
+              <span>{t('archive.totalPaid')}</span>
+              <span className="text-[#0F172A] text-lg">{grandTotal.toLocaleString()} {t('common.currency')}</span>
             </div>
             {paymentMethod === 'aralash' ? (
               <>
                 <div className="flex justify-between text-slate-700">
-                  <span className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5" /> Naqd:</span>
-                  <span className="font-semibold">{(cashAmount ?? Math.round(grandTotal / 2)).toLocaleString()} so'm</span>
+                  <span className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5" /> {t('common.cashLabel')}</span>
+                  <span className="font-semibold">{(cashAmount ?? Math.round(grandTotal / 2)).toLocaleString()} {t('common.currency')}</span>
                 </div>
                 <div className="flex justify-between text-slate-700">
-                  <span className="flex items-center gap-1"><CreditCard className="w-3.5 h-3.5" /> Karta:</span>
-                  <span className="font-semibold">{(cardAmount ?? grandTotal - Math.round(grandTotal / 2)).toLocaleString()} so'm</span>
+                  <span className="flex items-center gap-1"><CreditCard className="w-3.5 h-3.5" /> {t('common.cardLabel')}</span>
+                  <span className="font-semibold">{(cardAmount ?? grandTotal - Math.round(grandTotal / 2)).toLocaleString()} {t('common.currency')}</span>
                 </div>
               </>
             ) : (
               <div className="flex justify-between text-slate-700">
-                <span>To'lov turi:</span>
-                <span className="font-semibold uppercase">
+                <span>{t('print.payMethod')}:</span>
                 <span className="font-semibold uppercase flex items-center gap-1">
-                  {paymentMethod === 'karta' ? <><CreditCard className="w-3.5 h-3.5" /> Karta</> : <><Banknote className="w-3.5 h-3.5" /> Naqd</>}
-                </span>
+                  {paymentMethod === 'karta'
+                    ? <><CreditCard className="w-3.5 h-3.5" /> {t('common.card')}</>
+                    : <><Banknote className="w-3.5 h-3.5" /> {t('common.cash')}</>}
                 </span>
               </div>
             )}
           </div>
 
           <div className="text-center pt-2 text-xs text-slate-500 font-sans">
-            <p className="font-medium">Tashrifingiz uchun rahmat!</p>
+            <p className="font-medium">{t('print.thanksVisit')}</p>
             <p className="text-[10px] mt-0.5 text-slate-400">OrderPlus POS v1.0</p>
           </div>
         </div>

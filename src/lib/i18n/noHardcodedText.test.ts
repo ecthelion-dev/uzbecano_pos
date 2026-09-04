@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -15,17 +15,15 @@ import { fileURLToPath } from 'node:url';
  * Shuning uchun bu yerda lug'at emas, KOMPONENTLAR o'qiladi: JSX matni va
  * `label`/`title`/`placeholder` qiymatlarida o'zbekcha so'z qolgan bo'lsa,
  * test yiqiladi.
+ *
+ * Chop etiladigan qog'oz ham shu ro'yxatda. Ilgari uch fayl istisno edi —
+ * "chek fizik hujjat, ekran tili unga tegmasin" degan mulohaza bilan. Amalda
+ * kassir ruscha ishlab, mijozga o'zbekcha chek uzatardi; istisno esa buni
+ * xato emas, qoida deb yozib qo'ygan edi.
  */
 
 // `.pathname` Windows'da "/C:/..." beradi va `join` buni tushunmaydi.
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
-
-/** Chop etiladigan qog'oz — ataylab o'zbekcha, kassirning ekran tili uni o'zgartirmaydi. */
-const PRINT_FILES = new Set([
-  'KitchenPrintArea.tsx',
-  'ArchivePeriodPrintArea.tsx',
-  'ReceiptPreviewModal.tsx',
-]);
 
 /**
  * Tarjima qilinmaydiganlar.
@@ -43,7 +41,10 @@ const PRINT_FILES = new Set([
 const ALLOWED = [
   /^OrderPlus/,
   /^PLUS$/,
-  /^Bluetooth/,
+  // Faqat uskuna nomining o'zi. Ilgari bu `/^Bluetooth/` edi va shu so'z
+  // bilan boshlangan HAR QANDAY jumlani o'tkazib yuborardi — "Bluetooth
+  // printerga ulanib bo'lmadi" xato yozuvi shu teshikdan chiqib ketgan.
+  /^Bluetooth$/,
   /^XP-58/,
   /^USB/,
   /^Stol \d+$/,
@@ -70,12 +71,34 @@ const LOOKS_LIKE_CODE =
 /** Valyuta har doim lug'atdan: u qisqa va kichik harfli, umumiy qoidaga tushmaydi. */
 const CURRENCY = /\bso['’‘]m\b/;
 
-function tsxFiles(dir: string): string[] {
+/**
+ * Ekranga yoki qog'ozga matn chiqaradigan `.ts` fayllar.
+ *
+ * Qolgan `.ts` lar skanerdan tashqarida: ular kalitlar, id'lar va ichki
+ * qiymatlar bilan ishlaydi va tekshiruv u yerda faqat shovqin bo'lardi.
+ * `printer.ts` esa chekni o'zi quradi — aynan shu yerda yorliq qotirib
+ * qo'yilsa, kassa hech nima demaydi, faqat qog'oz noto'g'ri chiqadi.
+ */
+const SCANNED_TS = new Set(['printer.ts']);
+
+/**
+ * Bitta faylga tegishli istisnolar.
+ *
+ * `printer.ts` da eski standart sarlavha va pastki yozuv matnlari turadi:
+ * ular ekranga chiqmaydi, diskda yotgan "hech kim yozmagan" qiymatni tanish
+ * uchun kerak. Istisno ataylab shu faylga bog'langan — umumiy ro'yxatga
+ * qo'yilsa, o'sha jumla komponentga qaytib yozilganda qo'riqchi jim qolardi.
+ */
+const ALLOWED_IN: Record<string, RegExp[]> = {
+  'printer.ts': [/^Xush kelibsiz!$/, /^Tashrifingiz uchun rahmat!$/],
+};
+
+function textFiles(dir: string): string[] {
   const out: string[] = [];
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
-    if (statSync(full).isDirectory()) out.push(...tsxFiles(full));
-    else if (name.endsWith('.tsx') && !PRINT_FILES.has(name)) out.push(full);
+    if (statSync(full).isDirectory()) out.push(...textFiles(full));
+    else if (name.endsWith('.tsx') || SCANNED_TS.has(name)) out.push(full);
   }
   return out;
 }
@@ -90,13 +113,14 @@ function strip(source: string): string {
     .replace(/console\.\w+\([^)]*\)/g, '');
 }
 
-function findHardcoded(source: string): string[] {
+function findHardcoded(source: string, fileName = ''): string[] {
   const text = strip(source);
+  const allowed = [...ALLOWED, ...(ALLOWED_IN[fileName] ?? [])];
   const found: string[] = [];
 
   const push = (raw: string) => {
     const v = raw.trim();
-    if (!v || ALLOWED.some((re) => re.test(v))) return;
+    if (!v || allowed.some((re) => re.test(v))) return;
     // `>` va `<` TSX'da taqqoslash va generiklarda ham uchraydi, ya'ni
     // "matn" deb kod bo'lagi tutilishi mumkin. Kodga o'xshaganini tashlaymiz.
     if (LOOKS_LIKE_CODE.test(v)) return;
@@ -124,7 +148,7 @@ function findHardcoded(source: string): string[] {
 }
 
 describe('ekranda qotirilgan matn', () => {
-  const files = tsxFiles(join(ROOT, 'src'));
+  const files = textFiles(join(ROOT, 'src'));
 
   it('tekshiriladigan komponentlar topildi', () => {
     expect(files.length).toBeGreaterThan(15);
@@ -133,7 +157,7 @@ describe('ekranda qotirilgan matn', () => {
   for (const file of files) {
     const short = file.slice(ROOT.length);
     it(`${short}: o‘zbekcha matn lug‘atdan keladi`, () => {
-      expect(findHardcoded(readFileSync(file, 'utf-8'))).toEqual([]);
+      expect(findHardcoded(readFileSync(file, 'utf-8'), basename(file))).toEqual([]);
     });
   }
 });

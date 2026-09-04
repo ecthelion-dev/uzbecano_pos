@@ -3,6 +3,9 @@
 
 import { IS_DESKTOP_APP } from '../constants';
 import { GLOBAL_KEYS, readJson, writeJson } from './storage';
+import { activeLocale, translate, translator } from './i18n/translate';
+import { monthName } from './i18n/months';
+import type { Locale } from './i18n/locales';
 
 export interface PrinterSettings {
   mode: 'browser' | 'bluetooth' | 'serial';
@@ -33,16 +36,33 @@ export interface PrinterSettings {
   openCashDrawer: boolean;
 }
 
+/*
+ * Sarlavha va pastki yozuv BO'SH keladi.
+ *
+ * Ilgari ular o'zbekcha matn bilan to'lgan edi va chek ruschaga o'tganda
+ * ham "Xush kelibsiz!" bo'lib chiqaverardi. Endi bo'sh qiymat "kafe o'zi
+ * yozmagan" degani va o'rniga lug'atdagi salom bosiladi — ya'ni til bilan
+ * birga o'zgaradi. Kafe o'z matnini yozsa, u tarjima qilinmaydi: bu
+ * ma'lumot, tarjima emas.
+ */
 export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   mode: 'browser',
   systemPrinterName: '',
   paperWidth: '80mm',
   autoPrintReceipt: true,
   autoPrintQrKitchenSlip: true,
-  headerText: "Xush kelibsiz!",
-  footerText: "Tashrifingiz uchun rahmat!",
+  headerText: '',
+  footerText: '',
   openCashDrawer: false,
 };
+
+/**
+ * Hech kim yozmagan, shunchaki eski standart bo'lgani uchun diskda yotgan
+ * matnlar. Sozlamalar oynasida boshqa narsa (masalan avto-chop etish)
+ * o'zgartirilganda butun obyekt saqlanadi, ya'ni bu matnlar hech qachon
+ * terilmagan bo'lsa ham yozilib qolgan. Ular bo'sh deb qaraladi.
+ */
+const LEGACY_DEFAULT_TEXTS = new Set(['Xush kelibsiz!', 'Tashrifingiz uchun rahmat!']);
 
 // Bluetooth device instance cache
 let activeBluetoothDevice: any = null;
@@ -51,7 +71,10 @@ let activeSerialPort: any = null;
 
 export function getPrinterSettings(): PrinterSettings {
   const saved = readJson<Partial<PrinterSettings>>(GLOBAL_KEYS.printerSettings, {});
-  return { ...DEFAULT_PRINTER_SETTINGS, ...saved };
+  const merged = { ...DEFAULT_PRINTER_SETTINGS, ...saved };
+  if (LEGACY_DEFAULT_TEXTS.has(merged.headerText)) merged.headerText = '';
+  if (LEGACY_DEFAULT_TEXTS.has(merged.footerText)) merged.footerText = '';
+  return merged;
 }
 
 export function savePrinterSettings(settings: PrinterSettings) {
@@ -242,7 +265,9 @@ class EscPosEncoder {
 // 1. Connect Bluetooth Printer
 export async function connectBluetoothPrinter(): Promise<string> {
   if (typeof navigator === 'undefined' || !(navigator as any).bluetooth) {
-    throw new Error("Ushbu brauzerda Web Bluetooth qo'llab-quvvatlanmaydi (Chrome yoki Edge tavsiya etiladi).");
+    // Xabar `e.message` bo'lib sozlamalar oynasiga chiqadi, ya'ni u
+    // kassirning yozuvi — tarjima qilinadi.
+    throw new Error(translate(activeLocale(), 'printer.noWebBluetooth'));
   }
 
   const device = await (navigator as any).bluetooth.requestDevice({
@@ -349,8 +374,8 @@ async function sendRawToPrinter(bytes: Uint8Array): Promise<boolean> {
  * berilgan buyurtmaning chekida o'lcham umuman ko'rinmasdi — bir xil nomli
  * ikki xil narxdagi ikki qator.
  */
-function itemName(it: any): string {
-  const base = String(it?.product?.name || it?.name || 'Taom').trim();
+function itemName(it: any, fallback: string): string {
+  const base = String(it?.product?.name || it?.name || fallback).trim();
   const size = String(
     it?.selectedSize?.label ?? it?.selectedSize ?? it?.size ?? '',
   ).trim();
@@ -545,23 +570,20 @@ function columnsFor(paperWidth: '58mm' | '80mm', font: 'A' | 'B'): number {
   return paperWidth === '80mm' ? 48 : 32;
 }
 
-const UZ_MONTHS = [
-  'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
-  'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr',
-];
-
 /**
  * Poster chekidagi kabi sana.
  *
  * Joy yetsa oy nomi bilan: "01 sentabr 2026 20:43" (21 belgi). Sig'masa
  * raqamli: "01.09.2026 20:43" (16). Qaror qog'ozdan emas, qiymat ustunining
  * kengligidan kelib chiqadi — Font B da tor qog'ozga ham uzun shakl sig'adi.
+ *
+ * Oy nomi tilga qarab: "01 sentabr", "01 сентября", "01 September".
  */
-function fmtReceiptDate(d: Date, long: boolean): string {
+function fmtReceiptDate(d: Date, long: boolean, locale: Locale): string {
   const day = String(d.getDate()).padStart(2, '0');
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
-  if (long) return `${day} ${UZ_MONTHS[d.getMonth()]} ${d.getFullYear()} ${hh}:${mm}`;
+  if (long) return `${day} ${monthName(locale, d.getMonth())} ${d.getFullYear()} ${hh}:${mm}`;
   return `${day}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${hh}:${mm}`;
 }
 
@@ -602,7 +624,13 @@ interface ReceiptLayout {
  * Yorliqlar qalin, qiymatlar oddiy, hammasi bitta o'lchamda; faqat to'lanishi
  * kerak summa yirik. Poster ham shunday qiladi.
  */
-function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSettings): ReceiptLayout {
+function buildReceiptLayout(
+  order: any,
+  cafeName: string,
+  settings: PrinterSettings,
+  locale: Locale,
+): ReceiptLayout {
+  const t = translator(locale);
   const is80 = settings.paperWidth === '80mm';
   const cols = columnsFor(settings.paperWidth, 'A');
   const labelCol = is80 ? 16 : 14;
@@ -668,9 +696,7 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
   // 1. Logotip va kafe nomi
   lines.push({ kind: 'logo' });
   lines.push({ kind: 'banner', text: cafeName || 'OrderPlus', bold: true, big: true });
-  if (settings.headerText) {
-    lines.push({ kind: 'banner', text: settings.headerText });
-  }
+  lines.push({ kind: 'banner', text: settings.headerText || t('print.welcome') });
   row();
 
   // 2. Metadata bloki
@@ -688,14 +714,14 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
     ? String(dailyNumber)
     : String(order.id || '').slice(-4).toUpperCase();
 
-  metaRow('Chek No', checkNum);
+  metaRow(t('print.checkNo'), checkNum);
   // Kassada olib ketish oqimi yo'q — har bir buyurtma stolga yoziladi.
-  metaRow('Turi', 'Zalda');
-  metaRow('Ofitsiant', order.waiterName || 'Admin');
-  metaRow('Ochilgan', fmtReceiptDate(openedAt, longDate));
-  metaRow('Chop etilgan', fmtReceiptDate(printedAt, longDate));
+  metaRow(t('print.type'), t('print.dineIn'));
+  metaRow(t('print.waiter'), order.waiterName || 'Admin');
+  metaRow(t('print.opened'), fmtReceiptDate(openedAt, longDate, locale));
+  metaRow(t('print.printed'), fmtReceiptDate(printedAt, longDate, locale));
   if (cleanTable) {
-    metaRow('Stol No', cleanTable);
+    metaRow(t('print.tableNo'), cleanTable);
   }
 
   row('- '.repeat(Math.floor(cols / 2)).trimEnd());
@@ -703,9 +729,9 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
   // 3. Taomlar jadvali
   push([{
     text: inlineNumbers
-      ? padEndTo('Nomi', nameCol) + padStartTo('Soni', qtyCol) +
-        padStartTo('Narxi', priceCol) + padStartTo('Jami', totalCol)
-      : padEndTo('Nomi', cols - totalCol) + padStartTo('Jami', totalCol),
+      ? padEndTo(t('print.colName'), nameCol) + padStartTo(t('print.colQty'), qtyCol) +
+        padStartTo(t('print.colPrice'), priceCol) + padStartTo(t('print.colSum'), totalCol)
+      : padEndTo(t('print.colName'), cols - totalCol) + padStartTo(t('print.colSum'), totalCol),
     bold: true,
   }]);
 
@@ -716,7 +742,7 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
 
   const items = normalizeItems(order.items);
   items.forEach((it: any, idx: number) => {
-    const name = itemName(it);
+    const name = itemName(it, t('print.unnamed'));
     const qty = Number(it.quantity || 1);
     const price = Number(it.unitPrice || it.price || 0);
     const sum = Number(it.total || qty * price);
@@ -738,7 +764,7 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
 
     const note = itemNote(it);
     if (note) {
-      for (const noteLine of wrapText(`* Izoh: ${note}`, cols - 2)) {
+      for (const noteLine of wrapText(`* ${t('print.note')}: ${note}`, cols - 2)) {
         bodyRow('  ' + noteLine);
       }
     }
@@ -764,49 +790,56 @@ function buildReceiptLayout(order: any, cafeName: string, settings: PrinterSetti
   // kassirni ham, mijozni ham chalg'itardi.
   if (discount > 0 || serviceFee > 0) {
     if (discount > 0) {
-      metaRow('Chegirma', `-${fmtPrice(discount)}`);
+      metaRow(t('print.discount'), `-${fmtPrice(discount)}`);
     }
     if (serviceFee > 0) {
-      metaRow(`Xizmat haqi (${feePercent}%)`, fmtPrice(serviceFee));
+      metaRow(t('print.serviceFeePct', { n: feePercent }), fmtPrice(serviceFee));
     }
     row();
   }
 
-  totalRow('JAMI', `${fmtPrice(total)} so'm`);
+  totalRow(t('print.grandTotal'), `${fmtPrice(total)} ${t('common.currency')}`);
   row('-'.repeat(cols));
 
   const paidCash = Number(order.cashAmount) || 0;
   const paidCard = Number(order.cardAmount) || 0;
   if (paidCash > total && (order.paymentMethod === 'naqd' || order.paymentMethod === 'cash')) {
-    metaRow("To'langan", fmtPrice(paidCash));
-    metaRow('Qaytim', fmtPrice(paidCash - total));
+    metaRow(t('print.paidAmount'), fmtPrice(paidCash));
+    metaRow(t('print.change'), fmtPrice(paidCash - total));
   } else if (order.paymentMethod === 'aralash' && paidCash > 0 && paidCard > 0) {
-    metaRow('Naqd', fmtPrice(paidCash));
-    metaRow('Karta', fmtPrice(paidCard));
+    metaRow(t('common.cash'), fmtPrice(paidCash));
+    metaRow(t('common.card'), fmtPrice(paidCard));
   }
 
   // 5. To'lov turi va pastki matn
   const paymentLabels: Record<string, string> = {
-    naqd: 'NAQD',
-    cash: 'NAQD',
-    karta: 'KARTA',
-    card: 'KARTA',
-    aralash: 'ARALASH',
+    naqd: t('print.cashUpper'),
+    cash: t('print.cashUpper'),
+    karta: t('print.cardUpper'),
+    card: t('print.cardUpper'),
+    aralash: t('print.mixedUpper'),
   };
-  const payMethodStr = paymentLabels[String(order.paymentMethod)] || String(order.paymentMethod || 'NAQD').toUpperCase();
-  metaRow("To'lov turi", payMethodStr);
+  const payMethodStr = paymentLabels[String(order.paymentMethod)] || t('print.cashUpper');
+  metaRow(t('print.payMethod'), payMethodStr);
 
   row('- '.repeat(Math.floor(cols / 2)).trimEnd());
   row();
-  lines.push({ kind: 'banner', text: settings.footerText || 'Xaridingiz uchun rahmat!' });
-  lines.push({ kind: 'banner', text: 'OrderPlus POS tizimi' });
+  lines.push({ kind: 'banner', text: settings.footerText || t('print.thanksBuy') });
+  lines.push({ kind: 'banner', text: t('print.system') });
 
   return { cols, lines, openCashDrawer: !!settings.openCashDrawer };
 }
 
 /** Maketni termal printer baytlariga aylantiradi. */
-export function generateEscPosReceipt(order: any, cafeName: string, settings: PrinterSettings): Uint8Array {
-  const layout = buildReceiptLayout(order, cafeName, settings);
+export function generateEscPosReceipt(
+  order: any,
+  cafeName: string,
+  settings: PrinterSettings,
+  /* Berilmasa diskdagi tanlov olinadi: `setLocale` uni darhol yozadi, ya'ni
+     ekrandagi til bilan qog'ozdagi til hech qachon ajralmaydi. */
+  locale: Locale = activeLocale(),
+): Uint8Array {
+  const layout = buildReceiptLayout(order, cafeName, settings, locale);
   const is80 = settings.paperWidth === '80mm';
   const enc = new EscPosEncoder();
   enc.init();
@@ -866,8 +899,14 @@ function escapeHtml(str: string): string {
  * `print()` chaqirilgunga qadar yuklanib ulgurmasdi: qog'ozga jadvalsiz,
  * chegarasiz "yalang'och" matn tushardi.
  */
-export function renderReceiptHtml(order: any, cafeName: string, settings: PrinterSettings): string {
-  const layout = buildReceiptLayout(order, cafeName, settings);
+export function renderReceiptHtml(
+  order: any,
+  cafeName: string,
+  settings: PrinterSettings,
+  locale: Locale = activeLocale(),
+): string {
+  const layout = buildReceiptLayout(order, cafeName, settings, locale);
+  const t = translator(locale);
   const logoSrc = receiptLogo?.src || '';
 
   const body = layout.lines.map((line) => {
@@ -894,7 +933,7 @@ export function renderReceiptHtml(order: any, cafeName: string, settings: Printe
   }).join('\n');
 
   return `<!doctype html>
-<html lang="uz"><head><meta charset="utf-8"><title>Chek</title><style>
+<html lang="${locale}"><head><meta charset="utf-8"><title>${escapeHtml(t('print.receiptTitle'))}</title><style>
   @page { size: auto; margin: 4mm; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
   .chek {
@@ -920,12 +959,18 @@ ${body}
 </div></body></html>`;
 }
 // Build ESC/POS Kitchen Slip
-export function generateEscPosKitchenSlip(data: any, cafeName: string, settings: PrinterSettings): Uint8Array {
+export function generateEscPosKitchenSlip(
+  data: any,
+  cafeName: string,
+  settings: PrinterSettings,
+  locale: Locale = activeLocale(),
+): Uint8Array {
+  const t = translator(locale);
   const enc = new EscPosEncoder();
   enc.init();
 
   // Sarlavha
-  enc.align('center').bold(true).line('*** OSHXONA BUYURTMASI ***').bold(false);
+  enc.align('center').bold(true).line(`*** ${t('print.kitchenTitle')} ***`).bold(false);
   if (cafeName) enc.align('center').line(cafeName);
 
   /*
@@ -952,28 +997,28 @@ export function generateEscPosKitchenSlip(data: any, cafeName: string, settings:
 
   // Stol raqami
   enc.divider(columnsFor(settings.paperWidth, 'A'));
-  const rawTable = String(data.tableNumber || 'Zal').trim();
+  const rawTable = String(data.tableNumber || '').trim();
   const cleanTable = rawTable.replace(/^stol\s*:?\s*/i, '');
-  enc.align('center').bold(true).line(`STOL: ${cleanTable || 'Zal'}`).bold(false);
+  enc.align('center').bold(true).line(`${t('print.tableUpper')}: ${cleanTable || t('print.hall')}`).bold(false);
   enc.divider(columnsFor(settings.paperWidth, 'A'));
 
   // Meta ma'lumotlar
   const timeStr = data.time || (data.timestamp ? new Date(data.timestamp).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }));
-  if (data.waiterName) enc.twoColumn('Offitsiant:', data.waiterName, settings.paperWidth);
-  enc.twoColumn('Vaqt:', timeStr, settings.paperWidth);
+  if (data.waiterName) enc.twoColumn(`${t('print.waiter')}:`, data.waiterName, settings.paperWidth);
+  enc.twoColumn(`${t('print.time')}:`, timeStr, settings.paperWidth);
 
   enc.divider(columnsFor(settings.paperWidth, 'A'));
-  enc.align('left').bold(true).line('BUYURTMA TARKIBI:').bold(false);
+  enc.align('left').bold(true).line(t('print.orderItems')).bold(false);
   enc.divider(columnsFor(settings.paperWidth, 'A'));
 
   const items = normalizeItems(data.items);
   items.forEach((it: any, idx: number) => {
-    const name = itemName(it);
+    const name = itemName(it, t('print.unnamed'));
     const qty = Number(it.quantity || 1);
     enc.bold(true).line(`${qty} x ${name}`).bold(false);
     const note = itemNote(it);
     if (note) {
-      enc.line(`   >> IZOH: ${note}`);
+      enc.line(`   >> ${t('print.noteUpper')}: ${note}`);
     }
     // Asosiy chekdagi kabi: uzun nom o'ralib ketadi va izoh o'z satrini
     // oladi, ya'ni chiziqchasiz izoh qaysi taomniki ekani bilinmaydi —
@@ -1328,8 +1373,8 @@ export async function executePrintTest(cafeName: string) {
   const testOrder = {
     id: 'test-123456',
     createdAt: new Date().toISOString(),
-    tableNumber: 'Stol-1',
-    waiterName: 'Test Kassir',
+    tableNumber: '1',
+    waiterName: 'Test',
     items: [
       { name: "Osh (Palov)", quantity: 2, price: 35000, total: 70000, note: "Qo'shimcha sarimsoq" },
       { name: "Choy (Ko'k)", quantity: 1, price: 5000, total: 5000 },

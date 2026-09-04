@@ -5,9 +5,14 @@
  * qo'shilib, boshqasiga qo'shilmasa, kassa yig'ilmaydi. Tarjimasi unutilgan
  * matn xodimning ekraniga chiqib ketmasligi uchun.
  *
- * BU YERDA YO'Q: printerdan chiqadigan qog'oz matni. Chek va oshxona
- * kvitansiyasi — fizik hujjat, oshxona ularga qarab ishlaydi va kassirning
- * ekran tili ularni o'zgartirmasligi kerak. Ular `printer.ts` da qoladi.
+ * QOG'OZ HAM shu yerda (`print.*`). Ilgari chek matni `printer.ts` da
+ * qotirilgan edi — "chek fizik hujjat, ekran tili unga tegmasin" degan
+ * mulohaza bilan. Amalda esa kassir ruscha ishlab, mijozga o'zbekcha
+ * qog'oz uzatardi; ekrandagi ko'rinish bilan qo'ldagi chek boshqa-boshqa
+ * bo'lardi. Endi ikkalasi bitta tanlovga bo'ysunadi.
+ *
+ * Kafe o'zi yozadigan matn (sarlavha, pastki yozuv, taom nomlari) bu
+ * yerga tushmaydi: u tarjima emas, ma'lumot.
  */
 export const uz = {
   // ── Umumiy ──────────────────────────────────────────────────────────
@@ -240,6 +245,9 @@ export const uz = {
   'printer.dialogWhy': "Hozir chek operatsion tizim printeriga yuborilmoqda va brauzer har safar tasdiq so'raydi. Buni ikki yo'l bilan olib tashlash mumkin:",
   'printer.dialogFix1': "— yuqoridagi Bluetooth yoki USB tugmasi orqali. Shunda chek to'g'ridan-to'g'ri chiqadi, oyna umuman ochilmaydi.",
   'printer.dialogFix2': "Printer tizimda asosiy (default) qilib qo'yilgan bo'lishi shart:",
+  'printer.noWebBluetooth': "Ushbu brauzerda Web Bluetooth qo'llab-quvvatlanmaydi (Chrome yoki Edge tavsiya etiladi).",
+  'printer.btConnected': 'Bluetooth printer ulandi: {name}',
+  'printer.btFailed': "Bluetooth printerga ulanib bo'lmadi",
   'printer.testSent': 'Sinov cheki printerga yuborildi!',
   'printer.printError': 'Chek chiqarishda xatolik',
   'printer.qrSelfPrint': "Mijoz telefonidan bergan buyurtmani kassa o'zi bosib chiqaradi.",
@@ -301,6 +309,60 @@ export const uz = {
   'toast.noOrderOnTable': 'Stolda hech qanday buyurtma mavjud emas!',
   'toast.paymentNotSaved': "To'lov serverga yozilmadi! Aloqa tiklanganda avtomatik yuboriladi.",
   'toast.paymentQueued': "Tarmoq xatoligi: to'lov navbatga qo'yildi, aloqa tiklanganda avtomatik yuboriladi.",
+
+
+  // ── Qog'oz: chek, oshxona kvitansiyasi, hisobot ─────────────────────
+  'print.receiptTitle': 'Chek',
+  'print.checkNo': 'Chek No',
+  'print.type': 'Turi',
+  'print.dineIn': 'Zalda',
+  'print.waiter': 'Ofitsiant',
+  'print.opened': 'Ochilgan',
+  'print.printed': 'Chop etilgan',
+  'print.tableNo': 'Stol No',
+  'print.colName': 'Nomi',
+  'print.colQty': 'Soni',
+  'print.colPrice': 'Narxi',
+  'print.colSum': 'Jami',
+  'print.note': 'Izoh',
+  'print.noteUpper': 'IZOH',
+  'print.discount': 'Chegirma',
+  'print.discountPct': 'Chegirma ({n}%)',
+  'print.serviceFee': 'Xizmat haqi',
+  'print.serviceFeePct': 'Xizmat haqi ({n}%)',
+  'print.grandTotal': 'JAMI',
+  'print.itemsSubtotal': 'Jami taomlar:',
+  'print.paidAmount': "To'langan",
+  'print.change': 'Qaytim',
+  'print.payMethod': "To'lov turi",
+  'print.cashUpper': 'NAQD',
+  'print.cardUpper': 'KARTA',
+  'print.mixedUpper': 'ARALASH',
+  'print.thanksBuy': 'Xaridingiz uchun rahmat!',
+  'print.thanksVisit': 'Tashrifingiz uchun rahmat!',
+  'print.welcome': 'Xush kelibsiz!',
+  'print.system': 'OrderPlus POS tizimi',
+  'print.kitchenTitle': 'OSHXONA BUYURTMASI',
+  'print.tableWord': 'Stol',
+  'print.tableUpper': 'STOL',
+  'print.hall': 'Zal',
+  'print.time': 'Vaqt',
+  'print.orderItems': 'BUYURTMA TARKIBI:',
+  'print.report': 'Hisobot',
+  'print.cafe': 'Kafe',
+  'print.allWaiters': 'Barcha ofitsiantlar',
+  'print.periodFrom': 'Boshlanish',
+  'print.periodTo': 'Tugash',
+  'print.printedBy': 'Chop etdi',
+  'print.noSales': "Bu davrda sotuv bo'lmagan",
+  'print.orderCount': 'Buyurtmalar soni',
+  'print.itemsTotal': 'Taomlar jami',
+  'print.discounts': 'Chegirmalar',
+  'print.refundedCount': 'Qaytarilgan ({n} ta)',
+  'print.revenue': 'JAMI TUSHUM',
+  'print.cashPayments': "Naqd to'lovlar",
+  'print.cardPayments': "Karta to'lovlar",
+  'print.unnamed': 'Nomsiz',
 
   // ── Til ─────────────────────────────────────────────────────────────
   'lang.change': "Tilni o'zgartirish",

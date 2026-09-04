@@ -102,9 +102,9 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
       const updated: PrinterSettings = { ...settings, mode: 'bluetooth' };
       setSettings(updated);
       savePrinterSettings(updated);
-      onToast(`Bluetooth printer ulandi: ${name}`);
+      onToast(t('printer.btConnected', { name }));
     } catch (e: any) {
-      setError(e.message || "Bluetooth printerga ulanib bo'lmadi");
+      setError(e.message || t('printer.btFailed'));
     } finally {
       setIsConnecting(false);
     }

@@ -1,17 +1,10 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { readText, writeText } from '../storage';
-import { uz, type TranslationKey } from './dictionaries/uz';
-import { ru } from './dictionaries/ru';
-import { en } from './dictionaries/en';
-import { DEFAULT_LOCALE, isLocale, localeFromNavigator, type Locale } from './locales';
+import { writeText } from '../storage';
+import { type TranslationKey } from './dictionaries/uz';
+import { isLocale, type Locale } from './locales';
+import { LOCALE_KEY, activeLocale, translate, type TParams } from './translate';
 
-const DICTIONARIES: Record<Locale, Record<TranslationKey, string>> = { uz, ru, en };
-
-/** Til QURILMANIKI: bir kafeda xodimlar har xil tilda ishlashi mumkin. */
-const LOCALE_KEY = 'orderplus_lang';
-
-/** `t('table.occupiedCount', { n: 3 })` — matndagi `{n}` o'rniga qo'yiladi. */
-export type TParams = Record<string, string | number>;
+export type { TParams };
 
 interface LanguageValue {
   locale: Locale;
@@ -21,31 +14,8 @@ interface LanguageValue {
 
 const LanguageContext = createContext<LanguageValue | null>(null);
 
-/**
- * Boshlang'ich til.
- *
- * Avval xodim tanlagani, keyin qurilma tili, keyin o'zbekcha. Xodimning
- * tanlovi qurilma sozlamasidan ustun: u ataylab bosilgan, sozlama esa
- * telefon sotib olinganda qanday bo'lsa shundayligicha qolgan bo'lishi
- * mumkin.
- *
- * `readText` xotira yopiq brauzerda ham otmaydi — kassa Samsung Internet
- * da oq ekranga aylangan voqeadan keyin hamma o'qish shu yordamchi orqali
- * ketadi.
- */
-function initialLocale(): Locale {
-  const saved = readText(LOCALE_KEY);
-  if (isLocale(saved)) return saved;
-
-  if (typeof navigator !== 'undefined') {
-    const fromDevice = localeFromNavigator(navigator.languages ?? [navigator.language]);
-    if (fromDevice) return fromDevice;
-  }
-  return DEFAULT_LOCALE;
-}
-
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(initialLocale);
+  const [locale, setLocaleState] = useState<Locale>(activeLocale);
 
   const setLocale = useCallback((next: Locale) => {
     if (!isLocale(next)) return;
@@ -58,24 +28,12 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const value = useMemo<LanguageValue>(() => {
-    const dict = DICTIONARIES[locale] ?? DICTIONARIES[DEFAULT_LOCALE];
-    // Kalit topilmasa o'zbekchasi, u ham bo'lmasa kalitning o'zi: bo'sh
-    // tugmadan ko'ra g'alati yozuv yaxshiroq — xato darhol ko'rinadi.
-    /*
-     * O'rin egallovchilar tilga qarab boshqa joyda turadi: o'zbekchada
-     * "3 ta band stol", ruschada "Занятых столов: 3". Shuning uchun son
-     * matnga yopishtirilmaydi, lug'atning o'zida `{n}` bo'lib turadi.
-     */
-    const fill = (text: string, params?: TParams) =>
-      params
-        ? text.replace(/\{(\w+)\}/g, (whole, name) =>
-            name in params ? String(params[name]) : whole,
-          )
-        : text;
-
-    return { locale, setLocale, t: (key, params) => fill(dict[key] ?? uz[key] ?? key, params) };
-  }, [locale, setLocale]);
+  const value = useMemo<LanguageValue>(
+    // Qidiruvning o'zi `translate` da: chek ham xuddi shu funksiyani
+    // chaqiradi, ya'ni ekran bilan qog'oz bir xil matnni ko'rsatadi.
+    () => ({ locale, setLocale, t: (key, params) => translate(locale, key, params) }),
+    [locale, setLocale],
+  );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }

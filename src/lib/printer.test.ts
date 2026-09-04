@@ -5,8 +5,15 @@ installMemoryStorage();
 
 const { generateEscPosReceipt, generateEscPosKitchenSlip, renderReceiptHtml, DEFAULT_PRINTER_SETTINGS } = await import('./printer');
 
+/*
+ * Chek endi tanlangan tilda quriladi va Node'ning `navigator.language` si
+ * "en-US" — ya'ni til qo'yilmasa chek inglizcha chiqadi va quyidagi
+ * o'zbekcha kutilmalar yiqiladi. Maket testlari tilni ataylab qadaydi;
+ * tarjimaning o'zi pastdagi alohida blokda sinaladi.
+ */
 beforeEach(() => {
   installMemoryStorage();
+  localStorage.setItem('orderplus_lang', 'uz');
 });
 
 /**
@@ -609,5 +616,146 @@ describe('oshxona kvitansiyasi', () => {
     const text = asAscii(generateEscPosKitchenSlip(slip, 'Uzbecano', settings));
     expect(text).toContain('OSHXONA BUYURTMASI');
     expect(text).not.toContain('N ');
+  });
+});
+
+/**
+ * Chek tili.
+ *
+ * Ilgari chek matni shu faylning ichida qotirilgan edi va "chek fizik
+ * hujjat, ekran tili unga tegmasin" deb izohlangandi. Amalda esa kassir
+ * ruscha ishlab, mijozga o'zbekcha qog'oz uzatardi. Endi chek tanlangan
+ * tilda quriladi — va bu quyida tekshiriladi, chunki chek qulasa buni
+ * hech kim ko'rmaydi: kassa ishlayveradi, faqat qog'oz noto'g'ri chiqadi.
+ */
+describe('chek tili', () => {
+  /*
+   * CP866 dan qaytarish. `asAscii` kirillni tashlab yuboradi — ruscha
+   * chekda esa aynan o'sha baytlar tekshiriladi.
+   */
+  const CYR = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя';
+  function fromCp866(bytes: Uint8Array): string {
+    let out = '';
+    for (const b of bytes) {
+      if (b >= 0x20 && b < 0x7f) out += String.fromCharCode(b);
+      else if (b >= 0x80 && b <= 0xaf) out += CYR[b - 0x80];
+      else if (b >= 0xe0 && b <= 0xef) out += CYR[48 + (b - 0xe0)];
+      else out += b === 0x0a ? '\n' : ' ';
+    }
+    return out;
+  }
+
+  const pick = (locale: 'uz' | 'ru' | 'en') =>
+    fromCp866(generateEscPosReceipt(order, 'Test Kafe', settings, locale));
+
+  it('inglizcha tanlanganda yorliqlar inglizcha', () => {
+    const text = pick('en');
+    expect(text).toContain('Check No');
+    expect(text).toContain('Service fee (10%)');
+    expect(text).toContain('TOTAL');
+    expect(text).not.toContain('Chek No');
+  });
+
+  it('ruscha tanlanganda yorliqlar kirillda chiqadi', () => {
+    const text = pick('ru');
+    expect(text).toContain('Официант');
+    expect(text).toContain('Обслуживание (10%)');
+    expect(text).toContain('ИТОГО');
+    expect(text).not.toContain('Chek No');
+  });
+
+  /*
+   * Ustunlar bayt bo'yicha tekislanadi, kirill esa CP866 da bir baytli —
+   * ya'ni ruscha chek ham tekis chiqishi kerak. Bu ilgari UTF-8 da buzilgan
+   * joy: ikki baytli harf ustunni o'ngga surib yuborardi.
+   *
+   * Buyruq baytlari tashlanadi: ular qog'ozga chiqmaydi, lekin `fromCp866`
+   * ularni bo'shliq qilib qo'yadi va satr uzunligini yolg'on ko'rsatadi.
+   */
+  function layoutLines(bytes: Uint8Array): string[] {
+    const out: string[] = [];
+    let text = '';
+    for (let i = 0; i < bytes.length; i++) {
+      const b = bytes[i];
+      if (b === 0x1b) {
+        const cmd = bytes[i + 1];
+        i += cmd === 0x40 || cmd === 0x32 ? 1 : cmd === 0x70 ? 4 : 2;
+        continue;
+      }
+      if (b === 0x1d) {
+        i += bytes[i + 1] === 0x56 ? 3 : 2;
+        continue;
+      }
+      if (b === 0x0a) { out.push(text.replace(/\s+$/, '')); text = ''; continue; }
+      text += fromCp866(new Uint8Array([b]));
+    }
+    if (text.trim()) out.push(text.replace(/\s+$/, ''));
+    return out;
+  }
+
+  it('ruscha chekda ustunlar joyidan siljimaydi', () => {
+    const ru = layoutLines(generateEscPosReceipt(order, 'Test Kafe', settings, 'ru'));
+
+    // Jadval sarlavhasi ustunlarga to'liq to'ldiriladi — 48 belgi.
+    const header = ru.find((l) => l.startsWith('Название'));
+    expect(header, 'ruscha jadval sarlavhasi yo\'q').toBeDefined();
+    expect(header!.length).toBe(48);
+
+    // Bitta ham satr qog'ozdan oshib ketmasin.
+    for (const line of ru) expect(line.length).toBeLessThanOrEqual(48);
+  });
+
+  it('oy nomi tilga ergashadi', () => {
+    const withDate = { ...order, createdAt: '2026-09-01T08:00:00.000Z' };
+    const ru = fromCp866(generateEscPosReceipt(withDate, 'Test Kafe', settings, 'ru'));
+    const en = fromCp866(generateEscPosReceipt(withDate, 'Test Kafe', settings, 'en'));
+    expect(ru).toContain('сентября 2026');
+    expect(en).toContain('September 2026');
+  });
+
+  it('oshxona kvitansiyasi ham tarjima qilinadi', () => {
+    const slip = { tableNumber: '7', waiterName: 'Ravshan', time: '10:49', items: [{ name: 'Osh', quantity: 2 }] };
+    const ru = layoutLines(generateEscPosKitchenSlip(slip, 'Uzbecano', settings, 'ru')).join('\n');
+    expect(ru).toContain('ЗАКАЗ НА КУХНЮ');
+    expect(ru).toContain('СТОЛ:');
+    expect(ru).toContain('СОСТАВ ЗАКАЗА:');
+    expect(ru).not.toContain('OSHXONA');
+  });
+
+  it('til berilmasa diskdagi tanlov olinadi', () => {
+    localStorage.setItem('orderplus_lang', 'ru');
+    expect(fromCp866(generateEscPosReceipt(order, 'Test Kafe', settings))).toContain('ИТОГО');
+  });
+
+  it('brauzer cheki hujjat tilini ham belgilaydi', () => {
+    expect(renderReceiptHtml(order, 'Test Kafe', settings, 'ru')).toContain('<html lang="ru"');
+    expect(renderReceiptHtml(order, 'Test Kafe', settings, 'en')).toContain('<title>Receipt</title>');
+  });
+
+  /*
+   * Sarlavha va pastki yozuv endi bo'sh kelib, lug'atdan to'ldiriladi. Diskda
+   * esa eski standart o'zbekcha matn yotgan bo'lishi mumkin — sozlamalar
+   * oynasida boshqa narsa o'zgartirilganda butun obyekt saqlangan. U hech kim
+   * yozmagan matn, ya'ni tilni qotirib qo'ymasligi kerak.
+   */
+  it("hech kim yozmagan eski standart matn tilni qotirib qo'ymaydi", async () => {
+    localStorage.setItem(
+      'orderplus_printer_settings',
+      JSON.stringify({ headerText: 'Xush kelibsiz!', footerText: 'Tashrifingiz uchun rahmat!' }),
+    );
+    const { getPrinterSettings } = await import('./printer');
+    const live = getPrinterSettings();
+    expect(live.headerText).toBe('');
+
+    const text = fromCp866(generateEscPosReceipt(order, 'Test Kafe', live, 'ru'));
+    expect(text).toContain('Добро пожаловать!');
+    expect(text).not.toContain('Xush kelibsiz');
+  });
+
+  it('kafe o‘zi yozgan matn tarjima qilinmaydi', () => {
+    const own = { ...settings, headerText: 'Chorsu filiali', footerText: 'Yana kuting!' };
+    const text = fromCp866(generateEscPosReceipt(order, 'Test Kafe', own, 'ru'));
+    expect(text).toContain('Chorsu filiali');
+    expect(text).toContain('Yana kuting!');
   });
 });

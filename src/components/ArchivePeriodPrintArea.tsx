@@ -1,6 +1,9 @@
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { DBOrder } from '../types';
+import { useT, useLocale } from '../lib/i18n/LanguageProvider';
+import { monthName } from '../lib/i18n/months';
+import type { Locale } from '../lib/i18n/locales';
 
 export interface PeriodPrintData {
   orders: DBOrder[];
@@ -17,15 +20,15 @@ interface ArchivePeriodPrintAreaProps {
   cafePhone: string;
 }
 
-const MONTHS = [
-  'yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun',
-  'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr',
-];
-
-/** "25 avgust 2026 11:30" — brauzer lokaliga bog'liq bo'lmasin uchun qo'lda. */
-function fmtDateTime(d: Date | null, withTime = true): string {
+/**
+ * "25 avgust 2026 11:30" — brauzer lokaliga bog'liq bo'lmasin uchun qo'lda.
+ *
+ * Oy nomlari `i18n/months.ts` da: chek ham xuddi shu ro'yxatdan oladi, ya'ni
+ * bitta kunning sanasi hisobotda va chekda bir xil yoziladi.
+ */
+function fmtDateTime(d: Date | null, locale: Locale, withTime = true): string {
   if (!d || isNaN(d.getTime())) return '—';
-  const date = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  const date = `${d.getDate()} ${monthName(locale, d.getMonth())} ${d.getFullYear()}`;
   if (!withTime) return date;
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
@@ -73,6 +76,9 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
   cafeAddress,
   cafePhone,
 }) => {
+  const t = useT();
+  const { locale } = useLocale();
+
   const report = useMemo(() => {
     const lines = new Map<string, { name: string; price: number; qty: number; sum: number }>();
     let orderCount = 0;
@@ -99,7 +105,7 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
       if (ord.waiterName) waiters.add(ord.waiterName);
 
       parseItems(ord.items).forEach((it: any) => {
-        const name = it.product?.name || it.name || 'Nomsiz';
+        const name = it.product?.name || it.name || t('print.unnamed');
         const price = Number(it.price ?? it.product?.price ?? it.unitPrice ?? 0);
         const qty = Number(it.quantity ?? it.count ?? 1) || 1;
         const sum = Number(it.totalPrice ?? price * qty) || price * qty;
@@ -141,11 +147,15 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
       card,
       refunded,
       refundedCount,
-      waiterLabel: waiters.size === 1 ? [...waiters][0] : 'Barcha ofitsiantlar',
+      waiterLabel: waiters.size === 1 ? [...waiters][0] : t('print.allWaiters'),
     };
-  }, [data]);
+  }, [data, t]);
 
   if (!data) return null;
+
+  /* Valyuta lug'atda, lug'at esa hook ichida — shuning uchun yordamchi
+     komponent ichida yasaladi, modul ko'lamida emas. */
+  const money = (v: number) => `${v.toLocaleString()} ${t('common.currency')}`;
 
   // Lenta uzunligi pul: hisobot body ga to'g'ridan-to'g'ri chiqadi, logotip yo'q
   // (termoprinterda u baribir dog' bo'lib chiqadi), manzil va telefon ham yo'q —
@@ -163,31 +173,31 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
             className="w-12 h-12 object-contain mx-auto"
           />
           <h2 className="text-sm font-black tracking-wide text-slate-900 print-text-dark">
-            Hisobot — {fmtDateTime(data.from, false)}
+            {t('print.report')} — {fmtDateTime(data.from, locale, false)}
           </h2>
         </div>
 
         {/* Davr ma'lumotlari */}
         <div className="space-y-0.5 pb-1.5 border-b border-dashed border-slate-900">
-          <InfoRow label="Kafe" value={cafeName || 'ORDERPLUS'} />
-          <InfoRow label="Ofitsiant" value={report.waiterLabel} />
-          <InfoRow label="Boshlanish" value={fmtDateTime(data.from)} />
-          <InfoRow label="Tugash" value={fmtDateTime(data.to)} />
-          {data.printedBy && <InfoRow label="Chop etdi" value={data.printedBy} />}
+          <InfoRow label={t('print.cafe')} value={cafeName || 'ORDERPLUS'} />
+          <InfoRow label={t('print.waiter')} value={report.waiterLabel} />
+          <InfoRow label={t('print.periodFrom')} value={fmtDateTime(data.from, locale)} />
+          <InfoRow label={t('print.periodTo')} value={fmtDateTime(data.to, locale)} />
+          {data.printedBy && <InfoRow label={t('print.printedBy')} value={data.printedBy} />}
         </div>
 
         {/* Sotilgan taomlar */}
         <div className="space-y-0.5 pb-1.5 border-b-2 border-slate-900">
           <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 text-[10px] font-black text-slate-900 print-text-dark uppercase border-b border-slate-300 pb-1">
-            <span>Nomi</span>
-            <span className="text-right w-7">Soni</span>
-            <span className="text-right w-12">Narxi</span>
-            <span className="text-right w-14">Jami</span>
+            <span>{t('print.colName')}</span>
+            <span className="text-right w-7">{t('print.colQty')}</span>
+            <span className="text-right w-12">{t('print.colPrice')}</span>
+            <span className="text-right w-14">{t('print.colSum')}</span>
           </div>
 
           {report.rows.length === 0 ? (
             <div className="text-[11px] font-medium text-slate-700 print-text-dark py-2 text-center">
-              Bu davrda sotuv bo&apos;lmagan
+              {t('print.noSales')}
             </div>
           ) : (
             report.rows.map((row, idx) => (
@@ -206,29 +216,29 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
 
         {/* Yakuniy hisob */}
         <div className="report-summary space-y-0.5 pb-1.5 border-b border-dashed border-slate-900">
-          <TotalRow label="Buyurtmalar soni" value={`${report.orderCount} ta`} />
-          <TotalRow label="Taomlar jami" value={`${report.itemsSubtotal.toLocaleString()} so'm`} />
+          <TotalRow label={t('print.orderCount')} value={t('common.countItems', { n: report.orderCount })} />
+          <TotalRow label={t('print.itemsTotal')} value={money(report.itemsSubtotal)} />
           {report.serviceFee > 0 && (
-            <TotalRow label="Xizmat haqi" value={`${report.serviceFee.toLocaleString()} so'm`} />
+            <TotalRow label={t('print.serviceFee')} value={money(report.serviceFee)} />
           )}
-          <TotalRow label="Chegirmalar" value={`${report.discount.toLocaleString()} so'm`} />
+          <TotalRow label={t('print.discounts')} value={money(report.discount)} />
           {report.refundedCount > 0 && (
             <TotalRow
-              label={`Qaytarilgan (${report.refundedCount} ta)`}
-              value={`−${report.refunded.toLocaleString()} so'm`}
+              label={t('print.refundedCount', { n: report.refundedCount })}
+              value={`−${money(report.refunded)}`}
             />
           )}
         </div>
 
-        <TotalRow label="JAMI TUSHUM" value={`${report.paid.toLocaleString()} so'm`} strong />
+        <TotalRow label={t('print.revenue')} value={money(report.paid)} strong />
 
         <div className="report-summary space-y-0.5 pt-1 border-t border-dashed border-slate-900">
-          <TotalRow label="Naqd to'lovlar" value={`${report.cash.toLocaleString()} so'm`} />
-          <TotalRow label="Karta to'lovlar" value={`${report.card.toLocaleString()} so'm`} />
+          <TotalRow label={t('print.cashPayments')} value={money(report.cash)} />
+          <TotalRow label={t('print.cardPayments')} value={money(report.card)} />
         </div>
 
         <div className="text-center text-[10px] font-medium text-slate-600 print-text-dark pt-1">
-          {fmtDateTime(new Date())} · OrderPlus POS
+          {fmtDateTime(new Date(), locale)} · OrderPlus POS
         </div>
       </div>
     </div>,

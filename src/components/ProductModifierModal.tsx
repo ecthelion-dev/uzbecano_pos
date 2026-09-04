@@ -85,7 +85,7 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-medium line-clamp-1 mt-0.5">
-                {product.description || "Kerakli porsiya yoki o'lchamni tanlang"}
+                {product.description || t('modifier.pickSize')}
               </p>
             </div>
           </div>

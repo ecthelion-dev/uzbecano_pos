@@ -22,7 +22,7 @@ interface AdminPinModalProps {
 export const AdminPinModal: React.FC<AdminPinModalProps> = ({
   show,
   cafeId,
-  title = "Tasdiqlash uchun PIN kodni kiriting",
+  title,
   onConfirm,
   onClose,
 }) => {
@@ -68,7 +68,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
             setPin('');
             onClose();
           } else {
-            setError("PIN kod noto'g'ri yoki ruxsat darajasi yetarli emas!");
+            setError(t('admin.pinWrong'));
             setTimeout(() => setPin(''), 400);
           }
         } catch {
@@ -113,7 +113,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg font-semibold">×</button>
         </div>
 
-        <p className="text-xs text-slate-600 font-medium text-center">{title}</p>
+        <p className="text-xs text-slate-600 font-medium text-center">{title ?? t('admin.pinDefault')}</p>
 
         <div className="flex items-center justify-center gap-3 py-1">
           {[0, 1, 2, 3].map((i) => (

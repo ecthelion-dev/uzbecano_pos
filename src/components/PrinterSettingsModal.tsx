@@ -227,11 +227,10 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
         {IS_DESKTOP_APP && !connectedDevice && (
           <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 space-y-2.5">
             <p className="text-xs font-black text-emerald-800 dark:text-emerald-300">
-              Chek printeri
+              {t('printer.receiptPrinter')}
             </p>
             <p className="text-[11px] leading-relaxed text-emerald-800/90 dark:text-emerald-300/90">
-              Chek to&apos;g&apos;ridan-to&apos;g&apos;ri printerga yuboriladi — chop etish oynasi
-              ochilmaydi.
+              {t('printer.receiptPrinterHint')}
             </p>
             <select
               value={settings.systemPrinterName || ''}
@@ -265,20 +264,17 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
         {!IS_DESKTOP_APP && settings.mode === 'browser' && !connectedDevice && (
           <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 space-y-2.5">
             <p className="text-xs font-black text-amber-800 dark:text-amber-300">
-              Chop etish oynasi chiqmasligi uchun
+              {t('printer.dialogTitle')}
             </p>
             <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90">
-              Hozir chek operatsion tizim printeriga yuborilmoqda va brauzer har safar tasdiq
-              so&apos;raydi. Buni ikki yo&apos;l bilan olib tashlash mumkin:
+              {t('printer.dialogWhy')}
             </p>
             <ol className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90 space-y-1.5 list-decimal list-inside">
               <li>
-                <b>{t('printer.connect')}</b> — yuqoridagi Bluetooth yoki USB tugmasi orqali.
-                Shunda chek to&apos;g&apos;ridan-to&apos;g&apos;ri chiqadi, oyna umuman ochilmaydi.
+                <b>{t('printer.connect')}</b> {t('printer.dialogFix1')}
               </li>
               <li>
-                <b>{t('printer.kioskHint')}</b> Printer tizimda{' '}
-                <b>asosiy (default)</b> qilib qo&apos;yilgan bo&apos;lishi shart:
+                <b>{t('printer.kioskHint')}</b> {t('printer.dialogFix2')}
               </li>
             </ol>
             <div className="flex items-center gap-2">
@@ -341,7 +337,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               <Receipt className="w-4 h-4 text-emerald-500" />
               <div>
                 <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  To&apos;lovda avtomatik chek chiqarish
+                  {t('printer.autoOnPayment')}
                 </div>
                 <div className="text-[10px] text-slate-400">{t('printer.autoOnPaymentHint')}</div>
               </div>

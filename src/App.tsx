@@ -2633,8 +2633,8 @@ export default function App() {
 
         <div className="grid grid-cols-2">
           {[
-            { id: 'stollar' as const, label: 'Stollar', icon: Grid },
-            { id: 'menyu' as const, label: 'Menyu', icon: ShoppingBag },
+            { id: 'stollar' as const, label: t('nav.tables'), icon: Grid },
+            { id: 'menyu' as const, label: t('nav.menu'), icon: ShoppingBag },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -2761,7 +2761,7 @@ export default function App() {
       <AdminPinModal
         show={showAdminPinModal}
         cafeId={getActiveCafeId()}
-        title="Oshxona buyurtmasi / Taomni bekor qilish uchun PIN kodni kiriting"
+        title={t('admin.pinKitchenCancel')}
         onConfirm={(approvalToken) => {
           if (adminPinAction) adminPinAction(approvalToken);
         }}

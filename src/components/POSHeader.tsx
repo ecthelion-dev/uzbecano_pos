@@ -185,12 +185,12 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 
             {[
               {
-                label: 'Arxiv cheklar',
+                label: t('archive.title'),
                 icon: <Receipt className="w-4 h-4 text-orange-500" />,
                 onClick: onOpenArchive,
               },
               {
-                label: 'Printer sozlamalari',
+                label: t('header.printerSettings'),
                 icon: <Printer className="w-4 h-4 text-orange-500" />,
                 onClick: onOpenPrinterSettings,
               },

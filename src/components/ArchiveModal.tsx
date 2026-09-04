@@ -365,7 +365,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 >
                   <RotateCcw className="w-4 h-4 shrink-0" />
                   <span>
-                    {t('archive.refund')}<span className="hidden sm:inline"> (VOZVRAT)</span>
+                    {t('archive.refund')}
                   </span>
                 </button>
               )}

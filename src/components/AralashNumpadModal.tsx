@@ -144,7 +144,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
             {currentNum.toLocaleString()} <span className="text-sm font-semibold text-slate-500">so'm</span>
           </div>
           <div className="text-xs font-semibold text-slate-600">
-            {selectedField === 'cash' ? 'Karta orqali:' : 'Naqd orqali:'}{' '}
+            {selectedField === 'cash' ? t('mixed.viaCard') : t('mixed.viaCash')}{' '}
             <span className="font-bold text-blue-700">
               {otherNum.toLocaleString()} so'm
             </span>

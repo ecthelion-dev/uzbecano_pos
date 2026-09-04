@@ -23,6 +23,7 @@ export const ru: Record<TranslationKey, string> = {
   'common.cashLabel': 'Наличные:',
   'common.cardLabel': 'Карта:',
   'common.currency': 'сум',
+  'common.countItems': '{n} шт.',
 
   // ── Вход ────────────────────────────────────────────────────────────
   'login.pinPrompt': 'Введите PIN-код официанта',
@@ -41,6 +42,9 @@ export const ru: Record<TranslationKey, string> = {
   'header.archiveTitle': 'Архив',
   'header.printerTitle': 'Термопринтер и настройки чека',
   'header.waiterCallTitle': 'Вызов официанта',
+  'header.printerSettings': 'Настройки принтера',
+  'nav.tables': 'Столы',
+  'nav.menu': 'Меню',
   'role.cashier': 'Кассир',
   'role.waiter': 'Официант',
   'menu.backToCategories': 'НАЗАД К КАТЕГОРИЯМ',
@@ -65,18 +69,22 @@ export const ru: Record<TranslationKey, string> = {
   'cart.sentItems': 'Отправлено на кухню',
   'cart.newItems': 'Новые блюда',
   'cart.kitchenNote': 'Комментарий на кухню (например: без лука, острое...)',
+  'cart.serviceFee': 'Сервисный сбор ({p}%):',
 
   // ── Настройки блюда ─────────────────────────────────────────────────
   'modifier.size': 'Размер / порция:',
   'modifier.addons': 'Добавки:',
   'modifier.note': 'Комментарий на кухню (например: без лука, поострее...)',
   'modifier.addToCart': 'Добавить в корзину',
+  'modifier.pickSize': 'Выберите нужную порцию или размер',
 
   // ── Смешанная оплата ────────────────────────────────────────────────
   'mixed.title': 'Сумма смешанной оплаты',
   'mixed.totalDue': 'К оплате:',
   'mixed.full': 'Полностью',
   'mixed.ready': 'ГОТОВО',
+  'mixed.viaCard': 'Картой:',
+  'mixed.viaCash': 'Наличными:',
 
   // ── Столы ───────────────────────────────────────────────────────────
   'table.busy': 'ЗАНЯТ',
@@ -91,6 +99,7 @@ export const ru: Record<TranslationKey, string> = {
   'table.none': 'Столы не заданы',
   'table.occupiedCount': 'Занятых столов: {n}',
   'table.moveTarget': 'На какой стол перенести?',
+  'table.mergeNeedsBusy': 'На столе {table} нет активного заказа! Для объединения стол должен быть занят.',
 
   // ── Несохранённая корзина ───────────────────────────────────────────
   'unsaved.title': 'Есть неотправленные блюда!',
@@ -157,6 +166,7 @@ export const ru: Record<TranslationKey, string> = {
   'shift.tableCount': 'Количество столов',
   'shift.waiterRevenue': 'Выручка официантов',
   'shift.print': 'ПЕЧАТЬ Z-ОТЧЁТА',
+  'shift.tablesClosed': 'Закрыто столов: {n}',
 
   // ── Панель ──────────────────────────────────────────────────────────
   'dash.revenue': 'Общая выручка',
@@ -168,6 +178,12 @@ export const ru: Record<TranslationKey, string> = {
   'dash.topDishesDetail': 'Лучшие блюда — подробно',
   'dash.dishName': 'Название блюда',
   'dash.paymentMethods': 'Способы оплаты',
+  'dash.todayOrders': 'Заказы за сегодня',
+  'dash.todayOrdersSub': 'Закрытые заказы',
+  'dash.todayRevenue': 'Выручка за сегодня',
+  'dash.allTime': '(за всё время)',
+  'dash.activeOrders': 'Активные заказы',
+  'dash.activeOrdersSub': 'Сейчас открытые столы',
 
   // ── Настройки принтера ──────────────────────────────────────────────
   'printer.title': 'Термопринтер и настройки чека',
@@ -194,6 +210,12 @@ export const ru: Record<TranslationKey, string> = {
   'printer.footerPlaceholder': 'Спасибо за визит!',
   'printer.kioskHint': 'Или откройте Chrome в режиме киоска.',
   'printer.systemDefault': 'Системный принтер по умолчанию',
+  'printer.receiptPrinter': 'Принтер чеков',
+  'printer.receiptPrinterHint': 'Чек уходит на принтер напрямую — окно печати не открывается.',
+  'printer.dialogTitle': 'Чтобы окно печати не появлялось',
+  'printer.dialogWhy': 'Сейчас чек уходит на системный принтер, и браузер каждый раз просит подтверждение. Убрать это можно двумя способами:',
+  'printer.dialogFix1': '— через кнопку Bluetooth или USB выше. Тогда чек печатается напрямую, и окно не открывается вовсе.',
+  'printer.dialogFix2': 'Принтер должен быть выбран в системе как основной (по умолчанию):',
   'printer.usbTitle': 'USB / Кассовый принтер',
   'printer.usbHint': 'Напрямую по кабелю',
 
@@ -212,9 +234,14 @@ export const ru: Record<TranslationKey, string> = {
   'frozen.toAdmin': 'Перейти в админ-панель (оплата)',
   'frozen.recheck': 'Проверить снова (обновить)',
   'frozen.support': 'Поддержка в Telegram',
+  'frozen.expired': 'Срок подписки ресторана {cafe} истёк.',
+  'frozen.howTo': 'Чтобы снова включить кассу, войдите в админ-панель и оплатите подписку.',
 
   // ── Безопасность ────────────────────────────────────────────────────
   'admin.pinTitle': 'Подтверждение безопасности',
+  'admin.pinDefault': 'Введите PIN-код для подтверждения',
+  'admin.pinKitchenCancel': 'Введите PIN-код для отмены заказа или блюда',
+  'admin.pinWrong': 'Неверный PIN-код или недостаточно прав!',
   'kitchen.cancelNeedsPin': 'Отмена (нужен PIN админа)',
 
   // ── Обновление ──────────────────────────────────────────────────────

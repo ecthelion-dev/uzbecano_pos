@@ -139,9 +139,9 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
           <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{t('cart.paymentType')}</span>
           <div className="grid grid-cols-3 gap-1">
             {[
-              { id: 'naqd', label: 'Naqd', icon: <Banknote className="w-4 h-4" /> },
-              { id: 'karta', label: 'Karta', icon: <CreditCard className="w-4 h-4" /> },
-              { id: 'aralash', label: 'Aralash', icon: <Shuffle className="w-4 h-4" /> },
+              { id: 'naqd', label: t('common.cash'), icon: <Banknote className="w-4 h-4" /> },
+              { id: 'karta', label: t('common.card'), icon: <CreditCard className="w-4 h-4" /> },
+              { id: 'aralash', label: t('common.mixed'), icon: <Shuffle className="w-4 h-4" /> },
             ].map((pm) => (
               <button
                 key={pm.id}
@@ -161,21 +161,21 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
 
         <div className="flex justify-between text-xs text-slate-500 font-medium pt-1">
           <span>{t('cart.itemsTotal')}</span>
-          <span className="text-slate-900 font-medium">{subtotal.toLocaleString()} so'm</span>
+          <span className="text-slate-900 font-medium">{subtotal.toLocaleString()} {t('common.currency')}</span>
         </div>
         {discountAmount > 0 && (
           <div className="flex justify-between text-xs text-emerald-600 font-semibold">
             <span>Chegirma ({discountPercent}%):</span>
-            <span>-{discountAmount.toLocaleString()} so'm</span>
+            <span>-{discountAmount.toLocaleString()} {t('common.currency')}</span>
           </div>
         )}
         <div className="flex justify-between text-xs text-slate-500 font-medium">
-          <span>Xizmat haqi ({serviceFeePercent}%):</span>
-          <span className="text-slate-900 font-medium">{serviceFee.toLocaleString()} so'm</span>
+          <span>{t('cart.serviceFee', { p: serviceFeePercent })}</span>
+          <span className="text-slate-900 font-medium">{serviceFee.toLocaleString()} {t('common.currency')}</span>
         </div>
         <div className="flex justify-between text-base font-bold text-slate-900 pt-1.5 border-t border-slate-200">
           <span>{t('common.totalUpper')}</span>
-          <span className="text-[#0F172A] text-lg">{grandTotal.toLocaleString()} so'm</span>
+          <span className="text-[#0F172A] text-lg">{grandTotal.toLocaleString()} {t('common.currency')}</span>
         </div>
 
         <div className="space-y-2 pt-2">

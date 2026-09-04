@@ -40,7 +40,7 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
       return;
     }
     if (!note.trim()) {
-      setError("Xarajat yoki kirim sababini kiriting!");
+      setError(t('drawer.needReason'));
       return;
     }
 

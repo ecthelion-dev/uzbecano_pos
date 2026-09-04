@@ -42,8 +42,8 @@ export const FrozenCafeScreen: React.FC<FrozenCafeScreenProps> = ({ cafeName, on
           </div>
           <h2 className="text-xl font-black text-white">{t('frozen.title')}</h2>
           <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-            <strong className="text-white font-semibold">{cafeName}</strong> restorani uchun abonent to'lov muddati yakunlangan.
-            Kassani faollashtirish uchun admin panelingizga kiring va to'lovni amalga oshiring.
+            {t('frozen.expired', { cafe: cafeName })}{' '}
+            {t('frozen.howTo')}
           </p>
         </div>
         <div className="pt-2 flex flex-col gap-2.5">

@@ -31,6 +31,7 @@ export const uz = {
   'common.cashLabel': 'Naqd:',
   'common.cardLabel': 'Karta:',
   'common.currency': "so'm",
+  'common.countItems': '{n} ta',
 
   // ── Kirish ──────────────────────────────────────────────────────────
   'login.pinPrompt': 'Ofitsiant PIN kodini kiriting',
@@ -49,6 +50,9 @@ export const uz = {
   'header.archiveTitle': 'Arxiv',
   'header.printerTitle': 'Termoprinter va chek sozlamalari',
   'header.waiterCallTitle': 'Ofitsiant chaqiruvi',
+  'header.printerSettings': 'Printer sozlamalari',
+  'nav.tables': 'Stollar',
+  'nav.menu': 'Menyu',
   'role.cashier': 'Kassir',
   'role.waiter': 'Ofitsiant',
   'menu.backToCategories': 'KATEGORIYALARGA QAYTISH',
@@ -73,18 +77,22 @@ export const uz = {
   'cart.sentItems': 'Oshxonaga yuborilgan taomlar',
   'cart.newItems': "Yangi qo'shilayotgan taomlar",
   'cart.kitchenNote': 'Oshxonaga izoh (masalan: piyozsiz, achchiq...)',
+  'cart.serviceFee': 'Xizmat haqi ({p}%):',
 
   // ── Taom sozlamalari ────────────────────────────────────────────────
   'modifier.size': "O'lcham / Porsiya:",
   'modifier.addons': "Qo'shimchalar:",
   'modifier.note': 'Oshxonaga izoh yozing (masalan: piyozsiz, achchiqroq...)',
   'modifier.addToCart': "Savatga qo'shish",
+  'modifier.pickSize': "Kerakli porsiya yoki o'lchamni tanlang",
 
   // ── Aralash to'lov ──────────────────────────────────────────────────
   'mixed.title': "Aralash To'lov Miqdori",
   'mixed.totalDue': "Jami to'lov:",
   'mixed.full': "To'liq",
   'mixed.ready': 'TAYYOR',
+  'mixed.viaCard': 'Karta orqali:',
+  'mixed.viaCash': 'Naqd orqali:',
 
   // ── Stollar ─────────────────────────────────────────────────────────
   'table.busy': 'BAND',
@@ -99,6 +107,7 @@ export const uz = {
   'table.none': 'Stollar belgilanmagan',
   'table.occupiedCount': '{n} ta band stol',
   'table.moveTarget': "Qaysi stolga o'tkazilsin?",
+  'table.mergeNeedsBusy': '{table}da faol buyurtma yo‘q! Birlashtirish uchun stol band bo‘lishi kerak.',
 
   // ── Saqlanmagan savat ───────────────────────────────────────────────
   'unsaved.title': 'Yuborilmagan taomlar bor!',
@@ -126,7 +135,7 @@ export const uz = {
   'archive.refundedShort': 'Qaytarilgan',
   'archive.closed': 'Yopilgan',
   'archive.totalPaid': "JAMI TO'LOV:",
-  'archive.refund': 'QAYTARISH',
+  'archive.refund': 'QAYTARISH (VOZVRAT)',
   'archive.refundReason': 'Qaytarish sababini tanlang:',
   'archive.confirmAdminPin': 'TASDIQLASH (ADMIN PIN)',
   'archive.printReceipt': 'CHEKNI CHOP ETISH',
@@ -165,6 +174,7 @@ export const uz = {
   'shift.tableCount': 'Stollar soni',
   'shift.waiterRevenue': 'Ofitsiantlar tushumi',
   'shift.print': 'Z-REPORT CHOP ETISH',
+  'shift.tablesClosed': '{n} ta stol yopilgan',
 
   // ── Boshqaruv paneli ────────────────────────────────────────────────
   'dash.revenue': 'Jami tushum',
@@ -176,6 +186,12 @@ export const uz = {
   'dash.topDishesDetail': 'Eng yaxshi taomlar – batafsil',
   'dash.dishName': 'Taom nomi',
   'dash.paymentMethods': "To'lov usullari",
+  'dash.todayOrders': 'Bugungi buyurtmalar',
+  'dash.todayOrdersSub': 'Yopilgan buyurtmalar',
+  'dash.todayRevenue': 'Bugungi tushum',
+  'dash.allTime': '(barcha vaqt)',
+  'dash.activeOrders': 'Faol buyurtmalar',
+  'dash.activeOrdersSub': 'Hozir ochiq stollar',
 
   // ── Printer sozlamalari ─────────────────────────────────────────────
   'printer.title': 'Termoprinter va chek sozlamalari',
@@ -203,6 +219,12 @@ export const uz = {
   'printer.footerPlaceholder': 'Tashrifingiz uchun rahmat!',
   'printer.kioskHint': 'Yoki Chrome‘ni kiosk rejimida oching.',
   'printer.systemDefault': 'Tizimning standart printeri',
+  'printer.receiptPrinter': 'Chek printeri',
+  'printer.receiptPrinterHint': "Chek to'g'ridan-to'g'ri printerga yuboriladi — chop etish oynasi ochilmaydi.",
+  'printer.dialogTitle': 'Chop etish oynasi chiqmasligi uchun',
+  'printer.dialogWhy': "Hozir chek operatsion tizim printeriga yuborilmoqda va brauzer har safar tasdiq so'raydi. Buni ikki yo'l bilan olib tashlash mumkin:",
+  'printer.dialogFix1': "— yuqoridagi Bluetooth yoki USB tugmasi orqali. Shunda chek to'g'ridan-to'g'ri chiqadi, oyna umuman ochilmaydi.",
+  'printer.dialogFix2': "Printer tizimda asosiy (default) qilib qo'yilgan bo'lishi shart:",
   'printer.usbTitle': 'USB / Kassa printeri',
   'printer.usbHint': "Kabel orqali to'g'ridan",
 
@@ -221,9 +243,14 @@ export const uz = {
   'frozen.toAdmin': "Admin panelga o'tish (to'lov qilish)",
   'frozen.recheck': 'Qayta tekshirish (yangilash)',
   'frozen.support': "Telegram qo'llab-quvvatlash",
+  'frozen.expired': '{cafe} restorani uchun abonent to‘lov muddati yakunlangan.',
+  'frozen.howTo': 'Kassani faollashtirish uchun admin panelingizga kiring va to‘lovni amalga oshiring.',
 
   // ── Xavfsizlik ──────────────────────────────────────────────────────
   'admin.pinTitle': "Xavfsizlik tasdig'i",
+  'admin.pinDefault': 'Tasdiqlash uchun PIN kodni kiriting',
+  'admin.pinKitchenCancel': 'Oshxona buyurtmasi / Taomni bekor qilish uchun PIN kodni kiriting',
+  'admin.pinWrong': "PIN kod noto'g'ri yoki ruxsat darajasi yetarli emas!",
   'kitchen.cancelNeedsPin': 'Bekor qilish (admin PIN talab qilinadi)',
 
   // ── Yangilanish ─────────────────────────────────────────────────────

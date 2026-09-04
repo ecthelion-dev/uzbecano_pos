@@ -40,7 +40,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
     const targetHasActiveOrder = orders.some(o => o.tableNumber === targetTable && o.status !== 'served');
 
     if (isMerge && !targetHasActiveOrder) {
-      setError(`${targetTable}da faol buyurtma yo'q! Birlashtirish uchun stol band bo'lishi kerak.`);
+      setError(t('table.mergeNeedsBusy', { table: targetTable }));
       return;
     }
 

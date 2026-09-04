@@ -117,10 +117,10 @@ export function AdminDashboard({ orders, products }: Props) {
     <div className="flex-1 overflow-y-auto p-1 space-y-5">
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {[
-          { icon: <ShoppingBag className="w-5 h-5" />, label: "Bugungi buyurtmalar", value: `${todayOrders.length} ta`, sub: "Yopilgan buyurtmalar", color: "orange" },
-          { icon: <Wallet className="w-5 h-5" />, label: "Bugungi tushum", value: todayRevenue.toLocaleString(), sub: "so'm", color: "emerald" },
-          { icon: <TrendingUp className="w-5 h-5" />, label: "Jami tushum", value: totalRevenue.toLocaleString(), sub: "so'm (barcha vaqt)", color: "blue" },
-          { icon: <Clock className="w-5 h-5" />, label: "Faol buyurtmalar", value: `${activeOrders} ta`, sub: "Hozir ochiq stollar", color: "purple" },
+          { icon: <ShoppingBag className="w-5 h-5" />, label: t('dash.todayOrders'), value: t('common.countItems', { n: todayOrders.length }), sub: t('dash.todayOrdersSub'), color: "orange" },
+          { icon: <Wallet className="w-5 h-5" />, label: t('dash.todayRevenue'), value: todayRevenue.toLocaleString(), sub: t('common.currency'), color: "emerald" },
+          { icon: <TrendingUp className="w-5 h-5" />, label: t('dash.revenue'), value: totalRevenue.toLocaleString(), sub: `${t('common.currency')} ${t('dash.allTime')}`, color: "blue" },
+          { icon: <Clock className="w-5 h-5" />, label: t('dash.activeOrders'), value: t('common.countItems', { n: activeOrders }), sub: t('dash.activeOrdersSub'), color: "purple" },
         ].map((card, i) => {
           const colorMap: Record<string, { bg: string; icon: string; border: string }> = {
             orange: { bg: "bg-orange-50", icon: "bg-orange-100 text-orange-600", border: "border-orange-100" },

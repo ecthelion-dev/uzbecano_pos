@@ -23,6 +23,7 @@ export const en: Record<TranslationKey, string> = {
   'common.cashLabel': 'Cash:',
   'common.cardLabel': 'Card:',
   'common.currency': 'UZS',
+  'common.countItems': '{n}',
 
   // ── Login ───────────────────────────────────────────────────────────
   'login.pinPrompt': 'Enter the waiter PIN',
@@ -41,6 +42,9 @@ export const en: Record<TranslationKey, string> = {
   'header.archiveTitle': 'Archive',
   'header.printerTitle': 'Thermal printer and receipt settings',
   'header.waiterCallTitle': 'Waiter call',
+  'header.printerSettings': 'Printer settings',
+  'nav.tables': 'Tables',
+  'nav.menu': 'Menu',
   'role.cashier': 'Cashier',
   'role.waiter': 'Waiter',
   'menu.backToCategories': 'BACK TO CATEGORIES',
@@ -65,18 +69,22 @@ export const en: Record<TranslationKey, string> = {
   'cart.sentItems': 'Sent to the kitchen',
   'cart.newItems': 'Newly added items',
   'cart.kitchenNote': 'Note for the kitchen (e.g. no onion, spicy...)',
+  'cart.serviceFee': 'Service fee ({p}%):',
 
   // ── Dish options ────────────────────────────────────────────────────
   'modifier.size': 'Size / portion:',
   'modifier.addons': 'Extras:',
   'modifier.note': 'Note for the kitchen (e.g. no onion, spicier...)',
   'modifier.addToCart': 'Add to cart',
+  'modifier.pickSize': 'Pick the portion or size you need',
 
   // ── Split payment ───────────────────────────────────────────────────
   'mixed.title': 'Split payment amount',
   'mixed.totalDue': 'Total due:',
   'mixed.full': 'Full',
   'mixed.ready': 'DONE',
+  'mixed.viaCard': 'By card:',
+  'mixed.viaCash': 'In cash:',
 
   // ── Tables ──────────────────────────────────────────────────────────
   'table.busy': 'BUSY',
@@ -91,6 +99,7 @@ export const en: Record<TranslationKey, string> = {
   'table.none': 'No tables set up',
   'table.occupiedCount': '{n} occupied tables',
   'table.moveTarget': 'Move to which table?',
+  'table.mergeNeedsBusy': '{table} has no active order — a table must be occupied to merge.',
 
   // ── Unsaved cart ────────────────────────────────────────────────────
   'unsaved.title': 'There are unsent items!',
@@ -157,6 +166,7 @@ export const en: Record<TranslationKey, string> = {
   'shift.tableCount': 'Tables served',
   'shift.waiterRevenue': 'Revenue by waiter',
   'shift.print': 'PRINT Z-REPORT',
+  'shift.tablesClosed': '{n} tables closed',
 
   // ── Dashboard ───────────────────────────────────────────────────────
   'dash.revenue': 'Total revenue',
@@ -168,6 +178,12 @@ export const en: Record<TranslationKey, string> = {
   'dash.topDishesDetail': 'Top dishes — detailed',
   'dash.dishName': 'Dish name',
   'dash.paymentMethods': 'Payment methods',
+  'dash.todayOrders': 'Orders today',
+  'dash.todayOrdersSub': 'Closed orders',
+  'dash.todayRevenue': 'Revenue today',
+  'dash.allTime': '(all time)',
+  'dash.activeOrders': 'Active orders',
+  'dash.activeOrdersSub': 'Tables open right now',
 
   // ── Printer settings ────────────────────────────────────────────────
   'printer.title': 'Thermal printer and receipt settings',
@@ -194,6 +210,12 @@ export const en: Record<TranslationKey, string> = {
   'printer.footerPlaceholder': 'Thank you for visiting!',
   'printer.kioskHint': 'Or open Chrome in kiosk mode.',
   'printer.systemDefault': 'System default printer',
+  'printer.receiptPrinter': 'Receipt printer',
+  'printer.receiptPrinterHint': 'The receipt goes straight to the printer — no print dialog opens.',
+  'printer.dialogTitle': 'Getting rid of the print dialog',
+  'printer.dialogWhy': 'The receipt goes to the system printer, so the browser asks every time. There are two ways to stop that:',
+  'printer.dialogFix1': '— with the Bluetooth or USB button above. The receipt then prints straight out and no dialog opens at all.',
+  'printer.dialogFix2': 'The printer has to be the system default:',
   'printer.usbTitle': 'USB / POS printer',
   'printer.usbHint': 'Straight over the cable',
 
@@ -212,9 +234,14 @@ export const en: Record<TranslationKey, string> = {
   'frozen.toAdmin': 'Go to the admin panel (payment)',
   'frozen.recheck': 'Check again (refresh)',
   'frozen.support': 'Telegram support',
+  'frozen.expired': 'The subscription for {cafe} has run out.',
+  'frozen.howTo': 'To switch the till back on, sign in to your admin panel and pay.',
 
   // ── Security ────────────────────────────────────────────────────────
   'admin.pinTitle': 'Security confirmation',
+  'admin.pinDefault': 'Enter the PIN to confirm',
+  'admin.pinKitchenCancel': 'Enter the PIN to cancel a kitchen order or a dish',
+  'admin.pinWrong': "Wrong PIN, or the access level is not enough!",
   'kitchen.cancelNeedsPin': 'Cancel (admin PIN required)',
 
   // ── Update ──────────────────────────────────────────────────────────

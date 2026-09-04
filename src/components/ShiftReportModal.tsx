@@ -91,7 +91,7 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
                 <div key={name} className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex justify-between items-center text-xs">
                   <div>
                     <span className="font-semibold text-slate-900 flex items-center gap-1"><ChefHat className="w-3.5 h-3.5" />{name}</span>
-                    <p className="text-[10px] text-slate-500">{stat.count} ta stol yopilgan</p>
+                    <p className="text-[10px] text-slate-500">{t('shift.tablesClosed', { n: stat.count })}</p>
                   </div>
                   <span className="font-bold text-slate-900 text-sm">{stat.total.toLocaleString()} so'm</span>
                 </div>

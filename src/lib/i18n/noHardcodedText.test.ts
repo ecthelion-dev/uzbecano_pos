@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Ekranga chiqadigan matn lug'atdan kelishi kerak.
@@ -16,7 +17,8 @@ import { join } from 'node:path';
  * test yiqiladi.
  */
 
-const ROOT = new URL('../../../', import.meta.url).pathname;
+// `.pathname` Windows'da "/C:/..." beradi va `join` buni tushunmaydi.
+const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 
 /** Chop etiladigan qog'oz — ataylab o'zbekcha, kassirning ekran tili uni o'zgartirmaydi. */
 const PRINT_FILES = new Set([

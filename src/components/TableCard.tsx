@@ -44,8 +44,15 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
               <Bell className="w-3 h-3 fill-white" />
             </span>
           )}
+          {/*
+            Tor va tracking'siz: yorliq "shrink-0", ya'ni joy yetmasa stol
+            NOMI qisqaradi. "СВОБОДЕН" "BOSH" dan uzun va 1280px ekranda
+            "Hovli 1" ni "Ho..." ga aylantirib qo'yardi — o'lchab ko'rilgan:
+            nomga 44px kerak, 37px qolardi. Tracking va ichki bo'shliqni
+            olib tashlash o'sha 7px ni qaytaradi.
+          */}
           <span
-            className={`text-[8px] sm:text-[9px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full tracking-wider shrink-0 whitespace-nowrap ${
+            className={`text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
               table.status === 'band'
                 ? 'bg-orange-500 text-white'
                 : 'bg-emerald-100 text-emerald-700'

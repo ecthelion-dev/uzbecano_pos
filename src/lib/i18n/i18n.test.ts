@@ -194,13 +194,16 @@ describe('til tanlagich', () => {
     expect((html.match(/<option/g) ?? []).length).toBe(LOCALES.length);
   });
 
-  it('har bir til ro‘yxatda o‘z nomi bilan turadi', async () => {
+  it('ro‘yxatda faqat qisqartma ko‘rinadi', async () => {
     const html = await markup('uz');
     for (const code of LOCALES) {
       expect(html).toContain(`value="${code}"`);
     }
-    expect(html).toContain('Русский');
-    expect(html).toContain('English');
+    // Ko'rinadigan matn — ikki harf. To'liq nom sarlavhada joy yeydi,
+    // shuning uchun u faqat `title` da qoladi.
+    const visible = Array.from(html.matchAll(/<option[^>]*>([^<]*)<\/option>/g)).map((m) => m[1]);
+    expect(visible).toEqual(['UZ', 'RU', 'EN']);
+    expect(html).toContain('title="Русский"');
   });
 
   it('tanlangan til belgilangan bo‘ladi', async () => {

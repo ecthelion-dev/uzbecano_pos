@@ -34,12 +34,12 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
 
   return (
     <div className="min-h-[100dvh] bg-slate-100 flex flex-col items-center justify-center p-4 py-[calc(1rem+env(safe-area-inset-top))] font-sans antialiased text-slate-800 selection:bg-orange-500 selection:text-white">
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-8 max-w-sm w-full shadow-xl flex flex-col items-center gap-5 sm:gap-6 relative">
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 max-w-[288px] w-full shadow-xl flex flex-col items-center gap-3.5 relative">
         {/* Header */}
         <div className="flex flex-col items-center gap-2 text-center w-full">
           <div className="flex items-center gap-3">
-            <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain" />
-            <h1 className="text-xl font-bold tracking-wider text-slate-900">
+            <img src="/favicon.png" alt="OrderPlus" className="w-9 h-9 object-contain" />
+            <h1 className="text-lg font-bold tracking-wider text-slate-900">
               ORDER<span className="text-orange-500">PLUS</span>
             </h1>
           </div>
@@ -50,22 +50,22 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
               setInputCafeId(currentCafeId);
               setShowCafeModal(true);
             }}
-            className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-full text-[11px] font-medium border border-slate-200 transition-all cursor-pointer group"
+            className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-full text-[11px] font-medium border border-slate-200 transition-all cursor-pointer group"
           >
             <Building2 className="w-3.5 h-3.5 text-orange-500" />
             <span className="truncate max-w-[170px]">{cafeName || currentCafeId}</span>
             <Settings className="w-3 h-3 text-slate-400 group-hover:text-orange-500 transition-colors ml-0.5" />
           </button>
 
-          <p className="text-xs text-slate-500 font-medium mt-1">{t('login.pinPrompt')}</p>
+          <p className="text-xs text-slate-500 font-medium">{t('login.pinPrompt')}</p>
         </div>
 
         {/* 4 PIN Dots */}
-        <div className="flex items-center justify-center gap-4 py-1">
+        <div className="flex items-center justify-center gap-3.5">
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
-              className={`w-4 h-4 rounded-full border-2 transition-all ${
+              className={`w-3.5 h-3.5 rounded-full border-2 transition-all ${
                 pinInput.length > i
                   ? 'bg-orange-500 border-orange-500 scale-110 shadow-md shadow-orange-500/50'
                   : 'border-slate-300 bg-slate-100'
@@ -89,19 +89,27 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
           * tabletka chiqarardi. Endi ikkalasi tenglashadi va shakl ekran
           * kengligidan qat'i nazar doira bo'lib qoladi.
           *
-          * Yon tomoni ~85px — ilgarigi 64px balandlikdan kattaroq, ya'ni
-          * barmoq uchun nishon ham yaxshilandi.
+          * Yon tomoni ~64px.
+          *
+          * Bir vaqtlar 85px edi va o'shanda klaviatura kartochkaning 58%
+          * balandligini egallardi — jami 635px, noutbuk ekraniga zo'rg'a
+          * sig'adigan darajada. Qisqartirish uchun eng ko'p joy aynan shu
+          * yerda bo'lgan, chunki to'rt qator har bir piksel to'rt marta
+          * hisoblanadi.
+          *
+          * 64px sensorli ekran uchun hamon keng: tavsiya etilgan eng kichik
+          * nishon 44px.
           */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-3.5 w-full max-w-[280px]">
+        <div className="grid grid-cols-3 gap-2.5 w-full max-w-[212px]">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'DEL'].map((key) => (
             <button
               key={key}
               onClick={() => onPinKey(key)}
-              className={`aspect-square rounded-full font-bold text-xl transition-all flex items-center justify-center cursor-pointer active:scale-95 shadow-2xs ${
+              className={`aspect-square rounded-full font-bold text-lg transition-all flex items-center justify-center cursor-pointer active:scale-95 shadow-2xs ${
                 key === 'C'
-                  ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-base'
+                  ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-sm'
                   : key === 'DEL'
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 text-base'
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 text-sm'
                   : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 hover:border-orange-400'
               }`}
             >
@@ -111,7 +119,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="text-center pt-2 border-t border-slate-200 w-full flex items-center justify-between text-[11px] text-slate-500">
+        <div className="text-center pt-3 border-t border-slate-200 w-full flex items-center justify-between text-[11px] text-slate-500">
           <span>OrderPlus POS</span>
           <button
             onClick={() => {

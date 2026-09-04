@@ -55,6 +55,7 @@ import {
 import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
+import { useT } from './lib/i18n/LanguageProvider';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
 import { KitchenPrintArea } from './components/KitchenPrintArea';
@@ -121,7 +122,18 @@ const mapDBProductModifiers = (prods: DBProduct[]): DBProduct[] => {
   });
 };
 
+/**
+ * "Barcha zonalar" filtri — ICHKI qiymat, ekrandagi yozuv emas.
+ *
+ * Zona nomlari bazadan keladi ("Bar", "Hovli", "Terassa") va tarjima
+ * qilinmaydi, chunki ularni kafening o'zi qo'ygan. Filtrning o'zi esa
+ * tarjima qilinadi: ko'rinadigan matn `t('table.allAreas')` dan olinadi,
+ * bu qiymat hech qachon ekranga chiqmaydi.
+ */
+const ALL_AREAS = 'Barchasi';
+
 export default function App() {
+  const t = useT();
   const [activeTab, setActiveTab] = useState<'stollar' | 'menyu'>('stollar');
   const [selectedTable, setSelectedTable] = useState<string>('Stol 01');
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
@@ -1066,7 +1078,7 @@ export default function App() {
 
   const cart = useMemo(() => tableCarts[selectedTable] || [], [tableCarts, selectedTable]);
 
-  const [selectedArea, setSelectedArea] = useState<string>('Barchasi');
+  const [selectedArea, setSelectedArea] = useState<string>(ALL_AREAS);
   // Telefonda kvitansiya yon panel sifatida sig'maydi — pastdan chiquvchi panel.
   const [showMobileCart, setShowMobileCart] = useState<boolean>(false);
   // Telefonda qidiruv maydoni ikonka ortida turadi va bosilganda ochiladi.
@@ -1106,15 +1118,15 @@ export default function App() {
   const areas = useMemo(() => {
     const seen = new Set<string>();
     for (const t of tables) if (t.area) seen.add(t.area);
-    return ['Barchasi', ...Array.from(seen).sort((a, b) => a.localeCompare(b, 'uz'))];
+    return [ALL_AREAS, ...Array.from(seen).sort((a, b) => a.localeCompare(b, 'uz'))];
   }, [tables]);
 
   /* Tanlangan zona o'chirilsa yoki qayta nomlansa, ro'yxat bo'sh chiqmasin. */
-  const activeArea = areas.includes(selectedArea) ? selectedArea : 'Barchasi';
+  const activeArea = areas.includes(selectedArea) ? selectedArea : ALL_AREAS;
 
   const filteredTables = useMemo(() => {
-    if (activeArea === 'Barchasi') return tables;
-    return tables.filter(t => t.area === activeArea);
+    if (activeArea === ALL_AREAS) return tables;
+    return tables.filter(tb => tb.area === activeArea);
   }, [tables, activeArea]);
 
   const handleSelectTable = useCallback((tableNumber: string) => {
@@ -2360,14 +2372,14 @@ export default function App() {
             {/* Top Bar for Tables */}
             <div className="flex items-center justify-between bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
               <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-                <Grid className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 shrink-0" /> Stollar Joylashuvi
+                <Grid className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 shrink-0" /> {t('table.layout')}
               </h2>
               <div className="flex items-center gap-2 sm:gap-4 text-[11px] sm:text-xs font-medium">
                 <span className="flex items-center gap-1.5 bg-emerald-50 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span> BOSH
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span> {t('table.free')}
                 </span>
                 <span className="flex items-center gap-1.5 bg-orange-50 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-orange-700 border border-orange-200 whitespace-nowrap">
-                  <span className="w-2 h-2 rounded-full bg-orange-500"></span> BAND
+                  <span className="w-2 h-2 rounded-full bg-orange-500"></span> {t('table.busy')}
                 </span>
               </div>
             </div>
@@ -2375,8 +2387,8 @@ export default function App() {
             {/* Area Zone Filters */}
             <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
               {areas.map((area) => {
-                const areaCount = tables.filter(t => area === 'Barchasi' || t.area === area).length;
-                const occupiedCount = tables.filter(t => (area === 'Barchasi' || t.area === area) && t.status === 'band').length;
+                const areaCount = tables.filter(tb => area === ALL_AREAS || tb.area === area).length;
+                const occupiedCount = tables.filter(tb => (area === ALL_AREAS || tb.area === area) && tb.status === 'band').length;
                 return (
                   <button
                     key={area}
@@ -2386,13 +2398,13 @@ export default function App() {
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                   >
-                    <span>{area}</span>
+                    <span>{area === ALL_AREAS ? t('table.allAreas') : area}</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeArea === area ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
                       {areaCount}
                     </span>
                     {occupiedCount > 0 && (
-                      <span className="w-2 h-2 rounded-full bg-orange-500" title={`${occupiedCount} ta band stol`} />
+                      <span className="w-2 h-2 rounded-full bg-orange-500" title={t('table.occupiedCount', { n: occupiedCount })} />
                     )}
                   </button>
                 );
@@ -2403,7 +2415,7 @@ export default function App() {
               /* Tables come from the cafe's own floor plan now, so an empty one
                  is a real state and needs to say what to do about it. */
               <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center space-y-2">
-                <p className="text-sm font-bold text-slate-700">Stollar belgilanmagan</p>
+                <p className="text-sm font-bold text-slate-700">{t('table.none')}</p>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
                   Admin panelga kiring va &quot;Stollar&quot; bo&apos;limidan kafengizdagi stollarni
                   qo&apos;shing. Kassa ekrani va QR kodlar shu ro&apos;yxatdan oladi.
@@ -2435,20 +2447,20 @@ export default function App() {
                       setSearchQuery('');
                       setShowMobileSearch(false);
                     }}
-                    title="Kategoriyalarga qaytish"
+                    title={t('menu.backToCategoriesTitle')}
                     className={`${showMobileSearch ? 'hidden sm:flex' : 'flex'} items-center gap-2 text-xs font-bold text-slate-700 bg-white sm:bg-slate-100 hover:bg-slate-200 h-11 sm:h-auto w-11 sm:w-auto justify-center sm:justify-start sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0 active:scale-95`}
                   >
                     <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4 text-slate-600" />
-                    <span className="hidden sm:inline">KATEGORIYALARGA QAYTISH</span>
+                    <span className="hidden sm:inline">{t('menu.backToCategories')}</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => setActiveTab('stollar')}
-                    title="Stollar zaliga qaytish"
+                    title={t('menu.backToTablesTitle')}
                     className={`${showMobileSearch ? 'hidden sm:flex' : 'flex'} items-center gap-2 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 h-11 sm:h-auto w-11 sm:w-auto justify-center sm:justify-start sm:px-3.5 sm:py-2 rounded-xl border border-orange-200 transition-all cursor-pointer shrink-0 active:scale-95`}
                   >
                     <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4 text-orange-500" />
-                    <span className="hidden sm:inline">STOLLAR ZALIGA QAYTISH</span>
+                    <span className="hidden sm:inline">{t('menu.backToTables')}</span>
                   </button>
                 )}
 
@@ -2461,7 +2473,7 @@ export default function App() {
                     <input
                       ref={searchInputRef}
                       type="text"
-                      placeholder="Taom yoki ichimlik qidirish..."
+                      placeholder={t('menu.searchPlaceholder')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full bg-white sm:bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 h-11 sm:h-auto sm:py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
@@ -2472,7 +2484,7 @@ export default function App() {
                       setSearchQuery('');
                       setShowMobileSearch(false);
                     }}
-                    title="Qidiruvni yopish"
+                    title={t('menu.closeSearch')}
                     className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-white text-slate-600 border border-slate-200 shadow-2xs active:scale-95 transition-transform"
                   >
                     <X className="w-5 h-5" />
@@ -2483,7 +2495,7 @@ export default function App() {
                 {!showMobileSearch && (
                   <button
                     onClick={() => setShowMobileSearch(true)}
-                    title="Qidirish"
+                    title={t('common.search')}
                     className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-white text-slate-600 border border-slate-200 shadow-2xs active:scale-95 transition-transform"
                   >
                     <Search className="w-5 h-5" />
@@ -2497,7 +2509,7 @@ export default function App() {
                 <div className="flex-1 overflow-y-auto pr-1 pt-2.5 p-1 pb-[calc(9.5rem+env(safe-area-inset-bottom))] lg:pb-1 min-h-0">
                   {allCategories.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                      <p className="text-slate-400 text-sm font-medium">Bazada kategoriyalar yoki mahsulotlar topilmadi</p>
+                      <p className="text-slate-400 text-sm font-medium">{t('menu.emptyDb')}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4">
@@ -2525,7 +2537,7 @@ export default function App() {
 
                   {displayedProducts.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                      <p className="text-slate-400 text-sm font-medium">Mahsulotlar topilmadi</p>
+                      <p className="text-slate-400 text-sm font-medium">{t('menu.noProducts')}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
@@ -2742,7 +2754,7 @@ export default function App() {
             <AlertCircle className="w-4 h-4" />
             <span>{apiError}</span>
           </div>
-          <button onClick={() => setApiError(null)} className="underline text-[11px] opacity-80 hover:opacity-100">Yopish</button>
+          <button onClick={() => setApiError(null)} className="underline text-[11px] opacity-80 hover:opacity-100">{t('common.close')}</button>
         </div>
       )}
 

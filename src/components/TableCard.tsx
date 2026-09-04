@@ -51,7 +51,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
                 : 'bg-emerald-100 text-emerald-700'
             }`}
           >
-            {table.status === 'band' ? 'BAND' : 'BOSH'}
+            {table.status === 'band' ? t('table.busy') : t('table.free')}
           </span>
         </div>
       </div>

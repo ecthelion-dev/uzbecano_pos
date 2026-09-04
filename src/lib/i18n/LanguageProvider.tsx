@@ -10,10 +10,13 @@ const DICTIONARIES: Record<Locale, Record<TranslationKey, string>> = { uz, ru, e
 /** Til QURILMANIKI: bir kafeda xodimlar har xil tilda ishlashi mumkin. */
 const LOCALE_KEY = 'orderplus_lang';
 
+/** `t('table.occupiedCount', { n: 3 })` — matndagi `{n}` o'rniga qo'yiladi. */
+export type TParams = Record<string, string | number>;
+
 interface LanguageValue {
   locale: Locale;
   setLocale: (next: Locale) => void;
-  t: (key: TranslationKey) => string;
+  t: (key: TranslationKey, params?: TParams) => string;
 }
 
 const LanguageContext = createContext<LanguageValue | null>(null);
@@ -59,7 +62,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const dict = DICTIONARIES[locale] ?? DICTIONARIES[DEFAULT_LOCALE];
     // Kalit topilmasa o'zbekchasi, u ham bo'lmasa kalitning o'zi: bo'sh
     // tugmadan ko'ra g'alati yozuv yaxshiroq — xato darhol ko'rinadi.
-    return { locale, setLocale, t: (key) => dict[key] ?? uz[key] ?? key };
+    /*
+     * O'rin egallovchilar tilga qarab boshqa joyda turadi: o'zbekchada
+     * "3 ta band stol", ruschada "Занятых столов: 3". Shuning uchun son
+     * matnga yopishtirilmaydi, lug'atning o'zida `{n}` bo'lib turadi.
+     */
+    const fill = (text: string, params?: TParams) =>
+      params
+        ? text.replace(/\{(\w+)\}/g, (whole, name) =>
+            name in params ? String(params[name]) : whole,
+          )
+        : text;
+
+    return { locale, setLocale, t: (key, params) => fill(dict[key] ?? uz[key] ?? key, params) };
   }, [locale, setLocale]);
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
@@ -71,7 +86,7 @@ function useLanguage(): LanguageValue {
   return ctx;
 }
 
-export function useT(): (key: TranslationKey) => string {
+export function useT(): (key: TranslationKey, params?: TParams) => string {
   return useLanguage().t;
 }
 

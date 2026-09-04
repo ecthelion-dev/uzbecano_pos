@@ -228,7 +228,8 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       turardi va har bir eski chekka hozir kassada turgan
                       odamning nomini yozib qo'yardi. Ma'lum bo'lmasa ochiq
                       aytiladi, taxmin qilinmaydi. */}
-                  Offitsiant: {selectedArchiveOrder.closedBy || selectedArchiveOrder.waiterName || "Noma'lum"}
+                  {t('archive.waiterLabel')}{' '}
+                  {selectedArchiveOrder.closedBy || selectedArchiveOrder.waiterName || t('archive.unknown')}
                 </p>
               </div>
 
@@ -353,7 +354,8 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               >
                 <Printer className="w-4 h-4 shrink-0" />
                 <span>
-                  <span className="hidden sm:inline">CHEKNI </span>{t('common.print')}
+                  <span className="hidden sm:inline">{t('archive.printReceipt')}</span>
+                  <span className="sm:hidden">{t('common.print')}</span>
                 </span>
               </button>
               {!selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect && (
@@ -389,10 +391,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               {/* Time Presets Toolbar */}
               <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200 w-full sm:w-auto sm:shrink-0 overflow-x-auto no-scrollbar">
                 {[
-                  { id: 'all', label: 'Barchasi' },
-                  { id: 'today', label: 'Bugun' },
-                  { id: 'yesterday', label: 'Kecha' },
-                  { id: 'custom', label: 'Oraliq tanlash' },
+                  { id: 'all', label: t('archive.filterAll') },
+                  { id: 'today', label: t('archive.filterToday') },
+                  { id: 'yesterday', label: t('archive.filterYesterday') },
+                  { id: 'custom', label: t('archive.filterCustom') },
                 ].map((preset) => (
                   <button
                     key={preset.id}

@@ -134,7 +134,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                 {currentWaiter.name}
               </p>
               <p className="text-[9px] text-slate-400 mt-0.5">
-                {currentWaiter.role === 'admin' ? 'Kassir' : 'Offitsiant'}
+                {currentWaiter.role === 'admin' ? t('role.cashier') : t('role.waiter')}
               </p>
             </div>
             {/* Til — chiqish tugmasidan oldin: xodim uni bir marta bosadi,
@@ -177,7 +177,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-900 truncate">{currentWaiter.name}</p>
                   <p className="text-[10px] text-slate-400">
-                    {currentWaiter.role === 'admin' ? 'Kassir' : 'Offitsiant'}
+                    {currentWaiter.role === 'admin' ? t('role.cashier') : t('role.waiter')}
                   </p>
                 </div>
               </div>

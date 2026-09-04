@@ -41,6 +41,16 @@ export const ru: Record<TranslationKey, string> = {
   'header.archiveTitle': 'Архив',
   'header.printerTitle': 'Термопринтер и настройки чека',
   'header.waiterCallTitle': 'Вызов официанта',
+  'role.cashier': 'Кассир',
+  'role.waiter': 'Официант',
+  'menu.backToCategories': 'НАЗАД К КАТЕГОРИЯМ',
+  'menu.backToCategoriesTitle': 'Назад к категориям',
+  'menu.backToTables': 'НАЗАД В ЗАЛ',
+  'menu.backToTablesTitle': 'Назад в зал',
+  'menu.searchPlaceholder': 'Поиск блюда или напитка...',
+  'menu.closeSearch': 'Закрыть поиск',
+  'menu.emptyDb': 'В базе нет категорий или товаров',
+  'menu.noProducts': 'Товары не найдены',
 
   // ── Корзина и оплата ────────────────────────────────────────────────
   'cart.empty': 'Корзина пуста',
@@ -76,6 +86,11 @@ export const ru: Record<TranslationKey, string> = {
   'table.selectTable': 'Выберите стол...',
   'table.move': 'Перенести',
   'table.merge': 'Объединить',
+  'table.layout': 'Расположение столов',
+  'table.allAreas': 'Все',
+  'table.none': 'Столы не заданы',
+  'table.occupiedCount': 'Занятых столов: {n}',
+  'table.moveTarget': 'На какой стол перенести?',
 
   // ── Несохранённая корзина ───────────────────────────────────────────
   'unsaved.title': 'Есть неотправленные блюда!',
@@ -107,6 +122,12 @@ export const ru: Record<TranslationKey, string> = {
   'archive.refundReason': 'Выберите причину возврата:',
   'archive.confirmAdminPin': 'ПОДТВЕРДИТЬ (PIN АДМИНА)',
   'archive.printReceipt': 'НАПЕЧАТАТЬ ЧЕК',
+  'archive.waiterLabel': 'Официант:',
+  'archive.unknown': 'Неизвестно',
+  'archive.filterAll': 'Все',
+  'archive.filterToday': 'Сегодня',
+  'archive.filterYesterday': 'Вчера',
+  'archive.filterCustom': 'Выбрать период',
 
   // ── Денежный ящик ───────────────────────────────────────────────────
   'drawer.title': 'Приход и расход кассы',
@@ -173,6 +194,8 @@ export const ru: Record<TranslationKey, string> = {
   'printer.footerPlaceholder': 'Спасибо за визит!',
   'printer.kioskHint': 'Или откройте Chrome в режиме киоска.',
   'printer.systemDefault': 'Системный принтер по умолчанию',
+  'printer.usbTitle': 'USB / Кассовый принтер',
+  'printer.usbHint': 'Напрямую по кабелю',
 
   // ── Просмотр чека ───────────────────────────────────────────────────
   'receipt.preview': 'Предпросмотр чека',

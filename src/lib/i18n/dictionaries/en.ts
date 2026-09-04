@@ -41,6 +41,16 @@ export const en: Record<TranslationKey, string> = {
   'header.archiveTitle': 'Archive',
   'header.printerTitle': 'Thermal printer and receipt settings',
   'header.waiterCallTitle': 'Waiter call',
+  'role.cashier': 'Cashier',
+  'role.waiter': 'Waiter',
+  'menu.backToCategories': 'BACK TO CATEGORIES',
+  'menu.backToCategoriesTitle': 'Back to categories',
+  'menu.backToTables': 'BACK TO TABLES',
+  'menu.backToTablesTitle': 'Back to the table hall',
+  'menu.searchPlaceholder': 'Search a dish or drink...',
+  'menu.closeSearch': 'Close the search',
+  'menu.emptyDb': 'No categories or products in the database',
+  'menu.noProducts': 'No products found',
 
   // ── Cart and payment ────────────────────────────────────────────────
   'cart.empty': 'The cart is empty',
@@ -76,6 +86,11 @@ export const en: Record<TranslationKey, string> = {
   'table.selectTable': 'Select a table...',
   'table.move': 'Move',
   'table.merge': 'Merge',
+  'table.layout': 'Table layout',
+  'table.allAreas': 'All',
+  'table.none': 'No tables set up',
+  'table.occupiedCount': '{n} occupied tables',
+  'table.moveTarget': 'Move to which table?',
 
   // ── Unsaved cart ────────────────────────────────────────────────────
   'unsaved.title': 'There are unsent items!',
@@ -107,6 +122,12 @@ export const en: Record<TranslationKey, string> = {
   'archive.refundReason': 'Choose a refund reason:',
   'archive.confirmAdminPin': 'CONFIRM (ADMIN PIN)',
   'archive.printReceipt': 'PRINT RECEIPT',
+  'archive.waiterLabel': 'Waiter:',
+  'archive.unknown': 'Unknown',
+  'archive.filterAll': 'All',
+  'archive.filterToday': 'Today',
+  'archive.filterYesterday': 'Yesterday',
+  'archive.filterCustom': 'Pick a range',
 
   // ── Cash drawer ─────────────────────────────────────────────────────
   'drawer.title': 'Cash in and cash out',
@@ -173,6 +194,8 @@ export const en: Record<TranslationKey, string> = {
   'printer.footerPlaceholder': 'Thank you for visiting!',
   'printer.kioskHint': 'Or open Chrome in kiosk mode.',
   'printer.systemDefault': 'System default printer',
+  'printer.usbTitle': 'USB / POS printer',
+  'printer.usbHint': 'Straight over the cable',
 
   // ── Receipt preview ─────────────────────────────────────────────────
   'receipt.preview': 'Receipt preview',

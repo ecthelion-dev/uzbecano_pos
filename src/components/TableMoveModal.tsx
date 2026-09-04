@@ -103,7 +103,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
 
           {/* Table Select */}
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700">Qaysi stolga o'tkazilsin?</label>
+            <label className="text-sm font-bold text-slate-700">{t('table.moveTarget')}</label>
             <select
               value={targetTable}
               onChange={(e) => setTargetTable(e.target.value)}

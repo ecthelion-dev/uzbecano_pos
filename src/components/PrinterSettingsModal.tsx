@@ -206,8 +206,8 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               }`}
             >
               <Usb className="w-5 h-5 text-emerald-500" />
-              <span className="text-xs font-semibold">USB / Kassa Printer</span>
-              <span className="text-[10px] text-slate-400">Kabel orqali to&apos;g&apos;ridan</span>
+              <span className="text-xs font-semibold">{t('printer.usbTitle')}</span>
+              <span className="text-[10px] text-slate-400">{t('printer.usbHint')}</span>
             </button>
           </div>
 
@@ -404,7 +404,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
                 <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
                   {t('printer.cashDrawer')}
                 </div>
-                <div className="text-[10px] text-slate-400">Naqd to&apos;lovda temir kassa qutisini ochadi</div>
+                <div className="text-[10px] text-slate-400">{t('printer.cashDrawerHint')}</div>
               </div>
             </div>
             <input

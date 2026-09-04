@@ -125,3 +125,85 @@ describe('provider qamrovi', () => {
     expect(banner).toBeLessThan(close);
   });
 });
+
+/**
+ * Son bilan keladigan matnlar.
+ *
+ * Son matnga kodda yopishtirilsa, u har doim o'zbekcha tartibda turadi:
+ * "3 ta band stol". Ruschada esa "Занятых столов: 3" — son oxirida.
+ * Shuning uchun o'rni lug'atning o'zida belgilanadi.
+ */
+describe('matndagi o‘rin egallovchilar', () => {
+  async function render(locale: string, key: string, params: Record<string, unknown>) {
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { createElement } = await import('react');
+    const { LanguageProvider, useT } = await import('./LanguageProvider');
+
+    globalThis.localStorage = {
+      getItem: () => locale,
+      setItem: () => {},
+      removeItem: () => {},
+    } as unknown as Storage;
+
+    const Probe = () => {
+      const t = useT();
+      return createElement('i', null, t(key as never, params as never));
+    };
+    return renderToStaticMarkup(createElement(LanguageProvider, null, createElement(Probe)));
+  }
+
+  it('sonni o‘z tilining tartibida qo‘yadi', async () => {
+    expect(await render('uz', 'table.occupiedCount', { n: 3 })).toBe('<i>3 ta band stol</i>');
+    expect(await render('ru', 'table.occupiedCount', { n: 3 })).toBe('<i>Занятых столов: 3</i>');
+  });
+
+  it('parametr berilmasa matnni buzmaydi', async () => {
+    // Kalitni chaqiruvchi unutgan bo'lsa ham `{n}` o'chib ketmaydi: bo'sh
+    // joydan ko'ra ko'rinib turgan xato tezroq tuzatiladi.
+    expect(await render('uz', 'table.occupiedCount', {})).toBe('<i>{n} ta band stol</i>');
+  });
+});
+
+/**
+ * Til tanlagich.
+ *
+ * Uchta ochiq tugma edi, endi ochiladigan ro'yxat: sarlavhada joy tor.
+ * Muhimi — uchala til ham ro'yxatda qolishi va tanlangani belgilanishi.
+ */
+describe('til tanlagich', () => {
+  async function markup(locale: string) {
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { createElement } = await import('react');
+    const { LanguageProvider } = await import('./LanguageProvider');
+    const { default: LanguageSwitcher } = await import('../../components/LanguageSwitcher');
+
+    globalThis.localStorage = {
+      getItem: () => locale,
+      setItem: () => {},
+      removeItem: () => {},
+    } as unknown as Storage;
+
+    return renderToStaticMarkup(
+      createElement(LanguageProvider, null, createElement(LanguageSwitcher)),
+    );
+  }
+
+  it('ochiladigan ro‘yxat bo‘lib chiziladi', async () => {
+    const html = await markup('uz');
+    expect(html).toContain('<select');
+    expect((html.match(/<option/g) ?? []).length).toBe(LOCALES.length);
+  });
+
+  it('har bir til ro‘yxatda o‘z nomi bilan turadi', async () => {
+    const html = await markup('uz');
+    for (const code of LOCALES) {
+      expect(html).toContain(`value="${code}"`);
+    }
+    expect(html).toContain('Русский');
+    expect(html).toContain('English');
+  });
+
+  it('tanlangan til belgilangan bo‘ladi', async () => {
+    expect(await markup('ru')).toContain('selected');
+  });
+});

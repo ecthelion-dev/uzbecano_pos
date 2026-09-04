@@ -49,6 +49,16 @@ export const uz = {
   'header.archiveTitle': 'Arxiv',
   'header.printerTitle': 'Termoprinter va chek sozlamalari',
   'header.waiterCallTitle': 'Ofitsiant chaqiruvi',
+  'role.cashier': 'Kassir',
+  'role.waiter': 'Ofitsiant',
+  'menu.backToCategories': 'KATEGORIYALARGA QAYTISH',
+  'menu.backToCategoriesTitle': 'Kategoriyalarga qaytish',
+  'menu.backToTables': 'STOLLAR ZALIGA QAYTISH',
+  'menu.backToTablesTitle': 'Stollar zaliga qaytish',
+  'menu.searchPlaceholder': 'Taom yoki ichimlik qidirish...',
+  'menu.closeSearch': 'Qidiruvni yopish',
+  'menu.emptyDb': 'Bazada kategoriyalar yoki mahsulotlar topilmadi',
+  'menu.noProducts': 'Mahsulotlar topilmadi',
 
   // ── Savat va to'lov ─────────────────────────────────────────────────
   'cart.empty': "Savat bo'sh",
@@ -84,6 +94,11 @@ export const uz = {
   'table.selectTable': 'Stolni tanlang...',
   'table.move': "Ko'chirish (Move)",
   'table.merge': 'Birlashtirish (Merge)',
+  'table.layout': 'Stollar joylashuvi',
+  'table.allAreas': 'Barchasi',
+  'table.none': 'Stollar belgilanmagan',
+  'table.occupiedCount': '{n} ta band stol',
+  'table.moveTarget': "Qaysi stolga o'tkazilsin?",
 
   // ── Saqlanmagan savat ───────────────────────────────────────────────
   'unsaved.title': 'Yuborilmagan taomlar bor!',
@@ -115,6 +130,12 @@ export const uz = {
   'archive.refundReason': 'Qaytarish sababini tanlang:',
   'archive.confirmAdminPin': 'TASDIQLASH (ADMIN PIN)',
   'archive.printReceipt': 'CHEKNI CHOP ETISH',
+  'archive.waiterLabel': 'Ofitsiant:',
+  'archive.unknown': "Noma'lum",
+  'archive.filterAll': 'Barchasi',
+  'archive.filterToday': 'Bugun',
+  'archive.filterYesterday': 'Kecha',
+  'archive.filterCustom': 'Oraliq tanlash',
 
   // ── Kassa qutisi ────────────────────────────────────────────────────
   'drawer.title': 'Kassa kirim va chiqim harakatlari',
@@ -182,6 +203,8 @@ export const uz = {
   'printer.footerPlaceholder': 'Tashrifingiz uchun rahmat!',
   'printer.kioskHint': 'Yoki Chrome‘ni kiosk rejimida oching.',
   'printer.systemDefault': 'Tizimning standart printeri',
+  'printer.usbTitle': 'USB / Kassa printeri',
+  'printer.usbHint': "Kabel orqali to'g'ridan",
 
   // ── Chek ko'rish ────────────────────────────────────────────────────
   'receipt.preview': "Chekni oldindan ko'rish",

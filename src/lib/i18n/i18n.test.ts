@@ -75,3 +75,53 @@ describe('lug‘atlar', () => {
     });
   }
 });
+
+/**
+ * `useT` — provider ichida bo'lishi shart.
+ *
+ * Bu qoida buzilganda xato bitta komponent bilan cheklanmaydi: `useT`
+ * komponent tanasining boshida chaqiriladi va otganda React butun daraxtni
+ * tashlab yuboradi, ya'ni kassa oq ekranga aylanadi. Aynan shu bo'lgan edi —
+ * `UpdateBanner` ga tarjima qo'shildi, lekin u `main.tsx` da
+ * `<LanguageProvider>` dan TASHQARIDA turardi va ilova ishga tushmay qoldi.
+ *
+ * Shuning uchun ikkita tekshiruv: yordamchining o'zi provider talab qilishi
+ * va daraxtning haqiqatan to'g'ri yig'ilgani.
+ */
+describe('provider qamrovi', () => {
+  it('provider tashqarisida useT ishlatgan komponent otadi', async () => {
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { createElement } = await import('react');
+    const { UpdateBanner } = await import('../../components/UpdateBanner');
+
+    expect(() => renderToStaticMarkup(createElement(UpdateBanner))).toThrow(
+      /LanguageProvider/,
+    );
+  });
+
+  it('provider ichida esa otmaydi', async () => {
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { createElement } = await import('react');
+    const { LanguageProvider } = await import('./LanguageProvider');
+    const { UpdateBanner } = await import('../../components/UpdateBanner');
+
+    expect(() =>
+      renderToStaticMarkup(
+        createElement(LanguageProvider, null, createElement(UpdateBanner)),
+      ),
+    ).not.toThrow();
+  });
+
+  it('main.tsx da banner provider ichida turadi', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../../main.tsx', import.meta.url), 'utf-8');
+
+    const open = src.indexOf('<LanguageProvider>');
+    const close = src.indexOf('</LanguageProvider>');
+    const banner = src.indexOf('<UpdateBanner />');
+
+    expect(open).toBeGreaterThan(-1);
+    expect(banner).toBeGreaterThan(open);
+    expect(banner).toBeLessThan(close);
+  });
+});

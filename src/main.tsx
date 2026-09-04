@@ -11,8 +11,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <LanguageProvider>
       <App />
+      {/* Provider ICHIDA: banner ham `useT` ishlatadi, tashqarida u otadi
+          va butun ilova oq ekranga aylanadi. */}
+      <UpdateBanner />
     </LanguageProvider>
-    <UpdateBanner />
   </React.StrictMode>
 );
 

@@ -34,7 +34,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
 
   return (
     <div className="min-h-[100dvh] bg-slate-100 flex flex-col items-center justify-center p-4 py-[calc(1rem+env(safe-area-inset-top))] font-sans antialiased text-slate-800 selection:bg-orange-500 selection:text-white">
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 max-w-[288px] w-full shadow-xl flex flex-col items-center gap-3.5 relative">
+      <div className="bg-white border border-slate-200 rounded-3xl p-5 max-w-[288px] w-full flex flex-col items-center gap-3.5 relative">
         {/* Header */}
         <div className="flex flex-col items-center gap-2 text-center w-full">
           <div className="flex items-center gap-3">
@@ -67,7 +67,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
               key={i}
               className={`w-3.5 h-3.5 rounded-full border-2 transition-all ${
                 pinInput.length > i
-                  ? 'bg-orange-500 border-orange-500 scale-110 shadow-md shadow-orange-500/50'
+                  ? 'bg-orange-500 border-orange-500 scale-110'
                   : 'border-slate-300 bg-slate-100'
               }`}
             />
@@ -89,23 +89,22 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
           * tabletka chiqarardi. Endi ikkalasi tenglashadi va shakl ekran
           * kengligidan qat'i nazar doira bo'lib qoladi.
           *
-          * Yon tomoni ~64px.
+          * Yon tomoni ~72px.
           *
           * Bir vaqtlar 85px edi va o'shanda klaviatura kartochkaning 58%
           * balandligini egallardi — jami 635px, noutbuk ekraniga zo'rg'a
-          * sig'adigan darajada. Qisqartirish uchun eng ko'p joy aynan shu
-          * yerda bo'lgan, chunki to'rt qator har bir piksel to'rt marta
-          * hisoblanadi.
-          *
-          * 64px sensorli ekran uchun hamon keng: tavsiya etilgan eng kichik
-          * nishon 44px.
+          * sig'adigan darajada. Keyin 64px ga tushirildi, endi esa 72px:
+          * kartochkaning kengligi o'zgarmaydi, chunki ichida bo'sh joy bor
+          * edi. To'rt qator bo'lgani uchun bu yerdagi har bir piksel
+          * balandlikda to'rt marta hisoblanadi — shuning uchun o'lcham
+          * o'zgarishi shu bitta sondan boshqariladi.
           */}
-        <div className="grid grid-cols-3 gap-2.5 w-full max-w-[212px]">
+        <div className="grid grid-cols-3 gap-2.5 w-full max-w-[236px]">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'DEL'].map((key) => (
             <button
               key={key}
               onClick={() => onPinKey(key)}
-              className={`aspect-square rounded-full font-bold text-lg transition-all flex items-center justify-center cursor-pointer active:scale-95 shadow-2xs ${
+              className={`aspect-square rounded-full font-bold text-xl transition-all flex items-center justify-center cursor-pointer active:scale-95 ${
                 key === 'C'
                   ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-sm'
                   : key === 'DEL'

@@ -10,6 +10,10 @@ import { LOCALES, LOCALE_LABELS, LOCALE_SHORT, type Locale } from '../lib/i18n/l
  * kuniga bir marta, ko'pincha umuman o'zgartirilmaydi — doim ko'rinib
  * turishi shart bo'lgan boshqaruv emas.
  *
+ * Ko'rinishi yonidagi printer va yangilash tugmalari bilan bir xil: bir
+ * qatorda turgan uchta boshqaruvning bittasi boshqacha bo'lsa, u xatodek
+ * ko'rinadi.
+ *
  * Ichida oddiy `<select>`: kassa sensorli ekranda ishlaydi va tizimning o'z
  * tanlagichi barmoq uchun qo'lda yasalgan ro'yxatdan qulayroq.
  *
@@ -22,15 +26,15 @@ export default function LanguageSwitcher({ className = '' }: { className?: strin
   const { locale, setLocale } = useLocale();
 
   return (
-    <div className={`relative inline-flex items-center ${className}`}>
-      <Languages className="w-3.5 h-3.5 text-slate-400 absolute left-1.5 pointer-events-none" />
+    <div className={`relative inline-flex items-center shrink-0 ${className}`}>
+      <Languages className="w-4 h-4 text-orange-500 absolute left-2 pointer-events-none" />
 
       <select
         value={locale}
         onChange={(e) => setLocale(e.target.value as Locale)}
         aria-label={LOCALE_LABELS[locale]}
         title={LOCALE_LABELS[locale]}
-        className="appearance-none bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-[11px] font-bold tracking-wide rounded-lg pl-6 pr-5 py-1.5 border border-transparent hover:border-slate-300 dark:hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-orange-500/40 cursor-pointer transition-colors"
+        className="appearance-none h-10 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold tracking-wide rounded-xl pl-8 pr-6 border border-slate-200 shadow-2xs focus:outline-none focus:ring-2 focus:ring-orange-500/40 cursor-pointer transition-all active:scale-98"
       >
         {LOCALES.map((code: Locale) => (
           <option key={code} value={code} title={LOCALE_LABELS[code]}>
@@ -39,7 +43,7 @@ export default function LanguageSwitcher({ className = '' }: { className?: strin
         ))}
       </select>
 
-      <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1 pointer-events-none" />
+      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-1.5 pointer-events-none" />
     </div>
   );
 }

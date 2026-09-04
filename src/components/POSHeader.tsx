@@ -108,6 +108,16 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 
       {/* Actions & Staff Bar */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/*
+          Til — xodim kartochkasidan tashqarida, printer va yangilash
+          tugmalari bilan bir qatorda.
+          Ilgari u kartochka ichida, ism bilan chiqish tugmasi orasida
+          turardi: sozlama xodimning o'ziga tegishli narsadek ko'rinardi va,
+          muhimrog'i, o'sha blok `lg` dan kichik ekranda yashiringani uchun
+          telefonda tilni umuman o'zgartirib bo'lmasdi.
+        */}
+        <LanguageSwitcher />
+
         <button
           onClick={onOpenPrinterSettings}
           className="hidden lg:flex w-10 h-10 items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs shrink-0"
@@ -137,10 +147,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                 {currentWaiter.role === 'admin' ? t('role.cashier') : t('role.waiter')}
               </p>
             </div>
-            {/* Til — chiqish tugmasidan oldin: xodim uni bir marta bosadi,
-              lekin topa olishi kerak. */}
-          <LanguageSwitcher className="mr-1" />
-          <button
+            <button
               onClick={onLogout}
               className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
               title={t('common.logout')}

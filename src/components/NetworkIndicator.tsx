@@ -1,8 +1,10 @@
 import React from 'react';
 import { Wifi, WifiOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 export const NetworkIndicator: React.FC = () => {
+  const t = useT();
   const { isOnline, pendingCount, failedCount, triggerSync } = useNetworkStatus();
 
   return (
@@ -10,12 +12,12 @@ export const NetworkIndicator: React.FC = () => {
       {isOnline ? (
         <span className="flex items-center gap-1 text-emerald-400">
           <Wifi className="w-3.5 h-3.5" />
-          <span>Online</span>
+          <span>{t('net.online')}</span>
         </span>
       ) : (
         <span className="flex items-center gap-1 text-amber-400">
           <WifiOff className="w-3.5 h-3.5" />
-          <span>Offline mode</span>
+          <span>{t('net.offline')}</span>
         </span>
       )}
 
@@ -36,7 +38,7 @@ export const NetworkIndicator: React.FC = () => {
         <button
           onClick={triggerSync}
           className="p-1 hover:bg-slate-700 rounded-full transition-colors"
-          title="Sinxlashni boshlash"
+          title={t('net.startSync')}
         >
           <RefreshCw className="w-3 h-3 text-slate-300 animate-spin" />
         </button>

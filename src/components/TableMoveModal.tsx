@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Shuffle, ArrowRight, Merge, AlertCircle, X } from 'lucide-react';
 import { DBOrder } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface TableMoveModalProps {
   show: boolean;
@@ -20,6 +21,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
   onMoveTable,
   onClose,
 }) => {
+  const t = useT();
   const [targetTable, setTargetTable] = useState<string>('');
   const [isMerge, setIsMerge] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
               <Shuffle className="w-5 h-5 sm:w-7 sm:h-7" />
             </div>
             <div>
-              <h3 className="font-bold text-base sm:text-2xl text-slate-900 tracking-tight">Stolni Ko'chirish / Birlashtirish</h3>
+              <h3 className="font-bold text-base sm:text-2xl text-slate-900 tracking-tight">{t('table.moveTitle')}</h3>
               <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">{currentTable} buyurtmasini boshqa stolga o'tkazish</p>
             </div>
           </div>
@@ -86,7 +88,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
               }`}
             >
               <ArrowRight className="w-4 h-4" />
-              <span>Ko'chirish (Move)</span>
+              <span>{t('table.move')}</span>
             </button>
             <button
               onClick={() => setIsMerge(true)}
@@ -95,7 +97,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
               }`}
             >
               <Merge className="w-4 h-4" />
-              <span>Birlashtirish (Merge)</span>
+              <span>{t('table.merge')}</span>
             </button>
           </div>
 
@@ -107,7 +109,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
               onChange={(e) => setTargetTable(e.target.value)}
               className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3.5 text-base font-semibold text-slate-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all shadow-2xs cursor-pointer"
             >
-              <option value="">Stolni tanlang...</option>
+              <option value="">{t('table.selectTable')}</option>
               {availableTables.map((t) => {
                 const isBand = orders.some(o => o.tableNumber === t.number && o.status !== 'served');
                 return (
@@ -137,7 +139,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
             onClick={onClose}
             className="px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base transition-colors cursor-pointer active:scale-95"
           >
-            BEKOR QILISH
+            {t('common.cancel')}
           </button>
         </div>
       </div>

@@ -6,6 +6,7 @@ import {
   installUpdate,
   UpdateStatus,
 } from '../lib/autoUpdater';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 /**
  * Yangilanish haqidagi banner.
@@ -15,6 +16,7 @@ import {
  * yopadi — buyurtma yozilayotgan payt bo'lsa, u yo'qoladi.
  */
 export const UpdateBanner: React.FC = () => {
+  const t = useT();
   const [status, setStatus] = useState<UpdateStatus | null>(null);
 
   useEffect(() => subscribeUpdateStatus(setStatus), []);
@@ -43,7 +45,7 @@ export const UpdateBanner: React.FC = () => {
           </p>
           {phase === 'ready' && (
             <p className="text-[11px] text-slate-400 mt-0.5">
-              O‘rnatish uchun ilova qayta ishga tushadi — stollar bo‘shaganda bosing.
+              {t('update.hint')}
             </p>
           )}
           {phase === 'downloading' && (
@@ -63,11 +65,11 @@ export const UpdateBanner: React.FC = () => {
               className="shrink-0 bg-emerald-500 hover:bg-emerald-400 active:scale-98 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition"
             >
               <RotateCw className="w-3.5 h-3.5" />
-              Qayta ishga tushirish
+              {t('update.restart')}
             </button>
             <button
               onClick={dismissUpdate}
-              aria-label="Keyinroq"
+              aria-label={t('update.later')}
               className="shrink-0 text-slate-400 hover:text-white p-1 rounded-lg transition"
             >
               <X className="w-4 h-4" />

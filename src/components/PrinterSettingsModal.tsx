@@ -24,6 +24,7 @@ import {
   SystemPrinter,
 } from '../lib/printer';
 import { IS_DESKTOP_APP } from '../constants';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface PrinterSettingsModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
   cafeName,
   onToast,
 }) => {
+  const t = useT();
   const [settings, setSettings] = useState<PrinterSettings>(getPrinterSettings());
   const [connectedDevice, setConnectedDevice] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -152,9 +154,9 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
             </div>
             <div>
               <h2 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                Termoprinter & Chek Sozlamalari
+                {t('printer.title')}
               </h2>
-              <p className="text-xs text-slate-400 hidden sm:block">PWA Kassa va Oshxona uchun chek chiqarish</p>
+              <p className="text-xs text-slate-400 hidden sm:block">{t('printer.subtitle')}</p>
             </div>
           </div>
           <button
@@ -175,7 +177,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
         {/* Printer Mode / Hardware Connection */}
         <div className="space-y-2">
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-            Printer Turi & Ulanish:
+            {t('printer.typeAndConnection')}
           </label>
           <div className="grid grid-cols-2 gap-2.5">
             <button
@@ -212,9 +214,9 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
           {connectedDevice && (
             <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-300 font-medium">
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Ulangan: <b>{connectedDevice}</b>
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {t('printer.connected')} <b>{connectedDevice}</b>
               </span>
-              <span className="text-[10px] bg-emerald-200/50 px-2 py-0.5 rounded-full font-bold">Faol</span>
+              <span className="text-[10px] bg-emerald-200/50 px-2 py-0.5 rounded-full font-bold">{t('printer.active')}</span>
             </div>
           )}
         </div>
@@ -240,7 +242,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               }}
               className="w-full text-[11px] font-semibold bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-900 rounded-lg px-2.5 py-2 text-slate-700 dark:text-slate-300 cursor-pointer"
             >
-              <option value="">Tizimning standart printeri</option>
+              <option value="">{t('printer.systemDefault')}</option>
               {systemPrinters.map((pr) => (
                 <option key={pr.systemName} value={pr.systemName}>
                   {pr.name}{pr.isDefault ? ' (standart)' : ''}
@@ -271,11 +273,11 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
             </p>
             <ol className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90 space-y-1.5 list-decimal list-inside">
               <li>
-                <b>Kassa printerini ulang</b> — yuqoridagi Bluetooth yoki USB tugmasi orqali.
+                <b>{t('printer.connect')}</b> — yuqoridagi Bluetooth yoki USB tugmasi orqali.
                 Shunda chek to&apos;g&apos;ridan-to&apos;g&apos;ri chiqadi, oyna umuman ochilmaydi.
               </li>
               <li>
-                <b>Yoki Chrome&apos;ni kiosk rejimida oching.</b> Printer tizimda{' '}
+                <b>{t('printer.kioskHint')}</b> Printer tizimda{' '}
                 <b>asosiy (default)</b> qilib qo&apos;yilgan bo&apos;lishi shart:
               </li>
             </ol>
@@ -309,7 +311,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
                   : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
               }`}
             >
-              <FileText className="w-4 h-4" /> 58mm (Kichik lenta)
+              <FileText className="w-4 h-4" /> {t('printer.width58')}
             </button>
             <button
               type="button"
@@ -320,7 +322,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
                   : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
               }`}
             >
-              <FileText className="w-4 h-4" /> 80mm (Katta kassa)
+              <FileText className="w-4 h-4" /> {t('printer.width80')}
             </button>
           </div>
         </div>
@@ -328,7 +330,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
         {/* Automatic Print Toggles */}
         <div className="space-y-2.5 pt-1">
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-            Avtomatik Chop Etish:
+            {t('printer.autoPrint')}
           </label>
 
           <div
@@ -341,7 +343,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
                 <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
                   To&apos;lovda avtomatik chek chiqarish
                 </div>
-                <div className="text-[10px] text-slate-400">Hisob yopilganda mijozga chek chop etadi</div>
+                <div className="text-[10px] text-slate-400">{t('printer.autoOnPaymentHint')}</div>
               </div>
             </div>
             <input
@@ -360,10 +362,10 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
             <UtensilsCrossed className="w-4 h-4 shrink-0 text-blue-500" />
             <div>
               <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                Oshxona kvitansiyasi — avtomatik
+                {t('printer.kitchenAuto')}
               </div>
               <div className="text-[10px] text-slate-400">
-                Buyurtma tasdiqlanishi bilan oshxonaga chiqadi
+                {t('printer.kitchenAutoHint')}
               </div>
             </div>
           </div>
@@ -376,7 +378,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               <QrCode className="w-4 h-4 shrink-0 text-blue-500" />
               <div>
                 <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  QR buyurtmani oshxonaga chiqarish
+                  {t('printer.qrToKitchen')}
                 </div>
                 <div className="text-[10px] text-slate-400">
                   Mijoz telefonidan bergan buyurtmani kassa o&apos;zi bosib chiqaradi.
@@ -400,7 +402,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               <DollarSign className="w-4 h-4 text-amber-500" />
               <div>
                 <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Kassa qutisini ochish (Cash Drawer)
+                  {t('printer.cashDrawer')}
                 </div>
                 <div className="text-[10px] text-slate-400">Naqd to&apos;lovda temir kassa qutisini ochadi</div>
               </div>
@@ -418,26 +420,26 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
         <form onSubmit={handleSaveText} className="space-y-3 pt-1 border-t border-slate-100 dark:border-slate-800">
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Chek tepasidagi matn:
+              {t('printer.headerText')}
             </label>
             <input
               type="text"
               value={settings.headerText}
               onChange={(e) => setSettings({ ...settings, headerText: e.target.value })}
-              placeholder="Xush kelibsiz!"
+              placeholder={t('printer.headerPlaceholder')}
               className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Chek pastidagi minnatdorchilik matni:
+              {t('printer.footerText')}
             </label>
             <input
               type="text"
               value={settings.footerText}
               onChange={(e) => setSettings({ ...settings, footerText: e.target.value })}
-              placeholder="Tashrifingiz uchun rahmat!"
+              placeholder={t('printer.footerPlaceholder')}
               className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
             />
           </div>
@@ -448,13 +450,13 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               onClick={handleTestPrint}
               className="flex-1 py-3 sm:py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
             >
-              <Receipt className="w-3.5 h-3.5" /> Sinov Cheki
+              <Receipt className="w-3.5 h-3.5" /> {t('printer.testReceipt')}
             </button>
             <button
               type="submit"
               className="flex-1 py-3 sm:py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs shadow-md shadow-orange-500/25 cursor-pointer transition-all active:scale-95"
             >
-              Saqlash
+              {t('common.save')}
             </button>
           </div>
         </form>

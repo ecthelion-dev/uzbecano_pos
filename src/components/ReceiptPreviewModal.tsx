@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Printer, Banknote, CreditCard, PenLine } from 'lucide-react';
 import { DBWaiter } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface ReceiptPreviewModalProps {
   show: boolean;
@@ -25,6 +26,15 @@ interface ReceiptPreviewModalProps {
   onPrint: () => void;
 }
 
+/*
+ * Oynaning CHETI tarjima qilinadi, chek TANASI esa yo'q.
+ *
+ * Tanadagi matn printerdan chiqadigan qog'ozning aynan o'zi. Uni bu yerda
+ * tarjima qilib, qog'ozda o'zbekcha qoldirsak, kassir ekranda bir narsani
+ * ko'rib, qo'lida boshqasini ushlab turardi. Qog'oz tili alohida qaror:
+ * u mijozga ketadi, kassirning ekran tiliga emas, kafening tanloviga
+ * bog'liq bo'lishi kerak.
+ */
 export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   show,
   selectedTable,
@@ -47,6 +57,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   onClose,
   onPrint,
 }) => {
+  const t = useT();
   if (!show) return null;
 
   const combinedItems = useMemo(() => [
@@ -59,7 +70,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-t-3xl sm:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4 border border-slate-200 max-h-[92dvh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-            <Printer className="w-4 h-4 text-orange-500" /> Chekni oldindan ko'rish
+            <Printer className="w-4 h-4 text-orange-500" /> {t('receipt.preview')}
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg font-semibold">×</button>
         </div>
@@ -173,13 +184,13 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
             }}
             className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 cursor-pointer"
           >
-            <Printer className="w-4 h-4" /> CHOP ETISH
+            <Printer className="w-4 h-4" /> {t('common.print')}
           </button>
           <button
             onClick={onClose}
             className="px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs transition-colors cursor-pointer active:scale-95"
           >
-            YOPISH
+            {t('common.close')}
           </button>
         </div>
       </div>

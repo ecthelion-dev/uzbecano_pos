@@ -69,12 +69,12 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
             <button
               onClick={onCloseMobile}
               className="lg:hidden w-9 h-9 -ml-1 shrink-0 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 active:scale-95 transition-transform"
-              title="Yopish"
+              title={t('common.close')}
             >
               <X className="w-5 h-5" />
             </button>
           )}
-          <h2 className="font-bold text-sm text-slate-900 truncate">Buyurtma Kvitansiyasi</h2>
+          <h2 className="font-bold text-sm text-slate-900 truncate">{t('cart.receipt')}</h2>
         </div>
         <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-sm shrink-0">
           {selectedTable}
@@ -96,7 +96,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-bold text-orange-600 tracking-wider uppercase">
-                    Oshxonaga yuborilgan taomlar
+                    {t('cart.sentItems')}
                   </p>
                 </div>
                 {activeTableOrderItems.map((item: any, idx: number) => (
@@ -115,7 +115,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
               <div className="space-y-2 pt-1">
                 {activeTableOrderItems.length > 0 && (
                   <p className="text-[10px] font-bold text-slate-500 tracking-wider uppercase border-t border-slate-100 pt-2">
-                    Yangi qo'shilayotgan taomlar
+                    {t('cart.newItems')}
                   </p>
                 )}
                 {cart.map((item) => (
@@ -174,7 +174,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
           <span className="text-slate-900 font-medium">{serviceFee.toLocaleString()} so'm</span>
         </div>
         <div className="flex justify-between text-base font-bold text-slate-900 pt-1.5 border-t border-slate-200">
-          <span>JAMI:</span>
+          <span>{t('common.totalUpper')}</span>
           <span className="text-[#0F172A] text-lg">{grandTotal.toLocaleString()} so'm</span>
         </div>
 
@@ -205,14 +205,14 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
               disabled={activeTableOrderItems.length === 0 && cart.length === 0}
               className="bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer active:scale-95"
             >
-              <Printer className="w-4 h-4 text-slate-500" /> CHEK CHIQARISH
+              <Printer className="w-4 h-4 text-slate-500" /> {t('cart.printReceipt')}
             </button>
             <button
               onClick={onOpenTableMove}
               disabled={activeTableOrderItems.length === 0}
               className="bg-orange-50 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed text-orange-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer active:scale-95"
             >
-              <Shuffle className="w-4 h-4 text-orange-600" /> KO'CHIRISH
+              <Shuffle className="w-4 h-4 text-orange-600" /> {t('cart.moveTable')}
             </button>
           </div>
         </div>

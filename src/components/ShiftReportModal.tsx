@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, Printer, ChefHat } from 'lucide-react';
 import { DBOrder, CashTransaction } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface ShiftReportModalProps {
   show: boolean;
@@ -17,6 +18,7 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
   onClose,
   onPrint,
 }) => {
+  const t = useT();
   if (!show) return null;
 
   const servedOrders = orders.filter((o) => o.status === 'served');
@@ -46,8 +48,8 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm sm:text-base text-slate-900">Kassa Hisoboti (Z-Report)</h3>
-              <p className="text-[11px] text-slate-500 font-medium hidden sm:block">Bugungi kunlik kassa va ofitsiantlar hisoboti</p>
+              <h3 className="font-bold text-sm sm:text-base text-slate-900">{t('shift.title')}</h3>
+              <p className="text-[11px] text-slate-500 font-medium hidden sm:block">{t('shift.subtitle')}</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-semibold px-2 cursor-pointer">×</button>
@@ -56,34 +58,34 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
         <div className="space-y-4 overflow-y-auto pr-1">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3">
-              <p className="text-[11px] font-medium text-orange-700">Sof Tushum</p>
+              <p className="text-[11px] font-medium text-orange-700">{t('shift.netRevenue')}</p>
               <p className="text-lg font-bold text-slate-900 mt-0.5">{netRevenue.toLocaleString()} so'm</p>
             </div>
             <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3">
-              <p className="text-[11px] font-medium text-rose-700">Jami Qaytarishlar</p>
+              <p className="text-[11px] font-medium text-rose-700">{t('shift.refundsTotal')}</p>
               <p className="text-lg font-bold text-rose-900 mt-0.5">{totalRefunds.toLocaleString()} so'm</p>
             </div>
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-              <p className="text-[11px] font-medium text-slate-500">Stollar Soni</p>
+              <p className="text-[11px] font-medium text-slate-500">{t('shift.tableCount')}</p>
               <p className="text-lg font-bold text-slate-900 mt-0.5">{servedOrders.length} ta</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
             <div>
-              <p className="text-[10px] text-slate-500 font-semibold">Kassa Kirim (+):</p>
+              <p className="text-[10px] text-slate-500 font-semibold">{t('shift.drawerIn')}</p>
               <p className="text-sm font-bold text-emerald-700">+{totalKirim.toLocaleString()} so'm</p>
             </div>
             <div>
-              <p className="text-[10px] text-slate-500 font-semibold">Kassa Chiqim (-):</p>
+              <p className="text-[10px] text-slate-500 font-semibold">{t('shift.drawerOut')}</p>
               <p className="text-sm font-bold text-rose-700">-{totalChiqim.toLocaleString()} so'm</p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-semibold text-xs text-slate-700 uppercase tracking-wider">Ofitsiantlar Tushumi</h4>
+            <h4 className="font-semibold text-xs text-slate-700 uppercase tracking-wider">{t('shift.waiterRevenue')}</h4>
             {Object.keys(waiterStats).length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4">Bugun yopilgan buyurtmalar yo'q</p>
+              <p className="text-xs text-slate-400 text-center py-4">{t('shift.empty')}</p>
             ) : (
               Object.entries(waiterStats).map(([name, stat]) => (
                 <div key={name} className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex justify-between items-center text-xs">
@@ -103,7 +105,7 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
             onClick={onPrint}
             className="w-full sm:w-auto justify-center bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 sm:py-2.5 px-5 rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer active:scale-95"
           >
-            <Printer className="w-4 h-4" /> Z-REPORT CHOP ETISH
+            <Printer className="w-4 h-4" /> {t('shift.print')}
           </button>
         </div>
       </div>

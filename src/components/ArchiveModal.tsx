@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Receipt, Search, ArrowLeft, Printer, ChevronRight, Calendar, Clock, RotateCcw, X, Utensils, AlertTriangle, PenLine, User, Banknote, CreditCard, Shuffle } from 'lucide-react';
 import { DBOrder, DBWaiter } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface ArchiveModalProps {
   show: boolean;
@@ -42,6 +43,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   onClose,
   onPrint,
 }) => {
+  const t = useT();
   const [showReasonSelect, setShowReasonSelect] = useState(false);
   const [refundReason, setRefundReason] = useState('Mijoz rad etdi');
 
@@ -172,8 +174,8 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-base sm:text-xl text-slate-900 tracking-tight">Arxiv Cheklar</h3>
-              <p className="text-xs text-slate-500 font-medium hidden sm:block">Barcha yopilgan to'lovlar va cheklar tarixi</p>
+              <h3 className="font-bold text-base sm:text-xl text-slate-900 tracking-tight">{t('archive.title')}</h3>
+              <p className="text-xs text-slate-500 font-medium hidden sm:block">{t('archive.subtitle')}</p>
             </div>
           </div>
           <button
@@ -194,7 +196,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               onClick={() => onSelectArchiveOrder(null)}
               className="flex items-center gap-2 text-sm font-bold text-orange-600 hover:text-orange-700 cursor-pointer bg-orange-50 hover:bg-orange-100 px-4 py-2 rounded-xl border border-orange-200 transition-colors w-fit shadow-2xs"
             >
-              <ArrowLeft className="w-4 h-4" /> Ro'yxatga qaytish
+              <ArrowLeft className="w-4 h-4" /> {t('archive.backToList')}
             </button>
 
             <div id="printable-receipt" className="bg-amber-50/50 p-4 sm:p-6 rounded-3xl border-2 border-amber-200/80 font-mono text-sm text-slate-800 space-y-3.5 shadow-sm max-w-lg mx-auto">
@@ -233,9 +235,9 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               <div className="flex justify-between items-center text-sm font-semibold text-slate-800 border-b-2 border-dashed border-slate-400 pb-2.5">
                 <span className="font-bold text-lg text-slate-900">{selectedArchiveOrder.tableNumber}</span>
                 {selectedArchiveOrder.refunded ? (
-                  <span className="bg-rose-100 text-rose-800 px-3 py-0.5 rounded-xl font-bold text-xs">QAYTARILGAN</span>
+                  <span className="bg-rose-100 text-rose-800 px-3 py-0.5 rounded-xl font-bold text-xs">{t('archive.refunded')}</span>
                 ) : (
-                  <span className="bg-emerald-100 text-emerald-800 px-3 py-0.5 rounded-xl font-bold text-xs">TO'LANGAN</span>
+                  <span className="bg-emerald-100 text-emerald-800 px-3 py-0.5 rounded-xl font-bold text-xs">{t('archive.paid')}</span>
                 )}
               </div>
 
@@ -255,7 +257,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                   }
 
                   return items.length === 0 ? (
-                    <p className="text-center text-xs text-slate-400 py-2">Taomlar ma'lumoti yo'q</p>
+                    <p className="text-center text-xs text-slate-400 py-2">{t('archive.noItems')}</p>
                   ) : (
                     items.map((item: any, idx: number) => (
                       <div key={idx} className="flex justify-between items-start text-xs pb-1.5 border-b border-slate-100 last:border-b-0">
@@ -273,27 +275,27 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
               <div className="space-y-1.5 border-t-2 border-dashed border-slate-400 pt-2.5 mt-1 text-xs font-medium">
                 <div className="flex justify-between font-bold text-base text-slate-900 pb-1">
-                  <span>JAMI TO'LOV:</span>
+                  <span>{t('archive.totalPaid')}</span>
                   <span className="text-xl text-slate-950 font-bold">{(selectedArchiveOrder.total || 0).toLocaleString()} so'm</span>
                 </div>
                 {selectedArchiveOrder.paymentMethod === 'aralash' ? (
                   <>
                     <div className="flex justify-between text-slate-700 text-xs">
-                      <span className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5" /> Naqd:</span>
+                      <span className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5" /> {t('common.cashLabel')}</span>
                       <span className="font-semibold">{(selectedArchiveOrder.cashAmount || 0).toLocaleString()} so'm</span>
                     </div>
                     <div className="flex justify-between text-slate-700 text-xs">
-                      <span className="flex items-center gap-1"><CreditCard className="w-3.5 h-3.5" /> Karta:</span>
+                      <span className="flex items-center gap-1"><CreditCard className="w-3.5 h-3.5" /> {t('common.cardLabel')}</span>
                       <span className="font-semibold">{(selectedArchiveOrder.cardAmount || 0).toLocaleString()} so'm</span>
                     </div>
                   </>
                 ) : (
                   <div className="flex justify-between text-slate-700 text-xs">
-                    <span>To'lov turi:</span>
+                    <span>{t('cart.paymentType')}</span>
                     <span className="font-bold uppercase flex items-center gap-1">
                       {selectedArchiveOrder.paymentMethod === 'karta'
-                        ? <><CreditCard className="w-3.5 h-3.5" /> Karta</>
-                        : <><Banknote className="w-3.5 h-3.5" /> Naqd</>}
+                        ? <><CreditCard className="w-3.5 h-3.5" /> {t('common.card')}</>
+                        : <><Banknote className="w-3.5 h-3.5" /> {t('common.cash')}</>}
                     </span>
                   </div>
                 )}
@@ -302,7 +304,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
             {showReasonSelect && (
               <div className="bg-rose-50 border border-rose-200 p-4 rounded-3xl max-w-lg mx-auto space-y-3 shadow-sm">
-                <p className="font-bold text-sm text-rose-900 text-center">Qaytarish sababini tanlang:</p>
+                <p className="font-bold text-sm text-rose-900 text-center">{t('archive.refundReason')}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   {['Mijoz rad etdi', 'Sifat yetarsiz', 'Xato to\'lov'].map((reason) => (
                     <button
@@ -326,13 +328,13 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     }}
                     className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 sm:py-2.5 px-2 rounded-xl text-xs cursor-pointer shadow-md transition-all active:scale-98"
                   >
-                    TASDIQLASH (ADMIN PIN)
+                    {t('archive.confirmAdminPin')}
                   </button>
                   <button
                     onClick={() => setShowReasonSelect(false)}
                     className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-3 sm:py-2.5 px-2 rounded-xl text-xs cursor-pointer transition-all active:scale-98"
                   >
-                    BEKOR QILISH
+                    {t('common.cancel')}
                   </button>
                 </div>
               </div>
@@ -351,7 +353,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               >
                 <Printer className="w-4 h-4 shrink-0" />
                 <span>
-                  <span className="hidden sm:inline">CHEKNI </span>CHOP ETISH
+                  <span className="hidden sm:inline">CHEKNI </span>{t('common.print')}
                 </span>
               </button>
               {!selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect && (
@@ -361,7 +363,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 >
                   <RotateCcw className="w-4 h-4 shrink-0" />
                   <span>
-                    QAYTARISH<span className="hidden sm:inline"> (VOZVRAT)</span>
+                    {t('archive.refund')}<span className="hidden sm:inline"> (VOZVRAT)</span>
                   </span>
                 </button>
               )}
@@ -377,7 +379,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
-                  placeholder="Stol raqami, chek ID yoki offitsiant..."
+                  placeholder={t('archive.searchPlaceholder')}
                   value={archiveSearch}
                   onChange={(e) => onSearchChange(e.target.value)}
                   className="w-full bg-slate-50 border-2 border-slate-200/80 rounded-2xl pl-10 pr-4 py-2 text-sm font-medium text-slate-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all shadow-2xs"
@@ -411,7 +413,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             {timePreset === 'custom' && (
               <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-2xl flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 text-xs shrink-0 animate-fadeIn">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 flex-1 w-full min-w-0 sm:min-w-[240px]">
-                  <span className="font-semibold text-slate-600 text-xs shrink-0">Boshlanish:</span>
+                  <span className="font-semibold text-slate-600 text-xs shrink-0">{t('archive.periodStart')}</span>
                   <div className="flex items-center gap-1.5 min-w-0 w-full sm:flex-1">
                     <input
                       type="date"
@@ -429,7 +431,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 </div>
 
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 flex-1 w-full min-w-0 sm:min-w-[240px]">
-                  <span className="font-semibold text-slate-600 text-xs shrink-0">Tugash:</span>
+                  <span className="font-semibold text-slate-600 text-xs shrink-0">{t('archive.periodEnd')}</span>
                   <div className="flex items-center gap-1.5 min-w-0 w-full sm:flex-1">
                     <input
                       type="date"
@@ -454,10 +456,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     setEndTime('23:59');
                   }}
                   className="self-end sm:self-auto shrink-0 h-9 sm:h-auto px-3 sm:p-1.5 flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 cursor-pointer shadow-2xs active:scale-95 transition-transform"
-                  title="Qayta o'rnatish"
+                  title={t('archive.reset')}
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span className="sm:hidden font-semibold text-xs">Bugunga qaytarish</span>
+                  <span className="sm:hidden font-semibold text-xs">{t('archive.backToToday')}</span>
                 </button>
               </div>
             )}
@@ -465,15 +467,15 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             {/* Quick Summary Bar */}
             <div className="bg-slate-50 border border-slate-200/90 px-3 sm:px-4 py-2 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs font-medium shrink-0">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-slate-600">Topildi:</span>
+                <span className="font-semibold text-slate-600">{t('archive.found')}</span>
                 <span className="bg-white px-2.5 py-0.5 rounded-lg border border-slate-200 font-bold text-slate-900 text-xs shadow-2xs">
                   {filteredOrders.length} ta chek
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-600 text-xs">
-                <span>Naqd: <strong className="text-slate-900 font-semibold">{cashTotal.toLocaleString()} so'm</strong></span>
+                <span>{t('common.cashLabel')} <strong className="text-slate-900 font-semibold">{cashTotal.toLocaleString()} so'm</strong></span>
                 <span>•</span>
-                <span>Karta: <strong className="text-slate-900 font-semibold">{cardTotal.toLocaleString()} so'm</strong></span>
+                <span>{t('common.cardLabel')} <strong className="text-slate-900 font-semibold">{cardTotal.toLocaleString()} so'm</strong></span>
                 {refundedCount > 0 && (
                   <>
                     <span>•</span>
@@ -491,11 +493,11 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                   <button
                     onClick={() => onPrintPeriod(filteredOrders, periodFrom, periodTo)}
                     disabled={filteredOrders.length === 0}
-                    title="Tanlangan davrdagi barcha cheklarni bitta hisobot qilib chop etish"
+                    title={t('archive.printReportHint')}
                     className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 border border-slate-200 font-bold text-xs shadow-2xs cursor-pointer active:scale-95 transition-transform"
                   >
                     <Printer className="w-3.5 h-3.5 text-orange-500" />
-                    <span>Hisobotni chop etish</span>
+                    <span>{t('archive.printReport')}</span>
                   </button>
                 )}
               </div>
@@ -506,8 +508,8 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               {filteredOrders.length === 0 ? (
                 <div className="text-center py-16 text-slate-400 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
                   <Receipt className="w-12 h-12 mx-auto mb-2 opacity-30 text-orange-500" />
-                  <p className="font-semibold text-sm text-slate-700">Tanlangan vaqt oralig'ida cheklar topilmadi</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Boshqa sana yoki vaqt oralig'ini tanlab ko'ring</p>
+                  <p className="font-semibold text-sm text-slate-700">{t('archive.nothingInPeriod')}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{t('archive.tryAnotherPeriod')}</p>
                 </div>
               ) : (
                 filteredOrders.map((ord: any) => {
@@ -532,11 +534,11 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                           </span>
                           {ord.refunded ? (
                             <span className="text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
-                              Qaytarilgan
+                              {t('archive.refundedShort')}
                             </span>
                           ) : (
                             <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                              Yopilgan
+                              {t('archive.closed')}
                             </span>
                           )}
                           <span className="text-xs font-medium text-slate-400">
@@ -549,10 +551,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                           <span>•</span>
                           <span className="font-semibold text-slate-700">
                             {ord.paymentMethod === 'karta'
-                              ? <span className="flex items-center gap-0.5"><CreditCard className="w-3 h-3" /> Karta</span>
+                              ? <span className="flex items-center gap-0.5"><CreditCard className="w-3 h-3" /> {t('common.card')}</span>
                               : ord.paymentMethod === 'aralash'
-                              ? <span className="flex items-center gap-0.5"><Shuffle className="w-3 h-3" /> Aralash</span>
-                              : <span className="flex items-center gap-0.5"><Banknote className="w-3 h-3" /> Naqd</span>}
+                              ? <span className="flex items-center gap-0.5"><Shuffle className="w-3 h-3" /> {t('common.mixed')}</span>
+                              : <span className="flex items-center gap-0.5"><Banknote className="w-3 h-3" /> {t('common.cash')}</span>}
                           </span>
                         </p>
                       </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bell } from 'lucide-react';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 export interface TableItemData {
   id: string;
@@ -19,6 +20,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
   table,
   onSelect,
 }) => {
+  const t = useT();
   return (
     <div
       onClick={() => onSelect(table.number)}
@@ -38,7 +40,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
         </span>
         <div className="flex items-center gap-1.5 shrink-0">
           {table.hasWaiterCall && (
-            <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-bounce" title="Ofitsiant chaqiruvi">
+            <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-bounce" title={t('table.waiterCall')}>
               <Bell className="w-3 h-3 fill-white" />
             </span>
           )}
@@ -56,7 +58,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
 
       {table.status === 'band' ? (
         <div className="bg-[#2A2D2F] p-1.5 sm:p-2 rounded-xl border border-[#3A3E41] flex items-center justify-between gap-1 min-w-0">
-          <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium shrink-0">Jami:</span>
+          <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium shrink-0">{t('common.total')}</span>
           {/* Valyuta nomi ataylab yozilmaydi: kartochka tor va "so'm" summani
               qirqib, "15,000 s..." qilib qo'yardi — ya'ni birlik uchun eng
               kerakli narsa, raqamning o'zi yo'qolardi. */}

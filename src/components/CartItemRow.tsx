@@ -1,6 +1,7 @@
 import React from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { CartItem } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface CartItemRowProps {
   item: CartItem;
@@ -13,6 +14,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = React.memo(({
   onUpdateQuantity,
   onUpdateNote,
 }) => {
+  const t = useT();
   return (
     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 shadow-xs space-y-1.5">
       <div className="flex justify-between items-center">
@@ -43,7 +45,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = React.memo(({
         /* Sarlavhalardan ajralib turmasin: kichik va oddiy shrift. data-compact
            bu maydonni telefondagi 16px qoidasidan chiqaradi. */
         data-compact
-        placeholder="Oshxonaga izoh (masalan: piyozsiz, achchiq...)"
+        placeholder={t('cart.kitchenNote')}
         value={item.note || ''}
         onChange={(e) => onUpdateNote(item.product.id, e.target.value)}
         className="w-full text-[11px] font-normal text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-all"

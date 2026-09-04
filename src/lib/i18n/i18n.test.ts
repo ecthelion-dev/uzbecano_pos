@@ -58,9 +58,19 @@ describe('lug‘atlar', () => {
     });
 
     it(`${name}: o‘zbekchadan nusxa ko‘chirilgan matn yo‘q`, () => {
+      /*
+       * Nusxa ko'chirilib, tarjima qilinmay qolgan qatorlarni topadi.
+       *
+       * "Online" va "Offline" o'zbekchada ham shundayligicha yoziladi —
+       * bular o'zlashgan atamalar, unutilgan tarjima emas. Ro'yxat ataylab
+       * qisqa: har bir yozuv "bu haqiqatan bir xil" degan qaror bo'lishi
+       * kerak, aks holda tekshiruvning ma'nosi yo'qoladi.
+       */
+      const allowed = new Set(['net.online', 'net.offline']);
       const same = Object.entries(dict)
         .filter(([k, v]) => uz[k as keyof typeof uz] === v)
-        .map(([k]) => k);
+        .map(([k]) => k)
+        .filter((k) => !allowed.has(k));
       expect(same).toEqual([]);
     });
   }

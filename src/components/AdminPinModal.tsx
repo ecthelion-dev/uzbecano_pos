@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lock, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../constants';
 import { verifyCachedPin } from '../lib/offlineAuth';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 const ELEVATED_ROLES = ['admin', 'cafe_admin', 'platform_admin', 'manager'];
 
@@ -25,6 +26,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
   onConfirm,
   onClose,
 }) => {
+  const t = useT();
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -106,7 +108,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
         <div className="flex items-center justify-between w-full border-b border-slate-100 pb-2">
           <div className="flex items-center gap-2 text-rose-600">
             <Lock className="w-4 h-4" />
-            <h3 className="font-bold text-xs text-slate-900">Xavfsizlik Tasdig'i</h3>
+            <h3 className="font-bold text-xs text-slate-900">{t('admin.pinTitle')}</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg font-semibold">×</button>
         </div>

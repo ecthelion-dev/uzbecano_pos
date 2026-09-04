@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { CartItem } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface UnsavedCartModalProps {
   show: boolean;
@@ -19,6 +20,7 @@ export const UnsavedCartModal: React.FC<UnsavedCartModalProps> = ({
   onConfirm,
   onClose,
 }) => {
+  const t = useT();
   if (!show) return null;
 
   return (
@@ -38,10 +40,10 @@ export const UnsavedCartModal: React.FC<UnsavedCartModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-base sm:text-lg text-slate-900 leading-tight">
-                Yuborilmagan taomlar bor!
+                {t('unsaved.title')}
               </h3>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Stol: <span className="font-semibold text-slate-700">{tableNumber}</span>
+                {t('unsaved.table')} <span className="font-semibold text-slate-700">{tableNumber}</span>
               </p>
             </div>
           </div>
@@ -86,7 +88,7 @@ export const UnsavedCartModal: React.FC<UnsavedCartModalProps> = ({
               </div>
             ))}
             <div className="flex justify-between items-center text-xs font-bold text-slate-900 pt-2 border-t border-slate-300/80 mt-1">
-              <span>Savat summasi:</span>
+              <span>{t('unsaved.cartTotal')}</span>
               <span className="text-orange-600 font-extrabold">{subtotal.toLocaleString()} so'm</span>
             </div>
           </div>
@@ -98,14 +100,14 @@ export const UnsavedCartModal: React.FC<UnsavedCartModalProps> = ({
             onClick={onClose}
             className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs sm:text-sm transition-colors cursor-pointer active:scale-95 text-center"
           >
-            Bekor qilish
+            {t('common.cancel')}
           </button>
           <button
             onClick={onConfirm}
             className="flex-[1.5] px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 text-center"
           >
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>Tasdiqlash va Yopish</span>
+            <span>{t('unsaved.confirmClose')}</span>
           </button>
         </div>
       </div>

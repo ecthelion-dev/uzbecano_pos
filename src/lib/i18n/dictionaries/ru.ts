@@ -2,6 +2,7 @@ import type { TranslationKey } from './uz';
 
 /** Ruscha. Kalitlari `uz.ts` bilan bir xil bo'lishi shart. */
 export const ru: Record<TranslationKey, string> = {
+  // ── Общее ───────────────────────────────────────────────────────────
   'common.close': 'Закрыть',
   'common.save': 'Сохранить',
   'common.cancel': 'Отмена',
@@ -11,14 +12,27 @@ export const ru: Record<TranslationKey, string> = {
   'common.loading': 'Загрузка...',
   'common.search': 'Поиск',
   'common.total': 'Итого:',
+  'common.totalUpper': 'ИТОГО:',
   'common.reload': 'Обновить',
   'common.logout': 'Выйти',
+  'common.print': 'ПЕЧАТЬ',
+  'common.noData': 'Нет данных',
+  'common.cash': 'Наличные',
+  'common.card': 'Карта',
+  'common.mixed': 'Смешанно',
+  'common.cashLabel': 'Наличные:',
+  'common.cardLabel': 'Карта:',
+  'common.currency': 'сум',
 
+  // ── Вход ────────────────────────────────────────────────────────────
   'login.pinPrompt': 'Введите PIN-код официанта',
   'login.cafeSetup': 'Настройка кафе / филиала',
   'login.cafePlaceholder': 'например: uzbecano, safia',
-  'login.wrongPin': 'Неверный PIN',
+  'login.cafeIdLabel': 'ID кафе (slug):',
+  'login.cafeIdHint': 'Введите идентификатор кафе, зарегистрированный в админ-панели.',
+  'login.changeCafe': 'Сменить кафе',
 
+  // ── Шапка ───────────────────────────────────────────────────────────
   'header.tables': 'СТОЛЫ',
   'header.menu': 'МЕНЮ',
   'header.archive': 'АРХИВ',
@@ -28,6 +42,7 @@ export const ru: Record<TranslationKey, string> = {
   'header.printerTitle': 'Термопринтер и настройки чека',
   'header.waiterCallTitle': 'Вызов официанта',
 
+  // ── Корзина и оплата ────────────────────────────────────────────────
   'cart.empty': 'Корзина пуста',
   'cart.emptyHint': 'Выберите блюдо из меню',
   'cart.itemsTotal': 'Сумма блюд:',
@@ -35,6 +50,160 @@ export const ru: Record<TranslationKey, string> = {
   'cart.payAndClose': 'ОПЛАТА И ЗАКРЫТИЕ',
   'cart.paymentType': 'Способ оплаты:',
   'cart.receipt': 'Квитанция заказа',
+  'cart.printReceipt': 'ПЕЧАТЬ ЧЕКА',
+  'cart.moveTable': 'ПЕРЕНОС',
+  'cart.sentItems': 'Отправлено на кухню',
+  'cart.newItems': 'Новые блюда',
+  'cart.kitchenNote': 'Комментарий на кухню (например: без лука, острое...)',
 
+  // ── Настройки блюда ─────────────────────────────────────────────────
+  'modifier.size': 'Размер / порция:',
+  'modifier.addons': 'Добавки:',
+  'modifier.note': 'Комментарий на кухню (например: без лука, поострее...)',
+  'modifier.addToCart': 'Добавить в корзину',
+
+  // ── Смешанная оплата ────────────────────────────────────────────────
+  'mixed.title': 'Сумма смешанной оплаты',
+  'mixed.totalDue': 'К оплате:',
+  'mixed.full': 'Полностью',
+  'mixed.ready': 'ГОТОВО',
+
+  // ── Столы ───────────────────────────────────────────────────────────
+  'table.busy': 'ЗАНЯТ',
+  'table.free': 'СВОБОДЕН',
+  'table.waiterCall': 'Вызов официанта',
+  'table.moveTitle': 'Перенос / объединение стола',
+  'table.selectTable': 'Выберите стол...',
+  'table.move': 'Перенести',
+  'table.merge': 'Объединить',
+
+  // ── Несохранённая корзина ───────────────────────────────────────────
+  'unsaved.title': 'Есть неотправленные блюда!',
+  'unsaved.cartTotal': 'Сумма корзины:',
+  'unsaved.table': 'Стол:',
+  'unsaved.confirmClose': 'Подтвердить и закрыть',
+
+  // ── Архив ───────────────────────────────────────────────────────────
+  'archive.title': 'Архив чеков',
+  'archive.subtitle': 'История всех закрытых оплат и чеков',
+  'archive.searchPlaceholder': 'Номер стола, ID чека или официант...',
+  'archive.periodStart': 'Начало:',
+  'archive.periodEnd': 'Конец:',
+  'archive.found': 'Найдено:',
+  'archive.backToToday': 'Вернуться к сегодня',
+  'archive.reset': 'Сбросить',
+  'archive.nothingInPeriod': 'За выбранный период чеков не найдено',
+  'archive.tryAnotherPeriod': 'Попробуйте другую дату или период',
+  'archive.printReport': 'Печать отчёта',
+  'archive.printReportHint': 'Напечатать все чеки выбранного периода одним отчётом',
+  'archive.backToList': 'Вернуться к списку',
+  'archive.noItems': 'Нет данных о блюдах',
+  'archive.paid': 'ОПЛАЧЕНО',
+  'archive.refunded': 'ВОЗВРАТ',
+  'archive.refundedShort': 'Возвращено',
+  'archive.closed': 'Закрыт',
+  'archive.totalPaid': 'ИТОГО К ОПЛАТЕ:',
+  'archive.refund': 'ВОЗВРАТ',
+  'archive.refundReason': 'Выберите причину возврата:',
+  'archive.confirmAdminPin': 'ПОДТВЕРДИТЬ (PIN АДМИНА)',
+  'archive.printReceipt': 'НАПЕЧАТАТЬ ЧЕК',
+
+  // ── Денежный ящик ───────────────────────────────────────────────────
+  'drawer.title': 'Приход и расход кассы',
+  'drawer.subtitle': 'Размен, инкассация и расходы',
+  'drawer.addMovement': 'Добавить операцию',
+  'drawer.income': 'ПРИХОД',
+  'drawer.expense': 'РАСХОД',
+  'drawer.incomeTitle': 'Приход в кассу',
+  'drawer.expenseTitle': 'Расход из кассы',
+  'drawer.amountPlaceholder': 'Сумма (например: 50000)',
+  'drawer.reasonPlaceholder': 'Причина (например: размен...)',
+  'drawer.totalIncome': 'Всего приход (+)',
+  'drawer.totalExpense': 'Всего расход (-)',
+  'drawer.netDiff': 'Чистая разница',
+  'drawer.todayHistory': 'История операций за сегодня',
+  'drawer.empty': 'Сегодня операций по кассе не было',
+  'drawer.needReason': 'Укажите причину расхода или прихода!',
+
+  // ── Отчёт смены ─────────────────────────────────────────────────────
+  'shift.title': 'Отчёт кассы (Z-Report)',
+  'shift.subtitle': 'Дневной отчёт по кассе и официантам',
+  'shift.empty': 'Сегодня закрытых заказов нет',
+  'shift.netRevenue': 'Чистая выручка',
+  'shift.refundsTotal': 'Всего возвратов',
+  'shift.drawerIn': 'Приход кассы (+):',
+  'shift.drawerOut': 'Расход кассы (-):',
+  'shift.tableCount': 'Количество столов',
+  'shift.waiterRevenue': 'Выручка официантов',
+  'shift.print': 'ПЕЧАТЬ Z-ОТЧЁТА',
+
+  // ── Панель ──────────────────────────────────────────────────────────
+  'dash.revenue': 'Общая выручка',
+  'dash.orderCount': 'Количество заказов',
+  'dash.revenue7d': 'Динамика выручки за 7 дней',
+  'dash.hourly': 'Заказы по часам',
+  'dash.orderStatus': 'Статусы заказов',
+  'dash.topDishes': 'Популярные блюда',
+  'dash.topDishesDetail': 'Лучшие блюда — подробно',
+  'dash.dishName': 'Название блюда',
+  'dash.paymentMethods': 'Способы оплаты',
+
+  // ── Настройки принтера ──────────────────────────────────────────────
+  'printer.title': 'Термопринтер и настройки чека',
+  'printer.subtitle': 'Печать чеков для кассы и кухни',
+  'printer.typeAndConnection': 'Тип принтера и подключение:',
+  'printer.paperWidth': 'Ширина бумаги (размер ленты):',
+  'printer.width58': '58 мм (узкая лента)',
+  'printer.width80': '80 мм (широкая лента)',
+  'printer.connect': 'Подключить принтер кассы',
+  'printer.connected': 'Подключён:',
+  'printer.active': 'Активен',
+  'printer.testReceipt': 'Тестовый чек',
+  'printer.headerText': 'Текст в шапке чека:',
+  'printer.footerText': 'Благодарность в конце чека:',
+  'printer.autoPrint': 'Автоматическая печать:',
+  'printer.autoOnPayment': 'Автопечать чека при оплате',
+  'printer.autoOnPaymentHint': 'Печатает чек гостю при закрытии счёта',
+  'printer.kitchenAuto': 'Кухонная квитанция — автоматически',
+  'printer.kitchenAutoHint': 'Печатается сразу после подтверждения заказа',
+  'printer.qrToKitchen': 'Печатать QR-заказы на кухне',
+  'printer.cashDrawer': 'Открывать денежный ящик',
+  'printer.cashDrawerHint': 'Открывает ящик при оплате наличными',
+  'printer.headerPlaceholder': 'Добро пожаловать!',
+  'printer.footerPlaceholder': 'Спасибо за визит!',
+  'printer.kioskHint': 'Или откройте Chrome в режиме киоска.',
+  'printer.systemDefault': 'Системный принтер по умолчанию',
+
+  // ── Просмотр чека ───────────────────────────────────────────────────
+  'receipt.preview': 'Предпросмотр чека',
+  'receipt.noItems': 'Блюд нет',
+
+  // ── Сеть ────────────────────────────────────────────────────────────
+  'net.online': 'Онлайн',
+  'net.offline': 'Офлайн',
+  'net.startSync': 'Начать синхронизацию',
+
+  // ── Заморожено ──────────────────────────────────────────────────────
+  'frozen.title': 'Касса временно заморожена',
+  'frozen.badge': 'Заморожено',
+  'frozen.toAdmin': 'Перейти в админ-панель (оплата)',
+  'frozen.recheck': 'Проверить снова (обновить)',
+  'frozen.support': 'Поддержка в Telegram',
+
+  // ── Безопасность ────────────────────────────────────────────────────
+  'admin.pinTitle': 'Подтверждение безопасности',
+  'kitchen.cancelNeedsPin': 'Отмена (нужен PIN админа)',
+
+  // ── Обновление ──────────────────────────────────────────────────────
+  'update.later': 'Позже',
+  'update.restart': 'Перезапустить',
+  'update.hint': 'Для установки приложение перезапустится — нажмите, когда столы освободятся.',
+
+  // ── Уведомления ─────────────────────────────────────────────────────
+  'toast.sentToKitchen': 'Заказ отправлен на кухню!',
+  'toast.receiptQueued': 'Чек отправлен на принтер кассы',
+  'toast.noMenu': 'В базе не найдены категории или товары',
+
+  // ── Язык ────────────────────────────────────────────────────────────
   'lang.change': 'Сменить язык',
 };

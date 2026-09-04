@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { TrendingUp, ShoppingBag, Wallet, Users, Clock, BarChart2 } from 'lucide-react';
 import { DBOrder, DBProduct } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface Props {
   orders: DBOrder[];
@@ -18,6 +19,7 @@ function fmtSom(v: number) {
 }
 
 export function AdminDashboard({ orders, products }: Props) {
+  const t = useT();
   const servedOrders = useMemo(() => orders.filter(o => o.status === 'served' && !o.refunded), [orders]);
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -142,7 +144,7 @@ export function AdminDashboard({ orders, products }: Props) {
         <div className="col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4 text-orange-500" />
-            <h3 className="text-sm font-bold text-slate-900">7 kunlik tushum dinamikasi</h3>
+            <h3 className="text-sm font-bold text-slate-900">{t('dash.revenue7d')}</h3>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={last7Days} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
@@ -164,10 +166,10 @@ export function AdminDashboard({ orders, products }: Props) {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <BarChart2 className="w-4 h-4 text-blue-500" />
-            <h3 className="text-sm font-bold text-slate-900">Buyurtmalar holati</h3>
+            <h3 className="text-sm font-bold text-slate-900">{t('dash.orderStatus')}</h3>
           </div>
           {statusData.length === 0 ? (
-            <div className="h-[200px] flex items-center justify-center text-slate-400 text-xs">Ma'lumot yo'q</div>
+            <div className="h-[200px] flex items-center justify-center text-slate-400 text-xs">{t('common.noData')}</div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
@@ -186,10 +188,10 @@ export function AdminDashboard({ orders, products }: Props) {
         <div className="col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-4">
             <ShoppingBag className="w-4 h-4 text-emerald-500" />
-            <h3 className="text-sm font-bold text-slate-900">Eng mashhur taomlar</h3>
+            <h3 className="text-sm font-bold text-slate-900">{t('dash.topDishes')}</h3>
           </div>
           {topProducts.length === 0 ? (
-            <div className="h-[180px] flex items-center justify-center text-slate-400 text-xs">Ma'lumot yo'q</div>
+            <div className="h-[180px] flex items-center justify-center text-slate-400 text-xs">{t('common.noData')}</div>
           ) : (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={topProducts} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
@@ -207,9 +209,9 @@ export function AdminDashboard({ orders, products }: Props) {
 
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-            <h3 className="text-xs font-bold text-slate-900 mb-3">To'lov usullari</h3>
+            <h3 className="text-xs font-bold text-slate-900 mb-3">{t('dash.paymentMethods')}</h3>
             {paymentSplit.length === 0 ? (
-              <p className="text-xs text-slate-400">Ma'lumot yo'q</p>
+              <p className="text-xs text-slate-400">{t('common.noData')}</p>
             ) : (
               <div className="space-y-2.5">
                 {paymentSplit.map((p, i) => {
@@ -231,7 +233,7 @@ export function AdminDashboard({ orders, products }: Props) {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-            <h3 className="text-xs font-bold text-slate-900 mb-3">Soatlik buyurtmalar</h3>
+            <h3 className="text-xs font-bold text-slate-900 mb-3">{t('dash.hourly')}</h3>
             <ResponsiveContainer width="100%" height={110}>
               <BarChart data={hourlyData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -247,16 +249,16 @@ export function AdminDashboard({ orders, products }: Props) {
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
         <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <Users className="w-4 h-4 text-slate-400" /> Eng yaxshi taomlar – batafsil
+          <Users className="w-4 h-4 text-slate-400" /> {t('dash.topDishesDetail')}
         </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-slate-100">
                 <th className="text-left text-slate-400 font-semibold pb-2 pr-4">#</th>
-                <th className="text-left text-slate-400 font-semibold pb-2 pr-4">Taom nomi</th>
-                <th className="text-right text-slate-400 font-semibold pb-2 pr-4">Buyurtma soni</th>
-                <th className="text-right text-slate-400 font-semibold pb-2">Jami tushum</th>
+                <th className="text-left text-slate-400 font-semibold pb-2 pr-4">{t('dash.dishName')}</th>
+                <th className="text-right text-slate-400 font-semibold pb-2 pr-4">{t('dash.orderCount')}</th>
+                <th className="text-right text-slate-400 font-semibold pb-2">{t('dash.revenue')}</th>
               </tr>
             </thead>
             <tbody>
@@ -269,7 +271,7 @@ export function AdminDashboard({ orders, products }: Props) {
                 </tr>
               ))}
               {topProducts.length === 0 && (
-                <tr><td colSpan={4} className="py-6 text-center text-slate-400">Ma'lumot yo'q</td></tr>
+                <tr><td colSpan={4} className="py-6 text-center text-slate-400">{t('common.noData')}</td></tr>
               )}
             </tbody>
           </table>

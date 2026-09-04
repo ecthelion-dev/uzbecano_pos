@@ -1,6 +1,7 @@
 import React from 'react';
 import { Lock, RotateCw, ExternalLink } from 'lucide-react';
 import { IS_DESKTOP_APP } from '../constants';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface FrozenCafeScreenProps {
   cafeName: string;
@@ -28,6 +29,7 @@ async function openExternal(url: string, event: React.MouseEvent) {
 }
 
 export const FrozenCafeScreen: React.FC<FrozenCafeScreenProps> = ({ cafeName, onRefresh }) => {
+  const t = useT();
   return (
     <div className="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4 py-[calc(1rem+env(safe-area-inset-top))] overflow-y-auto">
       <div className="bg-slate-900 border border-slate-700/80 rounded-3xl p-5 sm:p-8 max-w-md w-full text-center shadow-2xl text-white space-y-4 sm:space-y-5 animate-scaleUp my-auto">
@@ -36,9 +38,9 @@ export const FrozenCafeScreen: React.FC<FrozenCafeScreenProps> = ({ cafeName, on
         </div>
         <div>
           <div className="inline-block px-3 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-full text-[11px] font-bold tracking-wide uppercase mb-2">
-            Muzlatilgan
+            {t('frozen.badge')}
           </div>
-          <h2 className="text-xl font-black text-white">Kassa Vaqtincha Muzlatilgan</h2>
+          <h2 className="text-xl font-black text-white">{t('frozen.title')}</h2>
           <p className="text-xs text-slate-400 mt-2 leading-relaxed">
             <strong className="text-white font-semibold">{cafeName}</strong> restorani uchun abonent to'lov muddati yakunlangan.
             Kassani faollashtirish uchun admin panelingizga kiring va to'lovni amalga oshiring.
@@ -50,7 +52,7 @@ export const FrozenCafeScreen: React.FC<FrozenCafeScreenProps> = ({ cafeName, on
             className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all border border-slate-700"
           >
             <RotateCw className="w-4 h-4" />
-            <span>Qayta tekshirish (Yangilash)</span>
+            <span>{t('frozen.recheck')}</span>
           </button>
           <a
             href="https://orderplus.uz/admin"
@@ -59,7 +61,7 @@ export const FrozenCafeScreen: React.FC<FrozenCafeScreenProps> = ({ cafeName, on
             onClick={(e) => openExternal('https://orderplus.uz/admin', e)}
             className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer transition-all"
           >
-            <span>Admin Panelga O'tish (To'lov Qilish)</span>
+            <span>{t('frozen.toAdmin')}</span>
             <ExternalLink className="w-4 h-4" />
           </a>
           <a
@@ -69,7 +71,7 @@ export const FrozenCafeScreen: React.FC<FrozenCafeScreenProps> = ({ cafeName, on
             onClick={(e) => openExternal('https://t.me/orderplus_admin', e)}
             className="w-full py-3 bg-slate-800/80 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-all border border-slate-700"
           >
-            <span>Telegram Qo'llab-quvvatlash</span>
+            <span>{t('frozen.support')}</span>
           </a>
         </div>
       </div>

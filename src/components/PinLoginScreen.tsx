@@ -110,7 +110,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
             }}
             className="text-orange-400 hover:text-orange-300 underline cursor-pointer text-[10px]"
           >
-            Kafeni o'zgartirish
+            {t('login.changeCafe')}
           </button>
         </div>
       </div>
@@ -141,7 +141,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
             <form onSubmit={handleSaveCafe} className="space-y-4">
               <div>
                 <label className="text-xs text-slate-300 font-medium block mb-1.5">
-                  Kafe ID (slug):
+                  {t('login.cafeIdLabel')}
                 </label>
                 <input
                   type="text"
@@ -153,7 +153,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
                   required
                 />
                 <p className="text-[11px] text-slate-400 mt-1.5">
-                  Admin panelda ro'yxatdan o'tgan kafe identifikatorini kiriting.
+                  {t('login.cafeIdHint')}
                 </p>
               </div>
 
@@ -163,14 +163,14 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
                   onClick={() => setShowCafeModal(false)}
                   className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2.5 rounded-xl text-xs font-semibold transition-colors"
                 >
-                  Bekor qilish
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Saqlash</span>
+                  <span>{t('common.save')}</span>
                 </button>
               </div>
             </form>

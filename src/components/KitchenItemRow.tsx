@@ -1,5 +1,6 @@
 import React from 'react';
 import { PenLine, Trash2 } from 'lucide-react';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface KitchenItemRowProps {
   item: any;
@@ -12,6 +13,7 @@ export const KitchenItemRow: React.FC<KitchenItemRowProps> = React.memo(({
   index,
   onRemove,
 }) => {
+  const t = useT();
   const price = Number(item.price) || 0;
   const qty = Number(item.quantity) || 1;
   const total = price * qty;
@@ -31,7 +33,7 @@ export const KitchenItemRow: React.FC<KitchenItemRowProps> = React.memo(({
           </span>
           <button
             onClick={() => onRemove(index)}
-            title="Bekor qilish (Admin PIN talab qilinadi)"
+            title={t('kitchen.cancelNeedsPin')}
             className="text-rose-400 hover:text-rose-600 hover:bg-rose-100 p-1 rounded-md transition-colors cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />

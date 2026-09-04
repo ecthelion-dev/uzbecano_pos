@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Layers, Check, X, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { DBProduct, ProductVariant, ProductAddon } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface ProductModifierModalProps {
   product: DBProduct | null;
@@ -13,6 +14,7 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
   onAddToCart,
   onClose,
 }) => {
+  const t = useT();
   if (!product) return null;
 
   const hasVariants = product.variants && product.variants.length > 0;
@@ -101,7 +103,7 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
           {hasVariants && (
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-orange-500" /> O'lcham / Porsiya:
+                <Layers className="w-3.5 h-3.5 text-orange-500" /> {t('modifier.size')}
               </label>
               <div className={`grid grid-cols-2 ${product.variants!.length > 2 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2 sm:gap-2.5`}>
                 {product.variants!.map((variant) => {
@@ -138,7 +140,7 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
           {hasAddons && (
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Qo'shimchalar:
+                {t('modifier.addons')}
               </label>
               <div className="space-y-1.5">
                 {product.addons!.map((addon) => {
@@ -177,7 +179,7 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
               type="text"
               value={itemNote}
               onChange={(e) => setItemNote(e.target.value)}
-              placeholder="Oshxonaga izoh yozing (masalan: piyozsiz, achchiqroq...)"
+              placeholder={t('modifier.note')}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-colors"
             />
           </div>
@@ -186,7 +188,7 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
         {/* Bottom Bar */}
         <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <span className="text-[10px] font-semibold text-slate-400 block uppercase leading-none">Jami:</span>
+            <span className="text-[10px] font-semibold text-slate-400 block uppercase leading-none">{t('common.total')}</span>
             <span className="text-xl font-bold text-slate-900 leading-tight">
               {totalPrice.toLocaleString()} so'm
             </span>
@@ -196,13 +198,13 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
               onClick={onClose}
               className="px-4 py-3 sm:py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl text-xs transition-colors cursor-pointer active:scale-95"
             >
-              Bekor qilish
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleConfirm}
               className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 sm:py-2.5 px-5 rounded-xl text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 flex-1 sm:flex-none"
             >
-              <ShoppingBag className="w-4 h-4" /> Savatga qo'shish
+              <ShoppingBag className="w-4 h-4" /> {t('modifier.addToCart')}
             </button>
           </div>
         </div>

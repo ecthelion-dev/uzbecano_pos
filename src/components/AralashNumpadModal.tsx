@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Banknote, CreditCard, X, Check, Delete } from 'lucide-react';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface AralashNumpadModalProps {
   show: boolean;
@@ -20,6 +21,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const t = useT();
   const [selectedField, setSelectedField] = useState<'cash' | 'card'>(initialActiveField);
   const [inputVal, setInputVal] = useState<string>('');
 
@@ -93,8 +95,8 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
         {/* Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
-            <h3 className="font-bold text-slate-900 text-base">Aralash To'lov Miqdori</h3>
-            <p className="text-xs text-slate-500 font-medium">Jami to'lov: <span className="font-semibold text-slate-900">{grandTotal.toLocaleString()} so'm</span></p>
+            <h3 className="font-bold text-slate-900 text-base">{t('mixed.title')}</h3>
+            <p className="text-xs text-slate-500 font-medium">{t('mixed.totalDue')} <span className="font-semibold text-slate-900">{grandTotal.toLocaleString()} so'm</span></p>
           </div>
           <button
             onClick={onClose}
@@ -163,7 +165,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
             onClick={() => handleQuick(grandTotal)}
             className="bg-slate-200 hover:bg-slate-300 text-slate-800 text-[11px] font-bold px-2.5 py-1.5 rounded-md shrink-0 transition-colors"
           >
-            To'liq
+            {t('mixed.full')}
           </button>
           {[10000, 20000, 50000, 100000, 200000].map((amt) => (
             amt < grandTotal && (
@@ -233,7 +235,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
             className="row-span-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 rounded-lg text-sm shadow-md shadow-emerald-600/30 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer"
           >
             <Check className="w-6 h-6" />
-            <span className="text-xs">TAYYOR</span>
+            <span className="text-xs">{t('mixed.ready')}</span>
           </button>
 
           <button

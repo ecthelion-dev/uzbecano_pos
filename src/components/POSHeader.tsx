@@ -11,8 +11,8 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import { DBWaiter } from '../types';
-import { useT } from '../lib/i18n/LanguageProvider';
 import LanguageSwitcher from './LanguageSwitcher';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface POSHeaderProps {
   connectedCafeName: string;
@@ -158,7 +158,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
               ? 'bg-slate-900 border-slate-900 text-white'
               : 'bg-white border-slate-200 text-slate-700'
           }`}
-          title="Menyu"
+          title={t('header.menu')}
         >
           <MoreVertical className="w-6 h-6" />
         </button>
@@ -221,7 +221,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
               className="w-full px-3.5 py-3.5 flex items-center gap-3 text-xs font-semibold text-rose-600 active:bg-rose-50 transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              <span>Chiqish</span>
+              <span>{t('common.logout')}</span>
             </button>
           </div>
         </>

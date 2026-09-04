@@ -139,7 +139,26 @@ export default function App() {
   // Mirrors `orders` so the poll can merge against the current list without
   // reading state that may have moved on since the request went out.
   const ordersRef = React.useRef<DBOrder[]>([]);
-  const [tableCarts, setTableCarts] = useState<Record<string, CartItem[]>>({});
+  /**
+   * Yozilayotgan savatlar — diskda.
+   *
+   * Ilgari bular faqat xotirada edi va ilova yopilishi bilan yo'qolardi.
+   * Avto-yangilanish o'rnatuvchisi ilovani so'ramasdan yopgani uchun bu
+   * yo'qotilgan buyurtma degani bo'lardi: ofitsiant 12 ta taomni qaytadan
+   * kiritishga majbur. Endi savat qayta ishga tushgandan keyin ham joyida
+   * turadi, ya'ni ilovaning yopilishi buyurtmani o'chirmaydi.
+   */
+  const [tableCarts, setTableCarts] = useState<Record<string, CartItem[]>>(() => {
+    try {
+      return readCafeJson<Record<string, CartItem[]>>(resolveActiveCafeId(), 'carts', {});
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    writeCafeJson(resolveActiveCafeId(), 'carts', tableCarts);
+  }, [tableCarts]);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');

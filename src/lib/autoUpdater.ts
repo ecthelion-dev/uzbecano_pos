@@ -4,12 +4,20 @@ import type { Update } from '@tauri-apps/plugin-updater';
 /**
  * Kassa uchun avto-yangilash.
  *
- * Muhim qoida: yangilanish **hech qachon** o'z-o'zidan o'rnatilmaydi.
- * `downloadAndInstall()` Windows'da o'rnatuvchini ishga tushirib, ilovani
- * darhol yopadi — kassir buyurtma yozayotgan payt ham. Shuning uchun yuklab
- * olish (xavfsiz, fonda) va o'rnatish (ilovani yopadi) ajratilgan: fonda
- * yuklab olamiz, keyin banner ko'rsatamiz va qayta ishga tushirish vaqtini
- * xodimning o'zi tanlaydi.
+ * Yangilanish yuklab olingan zahoti o'rnatiladi — kassir hech nima bosmaydi.
+ *
+ * Ilgari o'rnatish tugmaga bog'langan edi, chunki o'rnatuvchi ilovani
+ * so'ramasdan yopadi va yozilayotgan buyurtma yo'qolardi. Endi bu xavf yo'q:
+ * savatlar diskda saqlanadi (`carts`), ya'ni ilova qayta ochilganda ular
+ * joyida turadi va yopilish buyurtmani o'chirmaydi.
+ *
+ * Tugmaga bog'lashning ikkinchi narxi 1.4.1 da ko'rindi: render qulaganda
+ * banner ham yo'qoladi va kassa oq ekranda qotib qoladi — o'zini yangilab
+ * tuzata olmaydi, chunki bosadigan tugma yo'q. Bu modul React'dan tashqarida
+ * ishlagani uchun endi bunday holatda ham yangilanish o'tadi.
+ *
+ * Banner o'chirilmadi: u endi jarayonni ko'rsatadi va avtomatik o'rnatish
+ * xato bersa, qayta urinish uchun tugma bo'lib qoladi.
  */
 
 export type UpdatePhase =
@@ -121,6 +129,10 @@ async function runCheck(): Promise<boolean> {
 
     pendingUpdate = update;
     notify({ phase: 'ready', progress: 100 });
+
+    // Darhol o'rnatamiz. Xato bo'lsa `installUpdate` holatni `ready` ga
+    // qaytaradi va banner tugmasi zaxira yo'l bo'lib qoladi.
+    void installUpdate();
     return true;
   } catch (err: any) {
     const errMsg = err?.message || String(err);
@@ -132,7 +144,9 @@ async function runCheck(): Promise<boolean> {
 
 /**
  * Yuklab olingan yangilanishni o'rnatadi va ilovani qayta ishga tushiradi.
- * Xodim bannerdagi tugmani bosganda chaqiriladi — avtomatik emas.
+ *
+ * Yuklab olingach avtomatik chaqiriladi; banner tugmasi esa xato bo'lgan
+ * holatda qayta urinish uchun xizmat qiladi.
  */
 export async function installUpdate(): Promise<void> {
   if (!pendingUpdate) return;

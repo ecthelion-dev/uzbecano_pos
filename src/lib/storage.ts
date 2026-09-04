@@ -28,6 +28,8 @@
  */
 export const CAFE_KEYS = [
   'address',
+  /** Yozilayotgan, hali yuborilmagan savatlar — stol raqami bo'yicha. */
+  'carts',
   'cash_transactions',
   'categories',
   'is_frozen',

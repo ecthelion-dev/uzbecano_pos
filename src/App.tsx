@@ -55,6 +55,7 @@ import {
 import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
+import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
 import { useT } from './lib/i18n/LanguageProvider';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
@@ -370,7 +371,7 @@ export default function App() {
   const fetchTableDefs = useCallback(async () => {
     const cafeId = getActiveCafeId();
     try {
-      const res = await fetch(`${API_BASE_URL}/api/tables?cafeId=${encodeURIComponent(cafeId)}`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/tables?cafeId=${encodeURIComponent(cafeId)}`, {
         cache: 'no-store',
         headers: getAuthHeaders(),
       });
@@ -392,7 +393,7 @@ export default function App() {
     try {
       const cafeId = getActiveCafeId();
       if (!cafeId) return;
-      const res = await fetch(`${API_BASE_URL}/api/waiter-calls?cafeId=${encodeURIComponent(cafeId)}`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/waiter-calls?cafeId=${encodeURIComponent(cafeId)}`, {
         cache: 'no-store',
         headers: getAuthHeaders(),
       });
@@ -430,7 +431,7 @@ export default function App() {
   const fetchOrderHistory = useCallback(async () => {
     try {
       const cafeId = getActiveCafeId();
-      const res = await fetch(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}`, { cache: 'no-store', headers: getAuthHeaders() });
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}`, { cache: 'no-store', headers: getAuthHeaders() });
       if (!res.ok) return;
       const data: DBOrder[] = await res.json();
       if (!Array.isArray(data)) return;
@@ -470,7 +471,7 @@ export default function App() {
   const fetchOrders = useCallback(async () => {
     try {
       const cafeId = getActiveCafeId();
-      const res = await fetch(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}&active=1`, { cache: 'no-store', headers: getAuthHeaders() });
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}&active=1`, { cache: 'no-store', headers: getAuthHeaders() });
       if (!res.ok) return;
       const data: DBOrder[] = await res.json();
       if (!Array.isArray(data)) return;
@@ -863,19 +864,19 @@ export default function App() {
       try {
         let res: Response;
         if (item.kind === 'create') {
-          res = await fetch(`${API_BASE_URL}/api/orders`, {
+          res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({ ...item.order, cafeId }),
           });
         } else if (item.kind === 'patch') {
-          res = await fetch(`${API_BASE_URL}/api/orders/${item.orderId}`, {
+          res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
             method: 'PATCH',
             headers: getAuthHeaders(item.approvalToken),
             body: JSON.stringify(item.body),
           });
         } else {
-          res = await fetch(`${API_BASE_URL}/api/orders/${item.orderId}`, {
+          res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
             method: 'DELETE',
             headers: getAuthHeaders(),
           });
@@ -1480,6 +1481,33 @@ export default function App() {
   }, [currentWaiter, getAuthHeaders, connectedCafeName]);
 
   /**
+   * Yopilgan stolning chekini bosadi.
+   *
+   * Sozlamada avtomatik chek o'chirilgan bo'lsa hech nima qilmaydi.
+   *
+   * Telefondagi PWA kassadagi printerga tega olmaydi, shuning uchun chek
+   * serverdagi navbatga yoziladi va uni printer ulangan kassa bosadi.
+   * Navbatga yozib bo'lmasa (masalan, internet uzilgan) chek YO'QOLMAYDI:
+   * mahalliy yo'lga tushamiz — Bluetooth/Serial printer, bo'lmasa brauzer
+   * chop etishi. Ilgari bu natija tekshirilmasdi va chek jimgina yo'q
+   * bo'lardi: kassir stolni yopadi, qog'oz chiqmaydi, xabar ham yo'q.
+   *
+   * Kutilmaydi (`void`): chek bosilishi to'lovni saqlashni ushlab
+   * turmasligi kerak.
+   */
+  const printClosedReceipt = useCallback((closedOrder: any) => {
+    if (!closedOrder) return;
+    if (!getPrinterSettings().autoPrintReceipt) return;
+
+    void (async () => {
+      if (!IS_DESKTOP_APP && closedOrder.id) {
+        if (await enqueuePrintJob(getAuthHeaders(), String(closedOrder.id), 'receipt')) return;
+      }
+      await executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus');
+    })();
+  }, [connectedCafeName, getAuthHeaders]);
+
+  /**
    * Qo'lda chop etish tugmalari uchun.
    *
    * Avval ESC/POS bilan printerga to'g'ridan-to'g'ri yuboriladi; u yo'q yoki
@@ -1532,7 +1560,7 @@ export default function App() {
       const params = new URLSearchParams({ cafeId, limit: '2000' });
       if (from) params.set('from', from.toISOString());
       if (to) params.set('to', to.toISOString());
-      const res = await fetch(`${API_BASE_URL}/api/orders?${params}`, { cache: 'no-store', headers: getAuthHeaders() });
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders?${params}`, { cache: 'no-store', headers: getAuthHeaders() }, REPORT_TIMEOUT_MS);
       if (!res.ok) return fallback;
       const data = await res.json();
       if (!Array.isArray(data)) return fallback;
@@ -1563,7 +1591,7 @@ export default function App() {
       const patchBody = { items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot };
       if (!isOfflineMode) {
         try {
-          const res = await fetch(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
+          const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
             method: 'PATCH',
             headers: getAuthHeaders(approvalToken),
             body: JSON.stringify(patchBody)
@@ -1609,7 +1637,7 @@ export default function App() {
       const refundBody = { action: 'refund', refundReason: reason };
       if (!isOfflineMode) {
         try {
-          const res = await fetch(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
+          const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
             method: 'PATCH',
             headers: getAuthHeaders(approvalToken),
             body: JSON.stringify(refundBody)
@@ -1695,7 +1723,7 @@ export default function App() {
         };
         if (!isOfflineMode) {
           try {
-            const res = await fetch(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
+            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
               method: 'PATCH',
               headers: getAuthHeaders(),
               body: JSON.stringify(mergePatchBody)
@@ -1740,7 +1768,7 @@ export default function App() {
 
         if (!isOfflineMode) {
           try {
-            const res = await fetch(`${API_BASE_URL}/api/orders`, {
+            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
               method: 'POST',
               headers: getAuthHeaders(),
               body: JSON.stringify({ ...newOrderObj, idempotencyKey: newOrderObj.id })
@@ -1910,7 +1938,7 @@ export default function App() {
         };
         if (!isOfflineMode) {
           try {
-            const res = await fetch(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
+            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
               method: 'PATCH',
               headers: getAuthHeaders(),
               body: JSON.stringify(mergeTablePatchBody)
@@ -1921,7 +1949,7 @@ export default function App() {
           }
 
           try {
-            const delRes = await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+            const delRes = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
               method: 'DELETE',
               headers: getAuthHeaders(),
             });
@@ -1940,7 +1968,7 @@ export default function App() {
       } else if (sourceOrder && !targetOrder) {
         if (!isOfflineMode) {
           try {
-            const res = await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
               method: 'PATCH',
               headers: getAuthHeaders(),
               body: JSON.stringify({ tableNumber: targetTable })
@@ -1960,7 +1988,7 @@ export default function App() {
       if (sourceOrder) {
         if (!isOfflineMode) {
           try {
-            const res = await fetch(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
+            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
               method: 'PATCH',
               headers: getAuthHeaders(),
               body: JSON.stringify({ tableNumber: targetTable })
@@ -2055,7 +2083,7 @@ export default function App() {
 
         if (!isOfflineMode) {
           try {
-            const res = await fetch(`${API_BASE_URL}/api/orders`, {
+            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
               method: 'POST',
               headers: getAuthHeaders(),
               body: JSON.stringify({ ...newOrderObj, idempotencyKey: newOrderObj.id })
@@ -2101,24 +2129,6 @@ export default function App() {
           cashAmount: finalCash,
           cardAmount: finalCard
         };
-        if (!isOfflineMode) {
-          try {
-            const res = await fetch(`${API_BASE_URL}/api/orders/${latestOrder.id}`, {
-              method: 'PATCH',
-              headers: getAuthHeaders(),
-              body: JSON.stringify(paymentPatchBody)
-            });
-            if (!res.ok) {
-              setApiError(t('toast.paymentNotSaved'));
-              queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
-            }
-          } catch {
-            setApiError(t('toast.paymentQueued'));
-            queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
-          }
-        } else {
-          queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
-        }
 
         closedOrder = {
           ...latestOrder,
@@ -2136,33 +2146,49 @@ export default function App() {
         setOrders(updatedOrders);
         writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
         setSelectedArchiveOrder(closedOrder);
+
+        /*
+         * Chek to'lov so'rovidan OLDIN.
+         *
+         * Chekdagi hamma narsa — taomlar, summa, to'lov turi — shu yerda,
+         * kassaning o'zida ma'lum: serverning javobidan hech nima olinmaydi.
+         * Shunga qaramay chek so'rovdan keyin bosilardi, ya'ni qog'oz
+         * tarmoqqa bog'lanib qolgan edi: internet uzilganda so'rov osilib
+         * turar, chek esa o'sha kutish tugagunicha chiqmasdi.
+         *
+         * Endi qog'oz birinchi, sinxronizatsiya keyin. To'lov baribir
+         * yo'qolmaydi: pastdagi so'rov yiqilsa, amal navbatga yoziladi va
+         * aloqa tiklanganda o'zi ketadi.
+         */
+        printClosedReceipt(closedOrder);
+
+        if (!isOfflineMode) {
+          try {
+            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${latestOrder.id}`, {
+              method: 'PATCH',
+              headers: getAuthHeaders(),
+              body: JSON.stringify(paymentPatchBody)
+            });
+            if (!res.ok) {
+              setApiError(t('toast.paymentNotSaved'));
+              queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
+            }
+          } catch {
+            setApiError(t('toast.paymentQueued'));
+            queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
+          }
+        } else {
+          queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
+        }
       }
       setTableCarts(prev => ({ ...prev, [targetTable]: [] }));
       setToastMessage(`${targetTable} muvaffaqiyatli to'lanib yopildi!`);
       setTimeout(() => setToastMessage(null), 2500);
 
-      const pSettings = getPrinterSettings();
-      if (pSettings.autoPrintReceipt && closedOrder) {
-        /*
-         * Telefonda chop etib bo'lmaydi — chek kassa navbatiga yoziladi.
-         *
-         * Ilgari navbatga yozish natijasi TEKSHIRILMASDI (`void`). Internet
-         * uzilganda navbatga yozib bo'lmaydi va chek shu yerda jimgina
-         * yo'qolardi: kassir to'lovni yopadi, qog'oz esa chiqmaydi va hech
-         * qanday xabar ham ko'rinmaydi. Endi yozib bo'lmasa mahalliy yo'lga
-         * tushamiz — Bluetooth/Serial printer yoki brauzer chop etishi.
-         */
-        void (async () => {
-          if (!IS_DESKTOP_APP && closedOrder.id) {
-            if (await enqueuePrintJob(getAuthHeaders(), String(closedOrder.id), 'receipt')) return;
-          }
-          await executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus');
-        })();
-      }
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, paymentMethod, customCashAmount, connectedCafeName, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal]);
+  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, paymentMethod, customCashAmount, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {
@@ -2216,7 +2242,7 @@ export default function App() {
         const currentCid = getActiveCafeId();
         let res: Response | null = null;
         try {
-          res = await fetch(`${API_BASE_URL}/api/auth/pin`, {
+          res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/pin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pin: nextPin, cafeId: currentCid }),

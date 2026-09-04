@@ -1,6 +1,6 @@
 {
   "name": "orderplus-pos",
-  "version": "1.4.10",
+  "version": "1.4.11",
   "description": "OrderPlus POS — restoran kassa tizimi (PWA)",
   "scripts": {
     "dev": "vite",

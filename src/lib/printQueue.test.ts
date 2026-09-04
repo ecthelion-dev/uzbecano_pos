@@ -57,6 +57,40 @@ describe('navbatga yozish', () => {
     mockFetch(() => ({ ok: false, json: async () => ({}) }));
     expect(await enqueuePrintJob(headers, 'order_1', 'receipt')).toBe(false);
   });
+
+  /*
+   * Internet uzilganda chek chiqmay qolgan edi. Sabab ikkita bo'lgan va
+   * ikkalasi ham shu yerda: navbatga yozish javobini kutish, va o'sha
+   * kutishning cheksizligi.
+   */
+  it('brauzer "tarmoq yo\'q" desa so\'rov ham yubormaydi', async () => {
+    // Tarmoqsiz `fetch` ba'zan darhol yiqilmaydi. Bilib turib kutish esa
+    // kassirni printerdan uzoqlashtiradi: javob kelmaguncha chek chiqmaydi.
+    vi.stubGlobal('navigator', { onLine: false });
+    const spy = mockFetch(() => okRes({ id: 'j1' }));
+    expect(await enqueuePrintJob(headers, 'order_1', 'receipt')).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('so\'rov osilib qolsa kutib o\'tirmaydi', async () => {
+    // Wi-Fi ulangan, lekin tashqariga chiqmaydi: `fetch` javob ham,
+    // xato ham bermaydi. Chaqiruvchi shu yerda muzlab qolardi.
+    vi.useFakeTimers();
+    let aborted = false;
+    mockFetch((_url, init) => new Promise((_resolve, reject) => {
+      init.signal.addEventListener('abort', () => {
+        aborted = true;
+        reject(new Error('aborted'));
+      });
+    }));
+
+    const result = enqueuePrintJob(headers, 'order_1', 'receipt');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(await result).toBe(false);
+    expect(aborted).toBe(true);
+    vi.useRealTimers();
+  });
 });
 
 describe('navbatni o\'qish', () => {

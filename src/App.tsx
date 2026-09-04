@@ -2143,12 +2143,21 @@ export default function App() {
 
       const pSettings = getPrinterSettings();
       if (pSettings.autoPrintReceipt && closedOrder) {
-        // Telefonda chop etib bo'lmaydi — chek kassa navbatiga yoziladi.
-        if (!IS_DESKTOP_APP && closedOrder.id) {
-          void enqueuePrintJob(getAuthHeaders(), String(closedOrder.id), 'receipt');
-        } else {
-          executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus');
-        }
+        /*
+         * Telefonda chop etib bo'lmaydi — chek kassa navbatiga yoziladi.
+         *
+         * Ilgari navbatga yozish natijasi TEKSHIRILMASDI (`void`). Internet
+         * uzilganda navbatga yozib bo'lmaydi va chek shu yerda jimgina
+         * yo'qolardi: kassir to'lovni yopadi, qog'oz esa chiqmaydi va hech
+         * qanday xabar ham ko'rinmaydi. Endi yozib bo'lmasa mahalliy yo'lga
+         * tushamiz — Bluetooth/Serial printer yoki brauzer chop etishi.
+         */
+        void (async () => {
+          if (!IS_DESKTOP_APP && closedOrder.id) {
+            if (await enqueuePrintJob(getAuthHeaders(), String(closedOrder.id), 'receipt')) return;
+          }
+          await executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus');
+        })();
       }
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);

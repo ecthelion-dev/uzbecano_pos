@@ -28,6 +28,29 @@ export interface PrintJob {
 const URL_PATH = '/api/print-jobs';
 
 /**
+ * Navbatga yozishning eng uzun kutish vaqti.
+ *
+ * Chek chop etish — kassir tugmani bosib turgan payt, ya'ni bu so'rov
+ * interaktiv. Internet uzilganda `fetch` doim darhol yiqilmaydi: Wi-Fi
+ * ulangan, lekin tashqariga chiqmaydigan tarmoqda (kafedagi eng ko'p
+ * uchraydigan holat) so'rov o'ttiz soniyagacha osilib turishi mumkin.
+ * Chaqiruvchi esa javobni KUTIB turadi va shu vaqt ichida printerga
+ * o'tmaydi — chek chiqmaydi.
+ */
+const ENQUEUE_TIMEOUT_MS = 4000;
+
+/**
+ * Brauzer "tarmoq yo'q" desa, so'rov ham yubormaymiz.
+ *
+ * `navigator.onLine === false` xatolashmaydi: u faqat "aniq ulanish yo'q"
+ * deganda `false` bo'ladi. Teskarisi (`true` bo'lib turib internet yo'q)
+ * ko'p uchraydi — o'sha holatni yuqoridagi kutish vaqti hal qiladi.
+ */
+function offlineForSure(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+/**
  * Bir vaqtda bitta topshiriq ustida ishlanadi.
  *
  * Server topshiriqni "bosildi" deb belgilaganda navbatdan chiqadi, lekin
@@ -48,15 +71,22 @@ export async function enqueuePrintJob(
   payload?: unknown,
 ): Promise<boolean> {
   if (!orderId) return false;
+  if (offlineForSure()) return false;
+
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), ENQUEUE_TIMEOUT_MS);
   try {
     const res = await fetch(`${API_BASE_URL}${URL_PATH}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify({ orderId, kind, ...(payload === undefined ? {} : { payload }) }),
+      signal: abort.signal,
     });
     return res.ok;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

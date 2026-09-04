@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, UtensilsCrossed } from 'lucide-react';
 import { DBProduct } from '../types';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface ProductCardProps {
   product: DBProduct;
@@ -11,6 +12,8 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
   product,
   onAddToCart,
 }) => {
+  const t = useT();
+
   return (
     <div
       onClick={() => onAddToCart(product)}
@@ -42,7 +45,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
           )}
         </div>
         <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
-          <span className="font-bold text-[11px] sm:text-xs text-orange-600 truncate pr-1">{product.price.toLocaleString()} so'm</span>
+          <span className="font-bold text-[11px] sm:text-xs text-orange-600 truncate pr-1">{product.price.toLocaleString()} {t('common.currency')}</span>
           <span className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 group-hover:bg-orange-500 group-hover:text-white flex items-center justify-center transition-all shadow-xs group-active:scale-90 font-bold">
             <Plus className="w-4.5 h-4.5" />
           </span>

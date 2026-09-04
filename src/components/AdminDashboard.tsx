@@ -14,8 +14,9 @@ interface Props {
 
 const COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
 
-function fmtSom(v: number) {
-  return `${v.toLocaleString()} so'm`;
+/** Valyuta argument bo'lib keladi: modul darajasidagi funksiya hook chaqira olmaydi. */
+function fmtSom(v: number, currency: string) {
+  return `${v.toLocaleString()} ${currency}`;
 }
 
 export function AdminDashboard({ orders, products }: Props) {
@@ -35,9 +36,9 @@ export function AdminDashboard({ orders, products }: Props) {
       map[pm] = (map[pm] || 0) + (o.total || 0);
     });
     return [
-      { name: 'Naqd', value: map.naqd },
-      { name: 'Karta', value: map.karta },
-      { name: 'Aralash', value: map.aralash },
+      { name: t('common.cash'), value: map.naqd },
+      { name: t('common.card'), value: map.karta },
+      { name: t('common.mixed'), value: map.aralash },
     ].filter(d => d.value > 0);
   }, [servedOrders]);
 
@@ -106,7 +107,7 @@ export function AdminDashboard({ orders, products }: Props) {
         <p className="font-semibold text-slate-700 mb-1">{label}</p>
         {payload.map((p: any, i: number) => (
           <p key={i} style={{ color: p.color }} className="font-medium">
-            {p.name}: {typeof p.value === 'number' && p.value > 1000 ? fmtSom(p.value) : p.value}
+            {p.name}: {typeof p.value === 'number' && p.value > 1000 ? fmtSom(p.value, t('common.currency')) : p.value}
           </p>
         ))}
       </div>
@@ -158,7 +159,7 @@ export function AdminDashboard({ orders, products }: Props) {
               <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="revenue" name="Tushum" stroke="#f97316" strokeWidth={2.5} fill="url(#revenueGrad)" dot={{ r: 4, fill: '#f97316', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+              <Area type="monotone" dataKey="revenue" name={t('dash.revenueAxis')} stroke="#f97316" strokeWidth={2.5} fill="url(#revenueGrad)" dot={{ r: 4, fill: '#f97316', strokeWidth: 0 }} activeDot={{ r: 6 }} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -199,7 +200,7 @@ export function AdminDashboard({ orders, products }: Props) {
                 <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 10, fill: '#475569', fontWeight: 600 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="count" name="Buyurtma" radius={[0, 6, 6, 0]} maxBarSize={18}>
+                <Bar dataKey="count" name={t('dash.ordersAxis')} radius={[0, 6, 6, 0]} maxBarSize={18}>
                   {topProducts.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Bar>
               </BarChart>
@@ -220,7 +221,7 @@ export function AdminDashboard({ orders, products }: Props) {
                     <div key={i}>
                       <div className="flex justify-between text-[11px] font-medium text-slate-600 mb-1">
                         <span>{p.name}</span>
-                        <span>{pct}%  · {p.value.toLocaleString()} so'm</span>
+                        <span>{pct}%  · {p.value.toLocaleString()} {t('common.currency')}</span>
                       </div>
                       <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: COLORS[i % COLORS.length] }} />
@@ -240,7 +241,7 @@ export function AdminDashboard({ orders, products }: Props) {
                 <XAxis dataKey="hour" tick={{ fontSize: 8, fill: '#94a3b8' }} axisLine={false} tickLine={false} interval={1} />
                 <YAxis tick={{ fontSize: 8, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="count" name="Buyurtma" fill="#f97316" radius={[3, 3, 0, 0]} maxBarSize={14} />
+                <Bar dataKey="count" name={t('dash.ordersAxis')} fill="#f97316" radius={[3, 3, 0, 0]} maxBarSize={14} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -267,7 +268,7 @@ export function AdminDashboard({ orders, products }: Props) {
                   <td className="py-2 pr-4 text-slate-400 font-semibold">{i + 1}</td>
                   <td className="py-2 pr-4 font-medium text-slate-800">{p.name}</td>
                   <td className="py-2 pr-4 text-right font-semibold text-orange-600">{p.count} ta</td>
-                  <td className="py-2 text-right font-semibold text-slate-700">{p.revenue.toLocaleString()} so'm</td>
+                  <td className="py-2 text-right font-semibold text-slate-700">{p.revenue.toLocaleString()} {t('common.currency')}</td>
                 </tr>
               ))}
               {topProducts.length === 0 && (

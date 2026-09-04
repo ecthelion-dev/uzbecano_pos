@@ -96,7 +96,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
             <h3 className="font-bold text-slate-900 text-base">{t('mixed.title')}</h3>
-            <p className="text-xs text-slate-500 font-medium">{t('mixed.totalDue')} <span className="font-semibold text-slate-900">{grandTotal.toLocaleString()} so'm</span></p>
+            <p className="text-xs text-slate-500 font-medium">{t('mixed.totalDue')} <span className="font-semibold text-slate-900">{grandTotal.toLocaleString()} {t('common.currency')}</span></p>
           </div>
           <button
             onClick={onClose}
@@ -118,7 +118,7 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
             }`}
           >
             <Banknote className="w-4 h-4" />
-            <span>Naqd: {cashAmount.toLocaleString()}</span>
+            <span>{t('common.cashLabel')} {cashAmount.toLocaleString()}</span>
           </button>
 
           <button
@@ -131,22 +131,22 @@ export const AralashNumpadModal: React.FC<AralashNumpadModalProps> = ({
             }`}
           >
             <CreditCard className="w-4 h-4" />
-            <span>Karta: {cardAmount.toLocaleString()}</span>
+            <span>{t('common.cardLabel')} {cardAmount.toLocaleString()}</span>
           </button>
         </div>
 
         {/* Display */}
         <div className="p-4 bg-slate-50/50 border-b border-slate-100 text-center space-y-1">
           <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-            {selectedField === 'cash' ? '💵 Naqd pul miqdori' : '💳 Karta miqdori'}
+            {selectedField === 'cash' ? `💵 ${t('mixed.cashAmount')}` : `💳 ${t('mixed.cardAmount')}`}
           </div>
           <div className="text-3xl font-bold text-slate-900 tracking-tight font-mono">
-            {currentNum.toLocaleString()} <span className="text-sm font-semibold text-slate-500">so'm</span>
+            {currentNum.toLocaleString()} <span className="text-sm font-semibold text-slate-500">{t('common.currency')}</span>
           </div>
           <div className="text-xs font-semibold text-slate-600">
             {selectedField === 'cash' ? t('mixed.viaCard') : t('mixed.viaCash')}{' '}
             <span className="font-bold text-blue-700">
-              {otherNum.toLocaleString()} so'm
+              {otherNum.toLocaleString()} {t('common.currency')}
             </span>
           </div>
         </div>

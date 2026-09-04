@@ -24,12 +24,12 @@ export const KitchenItemRow: React.FC<KitchenItemRowProps> = React.memo(({
         <div className="flex-1 pr-2">
           <p className="font-bold text-xs text-slate-900">{item.name}</p>
           <p className="text-[10px] text-slate-500 font-medium">
-            {qty} ta x {price.toLocaleString()} so'm
+            {qty} ta x {price.toLocaleString()} {t('common.currency')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-900">
-            {total.toLocaleString()} so'm
+            {total.toLocaleString()} {t('common.currency')}
           </span>
           <button
             onClick={() => onRemove(index)}

@@ -218,7 +218,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 {cafePhone && (
                   <p className="text-xs text-slate-600 font-medium">{cafePhone.startsWith('Tel') ? cafePhone : `Tel: ${cafePhone}`}</p>
                 )}
-                <p className="text-xs text-slate-600 font-semibold">Yopilgan Chek: #{selectedArchiveOrder.id.slice(-6)}</p>
+                <p className="text-xs text-slate-600 font-semibold">{t('archive.closedReceipt')}{selectedArchiveOrder.id.slice(-6)}</p>
                 {selectedArchiveOrder.closedAt && (
                   <p className="text-xs text-slate-600 font-medium">Sana: {new Date(selectedArchiveOrder.closedAt).toLocaleString('uz-UZ')}</p>
                 )}
@@ -244,7 +244,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
               {selectedArchiveOrder.refunded && selectedArchiveOrder.refundReason && (
                   <div className="bg-rose-50 border border-rose-200 p-2.5 rounded-2xl text-xs text-rose-800 font-bold">
-                    <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />Qaytarish sababi: {selectedArchiveOrder.refundReason}
+                    <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />{t('archive.refundReasonLabel')} {selectedArchiveOrder.refundReason}
                   </div>
               )}
 
@@ -264,10 +264,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       <div key={idx} className="flex justify-between items-start text-xs pb-1.5 border-b border-slate-100 last:border-b-0">
                         <div className="flex-1 pr-2">
                           <p className="font-bold text-slate-900 text-sm">{item.name}</p>
-                          <p className="text-[11px] text-slate-600 font-medium">{item.quantity} x {(item.price || 0).toLocaleString()} so'm</p>
+                          <p className="text-[11px] text-slate-600 font-medium">{item.quantity} x {(item.price || 0).toLocaleString()} {t('common.currency')}</p>
                           {item.note && <p className="text-[11px] font-semibold text-amber-900 mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />{item.note}</p>}
                         </div>
-                        <span className="font-bold text-slate-900 text-sm">{((item.price || 0) * (item.quantity || 1)).toLocaleString()} so'm</span>
+                        <span className="font-bold text-slate-900 text-sm">{((item.price || 0) * (item.quantity || 1)).toLocaleString()} {t('common.currency')}</span>
                       </div>
                     ))
                   );
@@ -277,17 +277,17 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               <div className="space-y-1.5 border-t-2 border-dashed border-slate-400 pt-2.5 mt-1 text-xs font-medium">
                 <div className="flex justify-between font-bold text-base text-slate-900 pb-1">
                   <span>{t('archive.totalPaid')}</span>
-                  <span className="text-xl text-slate-950 font-bold">{(selectedArchiveOrder.total || 0).toLocaleString()} so'm</span>
+                  <span className="text-xl text-slate-950 font-bold">{(selectedArchiveOrder.total || 0).toLocaleString()} {t('common.currency')}</span>
                 </div>
                 {selectedArchiveOrder.paymentMethod === 'aralash' ? (
                   <>
                     <div className="flex justify-between text-slate-700 text-xs">
                       <span className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5" /> {t('common.cashLabel')}</span>
-                      <span className="font-semibold">{(selectedArchiveOrder.cashAmount || 0).toLocaleString()} so'm</span>
+                      <span className="font-semibold">{(selectedArchiveOrder.cashAmount || 0).toLocaleString()} {t('common.currency')}</span>
                     </div>
                     <div className="flex justify-between text-slate-700 text-xs">
                       <span className="flex items-center gap-1"><CreditCard className="w-3.5 h-3.5" /> {t('common.cardLabel')}</span>
-                      <span className="font-semibold">{(selectedArchiveOrder.cardAmount || 0).toLocaleString()} so'm</span>
+                      <span className="font-semibold">{(selectedArchiveOrder.cardAmount || 0).toLocaleString()} {t('common.currency')}</span>
                     </div>
                   </>
                 ) : (
@@ -471,25 +471,25 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-slate-600">{t('archive.found')}</span>
                 <span className="bg-white px-2.5 py-0.5 rounded-lg border border-slate-200 font-bold text-slate-900 text-xs shadow-2xs">
-                  {filteredOrders.length} ta chek
+                  {t('archive.receiptCount', { n: filteredOrders.length })}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-600 text-xs">
-                <span>{t('common.cashLabel')} <strong className="text-slate-900 font-semibold">{cashTotal.toLocaleString()} so'm</strong></span>
+                <span>{t('common.cashLabel')} <strong className="text-slate-900 font-semibold">{cashTotal.toLocaleString()} {t('common.currency')}</strong></span>
                 <span>•</span>
-                <span>{t('common.cardLabel')} <strong className="text-slate-900 font-semibold">{cardTotal.toLocaleString()} so'm</strong></span>
+                <span>{t('common.cardLabel')} <strong className="text-slate-900 font-semibold">{cardTotal.toLocaleString()} {t('common.currency')}</strong></span>
                 {refundedCount > 0 && (
                   <>
                     <span>•</span>
                     <span className="text-rose-600">
                       Qaytarilgan ({refundedCount} ta):{' '}
-                      <strong className="font-semibold">−{refundedTotal.toLocaleString()} so'm</strong>
+                      <strong className="font-semibold">−{refundedTotal.toLocaleString()} {t('common.currency')}</strong>
                     </span>
                   </>
                 )}
                 <span>•</span>
                 <span className="bg-orange-500 text-white px-3 py-1 rounded-lg font-bold text-xs shadow-xs">
-                  Jami: {totalSum.toLocaleString()} so'm
+                  {t('common.total')} {totalSum.toLocaleString()} {t('common.currency')}
                 </span>
                 {onPrintPeriod && (
                   <button
@@ -549,7 +549,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                         </div>
                         <p className="text-xs text-slate-500 font-medium flex items-center gap-2 sm:gap-2.5 flex-wrap">
                           {(ord.closedBy || ord.waiterName) && <span className="flex items-center gap-0.5"><User className="w-3 h-3" />{ord.closedBy || ord.waiterName}</span>}
-                          <span className="flex items-center gap-0.5"><Utensils className="w-3 h-3" />{itemsCount} ta taom</span>
+                          <span className="flex items-center gap-0.5"><Utensils className="w-3 h-3" />{t('common.dishCount', { n: itemsCount })}</span>
                           <span>•</span>
                           <span className="font-semibold text-slate-700">
                             {ord.paymentMethod === 'karta'
@@ -564,7 +564,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       <div className="text-left sm:text-right flex items-center justify-between sm:justify-end gap-3.5 border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0">
                         <div>
                           <p className="font-bold text-base text-slate-900 group-hover:text-orange-600 transition-colors">
-                            {(ord.total || 0).toLocaleString()} so'm
+                            {(ord.total || 0).toLocaleString()} {t('common.currency')}
                           </p>
                           {orderDate && (
                             <p className="text-xs font-medium text-slate-400 flex items-center justify-start sm:justify-end gap-1 mt-0.5">

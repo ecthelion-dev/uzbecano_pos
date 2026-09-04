@@ -23,6 +23,8 @@ export const en: Record<TranslationKey, string> = {
   'common.cashLabel': 'Cash:',
   'common.cardLabel': 'Card:',
   'common.currency': 'UZS',
+  'common.order': 'Order',
+  'common.dishCount': '{n} dishes',
   'common.countItems': '{n}',
 
   // ── Login ───────────────────────────────────────────────────────────
@@ -53,7 +55,6 @@ export const en: Record<TranslationKey, string> = {
   'menu.backToTablesTitle': 'Back to the table hall',
   'menu.searchPlaceholder': 'Search a dish or drink...',
   'menu.closeSearch': 'Close the search',
-  'menu.emptyDb': 'No categories or products in the database',
   'menu.noProducts': 'No products found',
 
   // ── Cart and payment ────────────────────────────────────────────────
@@ -83,6 +84,8 @@ export const en: Record<TranslationKey, string> = {
   'mixed.totalDue': 'Total due:',
   'mixed.full': 'Full',
   'mixed.ready': 'DONE',
+  'mixed.cashAmount': 'Cash amount',
+  'mixed.cardAmount': 'Card amount',
   'mixed.viaCard': 'By card:',
   'mixed.viaCash': 'In cash:',
 
@@ -100,9 +103,13 @@ export const en: Record<TranslationKey, string> = {
   'table.occupiedCount': '{n} occupied tables',
   'table.moveTarget': 'Move to which table?',
   'table.mergeNeedsBusy': '{table} has no active order — a table must be occupied to merge.',
+  'table.pickTarget': 'Pick the table to move to!',
+  'table.mergeHint': 'The dishes and totals of both tables end up on one table.',
+  'table.moveHint': 'The order moves to the new table in full.',
 
   // ── Unsaved cart ────────────────────────────────────────────────────
   'unsaved.title': 'There are unsent items!',
+  'unsaved.question': 'The cart has dishes that never went to the kitchen. Send them, take the payment and close the table?',
   'unsaved.cartTotal': 'Cart total:',
   'unsaved.table': 'Table:',
   'unsaved.confirmClose': 'Confirm and close',
@@ -131,6 +138,9 @@ export const en: Record<TranslationKey, string> = {
   'archive.refundReason': 'Choose a refund reason:',
   'archive.confirmAdminPin': 'CONFIRM (ADMIN PIN)',
   'archive.printReceipt': 'PRINT RECEIPT',
+  'archive.closedReceipt': 'Closed receipt: #',
+  'archive.refundReasonLabel': 'Refund reason:',
+  'archive.receiptCount': '{n} receipts',
   'archive.waiterLabel': 'Waiter:',
   'archive.unknown': 'Unknown',
   'archive.filterAll': 'All',
@@ -154,6 +164,9 @@ export const en: Record<TranslationKey, string> = {
   'drawer.todayHistory': "Today's movements",
   'drawer.empty': 'No till movements recorded today',
   'drawer.needReason': 'Enter a reason for the cash in or out!',
+  'drawer.amountInvalid': 'Enter a valid amount!',
+  'drawer.savedIncome': 'Cash-in saved!',
+  'drawer.savedExpense': 'Cash-out saved!',
 
   // ── Shift report ────────────────────────────────────────────────────
   'shift.title': 'Till report (Z-Report)',
@@ -178,6 +191,8 @@ export const en: Record<TranslationKey, string> = {
   'dash.topDishesDetail': 'Top dishes — detailed',
   'dash.dishName': 'Dish name',
   'dash.paymentMethods': 'Payment methods',
+  'dash.revenueAxis': 'Revenue',
+  'dash.ordersAxis': 'Orders',
   'dash.todayOrders': 'Orders today',
   'dash.todayOrdersSub': 'Closed orders',
   'dash.todayRevenue': 'Revenue today',
@@ -216,6 +231,9 @@ export const en: Record<TranslationKey, string> = {
   'printer.dialogWhy': 'The receipt goes to the system printer, so the browser asks every time. There are two ways to stop that:',
   'printer.dialogFix1': '— with the Bluetooth or USB button above. The receipt then prints straight out and no dialog opens at all.',
   'printer.dialogFix2': 'The printer has to be the system default:',
+  'printer.testSent': 'Test receipt sent to the printer!',
+  'printer.printError': 'Something went wrong printing the receipt',
+  'printer.qrSelfPrint': 'The till prints an order placed from the guest phone itself.',
   'printer.usbTitle': 'USB / POS printer',
   'printer.usbHint': 'Straight over the cable',
 
@@ -242,6 +260,7 @@ export const en: Record<TranslationKey, string> = {
   'admin.pinDefault': 'Enter the PIN to confirm',
   'admin.pinKitchenCancel': 'Enter the PIN to cancel a kitchen order or a dish',
   'admin.pinWrong': "Wrong PIN, or the access level is not enough!",
+  'admin.pinOffline': 'No connection. Only a manager PIN used on this till is accepted',
   'kitchen.cancelNeedsPin': 'Cancel (admin PIN required)',
 
   // ── Update ──────────────────────────────────────────────────────────
@@ -253,6 +272,26 @@ export const en: Record<TranslationKey, string> = {
   'toast.sentToKitchen': 'The order has gone to the kitchen!',
   'toast.receiptQueued': 'The receipt was sent to the till printer',
   'toast.noMenu': 'No categories or products found in the database',
+  'toast.syncRejected': 'The server refused: {list}. Enter them again.',
+  'toast.andMore': 'and {n} more',
+  'toast.waiterCallOne': '{table} — calling a waiter',
+  'toast.waiterCallMany': '{n} tables are calling a waiter',
+  'toast.kitchenSlipSent': 'Kitchen slip sent to the till printer',
+  'toast.kitchenSlipPrinted': 'Kitchen slip printed',
+  'toast.receiptPrinted': 'Receipt printed',
+  'toast.qrToKitchen': 'QR order: {table} — sent to the kitchen',
+  'toast.printFailed': 'not sent to the printer',
+  'toast.orderNotFound': 'order not found',
+  'toast.directPrintFailed': 'Could not print directly: {why}',
+  'toast.periodTooBig': 'Careful: the period is too long, the report is incomplete',
+  'toast.tableFreed': 'No dishes left in the order — the table was freed',
+  'toast.dishCancelled': 'The dish was cancelled from the kitchen order!',
+  'toast.refundNotSaved': 'The refund did not reach the server — try again',
+  'toast.refundQueued': 'Network trouble: the refund is queued and will go once the connection is back',
+  'toast.refundDone': 'Receipt #{id} refunded!',
+  'toast.noOrderOnTable': 'There is no order on this table!',
+  'toast.paymentNotSaved': 'The payment did not reach the server. It will go once the connection is back.',
+  'toast.paymentQueued': 'Network trouble: the payment is queued and will go once the connection is back.',
 
   // ── Language ────────────────────────────────────────────────────────
   'lang.change': 'Change language',

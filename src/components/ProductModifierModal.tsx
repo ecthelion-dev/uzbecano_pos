@@ -121,7 +121,7 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
                       <div className="space-y-0.5">
                         <p className="font-bold text-sm leading-tight">{variant.name}</p>
                         <p className={`text-xs font-medium ${isSelected ? 'text-white/90' : 'text-slate-500'}`}>
-                          {variant.price.toLocaleString()} so'm
+                          {variant.price.toLocaleString()} {t('common.currency')}
                         </p>
                       </div>
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
@@ -164,7 +164,7 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
                         <span>+ {addon.name}</span>
                       </div>
                       <span className="text-xs font-semibold text-slate-900">
-                        +{addon.price.toLocaleString()} so'm
+                        +{addon.price.toLocaleString()} {t('common.currency')}
                       </span>
                     </button>
                   );
@@ -190,7 +190,7 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
           <div>
             <span className="text-[10px] font-semibold text-slate-400 block uppercase leading-none">{t('common.total')}</span>
             <span className="text-xl font-bold text-slate-900 leading-tight">
-              {totalPrice.toLocaleString()} so'm
+              {totalPrice.toLocaleString()} {t('common.currency')}
             </span>
           </div>
           <div className="flex items-center gap-2.5 flex-1 justify-end w-full sm:w-auto">

@@ -36,7 +36,7 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
 
     const numAmount = Number(amount);
     if (!numAmount || numAmount <= 0) {
-      setError("Summani to'g'ri kiriting!");
+      setError(t('drawer.amountInvalid'));
       return;
     }
     if (!note.trim()) {
@@ -69,16 +69,16 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
             <p className="text-[11px] font-medium text-emerald-700">{t('drawer.totalIncome')}</p>
-            <p className="text-base font-bold text-emerald-900 mt-0.5">+{totalKirim.toLocaleString()} so'm</p>
+            <p className="text-base font-bold text-emerald-900 mt-0.5">+{totalKirim.toLocaleString()} {t('common.currency')}</p>
           </div>
           <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3">
             <p className="text-[11px] font-medium text-rose-700">{t('drawer.totalExpense')}</p>
-            <p className="text-base font-bold text-rose-900 mt-0.5">-{totalChiqim.toLocaleString()} so'm</p>
+            <p className="text-base font-bold text-rose-900 mt-0.5">-{totalChiqim.toLocaleString()} {t('common.currency')}</p>
           </div>
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
             <p className="text-[11px] font-medium text-slate-500">{t('drawer.netDiff')}</p>
             <p className={`text-base font-bold mt-0.5 ${netCashChange >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-              {netCashChange >= 0 ? '+' : ''}{netCashChange.toLocaleString()} so'm
+              {netCashChange >= 0 ? '+' : ''}{netCashChange.toLocaleString()} {t('common.currency')}
             </p>
           </div>
         </div>
@@ -163,7 +163,7 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
                   </p>
                 </div>
                 <span className={`font-bold text-sm ${tx.type === 'kirim' ? 'text-emerald-700' : 'text-rose-700'}`}>
-                  {tx.type === 'kirim' ? '+' : '-'}{tx.amount.toLocaleString()} so'm
+                  {tx.type === 'kirim' ? '+' : '-'}{tx.amount.toLocaleString()} {t('common.currency')}
                 </span>
               </div>
             ))

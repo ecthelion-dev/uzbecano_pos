@@ -21,7 +21,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = React.memo(({
         <div className="flex-1 pr-2">
           <p className="font-semibold text-xs text-slate-900">{item.product.name}</p>
           <p className="text-[11px] text-orange-600 font-medium mt-0.5">
-            {((Number(item.product.price) || 0) * (Number(item.quantity) || 1)).toLocaleString()} so'm
+            {((Number(item.product.price) || 0) * (Number(item.quantity) || 1)).toLocaleString()} {t('common.currency')}
           </p>
         </div>
         <div className="flex items-center gap-2 bg-slate-100/80 rounded-xl p-1 border border-slate-200 shadow-inner shrink-0">

@@ -92,7 +92,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
             setError(`Ko'p marta xato kiritildi. ${minutes} daqiqadan keyin urinib ko'ring`);
             setTimeout(() => setPin(''), 1200);
           } else {
-            setError("Aloqa yo'q. Faqat shu kassada kirgan rahbar PIN kodi qabul qilinadi");
+            setError(t('admin.pinOffline'));
             setTimeout(() => setPin(''), 900);
           }
         } finally {

@@ -130,9 +130,9 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
   const handleTestPrint = async () => {
     try {
       await executePrintTest(cafeName);
-      onToast("Sinov cheki printerga yuborildi!");
+      onToast(t('printer.testSent'));
     } catch {
-      onToast("Chek chiqarishda xatolik");
+      onToast(t('printer.printError'));
     }
   };
 
@@ -377,7 +377,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
                   {t('printer.qrToKitchen')}
                 </div>
                 <div className="text-[10px] text-slate-400">
-                  Mijoz telefonidan bergan buyurtmani kassa o&apos;zi bosib chiqaradi.
+                  {t('printer.qrSelfPrint')}
                   Ikkinchi kassa qo&apos;shilsa, buni faqat bittasida yoqib qo&apos;ying.
                 </div>
               </div>

@@ -57,7 +57,7 @@ export const UnsavedCartModal: React.FC<UnsavedCartModalProps> = ({
 
         {/* Message */}
         <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-          Savatchada oshxonaga yuborilmagan taomlar mavjud. Ular avtomatik tarzda oshxonaga yuborilib, to'lov qilinadi va stol yopilsinmi?
+          {t('unsaved.question')}
         </p>
 
         {/* Cart items preview */}
@@ -82,14 +82,14 @@ export const UnsavedCartModal: React.FC<UnsavedCartModalProps> = ({
                         product.price ichiga kiritib yuboriladi, shuning uchun
                         bu yerda ular qayta qo'shilmaydi — aks holda qatorlar
                         yig'indisi pastdagi "Savat summasi" bilan mos kelmaydi. */}
-                    {((Number(item.product.price) || 0) * (Number(item.quantity) || 1)).toLocaleString()} so'm
+                    {((Number(item.product.price) || 0) * (Number(item.quantity) || 1)).toLocaleString()} {t('common.currency')}
                   </span>
                 </div>
               </div>
             ))}
             <div className="flex justify-between items-center text-xs font-bold text-slate-900 pt-2 border-t border-slate-300/80 mt-1">
               <span>{t('unsaved.cartTotal')}</span>
-              <span className="text-orange-600 font-extrabold">{subtotal.toLocaleString()} so'm</span>
+              <span className="text-orange-600 font-extrabold">{subtotal.toLocaleString()} {t('common.currency')}</span>
             </div>
           </div>
         )}

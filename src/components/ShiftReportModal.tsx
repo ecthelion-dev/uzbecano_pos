@@ -59,11 +59,11 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3">
               <p className="text-[11px] font-medium text-orange-700">{t('shift.netRevenue')}</p>
-              <p className="text-lg font-bold text-slate-900 mt-0.5">{netRevenue.toLocaleString()} so'm</p>
+              <p className="text-lg font-bold text-slate-900 mt-0.5">{netRevenue.toLocaleString()} {t('common.currency')}</p>
             </div>
             <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3">
               <p className="text-[11px] font-medium text-rose-700">{t('shift.refundsTotal')}</p>
-              <p className="text-lg font-bold text-rose-900 mt-0.5">{totalRefunds.toLocaleString()} so'm</p>
+              <p className="text-lg font-bold text-rose-900 mt-0.5">{totalRefunds.toLocaleString()} {t('common.currency')}</p>
             </div>
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
               <p className="text-[11px] font-medium text-slate-500">{t('shift.tableCount')}</p>
@@ -74,11 +74,11 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
           <div className="grid grid-cols-2 gap-2 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
             <div>
               <p className="text-[10px] text-slate-500 font-semibold">{t('shift.drawerIn')}</p>
-              <p className="text-sm font-bold text-emerald-700">+{totalKirim.toLocaleString()} so'm</p>
+              <p className="text-sm font-bold text-emerald-700">+{totalKirim.toLocaleString()} {t('common.currency')}</p>
             </div>
             <div>
               <p className="text-[10px] text-slate-500 font-semibold">{t('shift.drawerOut')}</p>
-              <p className="text-sm font-bold text-rose-700">-{totalChiqim.toLocaleString()} so'm</p>
+              <p className="text-sm font-bold text-rose-700">-{totalChiqim.toLocaleString()} {t('common.currency')}</p>
             </div>
           </div>
 
@@ -93,7 +93,7 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
                     <span className="font-semibold text-slate-900 flex items-center gap-1"><ChefHat className="w-3.5 h-3.5" />{name}</span>
                     <p className="text-[10px] text-slate-500">{t('shift.tablesClosed', { n: stat.count })}</p>
                   </div>
-                  <span className="font-bold text-slate-900 text-sm">{stat.total.toLocaleString()} so'm</span>
+                  <span className="font-bold text-slate-900 text-sm">{stat.total.toLocaleString()} {t('common.currency')}</span>
                 </div>
               ))
             )}

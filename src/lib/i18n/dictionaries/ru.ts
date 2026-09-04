@@ -23,6 +23,8 @@ export const ru: Record<TranslationKey, string> = {
   'common.cashLabel': 'Наличные:',
   'common.cardLabel': 'Карта:',
   'common.currency': 'сум',
+  'common.order': 'Заказ',
+  'common.dishCount': 'Блюд: {n}',
   'common.countItems': '{n} шт.',
 
   // ── Вход ────────────────────────────────────────────────────────────
@@ -53,7 +55,6 @@ export const ru: Record<TranslationKey, string> = {
   'menu.backToTablesTitle': 'Назад в зал',
   'menu.searchPlaceholder': 'Поиск блюда или напитка...',
   'menu.closeSearch': 'Закрыть поиск',
-  'menu.emptyDb': 'В базе нет категорий или товаров',
   'menu.noProducts': 'Товары не найдены',
 
   // ── Корзина и оплата ────────────────────────────────────────────────
@@ -83,6 +84,8 @@ export const ru: Record<TranslationKey, string> = {
   'mixed.totalDue': 'К оплате:',
   'mixed.full': 'Полностью',
   'mixed.ready': 'ГОТОВО',
+  'mixed.cashAmount': 'Сумма наличными',
+  'mixed.cardAmount': 'Сумма по карте',
   'mixed.viaCard': 'Картой:',
   'mixed.viaCash': 'Наличными:',
 
@@ -100,9 +103,13 @@ export const ru: Record<TranslationKey, string> = {
   'table.occupiedCount': 'Занятых столов: {n}',
   'table.moveTarget': 'На какой стол перенести?',
   'table.mergeNeedsBusy': 'На столе {table} нет активного заказа! Для объединения стол должен быть занят.',
+  'table.pickTarget': 'Выберите стол назначения!',
+  'table.mergeHint': 'Блюда и сумма двух столов сойдутся на одном столе.',
+  'table.moveHint': 'Заказ переносится на новый стол целиком.',
 
   // ── Несохранённая корзина ───────────────────────────────────────────
   'unsaved.title': 'Есть неотправленные блюда!',
+  'unsaved.question': 'В корзине есть блюда, не отправленные на кухню. Отправить их на кухню, провести оплату и закрыть стол?',
   'unsaved.cartTotal': 'Сумма корзины:',
   'unsaved.table': 'Стол:',
   'unsaved.confirmClose': 'Подтвердить и закрыть',
@@ -131,6 +138,9 @@ export const ru: Record<TranslationKey, string> = {
   'archive.refundReason': 'Выберите причину возврата:',
   'archive.confirmAdminPin': 'ПОДТВЕРДИТЬ (PIN АДМИНА)',
   'archive.printReceipt': 'НАПЕЧАТАТЬ ЧЕК',
+  'archive.closedReceipt': 'Закрытый чек: #',
+  'archive.refundReasonLabel': 'Причина возврата:',
+  'archive.receiptCount': 'Чеков: {n}',
   'archive.waiterLabel': 'Официант:',
   'archive.unknown': 'Неизвестно',
   'archive.filterAll': 'Все',
@@ -154,6 +164,9 @@ export const ru: Record<TranslationKey, string> = {
   'drawer.todayHistory': 'История операций за сегодня',
   'drawer.empty': 'Сегодня операций по кассе не было',
   'drawer.needReason': 'Укажите причину расхода или прихода!',
+  'drawer.amountInvalid': 'Введите корректную сумму!',
+  'drawer.savedIncome': 'Приход по кассе сохранён!',
+  'drawer.savedExpense': 'Расход по кассе сохранён!',
 
   // ── Отчёт смены ─────────────────────────────────────────────────────
   'shift.title': 'Отчёт кассы (Z-Report)',
@@ -178,6 +191,8 @@ export const ru: Record<TranslationKey, string> = {
   'dash.topDishesDetail': 'Лучшие блюда — подробно',
   'dash.dishName': 'Название блюда',
   'dash.paymentMethods': 'Способы оплаты',
+  'dash.revenueAxis': 'Выручка',
+  'dash.ordersAxis': 'Заказы',
   'dash.todayOrders': 'Заказы за сегодня',
   'dash.todayOrdersSub': 'Закрытые заказы',
   'dash.todayRevenue': 'Выручка за сегодня',
@@ -216,6 +231,9 @@ export const ru: Record<TranslationKey, string> = {
   'printer.dialogWhy': 'Сейчас чек уходит на системный принтер, и браузер каждый раз просит подтверждение. Убрать это можно двумя способами:',
   'printer.dialogFix1': '— через кнопку Bluetooth или USB выше. Тогда чек печатается напрямую, и окно не открывается вовсе.',
   'printer.dialogFix2': 'Принтер должен быть выбран в системе как основной (по умолчанию):',
+  'printer.testSent': 'Тестовый чек отправлен на принтер!',
+  'printer.printError': 'Ошибка при печати чека',
+  'printer.qrSelfPrint': 'Кассa сама печатает заказ, сделанный с телефона гостя.',
   'printer.usbTitle': 'USB / Кассовый принтер',
   'printer.usbHint': 'Напрямую по кабелю',
 
@@ -242,6 +260,7 @@ export const ru: Record<TranslationKey, string> = {
   'admin.pinDefault': 'Введите PIN-код для подтверждения',
   'admin.pinKitchenCancel': 'Введите PIN-код для отмены заказа или блюда',
   'admin.pinWrong': 'Неверный PIN-код или недостаточно прав!',
+  'admin.pinOffline': 'Нет связи. Принимается только PIN руководителя, входившего на этой кассе',
   'kitchen.cancelNeedsPin': 'Отмена (нужен PIN админа)',
 
   // ── Обновление ──────────────────────────────────────────────────────
@@ -253,6 +272,26 @@ export const ru: Record<TranslationKey, string> = {
   'toast.sentToKitchen': 'Заказ отправлен на кухню!',
   'toast.receiptQueued': 'Чек отправлен на принтер кассы',
   'toast.noMenu': 'В базе не найдены категории или товары',
+  'toast.syncRejected': 'Сервер не принял: {list}. Введите заново.',
+  'toast.andMore': 'и ещё {n}',
+  'toast.waiterCallOne': '{table} — вызывают официанта',
+  'toast.waiterCallMany': 'Официанта вызывают {n} столов',
+  'toast.kitchenSlipSent': 'Кухонный чек отправлен на принтер кассы',
+  'toast.kitchenSlipPrinted': 'Кухонный чек напечатан',
+  'toast.receiptPrinted': 'Чек напечатан',
+  'toast.qrToKitchen': 'QR-заказ: {table} — отправлен на кухню',
+  'toast.printFailed': 'не отправлено на принтер',
+  'toast.orderNotFound': 'заказ не найден',
+  'toast.directPrintFailed': 'Не удалось напечатать напрямую: {why}',
+  'toast.periodTooBig': 'Внимание: период слишком большой, отчёт неполный',
+  'toast.tableFreed': 'В заказе не осталось блюд — стол освобождён',
+  'toast.dishCancelled': 'Блюдо снято с кухонного заказа!',
+  'toast.refundNotSaved': 'Возврат не записан на сервер — попробуйте ещё раз',
+  'toast.refundQueued': 'Сбой сети: возврат в очереди, уйдёт сам при восстановлении связи',
+  'toast.refundDone': 'Чек #{id} успешно возвращён!',
+  'toast.noOrderOnTable': 'На столе нет ни одного заказа!',
+  'toast.paymentNotSaved': 'Оплата не записана на сервер! Уйдёт сама при восстановлении связи.',
+  'toast.paymentQueued': 'Сбой сети: оплата в очереди, уйдёт сама при восстановлении связи.',
 
   // ── Язык ────────────────────────────────────────────────────────────
   'lang.change': 'Сменить язык',

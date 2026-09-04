@@ -416,8 +416,8 @@ export default function App() {
           playCallChime();
           setToastMessage(
             fresh.length === 1
-              ? `${fresh[0]} — ofitsiant chaqirilyapti`
-              : `${fresh.length} stol ofitsiant chaqiryapti`,
+              ? t('toast.waiterCallOne', { table: fresh[0] })
+              : t('toast.waiterCallMany', { n: fresh.length }),
           );
           window.setTimeout(() => setToastMessage(null), 6000);
         }
@@ -898,7 +898,7 @@ export default function App() {
           // aytamiz va tashlab yuboramiz, aks holda navbat tiqilib qoladi.
           const label =
             item.kind === 'create'
-              ? item.order?.tableNumber || 'Buyurtma'
+              ? item.order?.tableNumber || t('common.order')
               : item.label || item.orderId;
           rejectedLabels.push(String(label));
           if (blockedOrderId) failedOrderIds.add(blockedOrderId);
@@ -913,9 +913,13 @@ export default function App() {
 
     if (rejectedLabels.length > 0) {
       setToastMessage(
-        `Server qabul qilmadi: ${rejectedLabels.slice(0, 3).join(', ')}` +
-        (rejectedLabels.length > 3 ? ` va yana ${rejectedLabels.length - 3} ta` : '') +
-        '. Qayta kiriting.'
+        t('toast.syncRejected', {
+          list:
+            rejectedLabels.slice(0, 3).join(', ') +
+            (rejectedLabels.length > 3
+              ? ' ' + t('toast.andMore', { n: rejectedLabels.length - 3 })
+              : ''),
+        })
       );
       setTimeout(() => setToastMessage(null), 6000);
     } else if (anySucceeded) {
@@ -1309,7 +1313,7 @@ export default function App() {
         if (cancelled) return;
         if (queued) {
           setKitchenSlipData(null);
-          setToastMessage('Oshxona kvitansiyasi kassa printeriga yuborildi');
+          setToastMessage(t('toast.kitchenSlipSent'));
           window.setTimeout(() => setToastMessage(null), 4000);
           return;
         }
@@ -1396,7 +1400,7 @@ export default function App() {
     // Kassir ekranga qaramay turgan bo'lishi mumkin, lekin qarasa —
     // buyurtmani printer o'zi olganini bilishi kerak. Bu belgisiz "chiqdimi
     // yo'qmi" degan savolga faqat oshxonaga borib javob topiladi.
-    setToastMessage(`QR buyurtma: ${next.tableNumber} — oshxonaga chiqarildi`);
+    setToastMessage(t('toast.qrToKitchen', { table: next.tableNumber }));
     window.setTimeout(() => setToastMessage(null), 4000);
   }, [orders, kitchenSlipData, currentWaiter, getActiveCafeId]);
 
@@ -1435,7 +1439,7 @@ export default function App() {
         try {
           if (job.kind === 'receipt' && job.order) {
             ok = await printReceiptDirect(job.order, connectedCafeName || 'OrderPlus');
-            if (!ok) why = getLastPrintError() || 'printerga yuborilmadi';
+            if (!ok) why = getLastPrintError() || t('toast.printFailed');
           } else if (job.kind === 'kitchen') {
             const extra = job.payload ? JSON.parse(job.payload) : null;
             const data = {
@@ -1449,9 +1453,9 @@ export default function App() {
               slipNumber: extra?.slipNumber,
             };
             ok = await printKitchenSlipDirect(data, connectedCafeName || 'OrderPlus');
-            if (!ok) why = getLastPrintError() || 'printerga yuborilmadi';
+            if (!ok) why = getLastPrintError() || t('toast.printFailed');
           } else {
-            why = 'buyurtma topilmadi';
+            why = t('toast.orderNotFound');
           }
         } catch (e: unknown) {
           why = e instanceof Error ? e.message : String(e);
@@ -1462,8 +1466,8 @@ export default function App() {
         if (ok) {
           setToastMessage(
             job.kind === 'kitchen'
-              ? 'Oshxona kvitansiyasi chop etildi'
-              : 'Chek chop etildi',
+              ? t('toast.kitchenSlipPrinted')
+              : t('toast.receiptPrinted'),
           );
           window.setTimeout(() => setToastMessage(null), 3000);
         }
@@ -1493,7 +1497,7 @@ export default function App() {
      */
     if (!IS_DESKTOP_APP && order.id) {
       if (await enqueuePrintJob(getAuthHeaders(), String(order.id), 'receipt')) {
-        setToastMessage('Chek kassa printeriga yuborildi');
+        setToastMessage(t('toast.receiptQueued'));
         window.setTimeout(() => setToastMessage(null), 4000);
         return;
       }
@@ -1504,7 +1508,7 @@ export default function App() {
     if (!ok) {
       const why = getLastPrintError();
       if (why) {
-        setToastMessage(`Printerga to'g'ridan-to'g'ri yuborilmadi: ${why}`);
+        setToastMessage(t('toast.directPrintFailed', { why }));
         setTimeout(() => setToastMessage(null), 6000);
       }
       // `window.print()` emas: u butun sahifani qog'ozga oladi. Chek termal
@@ -1533,7 +1537,7 @@ export default function App() {
       const data = await res.json();
       if (!Array.isArray(data)) return fallback;
       if (res.headers.get('X-Result-Truncated') === '1') {
-        setToastMessage("Diqqat: davr juda katta, hisobot to'liq emas");
+        setToastMessage(t('toast.periodTooBig'));
         setTimeout(() => setToastMessage(null), 6000);
       }
       return data as DBOrder[];
@@ -1594,8 +1598,8 @@ export default function App() {
       setOrders(updatedOrders);
       writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
       setToastMessage(emptied
-        ? "Buyurtmada taom qolmadi — stol bo'shatildi"
-        : 'Taom oshxona buyurtmasidan bekor qilindi!');
+        ? t('toast.tableFreed')
+        : t('toast.dishCancelled'));
       setTimeout(() => setToastMessage(null), 2500);
     });
   }, [activeTableOrder, activeTableOrderItems, orders, isOfflineMode, requestAdminPin, getActiveCafeId, getAuthHeaders, queuePatchForSync]);
@@ -1612,11 +1616,11 @@ export default function App() {
           });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            setApiError(data.error || "Qaytarish serverga yozilmadi — qayta urinib ko'ring");
+            setApiError(data.error || t('toast.refundNotSaved'));
             queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
           }
         } catch {
-          setApiError("Tarmoq xatoligi: qaytarish navbatga qo'yildi, aloqa tiklanganda avtomatik yuboriladi");
+          setApiError(t('toast.refundQueued'));
           queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
         }
       } else {
@@ -1639,7 +1643,7 @@ export default function App() {
         refundReason: reason
       } : prev);
 
-      setToastMessage(`Chek #${targetOrder.id.slice(-6)} muvaffaqiyatli vozvrat qilindi!`);
+      setToastMessage(t('toast.refundDone', { id: targetOrder.id.slice(-6) }));
       setTimeout(() => setToastMessage(null), 2500);
     });
   }, [orders, currentWaiter, isOfflineMode, requestAdminPin, getActiveCafeId, getAuthHeaders, queuePatchForSync]);
@@ -1801,7 +1805,7 @@ export default function App() {
       // chiqqanidan keyin.
       setKitchenSlipData(kitchenPayload);
 
-      setToastMessage('Buyurtma oshxonaga yuborildi!');
+      setToastMessage(t('toast.sentToKitchen'));
       setTimeout(() => setToastMessage(null), 2500);
     } catch (err: any) {
       setApiError(`Ulanish xatosi: ${err.message || err}`);
@@ -1871,7 +1875,7 @@ export default function App() {
     const updated = [newTx, ...cashTransactions];
     setCashTransactions(updated);
     writeCafeJson(getActiveCafeId(), 'cash_transactions', updated);
-    setToastMessage(`Kassa ${type === 'kirim' ? 'kirimi' : 'chiqimi'} saqlandi!`);
+    setToastMessage(t(type === 'kirim' ? 'drawer.savedIncome' : 'drawer.savedExpense'));
     setTimeout(() => setToastMessage(null), 2500);
   }, [cashTransactions, currentWaiter]);
 
@@ -2001,7 +2005,7 @@ export default function App() {
     const activeOrder = orders.find(o => (o.tableNumber || '').trim().toLowerCase() === normTarget && isActiveOrder(o.status));
 
     if (!activeOrder && currentCart.length === 0) {
-      setToastMessage('Stolda hech qanday buyurtma mavjud emas!');
+      setToastMessage(t('toast.noOrderOnTable'));
       setTimeout(() => setToastMessage(null), 2500);
       return;
     }
@@ -2105,11 +2109,11 @@ export default function App() {
               body: JSON.stringify(paymentPatchBody)
             });
             if (!res.ok) {
-              setApiError("To'lov serverga yozilmadi! Aloqa tiklanganda avtomatik yuboriladi.");
+              setApiError(t('toast.paymentNotSaved'));
               queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
             }
           } catch {
-            setApiError("Tarmoq xatoligi: to'lov navbatga qo'yildi, aloqa tiklanganda avtomatik yuboriladi.");
+            setApiError(t('toast.paymentQueued'));
             queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
           }
         } else {
@@ -2509,7 +2513,7 @@ export default function App() {
                 <div className="flex-1 overflow-y-auto pr-1 pt-2.5 p-1 pb-[calc(9.5rem+env(safe-area-inset-bottom))] lg:pb-1 min-h-0">
                   {allCategories.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-                      <p className="text-slate-400 text-sm font-medium">{t('menu.emptyDb')}</p>
+                      <p className="text-slate-400 text-sm font-medium">{t('toast.noMenu')}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4">
@@ -2625,7 +2629,7 @@ export default function App() {
               <span className="text-sm font-bold truncate">{selectedTable}</span>
             </span>
             <span className="flex items-center gap-2 shrink-0">
-              <span className="text-base font-bold">{grandTotal.toLocaleString()} so'm</span>
+              <span className="text-base font-bold">{grandTotal.toLocaleString()} {t('common.currency')}</span>
               <ChevronUp className="w-5 h-5 opacity-80" />
             </span>
           </button>

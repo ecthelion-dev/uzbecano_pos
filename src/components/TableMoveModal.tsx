@@ -33,7 +33,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
   const handleSubmit = () => {
     setError(null);
     if (!targetTable) {
-      setError("Mo'ljallangan stolni tanlang!");
+      setError(t('table.pickTarget'));
       return;
     }
 
@@ -123,7 +123,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
 
           {/* Info Notice */}
           <div className="bg-amber-50/80 border-2 border-amber-200 p-4 rounded-2xl text-xs text-amber-950 font-medium space-y-1">
-            <p>ℹ️ {isMerge ? 'Ikki stoldagi taomlar va jami summa bitta stolga jamlanadi.' : 'Buyurtma to\'liqligicha yangi stolga ko\'chiriladi.'}</p>
+            <p>ℹ️ {isMerge ? t('table.mergeHint') : t('table.moveHint')}</p>
           </div>
         </div>
 

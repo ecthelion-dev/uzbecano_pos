@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DBCategory } from '../types';
 import { categoryIconFor } from '../lib/categoryIcons';
+import { useT } from '../lib/i18n/LanguageProvider';
 
 interface CategoryCardProps {
   category: DBCategory;
@@ -13,6 +14,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = React.memo(({
   count,
   onSelect,
 }) => {
+  const t = useT();
   const Icon = categoryIconFor(category.icon);
   // A file that has been removed or cannot be reached must not leave an empty
   // tile — fall back to the icon rather than showing nothing at all.
@@ -49,7 +51,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = React.memo(({
           {category.name}
         </h3>
         <p className="inline-block text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-1 bg-slate-100 group-hover:bg-orange-50 group-hover:text-orange-600 px-2 sm:px-2.5 py-0.5 rounded-full transition-colors">
-          {count} ta taom
+          {t('common.dishCount', { n: count })}
         </p>
       </div>
     </div>

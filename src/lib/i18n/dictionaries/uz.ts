@@ -31,6 +31,8 @@ export const uz = {
   'common.cashLabel': 'Naqd:',
   'common.cardLabel': 'Karta:',
   'common.currency': "so'm",
+  'common.order': 'Buyurtma',
+  'common.dishCount': '{n} ta taom',
   'common.countItems': '{n} ta',
 
   // ── Kirish ──────────────────────────────────────────────────────────
@@ -61,7 +63,6 @@ export const uz = {
   'menu.backToTablesTitle': 'Stollar zaliga qaytish',
   'menu.searchPlaceholder': 'Taom yoki ichimlik qidirish...',
   'menu.closeSearch': 'Qidiruvni yopish',
-  'menu.emptyDb': 'Bazada kategoriyalar yoki mahsulotlar topilmadi',
   'menu.noProducts': 'Mahsulotlar topilmadi',
 
   // ── Savat va to'lov ─────────────────────────────────────────────────
@@ -91,6 +92,8 @@ export const uz = {
   'mixed.totalDue': "Jami to'lov:",
   'mixed.full': "To'liq",
   'mixed.ready': 'TAYYOR',
+  'mixed.cashAmount': 'Naqd pul miqdori',
+  'mixed.cardAmount': 'Karta miqdori',
   'mixed.viaCard': 'Karta orqali:',
   'mixed.viaCash': 'Naqd orqali:',
 
@@ -108,9 +111,13 @@ export const uz = {
   'table.occupiedCount': '{n} ta band stol',
   'table.moveTarget': "Qaysi stolga o'tkazilsin?",
   'table.mergeNeedsBusy': '{table}da faol buyurtma yo‘q! Birlashtirish uchun stol band bo‘lishi kerak.',
+  'table.pickTarget': "Mo'ljallangan stolni tanlang!",
+  'table.mergeHint': 'Ikki stoldagi taomlar va jami summa bitta stolga jamlanadi.',
+  'table.moveHint': "Buyurtma to'liqligicha yangi stolga ko'chiriladi.",
 
   // ── Saqlanmagan savat ───────────────────────────────────────────────
   'unsaved.title': 'Yuborilmagan taomlar bor!',
+  'unsaved.question': "Savatchada oshxonaga yuborilmagan taomlar mavjud. Ular avtomatik tarzda oshxonaga yuborilib, to'lov qilinadi va stol yopilsinmi?",
   'unsaved.cartTotal': 'Savat summasi:',
   'unsaved.table': 'Stol:',
   'unsaved.confirmClose': 'Tasdiqlash va Yopish',
@@ -139,6 +146,9 @@ export const uz = {
   'archive.refundReason': 'Qaytarish sababini tanlang:',
   'archive.confirmAdminPin': 'TASDIQLASH (ADMIN PIN)',
   'archive.printReceipt': 'CHEKNI CHOP ETISH',
+  'archive.closedReceipt': 'Yopilgan chek: #',
+  'archive.refundReasonLabel': 'Qaytarish sababi:',
+  'archive.receiptCount': '{n} ta chek',
   'archive.waiterLabel': 'Ofitsiant:',
   'archive.unknown': "Noma'lum",
   'archive.filterAll': 'Barchasi',
@@ -162,6 +172,9 @@ export const uz = {
   'drawer.todayHistory': 'Bugungi harakatlar tarixi',
   'drawer.empty': 'Bugun kassa harakatlari qayd etilmagan',
   'drawer.needReason': 'Xarajat yoki kirim sababini kiriting!',
+  'drawer.amountInvalid': "Summani to'g'ri kiriting!",
+  'drawer.savedIncome': 'Kassa kirimi saqlandi!',
+  'drawer.savedExpense': 'Kassa chiqimi saqlandi!',
 
   // ── Smena hisoboti ──────────────────────────────────────────────────
   'shift.title': 'Kassa hisoboti (Z-Report)',
@@ -186,6 +199,8 @@ export const uz = {
   'dash.topDishesDetail': 'Eng yaxshi taomlar – batafsil',
   'dash.dishName': 'Taom nomi',
   'dash.paymentMethods': "To'lov usullari",
+  'dash.revenueAxis': 'Tushum',
+  'dash.ordersAxis': 'Buyurtma',
   'dash.todayOrders': 'Bugungi buyurtmalar',
   'dash.todayOrdersSub': 'Yopilgan buyurtmalar',
   'dash.todayRevenue': 'Bugungi tushum',
@@ -225,6 +240,9 @@ export const uz = {
   'printer.dialogWhy': "Hozir chek operatsion tizim printeriga yuborilmoqda va brauzer har safar tasdiq so'raydi. Buni ikki yo'l bilan olib tashlash mumkin:",
   'printer.dialogFix1': "— yuqoridagi Bluetooth yoki USB tugmasi orqali. Shunda chek to'g'ridan-to'g'ri chiqadi, oyna umuman ochilmaydi.",
   'printer.dialogFix2': "Printer tizimda asosiy (default) qilib qo'yilgan bo'lishi shart:",
+  'printer.testSent': 'Sinov cheki printerga yuborildi!',
+  'printer.printError': 'Chek chiqarishda xatolik',
+  'printer.qrSelfPrint': "Mijoz telefonidan bergan buyurtmani kassa o'zi bosib chiqaradi.",
   'printer.usbTitle': 'USB / Kassa printeri',
   'printer.usbHint': "Kabel orqali to'g'ridan",
 
@@ -251,6 +269,7 @@ export const uz = {
   'admin.pinDefault': 'Tasdiqlash uchun PIN kodni kiriting',
   'admin.pinKitchenCancel': 'Oshxona buyurtmasi / Taomni bekor qilish uchun PIN kodni kiriting',
   'admin.pinWrong': "PIN kod noto'g'ri yoki ruxsat darajasi yetarli emas!",
+  'admin.pinOffline': "Aloqa yo'q. Faqat shu kassada kirgan rahbar PIN kodi qabul qilinadi",
   'kitchen.cancelNeedsPin': 'Bekor qilish (admin PIN talab qilinadi)',
 
   // ── Yangilanish ─────────────────────────────────────────────────────
@@ -262,6 +281,26 @@ export const uz = {
   'toast.sentToKitchen': 'Buyurtma oshxonaga yuborildi!',
   'toast.receiptQueued': 'Chek kassa printeriga yuborildi',
   'toast.noMenu': 'Bazada kategoriyalar yoki mahsulotlar topilmadi',
+  'toast.syncRejected': 'Server qabul qilmadi: {list}. Qayta kiriting.',
+  'toast.andMore': 'va yana {n} ta',
+  'toast.waiterCallOne': '{table} — ofitsiant chaqirilyapti',
+  'toast.waiterCallMany': '{n} stol ofitsiant chaqiryapti',
+  'toast.kitchenSlipSent': 'Oshxona kvitansiyasi kassa printeriga yuborildi',
+  'toast.kitchenSlipPrinted': 'Oshxona kvitansiyasi chop etildi',
+  'toast.receiptPrinted': 'Chek chop etildi',
+  'toast.qrToKitchen': 'QR buyurtma: {table} — oshxonaga chiqarildi',
+  'toast.printFailed': 'printerga yuborilmadi',
+  'toast.orderNotFound': 'buyurtma topilmadi',
+  'toast.directPrintFailed': "Printerga to'g'ridan-to'g'ri yuborilmadi: {why}",
+  'toast.periodTooBig': "Diqqat: davr juda katta, hisobot to'liq emas",
+  'toast.tableFreed': "Buyurtmada taom qolmadi — stol bo'shatildi",
+  'toast.dishCancelled': 'Taom oshxona buyurtmasidan bekor qilindi!',
+  'toast.refundNotSaved': "Qaytarish serverga yozilmadi — qayta urinib ko'ring",
+  'toast.refundQueued': "Tarmoq xatoligi: qaytarish navbatga qo'yildi, aloqa tiklanganda avtomatik yuboriladi",
+  'toast.refundDone': 'Chek #{id} muvaffaqiyatli vozvrat qilindi!',
+  'toast.noOrderOnTable': 'Stolda hech qanday buyurtma mavjud emas!',
+  'toast.paymentNotSaved': "To'lov serverga yozilmadi! Aloqa tiklanganda avtomatik yuboriladi.",
+  'toast.paymentQueued': "Tarmoq xatoligi: to'lov navbatga qo'yildi, aloqa tiklanganda avtomatik yuboriladi.",
 
   // ── Til ─────────────────────────────────────────────────────────────
   'lang.change': "Tilni o'zgartirish",

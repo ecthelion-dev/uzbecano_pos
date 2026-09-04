@@ -2,15 +2,26 @@
  * Chek maketini terminalda ko'rsatadi — printerga qog'oz sarflamasdan.
  *
  * Ishga tushirish:
- *   npm run chek
+ *   npm run chek          — o'zbekcha
+ *   npm run chek -- ru    — ruscha (yoki `en`)
  *
  * Chiziqlar orasidagi `|` — qog'ozning cheti. `<<KATTA` belgisi o'sha satr
  * ikki barobar balandlikda chiqishini bildiradi.
  */
 import { installMemoryStorage } from '../src/lib/testStorage';
+import { isLocale, type Locale } from '../src/lib/i18n/locales';
 
 installMemoryStorage();
+
+const arg = process.argv[2];
+const locale: Locale = isLocale(arg) ? arg : 'uz';
 const { generateEscPosReceipt, DEFAULT_PRINTER_SETTINGS } = await import('../src/lib/printer');
+
+/*
+ * Chek CP866 da yoziladi, ya'ni ruscha yorliqlar ASCII emas. Ilgari bu yerda
+ * ular `?` bo'lib chiqardi va ruscha chekni ko'rib bo'lmasdi.
+ */
+const CYR = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя';
 
 /** ESC/POS baytlarini o'qiladigan matnga aylantiradi. */
 function render(bytes: Uint8Array): string {
@@ -29,7 +40,10 @@ function render(bytes: Uint8Array): string {
       continue;
     }
     if (b === 0x0a) { out += (big ? '  <<KATTA' : '') + '\n'; continue; }
-    out += b >= 0x20 && b < 0x7f ? String.fromCharCode(b) : '?';
+    out += b >= 0x20 && b < 0x7f ? String.fromCharCode(b)
+      : b >= 0x80 && b <= 0xaf ? CYR[b - 0x80]
+      : b >= 0xe0 && b <= 0xef ? CYR[48 + (b - 0xe0)]
+      : '?';
   }
   return '|' + out.replace(/\n+$/, '').split('\n').join('|\n|') + '|';
 }
@@ -50,6 +64,8 @@ const order = {
 };
 
 for (const paperWidth of ['80mm', '58mm'] as const) {
-  console.log(`\n===== ${paperWidth} =====`);
-  console.log(render(generateEscPosReceipt(order, 'Uzbecano', { ...DEFAULT_PRINTER_SETTINGS, paperWidth })));
+  console.log(`\n===== ${paperWidth} · ${locale} =====`);
+  console.log(render(
+    generateEscPosReceipt(order, 'Uzbecano', { ...DEFAULT_PRINTER_SETTINGS, paperWidth }, locale),
+  ));
 }

@@ -41,7 +41,10 @@ import {
   fetchPrintJobs,
   claimPrintJob,
   closePrintJob,
+  isInFlight,
+  type PrintJob,
 } from './lib/printQueue';
+import { fetchPulse, resetPulse } from './lib/pulse';
 import {
   readCafeText,
   writeCafeText,
@@ -300,6 +303,15 @@ export default function App() {
   const handleLogout = useCallback(() => {
     const cafeId = getActiveCafeId();
     clearSession(cafeId);
+    /*
+     * Barmoq izi ham tashlanadi.
+     *
+     * Iz "kassadagi ma'lumot shu holatga mos" degani. Chiqib qayta kirilsa
+     * yoki kafe almashsa, kassadagi ro'yxat boshqacha bo'ladi — eski iz
+     * bilan so'ralsa server 304 qaytarar va kassa BO'SH ro'yxat bilan
+     * qolib ketardi.
+     */
+    resetPulse();
     setCurrentWaiter(null);
     setAuthToken(null);
     setTableCarts({});
@@ -390,6 +402,40 @@ export default function App() {
     }
   }, [getActiveCafeId, getAuthHeaders]);
 
+  /**
+   * Kelgan chaqiruvlarni holatga qo'yadi va yangisini eshittiradi.
+   *
+   * Alohida funksiya, chunki chaqiruvlar ikkita yo'ldan keladi: bitta
+   * so'rovli `pulse` va eski `/api/waiter-calls`. Ovoz mantiqi ikkalasida
+   * ham bir xil bo'lishi kerak.
+   */
+  const applyWaiterCalls = useCallback((data: any[]) => {
+    const tables = data.map((c: any) => String(c.tableNumber));
+
+    /*
+     * Yangi chaqiruv eshitiladi.
+     *
+     * Ilgari chaqiruv faqat stol kartochkasidagi nuqta bo'lib ko'rinardi
+     * va kassir ekranga qaramay turgan bo'lsa mehmon kutib o'tiraverardi.
+     *
+     * Ovoz faqat YANGISIDA: har so'rovda chalinsa, javobsiz chaqiruv
+     * kassirni ilovaning ovozini butunlay o'chirishga majbur qilardi.
+     */
+    const fresh = newWaiterCalls(waiterCallsRef.current, tables);
+    waiterCallsRef.current = tables;
+    if (fresh.length > 0) {
+      playCallChime();
+      setToastMessage(
+        fresh.length === 1
+          ? t('toast.waiterCallOne', { table: fresh[0] })
+          : t('toast.waiterCallMany', { n: fresh.length }),
+      );
+      window.setTimeout(() => setToastMessage(null), 6000);
+    }
+
+    setWaiterCalls(tables);
+  }, [t]);
+
   const fetchWaiterCalls = useCallback(async () => {
     try {
       const cafeId = getActiveCafeId();
@@ -400,34 +446,9 @@ export default function App() {
       });
       if (!res.ok) return;
       const data = await res.json();
-      if (Array.isArray(data)) {
-        const tables = data.map((c: any) => String(c.tableNumber));
-
-        /*
-         * Yangi chaqiruv eshitiladi.
-         *
-         * Ilgari chaqiruv faqat stol kartochkasidagi nuqta bo'lib ko'rinardi
-         * va kassir ekranga qaramay turgan bo'lsa mehmon kutib o'tiraverardi.
-         *
-         * Ovoz faqat YANGISIDA: har so'rovda chalinsa, javobsiz chaqiruv
-         * kassirni ilovaning ovozini butunlay o'chirishga majbur qilardi.
-         */
-        const fresh = newWaiterCalls(waiterCallsRef.current, tables);
-        waiterCallsRef.current = tables;
-        if (fresh.length > 0) {
-          playCallChime();
-          setToastMessage(
-            fresh.length === 1
-              ? t('toast.waiterCallOne', { table: fresh[0] })
-              : t('toast.waiterCallMany', { n: fresh.length }),
-          );
-          window.setTimeout(() => setToastMessage(null), 6000);
-        }
-
-        setWaiterCalls(tables);
-      }
+      if (Array.isArray(data)) applyWaiterCalls(data);
     } catch {}
-  }, [getActiveCafeId, getAuthHeaders]);
+  }, [getActiveCafeId, getAuthHeaders, applyWaiterCalls]);
 
   const fetchOrderHistory = useCallback(async () => {
     try {
@@ -469,6 +490,37 @@ export default function App() {
   // Polled every few seconds, so it asks only for unserved orders — the set the
   // table grid and the open-ticket lookups care about. Served orders already in
   // state are left alone instead of being re-downloaded on every tick.
+  /**
+   * Serverdan kelgan ochiq cheklarni holatga qo'yadi.
+   *
+   * Alohida funksiya, chunki ochiq cheklar ikkita yo'ldan keladi: bitta
+   * so'rovli `pulse` va eski `/api/orders?active=1`. Ikkalasi bir xil
+   * qoidalar bo'yicha qo'llanishi shart — aks holda yo'llardan biri
+   * arxivni yangilashni yoki oflayn belgisini o'tkazib yuborardi.
+   */
+  const applyActiveOrders = useCallback((data: DBOrder[]) => {
+    const activeIds = new Set(data.map((o) => o.id));
+    const seen = seenActiveIdsRef.current;
+    // An id we were tracking is gone from the active set, so it was served —
+    // possibly on another terminal. Our copy of it is stale, so pull history.
+    let departed = false;
+    if (seen) seen.forEach((id) => { if (!activeIds.has(id)) departed = true; });
+    seenActiveIdsRef.current = activeIds;
+
+    // Merged off a ref rather than inside a setState updater: updaters must
+    // stay pure, and persisting needs the result synchronously.
+    const byId = new Map<string, DBOrder>();
+    for (const o of ordersRef.current) byId.set(o.id, o);
+    for (const o of data) byId.set(o.id, o);
+    const merged = sortOrders(Array.from(byId.values()));
+    ordersRef.current = merged;
+    setOrders(merged);
+    persistOrders(merged);
+    setIsOfflineMode(false);
+
+    if (departed) fetchOrderHistory();
+  }, [sortOrders, persistOrders, fetchOrderHistory]);
+
   const fetchOrders = useCallback(async () => {
     try {
       const cafeId = getActiveCafeId();
@@ -476,29 +528,9 @@ export default function App() {
       if (!res.ok) return;
       const data: DBOrder[] = await res.json();
       if (!Array.isArray(data)) return;
-
-      const activeIds = new Set(data.map((o) => o.id));
-      const seen = seenActiveIdsRef.current;
-      // An id we were tracking is gone from the active set, so it was served —
-      // possibly on another terminal. Our copy of it is stale, so pull history.
-      let departed = false;
-      if (seen) seen.forEach((id) => { if (!activeIds.has(id)) departed = true; });
-      seenActiveIdsRef.current = activeIds;
-
-      // Merged off a ref rather than inside a setState updater: updaters must
-      // stay pure, and persisting needs the result synchronously.
-      const byId = new Map<string, DBOrder>();
-      for (const o of ordersRef.current) byId.set(o.id, o);
-      for (const o of data) byId.set(o.id, o);
-      const merged = sortOrders(Array.from(byId.values()));
-      ordersRef.current = merged;
-      setOrders(merged);
-      persistOrders(merged);
-      setIsOfflineMode(false);
-
-      if (departed) fetchOrderHistory();
+      applyActiveOrders(data);
     } catch { }
-  }, [getActiveCafeId, getAuthHeaders, sortOrders, persistOrders, fetchOrderHistory]);
+  }, [getActiveCafeId, getAuthHeaders, applyActiveOrders]);
 
   // Fetch static data once (products, categories, waiters, settings)
   /**
@@ -952,25 +984,114 @@ export default function App() {
    */
   const hasLiveWork = orders.some(o => o.status !== 'served') || waiterCalls.length > 0;
 
+  /**
+   * Chop etish navbatini bo'shatadi — faqat printer ulangan desktop kassada.
+   *
+   * Telefondagi ofitsiant chekni o'z qurilmasida bosa olmaydi va navbatga
+   * yozadi. Shu yerda o'sha navbat o'qiladi va qog'oz kassadan chiqadi.
+   *
+   * Brauzerda ishlayotgan kassa buni QILMAYDI: u ham printerga tega olmaydi,
+   * ya'ni topshiriqni olib, bosa olmay, navbatdan chiqarib tashlagan bo'lardi
+   * — chek esa hech qayerda chiqmasdi.
+   */
+  const drainPrintJobs = useCallback(async (incoming: PrintJob[]) => {
+      if (!IS_DESKTOP_APP) return;
+      // Oyna yig'ilgan bo'lsa ham bo'shatiladi: qog'oz chiqishi kassirning
+      // ekranga qarab turishiga bog'liq bo'lmasligi kerak.
+      const headers = getAuthHeaders();
+      // Ayni damda bosilayotgan topshiriq ikkinchi marta olinmasin: bitta
+      // buyurtmaga ikkita qog'oz chiqishi oshpazni taomni qaytadan
+      // qilishga majbur qiladi.
+      const jobs = incoming.filter((j) => !isInFlight(j.id));
+
+      for (const job of jobs) {
+        // Band qilish chop etishdan OLDIN: aks holda keyingi so'rov o'sha
+        // topshiriqni yana olib, ikkinchi qog'ozni chiqarardi.
+        if (!claimPrintJob(job.id)) continue;
+
+        let ok = false;
+        let why: string | null = null;
+        try {
+          if (job.kind === 'receipt' && job.order) {
+            ok = await printReceiptDirect(job.order, connectedCafeName || 'OrderPlus');
+            if (!ok) why = getLastPrintError() || t('toast.printFailed');
+          } else if (job.kind === 'kitchen') {
+            const extra = job.payload ? JSON.parse(job.payload) : null;
+            const data = {
+              tableNumber: extra?.tableNumber || job.order?.tableNumber || 'Zal',
+              waiterName: extra?.waiterName || job.order?.waiterName || 'Offitsiant',
+              // Tarkib topshiriqdan olinadi: buyurtmadagi to'liq ro'yxatdan
+              // chop etilsa, oshpaz allaqachon tayyorlagan taomni qaytadan
+              // qilardi.
+              items: extra?.items ?? job.order?.items,
+              time: extra?.time,
+              slipNumber: extra?.slipNumber,
+            };
+            ok = await printKitchenSlipDirect(data, connectedCafeName || 'OrderPlus');
+            if (!ok) why = getLastPrintError() || t('toast.printFailed');
+          } else {
+            why = t('toast.orderNotFound');
+          }
+        } catch (e: unknown) {
+          why = e instanceof Error ? e.message : String(e);
+        }
+
+        await closePrintJob(headers, job.id, ok, why);
+        if (ok) {
+          setToastMessage(
+            job.kind === 'kitchen'
+              ? t('toast.kitchenSlipPrinted')
+              : t('toast.receiptPrinted'),
+          );
+          window.setTimeout(() => setToastMessage(null), 3000);
+        }
+      }
+  }, [getAuthHeaders, connectedCafeName]);
+
   useEffect(() => {
     if (!currentWaiter) return;
 
-    const poll = () => {
-      if (document.visibilityState === 'visible') {
-        fetchOrders();
-        fetchWaiterCalls();
-        return;
-      }
+    /*
+     * Bitta so'rov: ochiq cheklar, chaqiruvlar va chop etish navbati birga.
+     *
+     * Ilgari ular uchta alohida so'rov edi va har 5 soniyada uchalasi ham
+     * ketardi — hech narsa o'zgarmagan bo'lsa ham. Yuk zaldagi ishga emas,
+     * ulangan qurilmalar soniga bog'liq edi.
+     *
+     * Server javobga barmoq izi qo'shadi; hech nima o'zgarmagan bo'lsa 304
+     * qaytadi va bu yerda ishlanadigan narsa qolmaydi.
+     */
+    const poll = async () => {
+      const visible = document.visibilityState === 'visible';
       // Oyna ko'rinmayotganda odatda hech narsa so'ralmaydi: ekranga hech kim
       // qaramayotgan bo'lsa yangilashning ma'nosi yo'q.
       //
       // QR buyurtma bundan mustasno. Uni kassir kiritmaydi, ya'ni "kvitansiya
       // o'zi chiqadi" degani faqat shu holda ma'noga ega: ilova yig'ib
-      // qo'yilgan bo'lsa ham buyurtma oshxonaga yetib borishi kerak. Aks
-      // holda mijoz kutib o'tiradi, kassir esa ilovaga qaytmaguncha bundan
-      // bexabar qoladi. Chaqiruvlar bu yerda so'ralmaydi — ularga javob
-      // beradigan odam baribir ekran oldida bo'lishi kerak.
-      if (getPrinterSettings().autoPrintQrKitchenSlip) fetchOrders();
+      // qo'yilgan bo'lsa ham buyurtma oshxonaga yetib borishi kerak.
+      //
+      // Chop etish navbati ham shunday: telefondan so'ralgan chek kassirning
+      // ekranga qarab turishini kutmasligi kerak.
+      if (!visible && !(IS_DESKTOP_APP || getPrinterSettings().autoPrintQrKitchenSlip)) return;
+
+      const result = await fetchPulse(getAuthHeaders(), IS_DESKTOP_APP);
+      if (result.kind === 'same') return;
+
+      if (result.kind === 'unsupported') {
+        // Server hali eski. Eski yo'l joyida turibdi, shuning uchun kassa
+        // yangilanish paytida ma'lumotsiz qolmaydi.
+        fetchOrders();
+        if (visible) fetchWaiterCalls();
+        if (IS_DESKTOP_APP) void drainPrintJobs(await fetchPrintJobs(getAuthHeaders()));
+        return;
+      }
+      if (result.kind === 'failed') return;
+
+      applyActiveOrders(result.data.orders as DBOrder[]);
+      // Chaqiruv ovozi ekran oldida turgan odam uchun — yig'ilgan oynada
+      // chalinsa, u shunchaki e'tiborsiz qoladi.
+      if (visible) applyWaiterCalls(result.data.waiterCalls);
+      if (result.data.printJobs.length > 0) void drainPrintJobs(result.data.printJobs);
     };
 
     // Bo'sh zalda ritm sekinlashadi — server yukini kamaytirish uchun. Lekin
@@ -979,15 +1100,22 @@ export default function App() {
     // kechiktiradi, shuning uchun QR kuzatuvi yoqilgan bo'lsa ritm doim tez.
     // Bitta kassa uchun bu daqiqasiga 12 ta so'rov — sezilarli yuk emas.
     const watchingQr = getPrinterSettings().autoPrintQrKitchenSlip;
-    const interval = setInterval(poll, hasLiveWork || watchingQr ? 5000 : 20000);
+    // Desktop kassa ritmini sekinlashtirmaydi: telefondan so'ralgan chek shu
+    // yerda bosiladi va uni 20 soniya kutdirish mumkin emas.
+    const interval = setInterval(
+      () => { void poll(); },
+      IS_DESKTOP_APP || hasLiveWork || watchingQr ? 5000 : 20000,
+    );
     // Tabga qaytilganda kutmasdan darhol yangilanadi — shuning uchun sekin
     // ritm ekranga qarab turgan kassirga sezilmaydi.
-    document.addEventListener('visibilitychange', poll);
+    const onVisibility = () => { void poll(); };
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       clearInterval(interval);
-      document.removeEventListener('visibilitychange', poll);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [currentWaiter, fetchOrders, fetchWaiterCalls, hasLiveWork]);
+  }, [currentWaiter, fetchOrders, fetchWaiterCalls, hasLiveWork, getAuthHeaders,
+      applyActiveOrders, applyWaiterCalls, drainPrintJobs]);
 
   // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, ESC: Close)
   useEffect(() => {
@@ -1408,80 +1536,7 @@ export default function App() {
     window.setTimeout(() => setToastMessage(null), 4000);
   }, [orders, kitchenSlipData, currentWaiter, getActiveCafeId]);
 
-  /**
-   * Chop etish navbatini bo'shatadi — faqat printer ulangan desktop kassada.
-   *
-   * Telefondagi ofitsiant chekni o'z qurilmasida bosa olmaydi va navbatga
-   * yozadi. Shu yerda o'sha navbat o'qiladi va qog'oz kassadan chiqadi.
-   *
-   * Brauzerda ishlayotgan kassa buni QILMAYDI: u ham printerga tega olmaydi,
-   * ya'ni topshiriqni olib, bosa olmay, navbatdan chiqarib tashlagan bo'lardi
-   * — chek esa hech qayerda chiqmasdi.
-   */
-  useEffect(() => {
-    if (!IS_DESKTOP_APP) return;
-    if (!currentWaiter) return;
 
-    let stopped = false;
-
-    const drain = async () => {
-      if (stopped) return;
-      // Oyna yig'ilgan bo'lsa ham bo'shatiladi: qog'oz chiqishi kassirning
-      // ekranga qarab turishiga bog'liq bo'lmasligi kerak.
-      const headers = getAuthHeaders();
-      const jobs = await fetchPrintJobs(headers);
-      if (stopped) return;
-
-      for (const job of jobs) {
-        if (stopped) return;
-        // Band qilish chop etishdan OLDIN: aks holda keyingi so'rov o'sha
-        // topshiriqni yana olib, ikkinchi qog'ozni chiqarardi.
-        if (!claimPrintJob(job.id)) continue;
-
-        let ok = false;
-        let why: string | null = null;
-        try {
-          if (job.kind === 'receipt' && job.order) {
-            ok = await printReceiptDirect(job.order, connectedCafeName || 'OrderPlus');
-            if (!ok) why = getLastPrintError() || t('toast.printFailed');
-          } else if (job.kind === 'kitchen') {
-            const extra = job.payload ? JSON.parse(job.payload) : null;
-            const data = {
-              tableNumber: extra?.tableNumber || job.order?.tableNumber || 'Zal',
-              waiterName: extra?.waiterName || job.order?.waiterName || 'Offitsiant',
-              // Tarkib topshiriqdan olinadi: buyurtmadagi to'liq ro'yxatdan
-              // chop etilsa, oshpaz allaqachon tayyorlagan taomni qaytadan
-              // qilardi.
-              items: extra?.items ?? job.order?.items,
-              time: extra?.time,
-              slipNumber: extra?.slipNumber,
-            };
-            ok = await printKitchenSlipDirect(data, connectedCafeName || 'OrderPlus');
-            if (!ok) why = getLastPrintError() || t('toast.printFailed');
-          } else {
-            why = t('toast.orderNotFound');
-          }
-        } catch (e: unknown) {
-          why = e instanceof Error ? e.message : String(e);
-        }
-
-        await closePrintJob(headers, job.id, ok, why);
-        if (stopped) return;
-        if (ok) {
-          setToastMessage(
-            job.kind === 'kitchen'
-              ? t('toast.kitchenSlipPrinted')
-              : t('toast.receiptPrinted'),
-          );
-          window.setTimeout(() => setToastMessage(null), 3000);
-        }
-      }
-    };
-
-    void drain();
-    const interval = window.setInterval(() => { void drain(); }, 5000);
-    return () => { stopped = true; window.clearInterval(interval); };
-  }, [currentWaiter, getAuthHeaders, connectedCafeName]);
 
   /**
    * Yopilgan stolning chekini bosadi.
@@ -2412,6 +2467,8 @@ export default function App() {
     const clean = newCafeId.trim().toLowerCase();
     if (!clean) return;
     writeGlobalText('cafeId', clean);
+    // Boshqa kafening ro'yxati — eski iz unga mos kelmaydi.
+    resetPulse();
     setToastMessage(`Kafe tanlandi: ${clean}`);
     setTimeout(() => setToastMessage(null), 2000);
     fetchData();

@@ -1504,7 +1504,13 @@ export default function App() {
       if (!IS_DESKTOP_APP && closedOrder.id) {
         if (await enqueuePrintJob(getAuthHeaders(), String(closedOrder.id), 'receipt')) return;
       }
-      await executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus');
+      await executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus', (why) => {
+        // Qog'oz chiqmadi. Kassir buni stol yopilgan zahoti bilishi kerak:
+        // chekni keyinroq arxivdan qayta bosish mumkin, lekin buning uchun
+        // avval chiqmaganini bilish kerak.
+        setToastMessage(t('toast.directPrintFailed', { why }));
+        window.setTimeout(() => setToastMessage(null), 6000);
+      });
     })();
   }, [connectedCafeName, getAuthHeaders]);
 

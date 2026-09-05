@@ -1267,7 +1267,14 @@ export function getLastPrintError(): string | null {
  */
 async function tryDesktopPrint(settings: PrinterSettings, bytes: Uint8Array): Promise<boolean> {
   if (!IS_DESKTOP_APP) return false;
-  if (settings.mode === 'bluetooth' || settings.mode === 'serial') return false;
+  if (settings.mode === 'bluetooth' || settings.mode === 'serial') {
+    // Desktop kassada tizim printeri bor, lekin sozlamada Bluetooth yoki
+    // Serial tanlangan — shuning uchun u chetlab o'tiladi. Sabab
+    // YOZILADI: usiz bu shoxcha jimgina `false` qaytarar va kassir
+    // "chek chiqmayapti" degan xabardan boshqa hech nima ko'rmasdi.
+    lastPrintError = translate(activeLocale(), 'printer.modeSkipsSystem', { mode: settings.mode });
+    return false;
+  }
   return sendToSystemPrinter(bytes, settings.systemPrinterName);
 }
 
@@ -1280,16 +1287,23 @@ async function tryDesktopPrint(settings: PrinterSettings, bytes: Uint8Array): Pr
  * termal printerdan HTML sahifa bo'lib chiqardi.
  */
 export async function printReceiptDirect(order: any, cafeName: string): Promise<boolean> {
+  // Oldingi urinishning xatosi yangisiga qo'shilib ketmasin.
+  lastPrintError = null;
   const settings = getPrinterSettings();
   const bytes = generateEscPosReceipt(order, cafeName, settings);
   if (await tryDesktopPrint(settings, bytes)) return true;
   if (settings.mode === 'bluetooth' || settings.mode === 'serial' || activeBluetoothCharacteristic || activeSerialPort) {
     try {
       return await sendRawToPrinter(bytes);
-    } catch {
+    } catch (e) {
+      lastPrintError = String((e as any)?.message || e);
       return false;
     }
   }
+  // Bu yergacha yetib kelish — termal printer umuman topilmagani. Sabab
+  // yuqoridagi shoxchalardan biriga yozilgan bo'lishi mumkin; bo'lmasa
+  // shu yerda yoziladi, chunki chaqiruvchi kassirga nimadir aytishi kerak.
+  if (!lastPrintError) lastPrintError = translate(activeLocale(), 'printer.noThermal');
   return false;
 }
 
@@ -1320,8 +1334,21 @@ export async function printKitchenSlipDirect(data: any, cafeName: string): Promi
 }
 
 // Print Receipt Execution (Direct or Universal Browser Print)
-export async function executePrintReceipt(order: any, cafeName: string) {
+export async function executePrintReceipt(
+  order: any,
+  cafeName: string,
+  /**
+   * Termal printerga chiqmadi — sabab bilan.
+   *
+   * Bu yo'l stol yopilganda o'zi ishlaydi va hech kim javobini kutmaydi.
+   * Ilgari xato faqat konsolga yozilardi: kassir tugmani bosar, qog'oz
+   * chiqmas, ekranda esa hech nima ko'rinmasdi. Desktop kassada konsol
+   * ham yo'q, ya'ni sabab hech qayerda qolmasdi.
+   */
+  onProblem?: (why: string) => void,
+) {
   PrintQueue.enqueue(async () => {
+    lastPrintError = null;
     const settings = getPrinterSettings();
 
     // Desktop: xom ESC/POS to'g'ridan-to'g'ri tizim navbatiga, dialogsiz.
@@ -1333,9 +1360,15 @@ export async function executePrintReceipt(order: any, cafeName: string) {
         const ok = await sendRawToPrinter(bytes);
         if (ok) return;
       } catch (e) {
+        lastPrintError = String((e as any)?.message || e);
         console.warn("Direct thermal print failed, falling back:", e);
       }
     }
+
+    // Termal printerga chiqmadi. Desktop kassada bu deyarli har doim
+    // nuqson: brauzer chop etishi u yerda dialog ochadi yoki umuman jimgina
+    // hech nima qilmaydi, ya'ni qog'oz baribir chiqmaydi.
+    if (IS_DESKTOP_APP) onProblem?.(lastPrintError || translate(activeLocale(), 'printer.noThermal'));
 
     // Termal printer yo'q — chek brauzer orqali qog'ozga tushadi.
     if (typeof window !== 'undefined') {
@@ -1368,7 +1401,11 @@ export async function executePrintKitchenSlip(data: any, cafeName: string) {
 }
 
 // Print Test Receipt
-export async function executePrintTest(cafeName: string) {
+export async function executePrintTest(
+  cafeName: string,
+  /** Termal printerga chiqmadi — sabab bilan. */
+  onProblem?: (why: string) => void,
+) {
   const settings = getPrinterSettings();
   const testOrder = {
     id: 'test-123456',
@@ -1385,5 +1422,5 @@ export async function executePrintTest(cafeName: string) {
     paymentMethod: 'cash',
   };
 
-  await executePrintReceipt(testOrder, cafeName);
+  await executePrintReceipt(testOrder, cafeName, onProblem);
 }

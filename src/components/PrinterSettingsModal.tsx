@@ -135,11 +135,18 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
   };
 
   const handleTestPrint = async () => {
+    /*
+     * Sinov cheki NAVBATGA qo'yiladi, ya'ni bu chaqiruv qog'oz chiqishidan
+     * oldin qaytadi. Ilgari shu sababli tugma har doim "yuborildi" der edi —
+     * printer umuman javob bermagan holatda ham. Aynan shu tugma bilan
+     * muammoni topish kerak bo'lgani uchun, endi sabab shu yerda ko'rinadi.
+     */
+    setError(null);
     try {
-      await executePrintTest(cafeName);
+      await executePrintTest(cafeName, (why) => setError(why));
       onToast(t('printer.testSent'));
-    } catch {
-      onToast(t('printer.printError'));
+    } catch (e: any) {
+      setError(e?.message || t('printer.printError'));
     }
   };
 

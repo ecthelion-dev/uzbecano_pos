@@ -250,6 +250,8 @@ export const uz = {
   'printer.dialogFix1': "— yuqoridagi Bluetooth yoki USB tugmasi orqali. Shunda chek to'g'ridan-to'g'ri chiqadi, oyna umuman ochilmaydi.",
   'printer.dialogFix2': "Printer tizimda asosiy (default) qilib qo'yilgan bo'lishi shart:",
   'printer.noWebBluetooth': "Ushbu brauzerda Web Bluetooth qo'llab-quvvatlanmaydi (Chrome yoki Edge tavsiya etiladi).",
+  'printer.modeSkipsSystem': 'Sozlamada "{mode}" tanlangan — tizim printeri chetlab o\'tildi',
+  'printer.noThermal': 'Termal printer topilmadi',
   'printer.btConnected': 'Bluetooth printer ulandi: {name}',
   'printer.btFailed': "Bluetooth printerga ulanib bo'lmadi",
   'printer.testSent': 'Sinov cheki printerga yuborildi!',

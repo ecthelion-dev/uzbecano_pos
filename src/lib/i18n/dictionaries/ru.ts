@@ -236,6 +236,8 @@ export const ru: Record<TranslationKey, string> = {
   'printer.dialogFix1': '— через кнопку Bluetooth или USB выше. Тогда чек печатается напрямую, и окно не открывается вовсе.',
   'printer.dialogFix2': 'Принтер должен быть выбран в системе как основной (по умолчанию):',
   'printer.noWebBluetooth': 'Этот браузер не поддерживает Web Bluetooth (рекомендуем Chrome или Edge).',
+  'printer.modeSkipsSystem': 'В настройках выбран «{mode}» — системный принтер пропущен',
+  'printer.noThermal': 'Термопринтер не найден',
   'printer.btConnected': 'Bluetooth-принтер подключён: {name}',
   'printer.btFailed': 'Не удалось подключиться к Bluetooth-принтеру',
   'printer.testSent': 'Тестовый чек отправлен на принтер!',

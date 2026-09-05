@@ -236,6 +236,8 @@ export const en: Record<TranslationKey, string> = {
   'printer.dialogFix1': '— with the Bluetooth or USB button above. The receipt then prints straight out and no dialog opens at all.',
   'printer.dialogFix2': 'The printer has to be the system default:',
   'printer.noWebBluetooth': 'This browser does not support Web Bluetooth (Chrome or Edge is recommended).',
+  'printer.modeSkipsSystem': 'Settings say "{mode}" — the system printer was skipped',
+  'printer.noThermal': 'No thermal printer found',
   'printer.btConnected': 'Bluetooth printer connected: {name}',
   'printer.btFailed': 'Could not connect to the Bluetooth printer',
   'printer.testSent': 'Test receipt sent to the printer!',

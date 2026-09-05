@@ -1668,6 +1668,16 @@ export default function App() {
           });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
+            if (!isRetryableStatus(res.status)) {
+              // Server printsipial rad etdi — masalan rahbar tasdig'i
+              // yaroqsiz yoki chek allaqachon vozvrat qilingan. Mahalliy
+              // holatga TEGMAYMIZ: ilgari chek arxivda "vozvrat qilingan"
+              // bo'lib turar, serverda esa qilinmagan bo'lardi — kassir
+              // pulni qaytarib yuborishi mumkin bo'lgan holat. Navbatga
+              // yozish ham foydasiz: bu so'rov hech qachon o'tmaydi.
+              setApiError(data.error || t('toast.refundNotSaved'));
+              return;
+            }
             setApiError(data.error || t('toast.refundNotSaved'));
             queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
           }

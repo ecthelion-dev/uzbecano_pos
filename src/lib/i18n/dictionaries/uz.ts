@@ -294,6 +294,8 @@ export const uz = {
   // ── Bildirishnomalar ────────────────────────────────────────────────
   'toast.sentToKitchen': 'Buyurtma oshxonaga yuborildi!',
   'toast.receiptQueued': 'Chek kassa printeriga yuborildi',
+  'toast.tillClosedReceipt': "Kassa ilovasi ochiq emas — chek hozir chiqmaydi. Kassa ochilganda chiqadi.",
+  'toast.tillClosedKitchen': "Kassa ilovasi ochiq emas — kvitansiya hozir chiqmaydi. Kassa ochilganda chiqadi.",
   'toast.noMenu': 'Bazada kategoriyalar yoki mahsulotlar topilmadi',
   'toast.syncRejected': 'Server qabul qilmadi: {list}. Qayta kiriting.',
   'toast.andMore': 'va yana {n} ta',

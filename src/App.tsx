@@ -1313,10 +1313,12 @@ export default function App() {
           },
         );
         if (cancelled) return;
-        if (queued) {
+        if (queued.queued) {
           setKitchenSlipData(null);
-          setToastMessage(t('toast.kitchenSlipSent'));
-          window.setTimeout(() => setToastMessage(null), 4000);
+          // Navbatga yozilgani qog'oz chiqqani degani EMAS: kvitansiyani
+          // printer ulangan kassa bosadi va u yopiq bo'lishi mumkin.
+          setToastMessage(queued.willPrint ? t('toast.kitchenSlipSent') : t('toast.tillClosedKitchen'));
+          window.setTimeout(() => setToastMessage(null), queued.willPrint ? 4000 : 7000);
           return;
         }
       }
@@ -1502,7 +1504,17 @@ export default function App() {
 
     void (async () => {
       if (!IS_DESKTOP_APP && closedOrder.id) {
-        if (await enqueuePrintJob(getAuthHeaders(), String(closedOrder.id), 'receipt')) return;
+        const queued = await enqueuePrintJob(getAuthHeaders(), String(closedOrder.id), 'receipt');
+        if (queued.queued) {
+          // Kassa ilovasi yopiq bo'lsa chek navbatda qoladi, lekin HOZIR
+          // chiqmaydi. Ofitsiant buni mijoz chekni so'raganda emas, shu
+          // yerda bilishi kerak.
+          if (!queued.willPrint) {
+            setToastMessage(t('toast.tillClosedReceipt'));
+            window.setTimeout(() => setToastMessage(null), 7000);
+          }
+          return;
+        }
       }
       await executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus', (why) => {
         // Qog'oz chiqmadi. Kassir buni stol yopilgan zahoti bilishi kerak:
@@ -1531,9 +1543,10 @@ export default function App() {
      * kelish faqat kechikish qo'shardi.
      */
     if (!IS_DESKTOP_APP && order.id) {
-      if (await enqueuePrintJob(getAuthHeaders(), String(order.id), 'receipt')) {
-        setToastMessage(t('toast.receiptQueued'));
-        window.setTimeout(() => setToastMessage(null), 4000);
+      const queued = await enqueuePrintJob(getAuthHeaders(), String(order.id), 'receipt');
+      if (queued.queued) {
+        setToastMessage(queued.willPrint ? t('toast.receiptQueued') : t('toast.tillClosedReceipt'));
+        window.setTimeout(() => setToastMessage(null), queued.willPrint ? 4000 : 7000);
         return;
       }
       // Navbatga yozilmadi — chek yo'qolmasin, brauzer yo'liga tushamiz.

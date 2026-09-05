@@ -29,7 +29,7 @@ afterEach(() => { vi.restoreAllMocks(); });
 describe('navbatga yozish', () => {
   it('buyurtma va hujjat turini yuboradi', async () => {
     const spy = mockFetch(() => okRes({ id: 'j1' }));
-    expect(await enqueuePrintJob(headers, 'order_1', 'receipt')).toBe(true);
+    expect((await enqueuePrintJob(headers, 'order_1', 'receipt')).queued).toBe(true);
     const body = JSON.parse(spy.mock.calls[0][1].body);
     expect(body).toEqual({ orderId: 'order_1', kind: 'receipt' });
   });
@@ -44,18 +44,50 @@ describe('navbatga yozish', () => {
   it('buyurtma id si bo\'lmasa so\'rov ham yubormaydi', async () => {
     // Oflayn yaratilgan buyurtma serverda hali yo'q.
     const spy = mockFetch(() => okRes({}));
-    expect(await enqueuePrintJob(headers, '', 'receipt')).toBe(false);
+    expect((await enqueuePrintJob(headers, '', 'receipt')).queued).toBe(false);
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('tarmoq yiqilsa xato otmaydi', async () => {
     mockFetch(() => { throw new Error('offline'); });
-    expect(await enqueuePrintJob(headers, 'order_1', 'receipt')).toBe(false);
+    expect((await enqueuePrintJob(headers, 'order_1', 'receipt')).queued).toBe(false);
+  });
+
+  /*
+   * Chek navbatga yozilgani qog'oz chiqqani degani EMAS.
+   *
+   * Telefon chekni o'zi bosa olmaydi va uni navbatga yozadi; qog'ozni
+   * printer ulangan kassa chiqaradi. Kassa ilovasi yopiq bo'lsa chek
+   * navbatda qolaveradi — ilgari telefon esa baribir "chek kassaga
+   * yuborildi" der edi va ofitsiant qog'oz chiqmaganini faqat mijoz
+   * chekni so'raganda bilardi.
+   */
+  describe('kassa ochiqmi', () => {
+    it('server "bosiladi" desa shuni qaytaradi', async () => {
+      mockFetch(() => okRes({ id: 'j1', willPrint: true }));
+      expect(await enqueuePrintJob(headers, 'order_1', 'receipt'))
+        .toEqual({ queued: true, willPrint: true });
+    });
+
+    it('kassa yopiq bo\'lsa chek yozilgan, lekin chiqmaydi', async () => {
+      mockFetch(() => okRes({ id: 'j1', willPrint: false }));
+      expect(await enqueuePrintJob(headers, 'order_1', 'receipt'))
+        .toEqual({ queued: true, willPrint: false });
+    });
+
+    it('eski server bu maydonni bilmasa chek yo\'qolmaydi', async () => {
+      // Topshiriq yozilgan — shunchaki bosilishiga kafolat yo'q. Buni
+      // "yozilmadi" deb hisoblasak, telefon chekni ikkinchi marta
+      // yuborishga urinardi.
+      mockFetch(() => okRes({ id: 'j1' }));
+      expect(await enqueuePrintJob(headers, 'order_1', 'receipt'))
+        .toEqual({ queued: true, willPrint: false });
+    });
   });
 
   it('server rad etsa false qaytaradi', async () => {
     mockFetch(() => ({ ok: false, json: async () => ({}) }));
-    expect(await enqueuePrintJob(headers, 'order_1', 'receipt')).toBe(false);
+    expect((await enqueuePrintJob(headers, 'order_1', 'receipt')).queued).toBe(false);
   });
 
   /*
@@ -68,7 +100,7 @@ describe('navbatga yozish', () => {
     // kassirni printerdan uzoqlashtiradi: javob kelmaguncha chek chiqmaydi.
     vi.stubGlobal('navigator', { onLine: false });
     const spy = mockFetch(() => okRes({ id: 'j1' }));
-    expect(await enqueuePrintJob(headers, 'order_1', 'receipt')).toBe(false);
+    expect((await enqueuePrintJob(headers, 'order_1', 'receipt')).queued).toBe(false);
     expect(spy).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
@@ -87,7 +119,7 @@ describe('navbatga yozish', () => {
 
     const result = enqueuePrintJob(headers, 'order_1', 'receipt');
     await vi.advanceTimersByTimeAsync(5000);
-    expect(await result).toBe(false);
+    expect((await result).queued).toBe(false);
     expect(aborted).toBe(true);
     vi.useRealTimers();
   });

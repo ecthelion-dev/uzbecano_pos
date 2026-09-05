@@ -63,15 +63,33 @@ export function isInFlight(id: string): boolean {
   return inFlight.has(id);
 }
 
-/** Navbatga yozadi. `true` — server qabul qildi. */
+/**
+ * Navbatga yozish natijasi.
+ *
+ * `queued` — server qabul qildi. `willPrint` — o'sha payt printer ulangan
+ * kassa navbatni so'rab turgan edi, ya'ni chek hoziroq chiqadi.
+ *
+ * Ikkalasi ALOHIDA: chek navbatga yozilgan bo'lsa ham, kassa ilovasi yopiq
+ * bo'lsa qog'oz chiqmaydi. Ilgari telefon buni bilmasdi va har doim "chek
+ * kassaga yuborildi" der edi — ofitsiant qog'oz chiqmaganini faqat mijoz
+ * chekni so'raganda bilardi.
+ */
+export interface EnqueueResult {
+  queued: boolean;
+  willPrint: boolean;
+}
+
+const NOT_QUEUED: EnqueueResult = { queued: false, willPrint: false };
+
+/** Navbatga yozadi. */
 export async function enqueuePrintJob(
   headers: Record<string, string>,
   orderId: string,
   kind: PrintJobKind,
   payload?: unknown,
-): Promise<boolean> {
-  if (!orderId) return false;
-  if (offlineForSure()) return false;
+): Promise<EnqueueResult> {
+  if (!orderId) return NOT_QUEUED;
+  if (offlineForSure()) return NOT_QUEUED;
 
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), ENQUEUE_TIMEOUT_MS);
@@ -82,9 +100,13 @@ export async function enqueuePrintJob(
       body: JSON.stringify({ orderId, kind, ...(payload === undefined ? {} : { payload }) }),
       signal: abort.signal,
     });
-    return res.ok;
+    if (!res.ok) return NOT_QUEUED;
+    // Eski server bu maydonni bilmaydi. O'shanda chekni yo'qotmaymiz —
+    // topshiriq yozilgan, shunchaki bosilishiga kafolat yo'q.
+    const data = await res.json().catch(() => null);
+    return { queued: true, willPrint: data?.willPrint === true };
   } catch {
-    return false;
+    return NOT_QUEUED;
   } finally {
     clearTimeout(timer);
   }
@@ -95,7 +117,9 @@ export async function fetchPrintJobs(
   headers: Record<string, string>,
 ): Promise<PrintJob[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}${URL_PATH}`, {
+    // `consumer=1` — "men bosadigan qurilmaman". Server shu so'rovni
+    // ko'rib telefonga "kassa ochiq" deb javob bera oladi.
+    const res = await fetch(`${API_BASE_URL}${URL_PATH}?consumer=1`, {
       cache: 'no-store',
       headers,
     });

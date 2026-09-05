@@ -280,6 +280,8 @@ export const en: Record<TranslationKey, string> = {
   // ── Toasts ──────────────────────────────────────────────────────────
   'toast.sentToKitchen': 'The order has gone to the kitchen!',
   'toast.receiptQueued': 'The receipt was sent to the till printer',
+  'toast.tillClosedReceipt': 'The till app is not running — the receipt will not print yet. It prints once the till is opened.',
+  'toast.tillClosedKitchen': 'The till app is not running — the kitchen slip will not print yet. It prints once the till is opened.',
   'toast.noMenu': 'No categories or products found in the database',
   'toast.syncRejected': 'The server refused: {list}. Enter them again.',
   'toast.andMore': 'and {n} more',

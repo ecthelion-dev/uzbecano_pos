@@ -2,7 +2,7 @@ import { readText } from '../storage';
 import { uz, type TranslationKey } from './dictionaries/uz';
 import { ru } from './dictionaries/ru';
 import { en } from './dictionaries/en';
-import { DEFAULT_LOCALE, isLocale, localeFromNavigator, type Locale } from './locales';
+import { DEFAULT_LOCALE, isLocale, type Locale } from './locales';
 
 /**
  * Tarjima — React'siz.
@@ -63,10 +63,16 @@ export function activeLocale(): Locale {
   const saved = readText(LOCALE_KEY);
   if (isLocale(saved)) return saved;
 
-  if (typeof navigator !== 'undefined') {
-    const fromDevice = localeFromNavigator(navigator.languages ?? [navigator.language]);
-    if (fromDevice) return fromDevice;
-  }
+  /*
+   * Asosiy til — o'zbekcha, va uni faqat kassirning o'z tanlovi
+   * o'zgartiradi.
+   *
+   * Ilgari bu yerda qurilmaning tili o'qilardi. Kassa esa Windows'da
+   * ishlaydi va uning tili ko'pincha ruscha yoki inglizcha bo'ladi —
+   * ya'ni kassa birinchi ochilganda va HAR BIR YANGI o'rnatishda begona
+   * tilda chiqar, chek ham o'sha tilda bosilardi. Qurilmaning tili
+   * kafening tili haqida hech nima aytmaydi.
+   */
   return DEFAULT_LOCALE;
 }
 

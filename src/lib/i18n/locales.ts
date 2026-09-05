@@ -31,6 +31,11 @@ export function isLocale(value: unknown): value is Locale {
  * `navigator.languages` tartiblangan holda keladi, shuning uchun bu yerda
  * og'irlik hisoblanmaydi — birinchi mos kelgani olinadi.
  */
+/*
+ * Hozir hech kim chaqirmaydi: kassa endi qurilmaning tiliga qaramaydi va
+ * doim o'zbekchada ochiladi. Funksiya sinalgan holida qoldirildi — tilni
+ * qaytadan avtomatik tanlash kerak bo'lsa shu yerda turibdi.
+ */
 export function localeFromNavigator(languages: readonly string[] | undefined): Locale | null {
   for (const tag of languages ?? []) {
     const base = String(tag).toLowerCase().split('-')[0];

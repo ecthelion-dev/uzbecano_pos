@@ -188,25 +188,21 @@ describe('til tanlagich', () => {
     );
   }
 
-  it('ochiladigan ro‘yxat bo‘lib chiziladi', async () => {
+  it('yopiq holatda faqat globus ko‘rinadi', async () => {
+    // Tugmada hech qanday matn yo'q: belgi hech qaysi tilga tegishli
+    // emas, ya'ni kassa tanimagan tilda ochilib qolsa ham u topiladi.
     const html = await markup('uz');
-    expect(html).toContain('<select');
-    expect((html.match(/<option/g) ?? []).length).toBe(LOCALES.length);
+    expect(html).toContain('aria-haspopup="listbox"');
+    // Ikki harfli qisqartma tugmadan chiqib ketgan.
+    expect(html).not.toMatch(/>\s*(UZ|RU|EN)\s*</);
+    // Ro'yxat yopiq turadi — bosilmaguncha chizilmaydi.
+    expect(html).not.toContain('role="listbox"');
   });
 
-  it('ro‘yxatda faqat qisqartma ko‘rinadi', async () => {
-    const html = await markup('uz');
-    for (const code of LOCALES) {
-      expect(html).toContain(`value="${code}"`);
-    }
-    // Ko'rinadigan matn — ikki harf. To'liq nom sarlavhada joy yeydi,
-    // shuning uchun u faqat `title` da qoladi.
-    const visible = Array.from(html.matchAll(/<option[^>]*>([^<]*)<\/option>/g)).map((m) => m[1]);
-    expect(visible).toEqual(['UZ', 'RU', 'EN']);
+  it('to‘liq nomi ekran o‘quvchi uchun qoladi', async () => {
+    // Globusning o'zi "bu til tugmasi" deb aytmaydi.
+    const html = await markup('ru');
+    expect(html).toContain('aria-label="Русский"');
     expect(html).toContain('title="Русский"');
-  });
-
-  it('tanlangan til belgilangan bo‘ladi', async () => {
-    expect(await markup('ru')).toContain('selected');
   });
 });

@@ -347,6 +347,42 @@ describe('chek maketi', () => {
     expect(text).toContain('sarimsoqsiz');
   });
 
+  /*
+   * Chekni kim bergani.
+   *
+   * `waiterName` serverda SAQLANMAYDI — `Order` jadvalida bunday ustun
+   * yo'q. Ofitsiantning telefonidagi chek esa aynan serverdagi nusxadan
+   * bosiladi: telefon printerga tega olmaydi, chek navbatga yoziladi va uni
+   * kassa oladi. Shuning uchun telefonda buyurtma olib yopgan ofitsiantning
+   * ismi chekka tushmas, o'rniga zaxira "Admin" chiqardi — kassada kim
+   * kirgan bo'lsa, chek o'shanikidek ko'rinardi.
+   */
+  describe('chekdagi ofitsiant ismi', () => {
+    const waiterRow = (order: any) =>
+      asLayout(generateEscPosReceipt(order, 'Uzbecano', settings))
+        .find((l) => l.startsWith('Ofitsiant'));
+
+    it('yopgan odamning ismini bosadi', () => {
+      // Serverdan kelgan buyurtmada faqat shu maydon bor.
+      expect(waiterRow({ ...posterOrder, waiterName: undefined, closedBy: 'Dilsora' }))
+        .toContain('Dilsora');
+    });
+
+    it('kassaning o\'zi yopganda mahalliy ism ishlaydi', () => {
+      // Kassa chekni server javobidan OLDIN bosadi, ya'ni `closedBy` hali
+      // yo'q. O'shanda kassadagi ofitsiant ismi ishlatiladi.
+      expect(waiterRow({ ...posterOrder, waiterName: 'Ravshan', closedBy: undefined }))
+        .toContain('Ravshan');
+    });
+
+    it('server yozgan ism kassanikidan ustun', () => {
+      // Buyurtmani biri ochib, boshqasi yopishi mumkin. Chekda pulni qabul
+      // qilgan odam turishi kerak — uni server o'z sessiyasidan yozadi.
+      expect(waiterRow({ ...posterOrder, waiterName: 'Ravshan', closedBy: 'Dilsora' }))
+        .toContain('Dilsora');
+    });
+  });
+
   it('metadata qiymatlarini qat\'iy ustundan boshlaydi', () => {
     const lines = linesOf('58mm');
     const labelCol = 14;

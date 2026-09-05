@@ -717,7 +717,24 @@ function buildReceiptLayout(
   metaRow(t('print.checkNo'), checkNum);
   // Kassada olib ketish oqimi yo'q — har bir buyurtma stolga yoziladi.
   metaRow(t('print.type'), t('print.dineIn'));
-  metaRow(t('print.waiter'), order.waiterName || 'Admin');
+  /*
+   * Chekni kim bergani.
+   *
+   * `closedBy` BIRINCHI. Sabab: `waiterName` serverda umuman saqlanmaydi —
+   * `Order` jadvalida bunday ustun yo'q. Ya'ni chek kassaning o'z
+   * xotirasidan emas, serverdan olingan buyurtmadan bosilganda bu maydon
+   * doim bo'sh keladi va chekda zaxira "Admin" chiqardi.
+   *
+   * Aynan shu yo'l ofitsiantning telefonidagi cheklarga tegishli: telefon
+   * printerga tega olmaydi, chek navbatga yoziladi va uni kassa serverdagi
+   * nusxadan bosadi. Natijada telefonda buyurtma olib yopgan ofitsiantning
+   * ismi chekka tushmasdi.
+   *
+   * `closedBy` ni esa server yozadi va aynan yopgan odamning sessiyasidan
+   * oladi — mijoz yuborgan nomga ishonilmaydi. Yopilmagan chekda u bo'sh,
+   * o'shanda kassaning o'zidagi `waiterName` ishlaydi.
+   */
+  metaRow(t('print.waiter'), order.closedBy || order.waiterName || 'Admin');
   metaRow(t('print.opened'), fmtReceiptDate(openedAt, longDate, locale));
   metaRow(t('print.printed'), fmtReceiptDate(printedAt, longDate, locale));
   if (cleanTable) {

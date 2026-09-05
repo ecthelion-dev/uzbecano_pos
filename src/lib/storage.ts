@@ -172,6 +172,66 @@ export function removeGlobalKey(key: GlobalKey): void {
 }
 
 /**
+ * Kunlik ish yozuvlari — "yangi ishni boshlash" ularni tozalaydi.
+ *
+ * Kassa sinovdan haqiqiy ishga o'tganda serverdagi test cheklari o'chiriladi,
+ * lekin kassaning O'ZIDAGI yozuvlar server bilan birga tozalanmaydi. Ularning
+ * uchtasi haqiqiy zarar keltiradi:
+ *
+ *   - `cash_transactions` hech qachon o'chirilmaydi va smena hisoboti uni
+ *     boshidan jamlaydi: sinovdagi kirim-chiqim keyingi har bir smenaning
+ *     kassa qoldig'ini buzib turadi;
+ *   - `sync_queue` da qolgan sinov buyurtmasi aloqa tiklanganda serverga
+ *     ketadi va endigina tozalangan bazani yana to'ldiradi;
+ *   - `carts` da yozilib qolgan sinov savati stolda ochiq turadi.
+ */
+export const OPERATIONAL_KEYS = [
+  'carts',
+  'cash_transactions',
+  'kitchen_printed',
+  'orders',
+  'sync_queue',
+] as const satisfies readonly CafeKey[];
+
+/**
+ * Tozalashdan keyin ham joyida qoladiganlar.
+ *
+ * Ro'yxat ataylab to'liq: `CAFE_KEYS` ga yangi kalit qo'shilsa, u ikkisining
+ * birida bo'lishi shart va buni test tekshiradi. Aks holda yangi kalit jimgina
+ * "tozalanmaydiganlar" tomonida qolib ketardi — va aynan shunday qolib
+ * ketgan yozuv keyin hech kim tushunolmaydigan xatoga aylanadi.
+ *
+ * Menyu, stollar va xodimlar — kafening haqiqiy ma'lumoti. Sessiya va oflayn
+ * kalitlar esa kassirni tizimdan chiqarib yubormaslik uchun: yangi ishni
+ * boshlash PIN ni qaytadan so'rashi kerak emas.
+ */
+export const PRESERVED_KEYS = [
+  'address',
+  'categories',
+  'is_frozen',
+  'logo',
+  'name',
+  'offline_auth',
+  'offline_lock',
+  'phone',
+  'products',
+  'session',
+  'sub_end',
+  'tables',
+  'waiters',
+] as const satisfies readonly CafeKey[];
+
+/**
+ * Kunlik ish yozuvlarini o'chiradi. Menyuga, stollarga, xodimlarga va printer
+ * sozlamasiga tegmaydi.
+ */
+export function clearOperationalData(cafeId: string): void {
+  for (const key of OPERATIONAL_KEYS) {
+    removeCafeKey(cafeId, key);
+  }
+}
+
+/**
  * Kafeni ajratishdan oldingi versiyalar qoldirgan yozuvlarni o'chiradi.
  *
  * O'sha versiyalar kafe nomi, logotipi, manzili va telefonini kafega

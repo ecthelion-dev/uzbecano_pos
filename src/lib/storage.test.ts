@@ -17,6 +17,9 @@ const {
   writeCafeText,
   removeCafeKey,
   purgeLegacyCafeKeys,
+  clearOperationalData,
+  OPERATIONAL_KEYS,
+  PRESERVED_KEYS,
 } = await import('./storage');
 
 beforeEach(() => {
@@ -89,6 +92,66 @@ describe('diskdagi yozuvlar', () => {
 
   it('kalitlar ro\'yxatida takror yo\'q', () => {
     expect(new Set(CAFE_KEYS).size).toBe(CAFE_KEYS.length);
+  });
+
+  /*
+   * Yangi ishni boshlash.
+   *
+   * Kassa sinovdan haqiqiy ishga o'tganda serverdagi test cheklari
+   * o'chiriladi. Kassaning o'zidagi yozuvlar esa o'chmaydi va ulardan
+   * ikkitasi jimgina zarar keltiradi: smena hisoboti sinovdagi kassa
+   * pulini abadiy jamlab yuradi, navbatdagi sinov buyurtmasi esa aloqa
+   * tiklanganda endigina tozalangan bazaga qaytib boradi.
+   */
+  describe('yangi ishni boshlash', () => {
+    it('kunlik ish yozuvlarini o\'chiradi', () => {
+      writeCafeJson('uzbecano', 'orders', [{ id: 'sinov' }]);
+      writeCafeJson('uzbecano', 'carts', { 'Stol 1': [{ id: 'x' }] });
+      writeCafeJson('uzbecano', 'cash_transactions', [{ type: 'kirim', amount: 50000 }]);
+      writeCafeJson('uzbecano', 'sync_queue', [{ orderId: 'sinov' }]);
+      writeCafeJson('uzbecano', 'kitchen_printed', { sinov: true });
+
+      clearOperationalData('uzbecano');
+
+      for (const key of OPERATIONAL_KEYS) {
+        expect(readCafeText('uzbecano', key), `${key} o'chmadi`).toBe(null);
+      }
+    });
+
+    it('menyuga, stollarga, xodimlarga va sessiyaga tegmaydi', () => {
+      // Bularsiz kassa ishlay olmaydi: tozalash kassirni tizimdan
+      // chiqarib yuborsa yoki menyuni yo'q qilsa, u sinov ma'lumotidan
+      // ko'ra og'irroq muammo bo'lardi.
+      for (const key of PRESERVED_KEYS) {
+        writeCafeText('uzbecano', key, `${key}-qiymati`);
+      }
+
+      clearOperationalData('uzbecano');
+
+      for (const key of PRESERVED_KEYS) {
+        expect(readCafeText('uzbecano', key), `${key} o'chib ketdi`).toBe(`${key}-qiymati`);
+      }
+    });
+
+    it('boshqa kafening yozuvlariga tegmaydi', () => {
+      // Bitta qurilmada bir nechta kafe ochilishi mumkin.
+      writeCafeJson('boshqa', 'orders', [{ id: 'begona' }]);
+      clearOperationalData('uzbecano');
+      expect(readCafeJson('boshqa', 'orders', [])).toEqual([{ id: 'begona' }]);
+    });
+
+    it('har bir kalit ikki ro\'yxatning birida bor', () => {
+      // Yangi kalit qo'shilganda u jimgina "tozalanmaydiganlar" tomonida
+      // qolib ketmasin: qaror ataylab qabul qilinsin.
+      const decided = new Set<string>([...OPERATIONAL_KEYS, ...PRESERVED_KEYS]);
+      const undecided = CAFE_KEYS.filter((k) => !decided.has(k));
+      expect(undecided, 'qaysi tomonga tegishli ekani belgilanmagan').toEqual([]);
+    });
+
+    it('bitta kalit ikkala ro\'yxatda turmaydi', () => {
+      const both = OPERATIONAL_KEYS.filter((k) => (PRESERVED_KEYS as readonly string[]).includes(k));
+      expect(both).toEqual([]);
+    });
   });
 
   it('kafega bog\'lanmagan eski yozuvlarni tozalaydi', () => {

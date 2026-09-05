@@ -51,6 +51,7 @@ import {
   readGlobalText,
   writeGlobalText,
   purgeLegacyCafeKeys,
+  clearOperationalData,
 } from './lib/storage';
 import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
@@ -1579,6 +1580,29 @@ export default function App() {
     setShowAdminPinModal(true);
   }, []);
 
+  /**
+   * Sinovdan haqiqiy ishga o'tish.
+   *
+   * Serverdagi sinov cheklari o'chirilganda kassaning O'ZIDAGI yozuvlar
+   * qolib ketadi, va ulardan ikkitasi jimgina zarar keltiradi: smena
+   * hisoboti sinovdagi kassa pulini boshidan jamlab yuradi, navbatda
+   * qolgan sinov buyurtmasi esa aloqa tiklanganda endigina tozalangan
+   * bazaga qaytib boradi.
+   *
+   * PIN so'raladi — bu qaytarib bo'lmaydigan amal.
+   *
+   * Oxirida sahifa qayta yuklanadi. Xotiradagi holat (buyurtmalar, savat,
+   * kassa pul harakati) diskdan mustaqil yashaydi: qayta yuklamasak,
+   * birinchi o'zgarishda o'sha eski holat diskka qaytib yozilardi.
+   */
+  const handleFreshStart = useCallback(() => {
+    requestAdminPin(() => {
+      clearOperationalData(getActiveCafeId());
+      setToastMessage(t('printer.freshStartDone'));
+      window.setTimeout(() => window.location.reload(), 900);
+    });
+  }, [requestAdminPin, getActiveCafeId]);
+
   const handleRemoveKitchenItem = useCallback((itemIndex: number) => {
     requestAdminPin(async (approvalToken?: string) => {
       if (!activeTableOrder) return;
@@ -2862,6 +2886,10 @@ export default function App() {
         onToast={(msg) => {
           setToastMessage(msg);
           setTimeout(() => setToastMessage(null), 2500);
+        }}
+        onFreshStart={() => {
+          setShowPrinterModal(false);
+          handleFreshStart();
         }}
       />
     </div>

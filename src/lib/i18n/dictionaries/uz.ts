@@ -237,6 +237,10 @@ export const uz = {
   // Chek matnining NAMUNASI — kafe o'zi yozadigan matn uchun ishora.
   'printer.headerPlaceholder': 'Xush kelibsiz!',
   'printer.footerPlaceholder': 'Tashrifingiz uchun rahmat!',
+  'printer.freshStartTitle': 'Yangi ishni boshlash',
+  'printer.freshStartHint': "Sinov davridagi buyurtmalar, savatlar, kassa pul harakati va yuborilmagan navbat o'chadi. Menyu, stollar, xodimlar va printer sozlamasi joyida qoladi.",
+  'printer.freshStartAction': 'Sinov ma\'lumotini tozalash',
+  'printer.freshStartDone': "Kassa tozalandi — yangi ish boshlandi",
   'printer.kioskHint': 'Yoki Chrome‘ni kiosk rejimida oching.',
   'printer.systemDefault': 'Tizimning standart printeri',
   'printer.receiptPrinter': 'Chek printeri',

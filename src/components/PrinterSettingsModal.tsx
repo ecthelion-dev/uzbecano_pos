@@ -11,7 +11,8 @@ import {
   X,
   FileText,
   DollarSign,
-  QrCode
+  QrCode,
+  RotateCcw
 } from 'lucide-react';
 import {
   PrinterSettings,
@@ -31,6 +32,11 @@ interface PrinterSettingsModalProps {
   onClose: () => void;
   cafeName: string;
   onToast: (msg: string) => void;
+  /**
+   * Sinovdan haqiqiy ishga o'tish. PIN so'rash va tozalash chaqiruvchida:
+   * bu oyna faqat tugmani ko'rsatadi.
+   */
+  onFreshStart: () => void;
 }
 
 export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
@@ -38,6 +44,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
   onClose,
   cafeName,
   onToast,
+  onFreshStart,
 }) => {
   const t = useT();
   const [settings, setSettings] = useState<PrinterSettings>(getPrinterSettings());
@@ -438,6 +445,32 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               placeholder={t('printer.footerPlaceholder')}
               className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"
             />
+          </div>
+
+          {/*
+            Sinovdan haqiqiy ishga o'tish.
+            Sozlamalardan ajratilgan: bu qaytarib bo'lmaydigan amal, va
+            saqlash tugmasining yonida turgan tugma bir kuni tasodifan
+            bosiladi. Ostidagi yozuv nima o'chishini va nima qolishini
+            aytadi — "ishonchingiz komilmi?" degan savol o'zi hech narsa
+            tushuntirmaydi.
+          */}
+          <div className="pt-3 mt-1 border-t border-slate-200 dark:border-slate-700 space-y-2">
+            <div>
+              <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {t('printer.freshStartTitle')}
+              </h3>
+              <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('printer.freshStartHint')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onFreshStart}
+              className="w-full py-3 sm:py-2.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-400 font-bold rounded-xl text-xs border border-rose-200 dark:border-rose-900/60 flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> {t('printer.freshStartAction')}
+            </button>
           </div>
 
           <div className="flex gap-2.5 pt-2">

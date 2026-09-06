@@ -65,6 +65,7 @@ export const ru: Record<TranslationKey, string> = {
   'payment.title': 'Оплата',
   'payment.cashTaken': 'Наличными получено',
   'payment.toCard': 'На карту',
+  'payment.change': 'Сдача',
   'cart.payAndClose': 'ОПЛАТА И ЗАКРЫТИЕ',
   'cart.paymentType': 'Способ оплаты:',
   'cart.receipt': 'Квитанция заказа',

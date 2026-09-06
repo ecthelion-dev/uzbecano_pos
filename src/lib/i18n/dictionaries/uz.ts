@@ -78,6 +78,7 @@ export const uz = {
   'payment.title': "To'lov",
   'payment.cashTaken': 'Naqd olindi',
   'payment.toCard': 'Kartaga',
+  'payment.change': 'Qaytim',
   'cart.payAndClose': "TO'LOV VA YOPISH",
   'cart.paymentType': "To'lov turi:",
   'cart.receipt': 'Buyurtma kvitansiyasi',

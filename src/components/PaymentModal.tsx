@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Banknote, Check, CreditCard, Delete, X } from 'lucide-react';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { splitPayment } from '../lib/payment';
+import { CashEntry, entryAmount, presetEntry, pressKey } from '../lib/cashInput';
 
 interface PaymentModalProps {
   show: boolean;
@@ -39,30 +40,30 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onClose,
 }) => {
   const t = useT();
-  /** Naqd summasi, matn ko'rinishida. Bo'sh — hali hech narsa terilmagan. */
-  const [cashInput, setCashInput] = useState<string>('');
+  /** Naqd maydoni. Terish qoidalari lib/cashInput.ts da. */
+  const [entry, setEntry] = useState<CashEntry>(() => presetEntry(grandTotal));
 
   // Har ochilishda toza boshlanadi: oldingi stolning summasi qolib ketsa,
   // kassir uni sezmay tasdiqlashi mumkin.
   useEffect(() => {
-    if (show) setCashInput(String(grandTotal));
+    if (show) setEntry(presetEntry(grandTotal));
   }, [show, grandTotal]);
 
+  // Kassir TERGAN summa — chekdan katta ham bo'lishi mumkin.
+  const entered = entryAmount(entry);
+
   // Bo'lish qoidasi lib/payment.ts da — chek ham, server ham shu bitta
-  // hisobni ko'rishi uchun.
-  const { cash, card, method } = splitPayment(grandTotal, Number(cashInput));
+  // hisobni ko'rishi uchun. Naqd bu yerda chek summasiga siqiladi.
+  const { cash, card, method } = splitPayment(grandTotal, entered);
   const isMixed = method === 'aralash';
 
+  // Chekdan ortiq olingan naqd — qaytim. Uni ko'rsatmasak, kassir 100 000
+  // berilgan 70 000 lik chekda maydonda 70 000 ni ko'rib, qaytimni o'zi
+  // hisoblashiga to'g'ri kelardi.
+  const change = Math.max(0, entered - grandTotal);
+
   const handleKey = useCallback((key: string) => {
-    setCashInput((prev) => {
-      if (key === 'C') return '';
-      if (key === 'DEL') return prev.slice(0, -1);
-      if (key === '000' || key === '00') return prev ? prev + key : prev;
-      if (prev.length >= 10) return prev;
-      // Boshidagi keraksiz nol yig'ilib qolmasin: "0" dan keyin raqam
-      // terilsa, u o'rnini bosadi.
-      return prev === '0' ? key : prev + key;
-    });
+    setEntry((prev) => pressKey(prev, key));
   }, []);
 
   const confirm = useCallback(() => onConfirm(cash, card), [cash, card, onConfirm]);
@@ -120,9 +121,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           */}
           <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => setCashInput(String(grandTotal))}
+              onClick={() => setEntry(presetEntry(grandTotal))}
               className={`py-3 rounded-xl text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                cash === grandTotal
+                entered === grandTotal
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
@@ -130,9 +131,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <Banknote className="w-4 h-4" /> {t('common.cash')}
             </button>
             <button
-              onClick={() => setCashInput('0')}
+              onClick={() => setEntry(presetEntry(0))}
               className={`py-3 rounded-xl text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                cash === 0
+                entered === 0
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
@@ -146,24 +147,32 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 {t('payment.cashTaken')}
               </span>
-              <span className="text-lg font-bold text-slate-900 tabular-nums">{money(cash)}</span>
+              <span className="text-lg font-bold text-slate-900 tabular-nums">{money(entered)}</span>
             </div>
 
             {/*
               Qolgan summa har doim ko'rinib turadi — aralash to'lovda ham,
-              to'liq naqdda ham. Kassir "kartaga qancha o'tdi" degan savolga
-              hisoblab emas, qarab javob berishi kerak.
+              to'liq naqdda ham. Kassir "kartaga qancha o'tdi" yoki "qancha
+              qaytim" degan savolga hisoblab emas, qarab javob berishi kerak.
+              Chekdan ortig'i kartaga o'tmaydi — u qaytim.
             */}
-            <div
-              className={`flex items-center justify-between rounded-xl px-3 py-2 border ${
-                isMixed
-                  ? 'bg-amber-50 border-amber-200 text-amber-800'
-                  : 'bg-slate-50 border-slate-200 text-slate-500'
-              }`}
-            >
-              <span className="text-xs font-semibold">{t('payment.toCard')}</span>
-              <span className="text-sm font-bold tabular-nums">{money(card)}</span>
-            </div>
+            {change > 0 ? (
+              <div className="flex items-center justify-between rounded-xl px-3 py-2 border bg-emerald-50 border-emerald-200 text-emerald-800">
+                <span className="text-xs font-semibold">{t('payment.change')}</span>
+                <span className="text-sm font-bold tabular-nums">{money(change)}</span>
+              </div>
+            ) : (
+              <div
+                className={`flex items-center justify-between rounded-xl px-3 py-2 border ${
+                  isMixed
+                    ? 'bg-amber-50 border-amber-200 text-amber-800'
+                    : 'bg-slate-50 border-slate-200 text-slate-500'
+                }`}
+              >
+                <span className="text-xs font-semibold">{t('payment.toCard')}</span>
+                <span className="text-sm font-bold tabular-nums">{money(card)}</span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-1.5">

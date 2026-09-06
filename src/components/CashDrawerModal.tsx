@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Wallet, PlusCircle, MinusCircle, AlertCircle } from 'lucide-react';
 import { CashTransaction } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
+import { CASH_CATEGORIES, cashCategoryLabel, noteRequired } from '../lib/cashCategories';
 
 interface CashDrawerModalProps {
   show: boolean;
   transactions: CashTransaction[];
   currentWaiterName: string;
-  onAddTransaction: (type: 'kirim' | 'chiqim', amount: number, note: string) => void;
+  onAddTransaction: (type: 'kirim' | 'chiqim', category: string, amount: number, note: string) => void;
   onClose: () => void;
 }
 
@@ -20,6 +21,9 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
 }) => {
   const t = useT();
   const [type, setType] = useState<'kirim' | 'chiqim'>('chiqim');
+  // Turkumsiz yozuvdan bir oydan keyin foyda yo'q: "sutga qancha ketdi"
+  // degan savolga erkin matnni jamlab javob berib bo'lmaydi.
+  const [category, setCategory] = useState<string>(CASH_CATEGORIES[0].id);
   const [amount, setAmount] = useState<string>('');
   const [note, setNote] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -39,12 +43,14 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
       setError(t('drawer.amountInvalid'));
       return;
     }
-    if (!note.trim()) {
+    // Izoh faqat "Boshqa" da majburiy. Ilgari u har doim so'ralardi va
+    // kassir sut uchun har safar "sut" deb yozib o'tirardi.
+    if (noteRequired(category) && !note.trim()) {
       setError(t('drawer.needReason'));
       return;
     }
 
-    onAddTransaction(type, numAmount, note.trim());
+    onAddTransaction(type, category, numAmount, note.trim());
     setAmount('');
     setNote('');
   };
@@ -115,6 +121,23 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
             </button>
           </div>
 
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+            {CASH_CATEGORIES.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCategory(c.id)}
+                className={`py-2.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer active:scale-95 ${
+                  category === c.id
+                    ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input
               type="number"
@@ -125,7 +148,7 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
             />
             <input
               type="text"
-              placeholder={t('drawer.reasonPlaceholder')}
+              placeholder={noteRequired(category) ? t('drawer.reasonPlaceholder') : t('drawer.notePlaceholder')}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
@@ -156,7 +179,10 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
                         : <span className="flex items-center gap-1"><MinusCircle className="w-3.5 h-3.5" /> {t('drawer.expense')}</span>
                       }
                     </span>
-                    <span className="font-semibold text-slate-900">{tx.note}</span>
+                    <span className="font-semibold text-slate-900">
+                      {cashCategoryLabel((tx as any).category || '')}
+                    </span>
+                    {tx.note && <span className="text-slate-500">· {tx.note}</span>}
                   </div>
                   <p className="text-[10px] text-slate-400">
                     {new Date(tx.createdAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })} • {tx.createdBy}

@@ -86,6 +86,7 @@ import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitch
 import { Wallet } from 'lucide-react';
 import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
 import { splitPayment } from './lib/payment';
+import { cashCategoryLabel } from './lib/cashCategories';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -823,7 +824,10 @@ export default function App() {
   type SyncQueueItem =
     | { kind: 'create'; order: any }
     | { kind: 'patch'; orderId: string; body: any; label?: string; approvalToken?: string }
-    | { kind: 'delete'; orderId: string; label?: string };
+    | { kind: 'delete'; orderId: string; label?: string }
+    // Kassa xarajati. Internet uzilganda ham sut sotib olinaveradi va
+    // o'sha payt yozib qo'yolmasa, kassir keyin esdan chiqaradi.
+    | { kind: 'cash'; entry: any; label?: string };
 
   const readSyncQueue = useCallback((cafeId: string): SyncQueueItem[] => {
     const parsed = readCafeJson<unknown>(cafeId, 'sync_queue', []);
@@ -861,6 +865,16 @@ export default function App() {
 
   // Queues a DELETE (e.g. removing a source order after merging its items
   // into another table) that failed to reach the server.
+  // Kassa xarajati serverga yetmasa navbatda qoladi: internet uzilganda ham
+  // sut sotib olinaveradi, va o'sha payt yozib qo'yolmasa kassir keyin
+  // esdan chiqaradi.
+  const queueCashForSync = useCallback((entry: any, label?: string) => {
+    const cafeId = getActiveCafeId();
+    const queue = readSyncQueue(cafeId);
+    queue.push({ kind: 'cash', entry, label });
+    writeSyncQueue(cafeId, queue);
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
+
   const queueDeleteForSync = useCallback((orderId: string, label?: string) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
@@ -896,7 +910,8 @@ export default function App() {
     let anySucceeded = false;
 
     for (const [idx, item] of queue.entries()) {
-      const blockedOrderId = item.kind === 'create' ? item.order?.id : item.orderId;
+      const blockedOrderId =
+        item.kind === 'create' ? item.order?.id : item.kind === 'cash' ? undefined : item.orderId;
       if (blockedOrderId && failedOrderIds.has(blockedOrderId)) {
         remaining.push(item);
         continue;
@@ -914,6 +929,12 @@ export default function App() {
             method: 'PATCH',
             headers: getAuthHeaders(item.approvalToken),
             body: JSON.stringify(item.body),
+          });
+        } else if (item.kind === 'cash') {
+          res = await fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(item.entry),
           });
         } else {
           res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
@@ -940,7 +961,9 @@ export default function App() {
           const label =
             item.kind === 'create'
               ? item.order?.tableNumber || t('common.order')
-              : item.label || item.orderId;
+              : item.kind === 'cash'
+                ? item.label || t('drawer.title')
+                : item.label || item.orderId;
           rejectedLabels.push(String(label));
           if (blockedOrderId) failedOrderIds.add(blockedOrderId);
         }
@@ -1968,10 +1991,28 @@ export default function App() {
     }
   }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, serviceFeePercent, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse]);
 
-  const handleAddCashTransaction = useCallback((type: 'kirim' | 'chiqim', amount: number, note: string) => {
+  /**
+   * Kassadan olingan yoki kassaga solingan naqd pul.
+   *
+   * Yozuv SERVERGA boradi. Ilgari u faqat shu kompyuterning diskida
+   * qolardi: ikkita kassa ikkita alohida daftar yuritardi, admin panel
+   * ularni umuman ko'rmasdi, va Windows qayta o'rnatilsa butun tarix
+   * ogohlantirishsiz yo'qolardi — kechalik zaxira nusxa bazani oladi,
+   * kassaning diskini emas.
+   *
+   * Diskdagi nusxa qoladi, lekin endi u ekran uchun: server javob berguncha
+   * yozuv ro'yxatda darhol ko'rinishi kerak.
+   */
+  const handleAddCashTransaction = useCallback(async (
+    type: 'kirim' | 'chiqim',
+    category: string,
+    amount: number,
+    note: string,
+  ) => {
     const newTx: CashTransaction = {
       id: `tx_${Date.now()}`,
       type,
+      category,
       amount,
       note,
       createdAt: new Date().toISOString(),
@@ -1980,9 +2021,69 @@ export default function App() {
     const updated = [newTx, ...cashTransactions];
     setCashTransactions(updated);
     writeCafeJson(getActiveCafeId(), 'cash_transactions', updated);
+
+    // Serverdagi yozuvda kim kiritgani SESSIYADAN olinadi — bu yerdan
+    // yuborilgan ismga ishonilmaydi.
+    const payload = { type, category, amount, note: note || undefined };
+
+    if (isOfflineMode) {
+      queueCashForSync(payload, cashCategoryLabel(category));
+    } else {
+      try {
+        const res = await fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) queueCashForSync(payload, cashCategoryLabel(category));
+      } catch {
+        queueCashForSync(payload, cashCategoryLabel(category));
+      }
+    }
+
     setToastMessage(t(type === 'kirim' ? 'drawer.savedIncome' : 'drawer.savedExpense'));
     setTimeout(() => setToastMessage(null), 2500);
-  }, [cashTransactions, currentWaiter]);
+  }, [cashTransactions, currentWaiter, isOfflineMode, getActiveCafeId, getAuthHeaders, queueCashForSync]);
+
+  /*
+   * Kassa oynasi ochilganda yozuvlar SERVERDAN o'qiladi.
+   *
+   * Diskdagi nusxa faqat shu kompyuternikini biladi. Ikkinchi kassadan
+   * kiritilgan xarajat unda yo'q, ya'ni jamlanma kam ko'rsatardi va
+   * ikkalasi ham "to'g'ri" bo'lib turardi.
+   */
+  useEffect(() => {
+    if (!showCashDrawerModal || isOfflineMode) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const from = new Date();
+        from.setHours(0, 0, 0, 0);
+        const res = await fetchWithTimeout(
+          `${API_BASE_URL}/api/cash-entries?from=${from.toISOString()}`,
+          { cache: 'no-store', headers: getAuthHeaders() },
+        );
+        if (!res.ok) return;
+        const rows = await res.json();
+        if (cancelled || !Array.isArray(rows)) return;
+
+        setCashTransactions(rows.map((r: any) => ({
+          id: String(r.id),
+          type: r.type === 'kirim' ? 'kirim' : 'chiqim',
+          category: String(r.category || ''),
+          amount: Number(r.amount) || 0,
+          note: r.note || '',
+          createdAt: r.createdAt,
+          createdBy: r.createdBy || '',
+        })));
+      } catch {
+        // Serverga yetib bo'lmadi — diskdagi nusxa ekranda qoladi.
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [showCashDrawerModal, isOfflineMode, getAuthHeaders]);
 
   const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
     const sourceOrder = orders.find(o => o.tableNumber === sourceTable && isActiveOrder(o.status));
@@ -2501,6 +2602,7 @@ export default function App() {
         }}
         onOpenArchive={() => setShowArchiveModal(true)}
         onOpenPrinterSettings={() => setShowPrinterModal(true)}
+        onOpenCashDrawer={() => setShowCashDrawerModal(true)}
         onRefreshOrders={handleManualRefresh}
         isLoading={loading}
         currentWaiter={currentWaiter}

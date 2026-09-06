@@ -9,6 +9,7 @@ import {
   LogOut,
   Building2,
   MoreVertical,
+  Wallet,
 } from 'lucide-react';
 import { DBWaiter } from '../types';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -21,6 +22,7 @@ interface POSHeaderProps {
   onTabChange: (tab: 'stollar' | 'menyu') => void;
   onOpenArchive: () => void;
   onOpenPrinterSettings: () => void;
+  onOpenCashDrawer: () => void;
   onRefreshOrders: () => void;
   isLoading: boolean;
   currentWaiter: DBWaiter | null;
@@ -34,6 +36,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   onTabChange,
   onOpenArchive,
   onOpenPrinterSettings,
+  onOpenCashDrawer,
   onRefreshOrders,
   isLoading,
   currentWaiter,
@@ -118,6 +121,19 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         */}
         <LanguageSwitcher />
 
+        {/*
+          Kassadan olingan pul — sut, obed, gazli suv.
+          Oyna allaqachon yozilgan edi, lekin uni ochadigan tugma yo'q edi:
+          kod bor, yo'l yo'q.
+        */}
+        <button
+          onClick={onOpenCashDrawer}
+          className="hidden lg:flex w-10 h-10 items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs shrink-0"
+          title={t('drawer.title')}
+        >
+          <Wallet className="w-4 h-4 text-emerald-600 shrink-0" />
+        </button>
+
         <button
           onClick={onOpenPrinterSettings}
           className="hidden lg:flex w-10 h-10 items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs shrink-0"
@@ -195,6 +211,11 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                 label: t('archive.title'),
                 icon: <Receipt className="w-4 h-4 text-orange-500" />,
                 onClick: onOpenArchive,
+              },
+              {
+                label: t('drawer.title'),
+                icon: <Wallet className="w-4 h-4 text-emerald-600" />,
+                onClick: onOpenCashDrawer,
               },
               {
                 label: t('header.printerSettings'),

@@ -6,8 +6,6 @@ import {
   CheckCircle2,
   Printer,
   Shuffle,
-  Banknote,
-  CreditCard,
 } from 'lucide-react';
 import { CartItem } from '../types';
 import { CartItemRow } from './CartItemRow';
@@ -21,8 +19,6 @@ interface POSCartSidebarProps {
   onRemoveKitchenItem: (index: number) => void;
   onUpdateQuantity: (lineId: string, delta: number) => void;
   onUpdateNote: (lineId: string, note: string) => void;
-  paymentMethod: 'naqd' | 'karta' | 'aralash';
-  onSelectPaymentMethod: (pm: 'naqd' | 'karta' | 'aralash') => void;
   subtotal: number;
   discountPercent: number;
   discountAmount: number;
@@ -44,8 +40,6 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
   onRemoveKitchenItem,
   onUpdateQuantity,
   onUpdateNote,
-  paymentMethod,
-  onSelectPaymentMethod,
   subtotal,
   discountPercent,
   discountAmount,
@@ -134,31 +128,6 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
 
       {/* Calculations & Discounts */}
       <div className="pt-3 border-t border-slate-200 space-y-2 shrink-0">
-        {/* Payment Method Selector */}
-        <div className="space-y-1">
-          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{t('cart.paymentType')}</span>
-          <div className="grid grid-cols-3 gap-1">
-            {[
-              { id: 'naqd', label: t('common.cash'), icon: <Banknote className="w-4 h-4" /> },
-              { id: 'karta', label: t('common.card'), icon: <CreditCard className="w-4 h-4" /> },
-              { id: 'aralash', label: t('common.mixed'), icon: <Shuffle className="w-4 h-4" /> },
-            ].map((pm) => (
-              <button
-                key={pm.id}
-                onClick={() => onSelectPaymentMethod(pm.id as any)}
-                className={`py-3 sm:py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                  paymentMethod === pm.id
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                {pm.icon}
-                {pm.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div className="flex justify-between text-xs text-slate-500 font-medium pt-1">
           <span>{t('cart.itemsTotal')}</span>
           <span className="text-slate-900 font-medium">{subtotal.toLocaleString()} {t('common.currency')}</span>

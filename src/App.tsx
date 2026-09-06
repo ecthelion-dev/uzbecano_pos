@@ -71,7 +71,7 @@ import { AdminPinModal } from './components/AdminPinModal';
 import { TableMoveModal } from './components/TableMoveModal';
 import { CashDrawerModal } from './components/CashDrawerModal';
 import { ProductModifierModal } from './components/ProductModifierModal';
-import { AralashNumpadModal } from './components/AralashNumpadModal';
+import { PaymentModal } from './components/PaymentModal';
 import { UnsavedCartModal } from './components/UnsavedCartModal';
 import { PrinterSettingsModal } from './components/PrinterSettingsModal';
 import { CategoryCard } from './components/CategoryCard';
@@ -85,6 +85,7 @@ import { FrozenCafeScreen } from './components/FrozenCafeScreen';
 import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, printReceiptViaBrowser, getLastPrintError, setReceiptLogo } from './lib/printer';
 import { Wallet } from 'lucide-react';
 import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
+import { splitPayment } from './lib/payment';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -225,8 +226,7 @@ export default function App() {
   const [paymentMethod, setPaymentMethod] = useState<'naqd' | 'karta' | 'aralash'>('naqd');
   const [customCashAmount, setCustomCashAmount] = useState<string>('');
   const [customCardAmount, setCustomCardAmount] = useState<string>('');
-  const [activeAralashField, setActiveAralashField] = useState<'cash' | 'card'>('cash');
-  const [showAralashModal, setShowAralashModal] = useState<boolean>(false);
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
   const [adminPinAction, setAdminPinAction] = useState<((approvalToken?: string) => void) | null>(null);
 
@@ -2151,7 +2151,19 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 2500);
   }, [orders, tableCarts, isOfflineMode, serviceFeePercent, getActiveCafeId, getAuthHeaders, queuePatchForSync, queueDeleteForSync]);
 
-  const handleCloseTable = useCallback(async (tableNum?: string, skipConfirm = false) => {
+  /**
+   * Stolni yopish.
+   *
+   * `payment` — to'lov oynasi bergan summalar. U ATAYLAB argument sifatida
+   * keladi, holatdan o'qilmaydi: oyna tasdiqlangan zahoti bu funksiya
+   * chaqiriladi, React holati esa hali yangilanmagan bo'ladi. Holatdan
+   * o'qilsa chek oldingi stolning summasi bilan chiqardi.
+   */
+  const handleCloseTable = useCallback(async (
+    tableNum?: string,
+    skipConfirm = false,
+    payment?: { cash: number; card: number },
+  ) => {
     const targetTable = (typeof tableNum === 'string' && tableNum.trim()) ? tableNum.trim() : selectedTable;
     const normTarget = targetTable.trim().toLowerCase();
     const currentCart = tableCarts[targetTable] || [];
@@ -2249,16 +2261,21 @@ export default function App() {
 
       if (latestOrder) {
         const orderTotal = latestOrder.total || 0;
-        const defaultHalfCash = Math.round(orderTotal / 2);
-        const calcCash = customCashAmount === '' ? defaultHalfCash : Math.min(orderTotal, Math.max(0, Number(customCashAmount) || 0));
-        const calcCard = Math.max(0, orderTotal - calcCash);
 
-        const finalCash = paymentMethod === 'naqd' ? orderTotal : (paymentMethod === 'karta' ? 0 : calcCash);
-        const finalCard = paymentMethod === 'karta' ? orderTotal : (paymentMethod === 'naqd' ? 0 : calcCard);
+        /*
+         * Naqd — to'lov oynasidan. Qolgani o'zi kartaga tushadi, chunki
+         * ikkalasining yig'indisi chek summasiga TENG BO'LISHI SHART:
+         * server buni tekshiradi va tenglashmasa to'lovni rad etadi.
+         *
+         * Oyna ochilmasdan yopilgan holat ham bor (masalan sinxronizatsiya
+         * yo'li) — o'shanda hammasi naqd deb hisoblanadi.
+         */
+        const { cash: finalCash, card: finalCard, method: finalMethod } =
+          splitPayment(orderTotal, payment ? payment.cash : orderTotal);
 
         const paymentPatchBody = {
           status: 'served',
-          paymentMethod,
+          paymentMethod: finalMethod,
           cashAmount: finalCash,
           cardAmount: finalCard
         };
@@ -2266,7 +2283,7 @@ export default function App() {
         closedOrder = {
           ...latestOrder,
           status: 'served',
-          paymentMethod,
+          paymentMethod: finalMethod,
           cashAmount: finalCash,
           cardAmount: finalCard,
           closedAt: latestOrder.closedAt || new Date().toISOString(),
@@ -2321,7 +2338,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, paymentMethod, customCashAmount, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt]);
+  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {
@@ -2748,16 +2765,6 @@ export default function App() {
                 onRemoveKitchenItem={handleRemoveKitchenItem}
                 onUpdateQuantity={updateQuantity}
                 onUpdateNote={updateItemNote}
-                paymentMethod={paymentMethod}
-                onSelectPaymentMethod={(pm) => {
-                  setPaymentMethod(pm);
-                  if (pm === 'aralash') {
-                    setCustomCashAmount('0');
-                    setCustomCardAmount('0');
-                    setActiveAralashField('cash');
-                    setShowAralashModal(true);
-                  }
-                }}
                 subtotal={subtotal}
                 discountPercent={discountPercent}
                 discountAmount={discountAmount}
@@ -2769,7 +2776,15 @@ export default function App() {
                   setShowMobileCart(false);
                 }}
                 onCloseTable={() => {
-                  handleCloseTable();
+                  /*
+                   * Yopish endi ikki qadam: avval yuborilmagan taomlar
+                   * haqida ogohlantirish (agar bo'lsa), keyin to'lov
+                   * oynasi. Ogohlantirish birinchi — u savatdagi taom
+                   * oshxonaga ketmasligi haqida, ya'ni pul gapidan oldin
+                   * hal qilinishi kerak.
+                   */
+                  if (cart.length > 0) setShowUnsavedCartModal(true);
+                  else setShowPaymentModal(true);
                   setShowMobileCart(false);
                 }}
                 onOpenReceiptPreview={() => setShowReceiptPreview(true)}
@@ -2954,17 +2969,26 @@ export default function App() {
         onClose={() => setShowTableMoveModal(false)}
       />
 
-      <AralashNumpadModal
-        show={showAralashModal}
-        activeField={activeAralashField}
+      <PaymentModal
+        show={showPaymentModal}
+        tableName={selectedTable}
         grandTotal={grandTotal}
-        initialCash={Number(customCashAmount) || 0}
-        initialCard={Number(customCardAmount) || 0}
-        onSave={(cash, card) => {
-          setCustomCashAmount(cash.toString());
-          setCustomCardAmount(card.toString());
+        onConfirm={(cash, card) => {
+          setShowPaymentModal(false);
+          /*
+           * Summalar yopish funksiyasiga TO'G'RIDAN-TO'G'RI uzatiladi.
+           * Holatga yozib, keyin chaqirsak, funksiya hali eski qiymatni
+           * ko'rardi — React holatni darhol yangilamaydi va chek noto'g'ri
+           * summa bilan chiqardi.
+           *
+           * Holat baribir yangilanadi: uni chek ko'rinishi o'qiydi.
+           */
+          setPaymentMethod(splitPayment(grandTotal, cash).method);
+          setCustomCashAmount(String(cash));
+          setCustomCardAmount(String(card));
+          handleCloseTable(selectedTable, true, { cash, card });
         }}
-        onClose={() => setShowAralashModal(false)}
+        onClose={() => setShowPaymentModal(false)}
       />
 
       <UnsavedCartModal
@@ -2974,7 +2998,7 @@ export default function App() {
         subtotal={draftSubtotal}
         onConfirm={() => {
           setShowUnsavedCartModal(false);
-          handleCloseTable(selectedTable, true);
+          setShowPaymentModal(true);
         }}
         onClose={() => setShowUnsavedCartModal(false)}
       />

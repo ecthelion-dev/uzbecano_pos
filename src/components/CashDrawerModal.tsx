@@ -11,7 +11,7 @@ interface CashDrawerModalProps {
   /** Ilgari ishlatilgan turkum nomlari — tugma bo'lib chiqadi. */
   knownCategories: string[];
   currentWaiterName: string;
-  onAddTransaction: (type: 'kirim' | 'chiqim', category: string, amount: number, note: string) => void;
+  onAddTransaction: (category: string, amount: number, note: string) => void;
   onClose: () => void;
 }
 
@@ -24,7 +24,6 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
   onClose,
 }) => {
   const t = useT();
-  const [type, setType] = useState<'kirim' | 'chiqim'>('chiqim');
   // Nomni kassirning o'zi yozadi. Turkumsiz yozuvdan bir oydan keyin foyda
   // yo'q: "sutga qancha ketdi" degan savolga izohlarni jamlab javob berib
   // bo'lmaydi, shuning uchun maydon majburiy.
@@ -35,9 +34,12 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
 
   if (!show) return null;
 
-  const totalKirim = transactions.filter(tx => tx.type === 'kirim').reduce((sum, tx) => sum + tx.amount, 0);
-  const totalChiqim = transactions.filter(tx => tx.type === 'chiqim').reduce((sum, tx) => sum + tx.amount, 0);
-  const netCashChange = totalKirim - totalChiqim;
+  /*
+   * Faqat chiqim. "Kirim" tugmasi olib tashlandi: kassaga pul savdodan
+   * tushadi, ya'ni uni alohida yozib borish o'sha pulni ikki marta sanash
+   * bo'lardi.
+   */
+  const totalChiqim = transactions.reduce((sum, tx) => sum + tx.amount, 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +56,7 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
       return;
     }
 
-    onAddTransaction(type, cleanCategory, numAmount, note.trim());
+    onAddTransaction(cleanCategory, numAmount, note.trim());
     setAmount('');
     setNote('');
     // Turkum ATAYLAB tozalanmaydi: ketma-ket bir nechta xarajat kiritilganda
@@ -77,22 +79,12 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-semibold px-2 cursor-pointer">×</button>
         </div>
 
-        {/* Stats Header */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
-            <p className="text-[11px] font-medium text-emerald-700">{t('drawer.totalIncome')}</p>
-            <p className="text-base font-bold text-emerald-900 mt-0.5">+{totalKirim.toLocaleString()} {t('common.currency')}</p>
-          </div>
-          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3">
-            <p className="text-[11px] font-medium text-rose-700">{t('drawer.totalExpense')}</p>
-            <p className="text-base font-bold text-rose-900 mt-0.5">-{totalChiqim.toLocaleString()} {t('common.currency')}</p>
-          </div>
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-            <p className="text-[11px] font-medium text-slate-500">{t('drawer.netDiff')}</p>
-            <p className={`text-base font-bold mt-0.5 ${netCashChange >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-              {netCashChange >= 0 ? '+' : ''}{netCashChange.toLocaleString()} {t('common.currency')}
-            </p>
-          </div>
+        {/* Bugun kassadan qancha olingani */}
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3 flex items-center justify-between">
+          <p className="text-xs font-semibold text-rose-700">{t('drawer.totalExpense')}</p>
+          <p className="text-lg font-bold text-rose-900 tabular-nums">
+            −{totalChiqim.toLocaleString()} {t('common.currency')}
+          </p>
         </div>
 
         {/* Form */}
@@ -105,27 +97,6 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
               <span>{error}</span>
             </div>
           )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setType('chiqim')}
-              className={`py-3 sm:py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
-                type === 'chiqim' ? 'bg-rose-600 text-white border-rose-600 shadow-xs' : 'bg-white text-slate-700 border-slate-200'
-              }`}
-            >
-              <MinusCircle className="w-3.5 h-3.5" /> {t('drawer.expenseTitle')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setType('kirim')}
-              className={`py-3 sm:py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
-                type === 'kirim' ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs' : 'bg-white text-slate-700 border-slate-200'
-              }`}
-            >
-              <PlusCircle className="w-3.5 h-3.5" /> {t('drawer.incomeTitle')}
-            </button>
-          </div>
 
           {/*
             Turkum nomi qo'lda yoziladi. Ilgari beshta qat'iy tugma bor edi
@@ -203,14 +174,10 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
           <button
             type="submit"
             disabled={amountValue(amount) <= 0 || !normalizeCategory(category)}
-            className={`w-full font-bold py-3 rounded-xl text-xs shadow-md transition-all cursor-pointer active:scale-95 disabled:cursor-not-allowed ${
-              type === 'chiqim'
-                ? 'bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white'
-                : 'bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white'
-            }`}
+            className="w-full font-bold py-3 rounded-xl text-xs shadow-md transition-all cursor-pointer active:scale-95 disabled:cursor-not-allowed bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white"
           >
             {amountValue(amount) > 0 && normalizeCategory(category)
-              ? `${normalizeCategory(category)} · ${type === 'chiqim' ? '−' : '+'}${formatAmount(amount)} ${t('common.currency')}`
+              ? `${normalizeCategory(category)} · −${formatAmount(amount)} ${t('common.currency')}`
               : t('common.save')}
           </button>
         </form>
@@ -225,11 +192,8 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
               <div key={tx.id} className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex justify-between items-center text-xs">
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className={`font-bold ${tx.type === 'kirim' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {tx.type === 'kirim'
-                        ? <span className="flex items-center gap-1"><PlusCircle className="w-3.5 h-3.5" /> {t('drawer.income')}</span>
-                        : <span className="flex items-center gap-1"><MinusCircle className="w-3.5 h-3.5" /> {t('drawer.expense')}</span>
-                      }
+                    <span className="font-bold text-rose-600 flex items-center gap-1">
+                      <MinusCircle className="w-3.5 h-3.5" />
                     </span>
                     <span className="font-semibold text-slate-900">
                       {cashCategoryLabel((tx as any).category || '')}
@@ -240,8 +204,8 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
                     {new Date(tx.createdAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })} • {tx.createdBy}
                   </p>
                 </div>
-                <span className={`font-bold text-sm ${tx.type === 'kirim' ? 'text-emerald-700' : 'text-rose-700'}`}>
-                  {tx.type === 'kirim' ? '+' : '-'}{tx.amount.toLocaleString()} {t('common.currency')}
+                <span className="font-bold text-sm text-rose-700 tabular-nums">
+                  −{tx.amount.toLocaleString()} {t('common.currency')}
                 </span>
               </div>
             ))

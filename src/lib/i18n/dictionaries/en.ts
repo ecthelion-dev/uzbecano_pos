@@ -153,9 +153,9 @@ export const en: Record<TranslationKey, string> = {
   'archive.filterCustom': 'Pick a range',
 
   // ── Cash drawer ─────────────────────────────────────────────────────
-  'drawer.title': 'Cash in and cash out',
-  'drawer.subtitle': 'Float, collection and expenses',
-  'drawer.addMovement': 'Add a movement',
+  'drawer.title': 'Till expenses',
+  'drawer.subtitle': 'Cash taken from the till',
+  'drawer.addMovement': 'Add an expense',
   'drawer.income': 'CASH IN',
   'drawer.expense': 'CASH OUT',
   'drawer.incomeTitle': 'Cash into the till',
@@ -364,8 +364,7 @@ export const en: Record<TranslationKey, string> = {
   'print.cashPayments': 'Cash payments',
   'print.cashOut': 'TAKEN FROM THE TILL',
   'print.cashOutTotal': 'Total out',
-  'print.cashInTotal': 'Total in',
-  'print.cashLeft': 'Cash that should remain',
+  'print.netRevenue': 'LEFT AFTER EXPENSES',
   'print.cardPayments': 'Card payments',
   'print.unnamed': 'Unnamed',
 

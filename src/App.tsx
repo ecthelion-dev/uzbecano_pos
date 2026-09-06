@@ -2032,14 +2032,15 @@ export default function App() {
    * yozuv ro'yxatda darhol ko'rinishi kerak.
    */
   const handleAddCashTransaction = useCallback(async (
-    type: 'kirim' | 'chiqim',
     category: string,
     amount: number,
     note: string,
   ) => {
     const newTx: CashTransaction = {
       id: `tx_${Date.now()}`,
-      type,
+      // Faqat chiqim: kassaga pul savdodan tushadi, uni alohida yozib
+      // borish o'sha pulni ikki marta sanash bo'lardi.
+      type: 'chiqim',
       category,
       amount,
       note,
@@ -2052,7 +2053,7 @@ export default function App() {
 
     // Serverdagi yozuvda kim kiritgani SESSIYADAN olinadi — bu yerdan
     // yuborilgan ismga ishonilmaydi.
-    const payload = { type, category, amount, note: note || undefined };
+    const payload = { type: 'chiqim', category, amount, note: note || undefined };
 
     if (isOfflineMode) {
       queueCashForSync(payload, cashCategoryLabel(category));
@@ -2069,7 +2070,7 @@ export default function App() {
       }
     }
 
-    setToastMessage(t(type === 'kirim' ? 'drawer.savedIncome' : 'drawer.savedExpense'));
+    setToastMessage(t('drawer.savedExpense'));
     setTimeout(() => setToastMessage(null), 2500);
   }, [cashTransactions, currentWaiter, isOfflineMode, getActiveCafeId, getAuthHeaders, queueCashForSync]);
 

@@ -1,24 +1,33 @@
 import { describe, it, expect } from 'vitest';
-import { summariseCashReport, cashThatShouldRemain } from './cashReport';
+import { summariseCashReport, netAfterExpenses } from './cashReport';
 
 describe('hisobotdagi kassa harakati', () => {
   const entries = [
     { type: 'chiqim', category: 'Sut', amount: 90000 },
     { type: 'chiqim', category: 'Sut', amount: 5000 },
     { type: 'chiqim', category: 'Obed', amount: 35000 },
-    { type: 'kirim', category: 'Mayda pul', amount: 20000 },
   ];
 
-  it('chiqim va kirimni alohida jamlaydi', () => {
-    const r = summariseCashReport(entries);
-    expect(r.chiqim).toBe(130000);
-    expect(r.kirim).toBe(20000);
+  it('olingan pulni jamlaydi', () => {
+    expect(summariseCashReport(entries).chiqim).toBe(130000);
   });
 
   it('turkum bo‘yicha, eng kattasi birinchi', () => {
     const r = summariseCashReport(entries);
-    expect(r.rows.map((x) => x.label)).toEqual(['Sut', 'Obed', 'Mayda pul']);
-    expect(r.rows[0]).toEqual({ label: 'Sut', chiqim: 95000, kirim: 0 });
+    expect(r.rows.map((x) => x.label)).toEqual(['Sut', 'Obed']);
+    expect(r.rows[0]).toEqual({ label: 'Sut', chiqim: 95000 });
+  });
+
+  it('eski "kirim" yozuvlari chiqimga qo‘shilmaydi', () => {
+    // Kassaga pul faqat savdodan tushadi, shuning uchun kirim endi
+    // yozilmaydi. Eskisi bo'lsa, u olingan pul bilan qo'shilib ketmasligi
+    // kerak.
+    const r = summariseCashReport([
+      { type: 'chiqim', category: 'Sut', amount: 90000 },
+      { type: 'kirim', category: 'Mayda pul', amount: 20000 },
+    ]);
+    expect(r.chiqim).toBe(90000);
+    expect(r.rows).toHaveLength(1);
   });
 
   it('bir xil nom har xil harf bilan yozilsa bitta qatorda', () => {
@@ -53,28 +62,31 @@ describe('hisobotdagi kassa harakati', () => {
   });
 });
 
-describe('kassada qolishi kerak bo‘lgan naqd', () => {
-  it('naqd sotuv + kirim − chiqim', () => {
+describe('xarajatlar ayirilgandan keyingi pul', () => {
+  it('tushumdan chiqim ayiriladi', () => {
     const r = summariseCashReport([
-      { type: 'chiqim', category: 'Sut', amount: 90000 },
-      { type: 'kirim', category: 'Mayda pul', amount: 20000 },
+      { type: 'chiqim', category: 'Sut', amount: 95000 },
+      { type: 'chiqim', category: 'Obed', amount: 35000 },
     ]);
-    expect(cashThatShouldRemain(200000, r)).toBe(130000);
+    expect(netAfterExpenses(273000, r)).toBe(143000);
   });
 
-  it('karta to‘lovlari kirmaydi — ular kassaga naqd tushirmaydi', () => {
-    // Chaqiruvchi naqd summani beradi; karta bu yerga umuman kelmaydi.
-    const r = summariseCashReport([{ type: 'chiqim', category: 'Sut', amount: 50000 }]);
-    expect(cashThatShouldRemain(100000, r)).toBe(50000);
+  it('xarajatsiz kunda tushumning o‘zi', () => {
+    expect(netAfterExpenses(273000, summariseCashReport([]))).toBe(273000);
   });
 
-  it('chiqim sotuvdan ko‘p bo‘lsa manfiy chiqadi — kassaga pul solish kerak', () => {
+  it('chiqim tushumdan ko‘p bo‘lsa manfiy chiqadi', () => {
     // Yashirmaymiz: manfiy raqam aynan shu holatni ko'rsatib turishi kerak.
     const r = summariseCashReport([{ type: 'chiqim', category: 'Sut', amount: 200000 }]);
-    expect(cashThatShouldRemain(50000, r)).toBe(-150000);
+    expect(netAfterExpenses(50000, r)).toBe(-150000);
   });
 
-  it('xarajatsiz kunda naqd sotuvning o‘zi', () => {
-    expect(cashThatShouldRemain(198000, summariseCashReport([]))).toBe(198000);
+  it('tushum raqami O‘ZGARMAYDI — faqat yangi raqam hisoblanadi', () => {
+    // Sotilgan taomlar summasi hisobotda o'z holicha qolishi kerak, aks
+    // holda "bugun qancha sotdik" degan savolga javob topib bo'lmaydi.
+    const revenue = 273000;
+    const r = summariseCashReport([{ type: 'chiqim', category: 'Sut', amount: 95000 }]);
+    netAfterExpenses(revenue, r);
+    expect(revenue).toBe(273000);
   });
 });

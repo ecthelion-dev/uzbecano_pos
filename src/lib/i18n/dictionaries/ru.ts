@@ -153,9 +153,9 @@ export const ru: Record<TranslationKey, string> = {
   'archive.filterCustom': 'Выбрать период',
 
   // ── Денежный ящик ───────────────────────────────────────────────────
-  'drawer.title': 'Приход и расход кассы',
-  'drawer.subtitle': 'Размен, инкассация и расходы',
-  'drawer.addMovement': 'Добавить операцию',
+  'drawer.title': 'Расходы кассы',
+  'drawer.subtitle': 'Наличные, изъятые из кассы',
+  'drawer.addMovement': 'Добавить расход',
   'drawer.income': 'ПРИХОД',
   'drawer.expense': 'РАСХОД',
   'drawer.incomeTitle': 'Приход в кассу',
@@ -364,8 +364,7 @@ export const ru: Record<TranslationKey, string> = {
   'print.cashPayments': 'Наличными',
   'print.cashOut': 'ИЗЪЯТО ИЗ КАССЫ',
   'print.cashOutTotal': 'Итого расход',
-  'print.cashInTotal': 'Итого приход',
-  'print.cashLeft': 'Наличных должно остаться',
+  'print.netRevenue': 'ОСТАЛОСЬ ПОСЛЕ РАСХОДОВ',
   'print.cardPayments': 'Картой',
   'print.unnamed': 'Без названия',
 

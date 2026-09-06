@@ -166,9 +166,9 @@ export const uz = {
   'archive.filterCustom': 'Oraliq tanlash',
 
   // ── Kassa qutisi ────────────────────────────────────────────────────
-  'drawer.title': 'Kassa kirim va chiqim harakatlari',
-  'drawer.subtitle': 'Mayda pul olish, kassa inkasatsiyasi va xarajatlar',
-  'drawer.addMovement': "Yangi harakat qo'shish",
+  'drawer.title': 'Kassa xarajatlari',
+  'drawer.subtitle': 'Kassadan olingan naqd pul',
+  'drawer.addMovement': "Yangi xarajat qo'shish",
   'drawer.income': 'KIRIM',
   'drawer.expense': 'CHIQIM',
   'drawer.incomeTitle': "Kassa kirim (to'lov)",
@@ -378,8 +378,7 @@ export const uz = {
   'print.cashPayments': "Naqd to'lovlar",
   'print.cashOut': 'KASSADAN OLINGAN',
   'print.cashOutTotal': 'Jami chiqim',
-  'print.cashInTotal': 'Jami kirim',
-  'print.cashLeft': 'Kassada naqd qolishi kerak',
+  'print.netRevenue': 'XARAJATDAN KEYIN QOLGAN',
   'print.cardPayments': "Karta to'lovlar",
   'print.unnamed': 'Nomsiz',
 

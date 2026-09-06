@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { DBOrder } from '../types';
 import { useT, useLocale } from '../lib/i18n/LanguageProvider';
 import { monthName } from '../lib/i18n/months';
-import { summariseCashReport, cashThatShouldRemain } from '../lib/cashReport';
+import { summariseCashReport, netAfterExpenses } from '../lib/cashReport';
 import type { Locale } from '../lib/i18n/locales';
 
 export interface PeriodPrintData {
@@ -245,46 +245,35 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
         </div>
 
         {/*
-          Kassadan olingan pul — tushumdan KEYIN, alohida blokda va alohida
-          jami bilan. Yuqoridagi "Tushum" raqamiga tegmaydi: xarajat sotuvni
-          kamaytirmaydi, u faqat kassadagi naqd pulni kamaytiradi.
+          Kassadan olingan pul va undan keyingi sof raqam.
+
+          "Jami tushum" satri yuqorida O'Z HOLICHA qoladi — u sotilgan
+          taomlar summasi. Ayirish uning ostida, ko'rinib turadigan qilib
+          bajariladi: kafe egasiga qo'lda hisoblash kerak emas, lekin
+          hisobotdan bir oy o'tgach ham sotuv raqamini topib bo'ladi.
         */}
         {cash.any && (
-          <div className="report-summary space-y-0.5 pt-1.5 mt-1 border-t-2 border-slate-900">
-            <div className="text-[10px] font-black text-slate-900 print-text-dark uppercase pb-0.5">
-              {t('print.cashOut')}
+          <>
+            <div className="report-summary space-y-0.5 pt-1.5 mt-1 border-t-2 border-slate-900">
+              <div className="text-[10px] font-black text-slate-900 print-text-dark uppercase pb-0.5">
+                {t('print.cashOut')}
+              </div>
+
+              {cash.rows.map((row) => (
+                <TotalRow key={row.label} label={row.label} value={money(row.chiqim)} />
+              ))}
+
+              <div className="pt-0.5 border-t border-dashed border-slate-400">
+                <TotalRow label={t('print.cashOutTotal')} value={`−${money(cash.chiqim)}`} strong />
+              </div>
             </div>
 
-            {cash.rows.map((row) => (
-              <TotalRow
-                key={row.label}
-                label={row.label}
-                value={
-                  row.kirim > 0 && row.chiqim === 0
-                    ? `+${money(row.kirim)}`
-                    : row.kirim > 0
-                      ? `${money(row.chiqim)} / +${money(row.kirim)}`
-                      : money(row.chiqim)
-                }
-              />
-            ))}
-
-            <div className="pt-0.5 border-t border-dashed border-slate-400">
-              <TotalRow label={t('print.cashOutTotal')} value={money(cash.chiqim)} strong />
-              {cash.kirim > 0 && <TotalRow label={t('print.cashInTotal')} value={money(cash.kirim)} />}
-            </div>
-
-            {/*
-              Kun oxirida kassada naqd qancha qolishi kerakligi. Boshlang'ich
-              pul hisobga olinmaydi — kafe uni yuritmaydi, shuning uchun bu
-              faqat SHU DAVRDA kassaga kirgan va undan chiqqan naqd.
-            */}
             <TotalRow
-              label={t('print.cashLeft')}
-              value={money(cashThatShouldRemain(report.cash, cash))}
+              label={t('print.netRevenue')}
+              value={money(netAfterExpenses(report.paid, cash))}
               strong
             />
-          </div>
+          </>
         )}
 
         <div className="text-center text-[10px] font-medium text-slate-600 print-text-dark pt-1">

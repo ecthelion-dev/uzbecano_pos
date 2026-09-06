@@ -3,10 +3,13 @@ import { createPortal } from 'react-dom';
 import { DBOrder } from '../types';
 import { useT, useLocale } from '../lib/i18n/LanguageProvider';
 import { monthName } from '../lib/i18n/months';
+import { summariseCashReport, cashThatShouldRemain } from '../lib/cashReport';
 import type { Locale } from '../lib/i18n/locales';
 
 export interface PeriodPrintData {
   orders: DBOrder[];
+  /** Kassadan olingan naqd pul — savdoga KIRMAYDI, alohida ko'rsatiladi. */
+  cashEntries?: any[];
   from: Date | null;
   to: Date | null;
   printedBy: string;
@@ -151,6 +154,10 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
     };
   }, [data, t]);
 
+  // Jamlash mantiqi lib/cashReport.ts da — ekran, chek va admin panel bitta
+  // hisobni ko'rishi uchun.
+  const cash = useMemo(() => summariseCashReport(data?.cashEntries || []), [data]);
+
   if (!data) return null;
 
   /* Valyuta lug'atda, lug'at esa hook ichida — shuning uchun yordamchi
@@ -236,6 +243,49 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
           <TotalRow label={t('print.cashPayments')} value={money(report.cash)} />
           <TotalRow label={t('print.cardPayments')} value={money(report.card)} />
         </div>
+
+        {/*
+          Kassadan olingan pul — tushumdan KEYIN, alohida blokda va alohida
+          jami bilan. Yuqoridagi "Tushum" raqamiga tegmaydi: xarajat sotuvni
+          kamaytirmaydi, u faqat kassadagi naqd pulni kamaytiradi.
+        */}
+        {cash.any && (
+          <div className="report-summary space-y-0.5 pt-1.5 mt-1 border-t-2 border-slate-900">
+            <div className="text-[10px] font-black text-slate-900 print-text-dark uppercase pb-0.5">
+              {t('print.cashOut')}
+            </div>
+
+            {cash.rows.map((row) => (
+              <TotalRow
+                key={row.label}
+                label={row.label}
+                value={
+                  row.kirim > 0 && row.chiqim === 0
+                    ? `+${money(row.kirim)}`
+                    : row.kirim > 0
+                      ? `${money(row.chiqim)} / +${money(row.kirim)}`
+                      : money(row.chiqim)
+                }
+              />
+            ))}
+
+            <div className="pt-0.5 border-t border-dashed border-slate-400">
+              <TotalRow label={t('print.cashOutTotal')} value={money(cash.chiqim)} strong />
+              {cash.kirim > 0 && <TotalRow label={t('print.cashInTotal')} value={money(cash.kirim)} />}
+            </div>
+
+            {/*
+              Kun oxirida kassada naqd qancha qolishi kerakligi. Boshlang'ich
+              pul hisobga olinmaydi — kafe uni yuritmaydi, shuning uchun bu
+              faqat SHU DAVRDA kassaga kirgan va undan chiqqan naqd.
+            */}
+            <TotalRow
+              label={t('print.cashLeft')}
+              value={money(cashThatShouldRemain(report.cash, cash))}
+              strong
+            />
+          </div>
+        )}
 
         <div className="text-center text-[10px] font-medium text-slate-600 print-text-dark pt-1">
           {fmtDateTime(new Date(), locale)} · OrderPlus POS

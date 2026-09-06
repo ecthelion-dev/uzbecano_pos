@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Wallet, PlusCircle, MinusCircle, AlertCircle } from 'lucide-react';
 import { CashTransaction } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
-import { CASH_CATEGORIES, cashCategoryLabel, noteRequired } from '../lib/cashCategories';
+import { cashCategoryLabel, normalizeCategory, MAX_CATEGORY_LENGTH } from '../lib/cashCategories';
 import { amountValue, digitsOnly, formatAmount } from '../lib/amountInput';
 
 interface CashDrawerModalProps {
   show: boolean;
   transactions: CashTransaction[];
+  /** Ilgari ishlatilgan turkum nomlari — tugma bo'lib chiqadi. */
+  knownCategories: string[];
   currentWaiterName: string;
   onAddTransaction: (type: 'kirim' | 'chiqim', category: string, amount: number, note: string) => void;
   onClose: () => void;
@@ -16,15 +18,17 @@ interface CashDrawerModalProps {
 export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
   show,
   transactions,
+  knownCategories,
   currentWaiterName,
   onAddTransaction,
   onClose,
 }) => {
   const t = useT();
   const [type, setType] = useState<'kirim' | 'chiqim'>('chiqim');
-  // Turkumsiz yozuvdan bir oydan keyin foyda yo'q: "sutga qancha ketdi"
-  // degan savolga erkin matnni jamlab javob berib bo'lmaydi.
-  const [category, setCategory] = useState<string>(CASH_CATEGORIES[0].id);
+  // Nomni kassirning o'zi yozadi. Turkumsiz yozuvdan bir oydan keyin foyda
+  // yo'q: "sutga qancha ketdi" degan savolga izohlarni jamlab javob berib
+  // bo'lmaydi, shuning uchun maydon majburiy.
+  const [category, setCategory] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [note, setNote] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -44,16 +48,17 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
       setError(t('drawer.amountInvalid'));
       return;
     }
-    // Izoh faqat "Boshqa" da majburiy. Ilgari u har doim so'ralardi va
-    // kassir sut uchun har safar "sut" deb yozib o'tirardi.
-    if (noteRequired(category) && !note.trim()) {
-      setError(t('drawer.needReason'));
+    const cleanCategory = normalizeCategory(category);
+    if (!cleanCategory) {
+      setError(t('drawer.needCategory'));
       return;
     }
 
-    onAddTransaction(type, category, numAmount, note.trim());
+    onAddTransaction(type, cleanCategory, numAmount, note.trim());
     setAmount('');
     setNote('');
+    // Turkum ATAYLAB tozalanmaydi: ketma-ket bir nechta xarajat kiritilganda
+    // ular ko'pincha bir xil turkumda bo'ladi.
   };
 
   return (
@@ -122,22 +127,43 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
-            {CASH_CATEGORIES.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setCategory(c.id)}
-                className={`py-2.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer active:scale-95 ${
-                  category === c.id
-                    ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
+          {/*
+            Turkum nomi qo'lda yoziladi. Ilgari beshta qat'iy tugma bor edi
+            va ro'yxatga tushmagan xarajat "Boshqa" ga yig'ilardi — ya'ni
+            "nimaga ketdi" degan savol aynan o'sha yerda javobsiz qolardi.
+          */}
+          <input
+            type="text"
+            maxLength={MAX_CATEGORY_LENGTH}
+            placeholder={t('drawer.categoryPlaceholder')}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:border-orange-500"
+          />
+
+          {/*
+            Ilgari yozilgan nomlar — bir bosishda. Har safar qaytadan terish
+            "Sut" va "sut oldik" degan ikkita turkum hosil qilardi va oylik
+            jamlanma ikkiga bo'linib ketardi.
+          */}
+          {knownCategories.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {knownCategories.slice(0, 12).map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setCategory(name)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer active:scale-95 ${
+                    normalizeCategory(category).toLocaleLowerCase() === name.toLocaleLowerCase()
+                      ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {/*
@@ -162,7 +188,7 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
             </div>
             <input
               type="text"
-              placeholder={noteRequired(category) ? t('drawer.reasonPlaceholder') : t('drawer.notePlaceholder')}
+              placeholder={t('drawer.notePlaceholder')}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
@@ -176,15 +202,15 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
           */}
           <button
             type="submit"
-            disabled={amountValue(amount) <= 0}
+            disabled={amountValue(amount) <= 0 || !normalizeCategory(category)}
             className={`w-full font-bold py-3 rounded-xl text-xs shadow-md transition-all cursor-pointer active:scale-95 disabled:cursor-not-allowed ${
               type === 'chiqim'
                 ? 'bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white'
                 : 'bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white'
             }`}
           >
-            {amountValue(amount) > 0
-              ? `${cashCategoryLabel(category)} · ${type === 'chiqim' ? '−' : '+'}${formatAmount(amount)} ${t('common.currency')}`
+            {amountValue(amount) > 0 && normalizeCategory(category)
+              ? `${normalizeCategory(category)} · ${type === 'chiqim' ? '−' : '+'}${formatAmount(amount)} ${t('common.currency')}`
               : t('common.save')}
           </button>
         </form>

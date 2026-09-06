@@ -86,7 +86,7 @@ import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitch
 import { Wallet } from 'lucide-react';
 import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
 import { splitPayment } from './lib/payment';
-import { cashCategoryLabel } from './lib/cashCategories';
+import { cashCategoryLabel, dedupeCategories } from './lib/cashCategories';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -212,6 +212,8 @@ export default function App() {
 
   const [showTableMoveModal, setShowTableMoveModal] = useState<boolean>(false);
   const [showCashDrawerModal, setShowCashDrawerModal] = useState<boolean>(false);
+  /** Ilgari ishlatilgan turkum nomlari — kassa oynasida tugma bo'lib chiqadi. */
+  const [knownCashCategories, setKnownCashCategories] = useState<string[]>([]);
   const [showUnsavedCartModal, setShowUnsavedCartModal] = useState<boolean>(false);
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(() => {
@@ -1699,6 +1701,32 @@ export default function App() {
     }
   }, [getActiveCafeId, getAuthHeaders]);
 
+  /**
+   * Hisobot davri uchun kassadan olingan pul.
+   *
+   * Kassaning diskidagi nusxa faqat shu kompyuternikini biladi va faqat
+   * bugungisini saqlaydi — hisobot esa istalgan davr uchun chiqariladi.
+   * Yiqilsa bo'sh ro'yxat qaytadi: xarajatsiz hisobot chiqqani ma'qul,
+   * chiqmagan hisobotdan ko'ra.
+   */
+  const fetchCashForPeriod = useCallback(async (from: Date | null, to: Date | null): Promise<any[]> => {
+    try {
+      const params = new URLSearchParams({ limit: '2000' });
+      if (from) params.set('from', from.toISOString());
+      if (to) params.set('to', to.toISOString());
+      const res = await fetchWithTimeout(
+        `${API_BASE_URL}/api/cash-entries?${params}`,
+        { cache: 'no-store', headers: getAuthHeaders() },
+        REPORT_TIMEOUT_MS,
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  }, [getAuthHeaders]);
+
   const requestAdminPin = useCallback((action: (approvalToken?: string) => void) => {
     setAdminPinAction(() => action);
     setShowAdminPinModal(true);
@@ -2077,6 +2105,18 @@ export default function App() {
           createdAt: r.createdAt,
           createdBy: r.createdBy || '',
         })));
+
+        // Turkumlar alohida so'raladi: bugungi yozuvlardan yig'ilsa, kecha
+        // ishlatilgan nom bugun tugma bo'lib chiqmasdi va kassir uni
+        // qaytadan terib, ikkinchi turkum hosil qilardi.
+        const catRes = await fetchWithTimeout(
+          `${API_BASE_URL}/api/cash-entries/categories`,
+          { cache: 'no-store', headers: getAuthHeaders() },
+        );
+        if (catRes.ok && !cancelled) {
+          const names = await catRes.json();
+          if (Array.isArray(names)) setKnownCashCategories(dedupeCategories(names));
+        }
       } catch {
         // Serverga yetib bo'lmadi — diskdagi nusxa ekranda qoladi.
       }
@@ -2949,8 +2989,12 @@ export default function App() {
         onRefundOrder={handleRefundOrder}
         onPrintPeriod={async (periodOrders, from, to) => {
           const full = await fetchOrdersForPeriod(from, to, periodOrders);
+          // Kassadan olingan pul ham shu davr uchun. Hisobotda u tushumga
+          // qo'shilmaydi — alohida blokda chiqadi.
+          const spent = await fetchCashForPeriod(from, to);
           setPeriodPrint({
             orders: full,
+            cashEntries: spent,
             from,
             to,
             printedBy: currentWaiter?.name || '',
@@ -2973,6 +3017,7 @@ export default function App() {
       <CashDrawerModal
         show={showCashDrawerModal}
         transactions={cashTransactions}
+        knownCategories={knownCashCategories}
         currentWaiterName={currentWaiter?.name || ''}
         onAddTransaction={handleAddCashTransaction}
         onClose={() => setShowCashDrawerModal(false)}

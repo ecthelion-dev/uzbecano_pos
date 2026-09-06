@@ -90,6 +90,7 @@ import { splitPayment } from './lib/payment';
 import { cashCategoryLabel, dedupeCategories } from './lib/cashCategories';
 import { getDeviceId } from './lib/deviceId';
 import { tableState } from './lib/floorPlan';
+import { cartToHoldLines, holdLinesToCart, parseHoldItems } from './lib/cartSync';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -226,7 +227,14 @@ export default function App() {
    * buyurtma yozib yuborishi mumkin edi.
    */
   const [tableHolds, setTableHolds] = useState<
-    { tableNumber: string; holder: string; holderId?: string; deviceId: string; total?: number }[]
+    {
+      tableNumber: string;
+      holder: string;
+      holderId?: string;
+      deviceId: string;
+      total?: number;
+      items?: string;
+    }[]
   >([]);
   /** Shu qurilmaning nomi — o'z belgisini boshqalarnikidan ajratish uchun. */
   const deviceId = useMemo(() => getDeviceId(), []);
@@ -1201,9 +1209,13 @@ export default function App() {
     // Summani savat turgan qurilmaning O'ZI hisoblaydi: boshqa tomonda uni
     // taxmin qilib bo'lmaydi va "Jami: 0" bo'sh stoldek ko'rinardi.
     const totals: Record<string, number> = {};
-    for (const [table, items] of open) {
-      const sub = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+    // Savatning o'zi ham ketadi: buyurtmani boshlagan xodim uni boshqa
+    // qurilmadan ochib davom ettira olishi uchun.
+    const items: Record<string, unknown[]> = {};
+    for (const [table, cartItems] of open) {
+      const sub = cartItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
       totals[table] = sub + Math.round((sub * serviceFeePercent) / 100);
+      items[table] = cartToHoldLines(cartItems);
     }
 
     let cancelled = false;
@@ -1213,7 +1225,7 @@ export default function App() {
         await fetchWithTimeout(`${API_BASE_URL}/api/table-holds`, {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ deviceId, tables: busy, totals }),
+          body: JSON.stringify({ deviceId, tables: busy, totals, items }),
         });
       } catch {
         // Yetib bormadi — belgi eskiradi va stol bo'shaydi. Bu savatning
@@ -1230,6 +1242,41 @@ export default function App() {
     const interval = setInterval(() => { if (!cancelled) void report(); }, 45000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [tableCarts, currentWaiter, isOfflineMode, deviceId, getAuthHeaders, serviceFeePercent]);
+
+  /*
+   * Savat boshqa qurilmaga o'tgan bo'lsa, shu yerdagi nusxa tashlanadi.
+   *
+   * Stolni oxirgi ochgan qurilma egasi bo'ladi. Eski nusxa qolib ketsa
+   * ikkita zarar bor: u har 45 soniyada serverga qaytadan yozilib,
+   * ikkinchi qurilmada qo'shilgan taomni o'chirib yuborardi, va ikkalasidan
+   * ham yuborilsa stolda ikkita ochiq chek paydo bo'lardi.
+   *
+   * Faqat serverdagi belgida SAVAT BOR bo'lsa tashlanadi: bo'sh belgi
+   * uchun mahalliy savatni o'chirish uni yo'q qilish bo'lardi.
+   */
+  useEffect(() => {
+    if (tableHolds.length === 0) return;
+
+    setTableCarts((prev) => {
+      let changed = false;
+      const next = { ...prev };
+
+      for (const hold of tableHolds) {
+        if (hold.deviceId === deviceId) continue;
+        if (parseHoldItems(hold.items).length === 0) continue;
+
+        const name = Object.keys(next).find(
+          (table) => table.trim().toLowerCase() === (hold.tableNumber || '').trim().toLowerCase(),
+        );
+        if (!name || (next[name]?.length ?? 0) === 0) continue;
+
+        delete next[name];
+        changed = true;
+      }
+
+      return changed ? next : prev;
+    });
+  }, [tableHolds, deviceId]);
 
   // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, ESC: Close)
   useEffect(() => {
@@ -1405,6 +1452,30 @@ export default function App() {
       return;
     }
 
+    /*
+     * Boshqa qurilmada boshlangan savatni shu yerda davom ettirish.
+     *
+     * Qulf ochilganining o'zi yetmaydi: xodim o'z stolini ochib, savatni
+     * BO'SH holda ko'rardi va yozganlari qayerga ketganini tushunmasdi.
+     *
+     * Faqat shu yerda savat bo'lmaganda yuklanadi — aks holda kassirning
+     * hozir yozayotgani serverdagi eskiroq nusxa bilan almashib ketardi.
+     */
+    const mine = tableCarts[tableNumber] || [];
+    if (mine.length === 0) {
+      const hold = tableHolds.find(
+        (h) => h.deviceId !== deviceId &&
+          (h.tableNumber || '').trim().toLowerCase() === tableNumber.trim().toLowerCase(),
+      );
+      const lines = parseHoldItems(hold?.items);
+      if (lines.length > 0) {
+        const restored = holdLinesToCart(lines, products);
+        if (restored.length > 0) {
+          setTableCarts((prev) => ({ ...prev, [tableNumber]: restored }));
+        }
+      }
+    }
+
     setSelectedArchiveOrder(null);
     setSelectedTable(tableNumber);
     setActiveTab('menyu');
@@ -1418,7 +1489,7 @@ export default function App() {
       }).catch(() => {});
       setWaiterCalls(prev => prev.filter(t => (t || '').trim().toLowerCase() !== tableNumber.trim().toLowerCase()));
     }
-  }, [getActiveCafeId, getAuthHeaders, tables, t]);
+  }, [getActiveCafeId, getAuthHeaders, tables, t, tableCarts, tableHolds, deviceId, products]);
 
   const handleSelectCategory = useCallback((categoryName: string) => {
     setSelectedCategoryName(categoryName);

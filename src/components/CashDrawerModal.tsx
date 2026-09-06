@@ -3,6 +3,7 @@ import { Wallet, PlusCircle, MinusCircle, AlertCircle } from 'lucide-react';
 import { CashTransaction } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { CASH_CATEGORIES, cashCategoryLabel, noteRequired } from '../lib/cashCategories';
+import { amountValue, digitsOnly, formatAmount } from '../lib/amountInput';
 
 interface CashDrawerModalProps {
   show: boolean;
@@ -38,7 +39,7 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
     e.preventDefault();
     setError(null);
 
-    const numAmount = Number(amount);
+    const numAmount = amountValue(amount);
     if (!numAmount || numAmount <= 0) {
       setError(t('drawer.amountInvalid'));
       return;
@@ -139,13 +140,26 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input
-              type="number"
-              placeholder={t('drawer.amountPlaceholder')}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
-            />
+            {/*
+              Matn maydoni, raqam maydoni emas. `type="number"` da sichqoncha
+              g'ildiragi qiymatni o'zgartiradi — kassir ro'yxatni aylantirmoqchi
+              bo'lib maydon ustidan o'tsa, summa jimgina boshqa bo'lib qolardi.
+              `inputMode` telefonda baribir raqam klaviaturasini ochadi.
+            */}
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="0"
+                value={formatAmount(amount)}
+                onChange={(e) => setAmount(digitsOnly(e.target.value))}
+                className="w-full bg-white border border-slate-200 rounded-xl pl-3 pr-14 py-2.5 text-lg font-bold tabular-nums text-slate-900 placeholder:text-slate-300 placeholder:font-semibold focus:outline-none focus:border-orange-500"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 pointer-events-none">
+                {t('common.currency')}
+              </span>
+            </div>
             <input
               type="text"
               placeholder={noteRequired(category) ? t('drawer.reasonPlaceholder') : t('drawer.notePlaceholder')}
@@ -155,11 +169,23 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
             />
           </div>
 
+          {/*
+            Tugmaning o'zi qancha saqlanishini aytadi. Summa maydonda
+            terilib, tasdiqlash boshqa joyda bo'lsa, ortiqcha nol
+            saqlanganidan keyin ko'zga tashlanardi.
+          */}
           <button
             type="submit"
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs shadow-md transition-all cursor-pointer active:scale-95"
+            disabled={amountValue(amount) <= 0}
+            className={`w-full font-bold py-3 rounded-xl text-xs shadow-md transition-all cursor-pointer active:scale-95 disabled:cursor-not-allowed ${
+              type === 'chiqim'
+                ? 'bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white'
+                : 'bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white'
+            }`}
           >
-            {t('common.save')}
+            {amountValue(amount) > 0
+              ? `${cashCategoryLabel(category)} · ${type === 'chiqim' ? '−' : '+'}${formatAmount(amount)} ${t('common.currency')}`
+              : t('common.save')}
           </button>
         </form>
 

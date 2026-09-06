@@ -289,6 +289,7 @@ export const uz = {
   'admin.pinTitle': "Xavfsizlik tasdig'i",
   'admin.pinDefault': 'Tasdiqlash uchun PIN kodni kiriting',
   'admin.pinKitchenCancel': 'Oshxona buyurtmasi / Taomni bekor qilish uchun PIN kodni kiriting',
+  'admin.pinCashDrawer': 'Kassa xarajatlari — rahbar PIN kodini kiriting',
   'admin.pinWrong': "PIN kod noto'g'ri yoki ruxsat darajasi yetarli emas!",
   'admin.pinOffline': "Aloqa yo'q. Faqat shu kassada kirgan rahbar PIN kodi qabul qilinadi",
   'kitchen.cancelNeedsPin': 'Bekor qilish (admin PIN talab qilinadi)',

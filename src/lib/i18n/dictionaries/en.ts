@@ -275,6 +275,7 @@ export const en: Record<TranslationKey, string> = {
   'admin.pinTitle': 'Security confirmation',
   'admin.pinDefault': 'Enter the PIN to confirm',
   'admin.pinKitchenCancel': 'Enter the PIN to cancel a kitchen order or a dish',
+  'admin.pinCashDrawer': 'Till expenses — enter the manager PIN',
   'admin.pinWrong': "Wrong PIN, or the access level is not enough!",
   'admin.pinOffline': 'No connection. Only a manager PIN used on this till is accepted',
   'kitchen.cancelNeedsPin': 'Cancel (admin PIN required)',

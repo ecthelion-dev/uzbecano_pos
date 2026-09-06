@@ -275,6 +275,7 @@ export const ru: Record<TranslationKey, string> = {
   'admin.pinTitle': 'Подтверждение безопасности',
   'admin.pinDefault': 'Введите PIN-код для подтверждения',
   'admin.pinKitchenCancel': 'Введите PIN-код для отмены заказа или блюда',
+  'admin.pinCashDrawer': 'Расходы кассы — введите PIN-код руководителя',
   'admin.pinWrong': 'Неверный PIN-код или недостаточно прав!',
   'admin.pinOffline': 'Нет связи. Принимается только PIN руководителя, входившего на этой кассе',
   'kitchen.cancelNeedsPin': 'Отмена (нужен PIN админа)',

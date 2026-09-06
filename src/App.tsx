@@ -61,6 +61,7 @@ import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, Ca
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
 import { useT } from './lib/i18n/LanguageProvider';
+import type { TranslationKey } from './lib/i18n/dictionaries/uz';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
 import { KitchenPrintArea } from './components/KitchenPrintArea';
@@ -214,6 +215,13 @@ export default function App() {
   const [showCashDrawerModal, setShowCashDrawerModal] = useState<boolean>(false);
   /** Ilgari ishlatilgan turkum nomlari — kassa oynasida tugma bo'lib chiqadi. */
   const [knownCashCategories, setKnownCashCategories] = useState<string[]>([]);
+  /*
+   * Xarajat bo'limi rahbar tasdig'i bilan ochiladi va tasdiq tokeni oyna
+   * yopilguncha saqlanadi: o'qish ham, yozish ham server tomonda shu
+   * dalilni talab qiladi, ya'ni har bir so'rovda qaytadan PIN so'rash
+   * kassirni bir necha marta to'xtatardi.
+   */
+  const [cashApprovalToken, setCashApprovalToken] = useState<string | undefined>(undefined);
   const [showUnsavedCartModal, setShowUnsavedCartModal] = useState<boolean>(false);
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(() => {
@@ -229,6 +237,12 @@ export default function App() {
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
   const [adminPinAction, setAdminPinAction] = useState<((approvalToken?: string) => void) | null>(null);
+  /*
+   * PIN oynasining sarlavhasi. Ilgari u qat'iy edi va har doim "oshxona
+   * buyurtmasini bekor qilish" derdi — rahbar esa nimani tasdiqlayotganini
+   * bilishi kerak, aks holda PIN so'rashning ma'nosi qolmaydi.
+   */
+  const [adminPinTitle, setAdminPinTitle] = useState<TranslationKey>('admin.pinKitchenCancel');
 
   const [waiters, setWaiters] = useState<DBWaiter[]>([]);
   const [currentWaiter, setCurrentWaiter] = useState<DBWaiter | null>(
@@ -829,7 +843,7 @@ export default function App() {
     | { kind: 'delete'; orderId: string; label?: string }
     // Kassa xarajati. Internet uzilganda ham sut sotib olinaveradi va
     // o'sha payt yozib qo'yolmasa, kassir keyin esdan chiqaradi.
-    | { kind: 'cash'; entry: any; label?: string };
+    | { kind: 'cash'; entry: any; label?: string; approvalToken?: string };
 
   const readSyncQueue = useCallback((cafeId: string): SyncQueueItem[] => {
     const parsed = readCafeJson<unknown>(cafeId, 'sync_queue', []);
@@ -870,10 +884,13 @@ export default function App() {
   // Kassa xarajati serverga yetmasa navbatda qoladi: internet uzilganda ham
   // sut sotib olinaveradi, va o'sha payt yozib qo'yolmasa kassir keyin
   // esdan chiqaradi.
-  const queueCashForSync = useCallback((entry: any, label?: string) => {
+  const queueCashForSync = useCallback((entry: any, label?: string, approvalToken?: string) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
-    queue.push({ kind: 'cash', entry, label });
+    // Tasdiq tokeni navbat bilan birga diskka tushadi — buyurtma
+    // tuzatishlaridagi kabi. Usiz aloqa tiklanganda server yozuvni rad
+    // etardi va oflayn kiritilgan xarajat yo'qolib ketardi.
+    queue.push({ kind: 'cash', entry, label, approvalToken });
     writeSyncQueue(cafeId, queue);
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
@@ -935,7 +952,7 @@ export default function App() {
         } else if (item.kind === 'cash') {
           res = await fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
             method: 'POST',
-            headers: getAuthHeaders(),
+            headers: getAuthHeaders(item.approvalToken),
             body: JSON.stringify(item.entry),
           });
         } else {
@@ -1727,8 +1744,12 @@ export default function App() {
     }
   }, [getAuthHeaders]);
 
-  const requestAdminPin = useCallback((action: (approvalToken?: string) => void) => {
+  const requestAdminPin = useCallback((
+    action: (approvalToken?: string) => void,
+    titleKey: TranslationKey = 'admin.pinKitchenCancel',
+  ) => {
     setAdminPinAction(() => action);
+    setAdminPinTitle(titleKey);
     setShowAdminPinModal(true);
   }, []);
 
@@ -1754,6 +1775,21 @@ export default function App() {
       window.setTimeout(() => window.location.reload(), 900);
     });
   }, [requestAdminPin, getActiveCafeId]);
+
+  /**
+   * Xarajat bo'limi — rahbar PIN kodi bilan.
+   *
+   * Kassadan pul olish kafedagi eng oson suiiste'mol qilinadigan amal.
+   * Oynaning o'zi hech narsani himoya qilmaydi: server ham shu tasdiqni
+   * talab qiladi, aks holda so'rovni oynani chetlab o'tib yuborish mumkin
+   * bo'lardi.
+   */
+  const openCashDrawer = useCallback(() => {
+    requestAdminPin((approvalToken?: string) => {
+      setCashApprovalToken(approvalToken);
+      setShowCashDrawerModal(true);
+    }, 'admin.pinCashDrawer');
+  }, [requestAdminPin]);
 
   const handleRemoveKitchenItem = useCallback((itemIndex: number) => {
     requestAdminPin(async (approvalToken?: string) => {
@@ -2056,23 +2092,23 @@ export default function App() {
     const payload = { type: 'chiqim', category, amount, note: note || undefined };
 
     if (isOfflineMode) {
-      queueCashForSync(payload, cashCategoryLabel(category));
+      queueCashForSync(payload, cashCategoryLabel(category), cashApprovalToken);
     } else {
       try {
         const res = await fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(cashApprovalToken),
           body: JSON.stringify(payload),
         });
-        if (!res.ok) queueCashForSync(payload, cashCategoryLabel(category));
+        if (!res.ok) queueCashForSync(payload, cashCategoryLabel(category), cashApprovalToken);
       } catch {
-        queueCashForSync(payload, cashCategoryLabel(category));
+        queueCashForSync(payload, cashCategoryLabel(category), cashApprovalToken);
       }
     }
 
     setToastMessage(t('drawer.savedExpense'));
     setTimeout(() => setToastMessage(null), 2500);
-  }, [cashTransactions, currentWaiter, isOfflineMode, getActiveCafeId, getAuthHeaders, queueCashForSync]);
+  }, [cashTransactions, currentWaiter, isOfflineMode, getActiveCafeId, getAuthHeaders, queueCashForSync, cashApprovalToken]);
 
   /*
    * Kassa oynasi ochilganda yozuvlar SERVERDAN o'qiladi.
@@ -2091,7 +2127,7 @@ export default function App() {
         from.setHours(0, 0, 0, 0);
         const res = await fetchWithTimeout(
           `${API_BASE_URL}/api/cash-entries?from=${from.toISOString()}`,
-          { cache: 'no-store', headers: getAuthHeaders() },
+          { cache: 'no-store', headers: getAuthHeaders(cashApprovalToken) },
         );
         if (!res.ok) return;
         const rows = await res.json();
@@ -2112,7 +2148,7 @@ export default function App() {
         // qaytadan terib, ikkinchi turkum hosil qilardi.
         const catRes = await fetchWithTimeout(
           `${API_BASE_URL}/api/cash-entries/categories`,
-          { cache: 'no-store', headers: getAuthHeaders() },
+          { cache: 'no-store', headers: getAuthHeaders(cashApprovalToken) },
         );
         if (catRes.ok && !cancelled) {
           const names = await catRes.json();
@@ -2124,7 +2160,7 @@ export default function App() {
     })();
 
     return () => { cancelled = true; };
-  }, [showCashDrawerModal, isOfflineMode, getAuthHeaders]);
+  }, [showCashDrawerModal, isOfflineMode, getAuthHeaders, cashApprovalToken]);
 
   const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
     const sourceOrder = orders.find(o => o.tableNumber === sourceTable && isActiveOrder(o.status));
@@ -2643,7 +2679,7 @@ export default function App() {
         }}
         onOpenArchive={() => setShowArchiveModal(true)}
         onOpenPrinterSettings={() => setShowPrinterModal(true)}
-        onOpenCashDrawer={() => setShowCashDrawerModal(true)}
+        onOpenCashDrawer={openCashDrawer}
         onRefreshOrders={handleManualRefresh}
         isLoading={loading}
         currentWaiter={currentWaiter}
@@ -3021,7 +3057,13 @@ export default function App() {
         knownCategories={knownCashCategories}
         currentWaiterName={currentWaiter?.name || ''}
         onAddTransaction={handleAddCashTransaction}
-        onClose={() => setShowCashDrawerModal(false)}
+        onClose={() => {
+          setShowCashDrawerModal(false);
+          // Tasdiq oyna bilan birga tugaydi: keyingi safar qaytadan
+          // so'raladi, aks holda bir marta ochilgan PIN smena oxirigacha
+          // ochiq turgan eshik bo'lib qolardi.
+          setCashApprovalToken(undefined);
+        }}
       />
 
       <ProductModifierModal
@@ -3046,7 +3088,7 @@ export default function App() {
       <AdminPinModal
         show={showAdminPinModal}
         cafeId={getActiveCafeId()}
-        title={t('admin.pinKitchenCancel')}
+        title={t(adminPinTitle)}
         onConfirm={(approvalToken) => {
           if (adminPinAction) adminPinAction(approvalToken);
         }}

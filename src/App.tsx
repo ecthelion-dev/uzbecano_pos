@@ -84,6 +84,7 @@ import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
 import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, printReceiptViaBrowser, getLastPrintError, setReceiptLogo } from './lib/printer';
 import { Wallet } from 'lucide-react';
+import { cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -102,7 +103,10 @@ const mapDBProductModifiers = (prods: DBProduct[]): DBProduct[] => {
           const validSizes = parsed.filter((s: any) => s && (s.label || s.name));
           if (validSizes.length > 0) {
             variants = [
-              { name: 'Standart', price: p.price },
+              // `isBase` — bu bazadagi o'lcham emas, taomning asosiy narxi.
+              // Serverga yuborilmasligi kerak: u bunday o'lchamni topolmay
+              // butun buyurtmani rad etadi.
+              { name: 'Standart', price: p.price, isBase: true },
               ...validSizes.map((s: any) => ({
                 name: s.label || s.name,
                 price: Number(s.price) || p.price
@@ -167,7 +171,16 @@ export default function App() {
    */
   const [tableCarts, setTableCarts] = useState<Record<string, CartItem[]>>(() => {
     try {
-      return readCafeJson<Record<string, CartItem[]>>(resolveActiveCafeId(), 'carts', {});
+      const saved = readCafeJson<Record<string, CartItem[]>>(resolveActiveCafeId(), 'carts', {});
+      // Bu yangilikdan oldin saqlangan savatlarda `lineId` yo'q. Usiz
+      // miqdor tugmalari qaysi qatorga tegishini bilmaydi, shuning uchun
+      // o'qishda bir marta to'ldiriladi.
+      for (const table of Object.keys(saved)) {
+        saved[table] = (saved[table] || []).map((item, idx) => (
+          item?.lineId ? item : { ...item, lineId: `${item?.product?.id || 'line'}-${idx}` }
+        ));
+      }
+      return saved;
     } catch {
       return {};
     }
@@ -1283,7 +1296,7 @@ export default function App() {
     setSelectedCategoryName(categoryName);
   }, []);
 
-  const handleAddToCart = useCallback((product: DBProduct, note?: string) => {
+  const handleAddToCart = useCallback((product: DBProduct, note?: string, variant?: ProductVariant) => {
     if (!selectedModifierProduct && (product.variants?.length || product.addons?.length)) {
       setSelectedModifierProduct(product);
       return;
@@ -1291,29 +1304,40 @@ export default function App() {
 
     setTableCarts((prev) => {
       const currentCart = prev[selectedTable] || [];
-      const existing = currentCart.find((item) => item.product.id === product.id && item.product.name === product.name && item.note === note);
-      if (existing) {
+      /*
+       * Bir xil qator: bir xil taom, bir xil O'LCHAM va bir xil izoh.
+       *
+       * O'lcham shartsiz bo'lsa "Mojito Standart" va "Mojito Katta" bitta
+       * qatorga qo'shilib ketardi va biri boshqasining narxida sotilardi.
+       */
+      const sameLine = (item: CartItem) =>
+        item.product.id === product.id &&
+        (item.selectedVariant?.name || '') === (variant?.name || '') &&
+        item.note === note;
+
+      if (currentCart.some(sameLine)) {
         return {
           ...prev,
           [selectedTable]: currentCart.map((item) =>
-            item.product.id === product.id && item.product.name === product.name && item.note === note
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
+            sameLine(item) ? { ...item, quantity: item.quantity + 1 } : item
           ),
         };
       }
       return {
         ...prev,
-        [selectedTable]: [...currentCart, { product, quantity: 1, note }],
+        [selectedTable]: [
+          ...currentCart,
+          { lineId: crypto.randomUUID(), product, quantity: 1, note, selectedVariant: variant },
+        ],
       };
     });
   }, [selectedTable, selectedModifierProduct]);
 
-  const updateQuantity = useCallback((productId: string, delta: number) => {
+  const updateQuantity = useCallback((lineId: string, delta: number) => {
     setTableCarts(prev => {
       const currentCart = prev[selectedTable] || [];
       const updatedCart = currentCart.map(item => {
-        if (item.product.id === productId) {
+        if (item.lineId === lineId) {
           const newQty = item.quantity + delta;
           return newQty > 0 ? { ...item, quantity: newQty } : null;
         }
@@ -1323,11 +1347,11 @@ export default function App() {
     });
   }, [selectedTable]);
 
-  const updateItemNote = useCallback((productId: string, note: string) => {
+  const updateItemNote = useCallback((lineId: string, note: string) => {
     setTableCarts(prev => {
       const currentCart = prev[selectedTable] || [];
       const updatedCart = currentCart.map(item => {
-        if (item.product.id === productId) {
+        if (item.lineId === lineId) {
           return { ...item, note };
         }
         return item;
@@ -1788,9 +1812,8 @@ export default function App() {
     if (cart.length === 0) return;
     setApiError(null);
     try {
-      // productId is what the server prices the line from — it re-reads the
-      // price from its own database and refuses a line it cannot identify.
-      const newItems = cart.map(i => ({ productId: i.product.id, name: i.product.name, price: i.product.price, quantity: i.quantity, note: i.note || '' }));
+      // Narxni va o'lchamni server hal qiladi — qoidalar lib/orderItems.ts da.
+      const newItems = cart.map(cartLineToOrderItem);
       // Read through the ref, not the value captured when this handler
       // started: an await sits between here and the write, and the six-second
       // poll can land inside it. Writing the stale copy back would undo
@@ -1808,14 +1831,12 @@ export default function App() {
       if (activeTableOrder) {
         kitchenOrderId = String(activeTableOrder.id || '');
         kitchenDailyNumber = Number((activeTableOrder as any).dailyNumber) || 0;
-        const itemMap = new Map<string, { productId?: string; name: string; price: number; quantity: number; note?: string }>();
+        const itemMap = new Map<string, OutgoingOrderItem>();
         activeTableOrderItems.forEach((i: any, idx: number) => {
-          const key = `${i.name}_${i.note || ''}_${idx}`;
-          itemMap.set(key, { productId: i.productId, name: i.name, price: Number(i.price) || 0, quantity: Number(i.quantity) || 1, note: i.note || '' });
+          itemMap.set(`${i.name}_${i.note || ''}_${idx}`, sentItemToOrderItem(i));
         });
         newItems.forEach((i, idx) => {
-          const key = `${i.name}_${i.note || ''}_new_${idx}`;
-          itemMap.set(key, { productId: i.productId, name: i.name, price: i.price, quantity: i.quantity, note: i.note || '' });
+          itemMap.set(`${i.name}_${i.note || ''}_new_${idx}`, i);
         });
         const combinedItems = Array.from(itemMap.values());
         const combinedSubtotal = combinedItems.reduce((s: number, i: any) => s + i.price * i.quantity, 0);
@@ -2890,8 +2911,8 @@ export default function App() {
 
       <ProductModifierModal
         product={selectedModifierProduct}
-        onAddToCart={(modProd, note) => {
-          handleAddToCart(modProd, note);
+        onAddToCart={(modProd, note, variant) => {
+          handleAddToCart(modProd, note, variant);
           setSelectedModifierProduct(null);
         }}
         onClose={() => setSelectedModifierProduct(null)}

@@ -5,7 +5,7 @@ import { useT } from '../lib/i18n/LanguageProvider';
 
 interface ProductModifierModalProps {
   product: DBProduct | null;
-  onAddToCart: (modifiedProduct: DBProduct, note?: string) => void;
+  onAddToCart: (modifiedProduct: DBProduct, note?: string, variant?: ProductVariant) => void;
   onClose: () => void;
 }
 
@@ -57,7 +57,9 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
       price: totalPrice,
     };
 
-    onAddToCart(modifiedProduct, fullNote || undefined);
+    // Variant AYNAN o'zi uzatiladi: narx serverda shu yorliq bo'yicha
+    // qayta topiladi, nomdagi qavs ichidagi matn bo'yicha emas.
+    onAddToCart(modifiedProduct, fullNote || undefined, selectedVariant || undefined);
     onClose();
   };
 

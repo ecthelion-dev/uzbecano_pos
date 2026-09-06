@@ -1,6 +1,16 @@
 export interface ProductVariant {
   name: string;
   price: number;
+  /**
+   * Taomning asosiy narxi — bazadagi o'lcham EMAS.
+   *
+   * Kassa o'lchamlar ro'yxatining boshiga "Standart" degan variantni o'zi
+   * qo'shadi, chunki kassir asosiy narxni ham tanlay olishi kerak. Lekin
+   * bunday o'lcham bazada yo'q va uni serverga yuborsak, server uni rad
+   * etadi ("bunday o'lcham mavjud emas") va butun buyurtma o'tmaydi.
+   * Shuning uchun u shu bayroq bilan belgilanadi va yuborilmaydi.
+   */
+  isBase?: boolean;
 }
 
 export interface ProductAddon {
@@ -30,6 +40,15 @@ export interface DBCategory {
 }
 
 export interface CartItem {
+  /**
+   * Savatdagi QATOR belgisi — taom belgisi emas.
+   *
+   * Bitta taomning ikki o'lchami savatda ikki qator bo'ladi, lekin
+   * `product.id` ikkalasida bir xil. Miqdorni o'zgartirish va izoh yozish
+   * ilgari o'sha `product.id` bo'yicha ishlardi, ya'ni "Katta" ning yoniga
+   * bosilgan "+" ikkala qatorni ham oshirardi.
+   */
+  lineId: string;
   product: DBProduct;
   quantity: number;
   note?: string;

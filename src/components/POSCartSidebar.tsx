@@ -19,8 +19,8 @@ interface POSCartSidebarProps {
   activeTableOrderItems: any[];
   cart: CartItem[];
   onRemoveKitchenItem: (index: number) => void;
-  onUpdateQuantity: (productId: string, delta: number) => void;
-  onUpdateNote: (productId: string, note: string) => void;
+  onUpdateQuantity: (lineId: string, delta: number) => void;
+  onUpdateNote: (lineId: string, note: string) => void;
   paymentMethod: 'naqd' | 'karta' | 'aralash';
   onSelectPaymentMethod: (pm: 'naqd' | 'karta' | 'aralash') => void;
   subtotal: number;
@@ -120,7 +120,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
                 )}
                 {cart.map((item) => (
                   <CartItemRow
-                    key={item.product.id}
+                    key={item.lineId}
                     item={item}
                     onUpdateQuantity={onUpdateQuantity}
                     onUpdateNote={onUpdateNote}

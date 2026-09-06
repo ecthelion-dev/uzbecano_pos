@@ -5,8 +5,8 @@ import { useT } from '../lib/i18n/LanguageProvider';
 
 interface CartItemRowProps {
   item: CartItem;
-  onUpdateQuantity: (productId: string, delta: number) => void;
-  onUpdateNote: (productId: string, note: string) => void;
+  onUpdateQuantity: (lineId: string, delta: number) => void;
+  onUpdateNote: (lineId: string, note: string) => void;
 }
 
 export const CartItemRow: React.FC<CartItemRowProps> = React.memo(({
@@ -26,14 +26,14 @@ export const CartItemRow: React.FC<CartItemRowProps> = React.memo(({
         </div>
         <div className="flex items-center gap-2 bg-slate-100/80 rounded-xl p-1 border border-slate-200 shadow-inner shrink-0">
           <button
-            onClick={() => onUpdateQuantity(item.product.id, -1)}
+            onClick={() => onUpdateQuantity(item.lineId, -1)}
             className="w-8 h-8 rounded-lg bg-white text-slate-700 hover:bg-rose-500 hover:text-white active:scale-90 flex items-center justify-center font-semibold transition-all shadow-xs cursor-pointer"
           >
             <Minus className="w-4 h-4 stroke-[2.5]" />
           </button>
           <span className="text-sm font-bold w-5 text-center text-slate-900">{item.quantity}</span>
           <button
-            onClick={() => onUpdateQuantity(item.product.id, 1)}
+            onClick={() => onUpdateQuantity(item.lineId, 1)}
             className="w-8 h-8 rounded-lg bg-white text-slate-700 hover:bg-emerald-500 hover:text-white active:scale-90 flex items-center justify-center font-semibold transition-all shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -47,7 +47,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = React.memo(({
         data-compact
         placeholder={t('cart.kitchenNote')}
         value={item.note || ''}
-        onChange={(e) => onUpdateNote(item.product.id, e.target.value)}
+        onChange={(e) => onUpdateNote(item.lineId, e.target.value)}
         className="w-full text-[11px] font-normal text-slate-700 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-all"
       />
     </div>

@@ -1726,14 +1726,18 @@ export default function App() {
    * Yiqilsa bo'sh ro'yxat qaytadi: xarajatsiz hisobot chiqqani ma'qul,
    * chiqmagan hisobotdan ko'ra.
    */
-  const fetchCashForPeriod = useCallback(async (from: Date | null, to: Date | null): Promise<any[]> => {
+  const fetchCashForPeriod = useCallback(async (
+    from: Date | null,
+    to: Date | null,
+    approvalToken?: string,
+  ): Promise<any[]> => {
     try {
       const params = new URLSearchParams({ limit: '2000' });
       if (from) params.set('from', from.toISOString());
       if (to) params.set('to', to.toISOString());
       const res = await fetchWithTimeout(
         `${API_BASE_URL}/api/cash-entries?${params}`,
-        { cache: 'no-store', headers: getAuthHeaders() },
+        { cache: 'no-store', headers: getAuthHeaders(approvalToken) },
         REPORT_TIMEOUT_MS,
       );
       if (!res.ok) return [];
@@ -3024,18 +3028,27 @@ export default function App() {
         onSearchChange={setArchiveSearch}
         onSelectArchiveOrder={setSelectedArchiveOrder}
         onRefundOrder={handleRefundOrder}
-        onPrintPeriod={async (periodOrders, from, to) => {
-          const full = await fetchOrdersForPeriod(from, to, periodOrders);
-          // Kassadan olingan pul ham shu davr uchun. Hisobotda u tushumga
-          // qo'shilmaydi — alohida blokda chiqadi.
-          const spent = await fetchCashForPeriod(from, to);
-          setPeriodPrint({
-            orders: full,
-            cashEntries: spent,
-            from,
-            to,
-            printedBy: currentWaiter?.name || '',
-          });
+        onPrintPeriod={(periodOrders, from, to) => {
+          /*
+           * Hisobot RAHBAR hujjati: unda kassadan olingan pul ham bor, u esa
+           * ofitsiantga yopiq.
+           *
+           * Shuning uchun PIN shu yerda so'raladi. Ilgari hisobot PINsiz
+           * chiqarilar, xarajat so'rovi esa serverda 403 olib qaytardi va
+           * blok jimgina yo'qolardi — qog'ozda hech qanday belgi qolmasdi
+           * va hisobot to'g'ridek ko'rinardi.
+           */
+          requestAdminPin(async (approvalToken?: string) => {
+            const full = await fetchOrdersForPeriod(from, to, periodOrders);
+            const spent = await fetchCashForPeriod(from, to, approvalToken);
+            setPeriodPrint({
+              orders: full,
+              cashEntries: spent,
+              from,
+              to,
+              printedBy: currentWaiter?.name || '',
+            });
+          }, 'admin.pinPeriodReport');
         }}
         onClose={() => setShowArchiveModal(false)}
         onPrint={() => printReceiptOrFallback(selectedArchiveOrder)}

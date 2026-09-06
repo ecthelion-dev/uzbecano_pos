@@ -59,3 +59,19 @@ export function summariseCashReport(entries: any[]): CashReport {
 export function netAfterExpenses(revenue: number, report: CashReport): number {
   return Math.round(Number(revenue) || 0) - report.chiqim;
 }
+
+/**
+ * Xarajatlardan keyin kassada qolgan NAQD.
+ *
+ * Xarajat faqat naqd puldan olinadi — kassadan sut uchun pul chiqadi,
+ * kartadagi pul esa bankda turadi va unga tegib bo'lmaydi. Shuning uchun
+ * ayirish naqd satridan bajariladi.
+ *
+ * Ilgari hisobotda faqat umumiy ayirma turardi, ya'ni "qaysi puldan
+ * olindi" degan savol javobsiz qolardi: 273 000 dan 130 000 ayirilgani
+ * ko'rinar, lekin kartadagi 50 000 ga hech kim tegmaganini hisobotdan
+ * bilib bo'lmasdi.
+ */
+export function cashAfterExpenses(cashSales: number, report: CashReport): number {
+  return Math.round(Number(cashSales) || 0) - report.chiqim;
+}

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { DBOrder } from '../types';
 import { useT, useLocale } from '../lib/i18n/LanguageProvider';
 import { monthName } from '../lib/i18n/months';
-import { summariseCashReport, netAfterExpenses } from '../lib/cashReport';
+import { summariseCashReport, netAfterExpenses, cashAfterExpenses } from '../lib/cashReport';
 import type { Locale } from '../lib/i18n/locales';
 
 export interface PeriodPrintData {
@@ -266,6 +266,22 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
               <div className="pt-0.5 border-t border-dashed border-slate-400">
                 <TotalRow label={t('print.cashOutTotal')} value={`−${money(cash.chiqim)}`} strong />
               </div>
+            </div>
+
+            {/*
+              Ayirish NAQD satridan bajariladi: xarajat faqat naqd puldan
+              olinadi, kartadagi pul esa bankda turadi va unga tegib
+              bo'lmaydi. Ilgari bu yerda faqat umumiy ayirma turardi va
+              "qaysi puldan olindi" degan savol javobsiz qolardi.
+
+              Uchala raqam bir-biriga bog'liq: naqd qoldi + karta = jami.
+            */}
+            <div className="report-summary space-y-0.5 pt-1 border-t border-dashed border-slate-900">
+              <TotalRow
+                label={t('print.cashLeftAfter')}
+                value={money(cashAfterExpenses(report.cash, cash))}
+              />
+              <TotalRow label={t('print.cardUntouched')} value={money(report.card)} />
             </div>
 
             <TotalRow

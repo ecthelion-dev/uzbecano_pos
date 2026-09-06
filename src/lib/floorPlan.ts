@@ -5,10 +5,14 @@
  *
  *   1. Serverda ochiq chek bor — buyurtma yuborilgan, har qanday xodim
  *      unga taom qo'sha oladi.
- *   2. SHU qurilmada savat ochiq — kassir yozayotgan buyurtma.
- *   3. BOSHQA qurilmada savat ochiq — bu stolga bu yerdan yozib bo'lmaydi.
+ *   2. Shu qurilmada savat ochiq — kassir yozayotgan buyurtma.
+ *   3. BOSHQA xodim savat ochgan — bu stolga yozib bo'lmaydi.
  *
- * Uchinchisi qulflanadi. Aks holda ikkala qurilmadan ham buyurtma
+ * Qulf QURILMAGA emas, XODIMGA bog'langan. Ilgari qurilmaga bog'langan edi
+ * va buyurtmani boshlagan xodim o'z telefonidan o'sha stolni ochib
+ * bo'lmasdi: bitta odam ikkita qurilmada ikki xil odam bo'lib ko'rinardi.
+ *
+ * Boshqa xodimga esa qulf yopiq qoladi. Aks holda ikkalasidan ham buyurtma
  * yuborilganda stolda IKKITA ochiq chek paydo bo'ladi: kassa ularning
  * bittasini ko'rsatadi, ikkinchisi esa hech qachon yopilmay, ochiq stollar
  * orasida qolib ketadi.
@@ -20,8 +24,34 @@
 export interface TableHold {
   tableNumber: string;
   holder: string;
+  /** Xodim id si. Eski kassa yozgan belgida bo'lmasligi mumkin. */
+  holderId?: string;
   deviceId: string;
   total?: number;
+}
+
+export interface CurrentUser {
+  id?: string;
+  name?: string;
+}
+
+/**
+ * Belgi SHU xodimnikimi.
+ *
+ * Id bo'yicha solishtiriladi. Eski kassa yozgan belgida id bo'lmaydi va
+ * kassa ham uni bilmasligi mumkin — o'shanda ism bo'yicha solishtiriladi.
+ * Ism kamroq ishonchli, lekin qulfni butunlay ochib qo'yishdan yaxshiroq:
+ * eng yomon holatda bitta xodim o'z stoliga kira olmaydi, ikkita xodim
+ * bitta stolga yozib yubormaydi.
+ */
+function samePerson(hold: TableHold, me: CurrentUser): boolean {
+  const holdId = (hold.holderId || '').trim();
+  const myId = (me?.id || '').trim();
+  if (holdId && myId) return holdId === myId;
+
+  const holdName = (hold.holder || '').trim().toLocaleLowerCase();
+  const myName = (me?.name || '').trim().toLocaleLowerCase();
+  return !!holdName && holdName === myName;
 }
 
 export interface TableState {
@@ -42,9 +72,13 @@ export function tableState(input: {
   draftTotal: number;
   holds: TableHold[];
   deviceId: string;
+  /** Hozir kirgan xodim — qulf shunga qarab ochiladi. */
+  user: CurrentUser;
 }): TableState {
-  const { tableNumber, openOrderTotal, draftTotal, holds, deviceId } = input;
+  const { tableNumber, openOrderTotal, draftTotal, holds, deviceId, user } = input;
 
+  // Shu qurilmaning o'z belgisi hisobga olinmaydi: savat allaqachon shu
+  // yerda va uni ikkinchi marta sanashning ma'nosi yo'q.
   const elsewhere = (holds || []).find(
     (h) => h && h.deviceId !== deviceId && sameTable(h.tableNumber, tableNumber),
   );
@@ -63,8 +97,16 @@ export function tableState(input: {
   return {
     occupied: hasOpenOrder || hasOwnDraft || !!elsewhere,
     total,
-    // Ochiq chek yoki o'z savati bo'lsa qulf yo'q: birinchisida buyurtma
-    // allaqachon serverda, ikkinchisida kassir o'z ishini davom ettiradi.
-    heldBy: elsewhere && !hasOpenOrder && !hasOwnDraft ? elsewhere.holder || '' : undefined,
+    /*
+     * Qulf faqat BOSHQA xodimning savati uchun.
+     *
+     * Ochiq chek yoki shu qurilmadagi savat bo'lsa ham qulf yo'q:
+     * birinchisida buyurtma allaqachon serverda, ikkinchisida kassir o'z
+     * ishini davom ettiradi.
+     */
+    heldBy:
+      elsewhere && !hasOpenOrder && !hasOwnDraft && !samePerson(elsewhere, user)
+        ? elsewhere.holder || ''
+        : undefined,
   };
 }

@@ -3,12 +3,16 @@ import { tableState, TableHold } from './floorPlan';
 
 const OTHER: TableHold = {
   tableNumber: 'Bar 1',
-  holder: 'Dilsora',
+  holder: 'Ravshan',
+  holderId: 'w_ravshan',
   deviceId: 'telefon-0002',
   total: 45000,
 };
 
 const ME = 'kassa-desktop-0001';
+
+const RAVSHAN = { id: 'w_ravshan', name: 'Ravshan' };
+const DILSORA = { id: 'w_dilsora', name: 'Dilsora' };
 
 const state = (over: Partial<Parameters<typeof tableState>[0]> = {}) =>
   tableState({
@@ -16,6 +20,8 @@ const state = (over: Partial<Parameters<typeof tableState>[0]> = {}) =>
     draftTotal: 0,
     holds: [],
     deviceId: ME,
+    // Sukut bo'yicha stolni BOSHQA xodim ushlab turadi.
+    user: DILSORA,
     ...over,
   });
 
@@ -41,7 +47,7 @@ describe('boshqa qurilmadagi savat', () => {
     // va ulardan biri hech qachon yopilmaydi.
     const s = state({ holds: [OTHER] });
     expect(s.occupied).toBe(true);
-    expect(s.heldBy).toBe('Dilsora');
+    expect(s.heldBy).toBe('Ravshan');
   });
 
   it('summa o‘sha qurilmadan olinadi', () => {
@@ -51,7 +57,7 @@ describe('boshqa qurilmadagi savat', () => {
 
   it('stol nomi katta-kichik harf va bo‘shliqdan qat‘i nazar mos keladi', () => {
     const s = state({ holds: [{ ...OTHER, tableNumber: '  bar 1 ' }] });
-    expect(s.heldBy).toBe('Dilsora');
+    expect(s.heldBy).toBe('Ravshan');
   });
 
   it('boshqa stolning belgisi ta’sir qilmaydi', () => {
@@ -60,7 +66,7 @@ describe('boshqa qurilmadagi savat', () => {
 });
 
 describe('o‘z belgim', () => {
-  const mine: TableHold = { ...OTHER, deviceId: ME, holder: 'Ravshan' };
+  const mine: TableHold = { ...OTHER, deviceId: ME, holder: 'Dilsora', holderId: 'w_dilsora' };
 
   it('qulflamaydi — bu shu qurilmaning o‘z savati', () => {
     expect(state({ holds: [mine], draftTotal: 30000 }).heldBy).toBeUndefined();
@@ -100,7 +106,7 @@ describe('buzuq belgi', () => {
   it('summasiz belgi nol beradi, qulf esa ishlaydi', () => {
     const s = state({ holds: [{ ...OTHER, total: undefined }] });
     expect(s.total).toBe(0);
-    expect(s.heldBy).toBe('Dilsora');
+    expect(s.heldBy).toBe('Ravshan');
   });
 
   it('nomsiz egasi ham qulflaydi', () => {
@@ -108,5 +114,50 @@ describe('buzuq belgi', () => {
     const s = state({ holds: [{ ...OTHER, holder: '' }] });
     expect(s.heldBy).toBe('');
     expect(s.occupied).toBe(true);
+  });
+});
+
+describe('qulf QURILMAGA emas, XODIMGA bog‘langan', () => {
+  it('stolni band qilgan xodim uni boshqa qurilmadan ocha oladi', () => {
+    // Ravshan desktopda buyurtma boshladi va telefoniga o'tdi. Ilgari qulf
+    // qurilma bo'yicha ishlagani uchun u o'z stoliga kira olmasdi.
+    const s = state({ holds: [OTHER], user: RAVSHAN });
+    expect(s.heldBy).toBeUndefined();
+    // Stol baribir band ko'rinadi — buyurtma yig'ilayapti.
+    expect(s.occupied).toBe(true);
+    expect(s.total).toBe(45000);
+  });
+
+  it('boshqa xodim hisobidan kirilsa qulf yopiq qoladi', () => {
+    expect(state({ holds: [OTHER], user: DILSORA }).heldBy).toBe('Ravshan');
+  });
+
+  it('id bo‘lmasa ism bo‘yicha solishtiriladi', () => {
+    // Eski kassa yozgan belgida id yo'q. Ism kamroq ishonchli, lekin qulfni
+    // butunlay ochib qo'yishdan yaxshiroq.
+    const legacy: TableHold = { ...OTHER, holderId: undefined };
+    expect(state({ holds: [legacy], user: { name: 'ravshan' } }).heldBy).toBeUndefined();
+    expect(state({ holds: [legacy], user: { name: 'Dilsora' } }).heldBy).toBe('Ravshan');
+  });
+
+  it('id lar mos bo‘lsa ism farqi ahamiyatsiz', () => {
+    // Xodim nomi o'zgartirilgan bo'lishi mumkin.
+    const s = state({ holds: [OTHER], user: { id: 'w_ravshan', name: 'Ravshan Yangi' } });
+    expect(s.heldBy).toBeUndefined();
+  });
+
+  it('kim kirgani noma’lum bo‘lsa qulf yopiq qoladi', () => {
+    // Ochib qo'yish xavfliroq: ikkita xodim bitta stolga yozib yuborardi.
+    expect(state({ holds: [OTHER], user: {} }).heldBy).toBe('Ravshan');
+  });
+
+  it('ikki tomonda ham ism yo‘q bo‘lsa qulf OCHILMAYDI', () => {
+    /*
+     * Ikkita bo'sh ism bir-biriga teng, ya'ni oddiy solishtiruv ularni
+     * "bitta odam" deb hisoblardi va qulfni ochib yuborardi. Bu eng yomon
+     * holat: hech kim aniqlanmagan, lekin stol ochiq.
+     */
+    const anonymous: TableHold = { ...OTHER, holder: '', holderId: undefined };
+    expect(state({ holds: [anonymous], user: {} }).heldBy).toBe('');
   });
 });

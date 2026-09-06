@@ -225,7 +225,9 @@ export default function App() {
    * stol telefondagi ilovada bo'sh turardi va ikki kishi bitta stolga
    * buyurtma yozib yuborishi mumkin edi.
    */
-  const [tableHolds, setTableHolds] = useState<{ tableNumber: string; holder: string; deviceId: string; total?: number }[]>([]);
+  const [tableHolds, setTableHolds] = useState<
+    { tableNumber: string; holder: string; holderId?: string; deviceId: string; total?: number }[]
+  >([]);
   /** Shu qurilmaning nomi — o'z belgisini boshqalarnikidan ajratish uchun. */
   const deviceId = useMemo(() => getDeviceId(), []);
   /*
@@ -1350,6 +1352,7 @@ export default function App() {
         draftTotal: draftCart.length > 0 ? draftTotal : 0,
         holds: tableHolds,
         deviceId,
+        user: { id: currentWaiter?.id, name: currentWaiter?.name },
       });
       const hasCall = waiterCalls.some(wn => (wn || '').trim().toLowerCase() === numStr.trim().toLowerCase());
 
@@ -1363,7 +1366,7 @@ export default function App() {
         heldBy: state.heldBy,
       };
     });
-  }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent, tableHolds, deviceId]);
+  }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent, tableHolds, deviceId, currentWaiter]);
 
   /* Zonalar kafening o'z stollaridan olinadi. Ilgari bu ro'yxat kodda
      qattiq yozilgan edi ("Asosiy Zal", "VIP Kabinalar"...), shuning uchun

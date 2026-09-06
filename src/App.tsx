@@ -1650,7 +1650,16 @@ export default function App() {
     if (!from && !to) return fallback;
     try {
       const cafeId = getActiveCafeId();
-      const params = new URLSearchParams({ cafeId, limit: '2000' });
+      /*
+       * Oraliq chekning YOPILGAN vaqti bo'yicha o'lchanadi.
+       *
+       * Oraliqning o'zi ham yopilish vaqtlaridan yasaladi (`periodFrom` —
+       * eng erta yopilgan chek). Server esa ochilish vaqti bo'yicha
+       * filtrlardi, chek esa yopilishidan oldin ochiladi — ya'ni oraliqning
+       * birinchi cheki har safar hisobotdan tushib qolardi va hisobot
+       * jimgina kam summa ko'rsatardi.
+       */
+      const params = new URLSearchParams({ cafeId, limit: '2000', by: 'closed' });
       if (from) params.set('from', from.toISOString());
       if (to) params.set('to', to.toISOString());
       const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders?${params}`, { cache: 'no-store', headers: getAuthHeaders() }, REPORT_TIMEOUT_MS);

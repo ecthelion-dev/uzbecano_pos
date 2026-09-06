@@ -96,6 +96,7 @@ export const en: Record<TranslationKey, string> = {
   // ── Tables ──────────────────────────────────────────────────────────
   'table.busy': 'BUSY',
   'table.free': 'FREE',
+  'table.heldBy': '{name} is taking an order at this table',
   'table.waiterCall': 'Waiter call',
   'table.moveTitle': 'Move / merge table',
   'table.selectTable': 'Select a table...',

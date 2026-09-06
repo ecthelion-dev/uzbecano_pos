@@ -89,6 +89,7 @@ import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingO
 import { splitPayment } from './lib/payment';
 import { cashCategoryLabel, dedupeCategories } from './lib/cashCategories';
 import { getDeviceId } from './lib/deviceId';
+import { tableState } from './lib/floorPlan';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -224,7 +225,7 @@ export default function App() {
    * stol telefondagi ilovada bo'sh turardi va ikki kishi bitta stolga
    * buyurtma yozib yuborishi mumkin edi.
    */
-  const [tableHolds, setTableHolds] = useState<{ tableNumber: string; holder: string; deviceId: string }[]>([]);
+  const [tableHolds, setTableHolds] = useState<{ tableNumber: string; holder: string; deviceId: string; total?: number }[]>([]);
   /** Shu qurilmaning nomi — o'z belgisini boshqalarnikidan ajratish uchun. */
   const deviceId = useMemo(() => getDeviceId(), []);
   /*
@@ -1192,9 +1193,16 @@ export default function App() {
   useEffect(() => {
     if (!currentWaiter || isOfflineMode) return;
 
-    const busy = Object.entries(tableCarts)
-      .filter(([, items]) => (items?.length ?? 0) > 0)
-      .map(([table]) => table);
+    const open = Object.entries(tableCarts).filter(([, items]) => (items?.length ?? 0) > 0);
+    const busy = open.map(([table]) => table);
+
+    // Summani savat turgan qurilmaning O'ZI hisoblaydi: boshqa tomonda uni
+    // taxmin qilib bo'lmaydi va "Jami: 0" bo'sh stoldek ko'rinardi.
+    const totals: Record<string, number> = {};
+    for (const [table, items] of open) {
+      const sub = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+      totals[table] = sub + Math.round((sub * serviceFeePercent) / 100);
+    }
 
     let cancelled = false;
 
@@ -1203,7 +1211,7 @@ export default function App() {
         await fetchWithTimeout(`${API_BASE_URL}/api/table-holds`, {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ deviceId, tables: busy }),
+          body: JSON.stringify({ deviceId, tables: busy, totals }),
         });
       } catch {
         // Yetib bormadi — belgi eskiradi va stol bo'shaydi. Bu savatning
@@ -1219,7 +1227,7 @@ export default function App() {
 
     const interval = setInterval(() => { if (!cancelled) void report(); }, 45000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [tableCarts, currentWaiter, isOfflineMode, deviceId, getAuthHeaders]);
+  }, [tableCarts, currentWaiter, isOfflineMode, deviceId, getAuthHeaders, serviceFeePercent]);
 
   // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, ESC: Close)
   useEffect(() => {
@@ -1334,24 +1342,25 @@ export default function App() {
       // hisoblanishi kerak, disk esa React ga hech nima demaydi.
       const draftTotal = draftSubtotal + Math.round((draftSubtotal * serviceFeePercent) / 100);
 
-      const total = activeOrder ? activeOrder.total : draftTotal;
-      // Boshqa qurilmadagi savat ham stolni band qiladi. Summasi ko'rinmaydi:
-      // u o'sha qurilmada, va taxmin qilib ko'rsatgandan ko'ra ko'rsatmagan
-      // ma'qul.
-      const heldElsewhere = tableHolds.some(
-        (h) => h.deviceId !== deviceId &&
-          (h.tableNumber || '').trim().toLowerCase() === numStr.trim().toLowerCase(),
-      );
-      const isOccupied = activeOrder || draftCart.length > 0 || heldElsewhere;
+      // Qoidalar lib/floorPlan.ts da: qaysi holatda stol band, qaysi
+      // holatda qulflangan va summa qayerdan olinadi.
+      const state = tableState({
+        tableNumber: numStr,
+        openOrderTotal: activeOrder ? activeOrder.total : undefined,
+        draftTotal: draftCart.length > 0 ? draftTotal : 0,
+        holds: tableHolds,
+        deviceId,
+      });
       const hasCall = waiterCalls.some(wn => (wn || '').trim().toLowerCase() === numStr.trim().toLowerCase());
 
       return {
         id: `table_${i + 1}`,
         number: numStr,
         area: def.area,
-        status: (isOccupied ? 'band' : 'bosh') as 'band' | 'bosh',
-        total: total,
+        status: (state.occupied ? 'band' : 'bosh') as 'band' | 'bosh',
+        total: state.total,
         hasWaiterCall: hasCall,
+        heldBy: state.heldBy,
       };
     });
   }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent, tableHolds, deviceId]);
@@ -1375,6 +1384,24 @@ export default function App() {
   }, [tables, activeArea]);
 
   const handleSelectTable = useCallback((tableNumber: string) => {
+    /*
+     * Buyurtma boshqa qurilmada yig'ilayotgan stolni ochib bo'lmaydi.
+     *
+     * Ilgari ochilardi va shu kassada ikkinchi savat boshlanardi. Ikkalasi
+     * ham yuborilganda stolda IKKITA ochiq chek paydo bo'lardi: kassa
+     * ularning bittasini ko'rsatar, ikkinchisi esa hech qachon yopilmay,
+     * ochiq stollar orasida qolib ketardi.
+     *
+     * Belgi ikki daqiqada eskiradi, ya'ni boshqa qurilma ishni tashlab
+     * ketsa, stol o'zi ochiladi.
+     */
+    const locked = tables.find((tb) => tb.number === tableNumber)?.heldBy;
+    if (locked) {
+      setToastMessage(t('table.heldBy', { name: locked }));
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
     setSelectedArchiveOrder(null);
     setSelectedTable(tableNumber);
     setActiveTab('menyu');
@@ -1388,7 +1415,7 @@ export default function App() {
       }).catch(() => {});
       setWaiterCalls(prev => prev.filter(t => (t || '').trim().toLowerCase() !== tableNumber.trim().toLowerCase()));
     }
-  }, [getActiveCafeId, getAuthHeaders]);
+  }, [getActiveCafeId, getAuthHeaders, tables, t]);
 
   const handleSelectCategory = useCallback((categoryName: string) => {
     setSelectedCategoryName(categoryName);

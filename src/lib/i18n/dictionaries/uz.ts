@@ -109,6 +109,7 @@ export const uz = {
   // ── Stollar ─────────────────────────────────────────────────────────
   'table.busy': 'BAND',
   'table.free': 'BOSH',
+  'table.heldBy': '{name} shu stolda buyurtma yig‘yapti',
   'table.waiterCall': 'Ofitsiant chaqiruvi',
   'table.moveTitle': "Stolni Ko'chirish / Birlashtirish",
   'table.selectTable': 'Stolni tanlang...',

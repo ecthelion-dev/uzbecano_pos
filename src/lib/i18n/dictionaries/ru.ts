@@ -96,6 +96,7 @@ export const ru: Record<TranslationKey, string> = {
   // ── Столы ───────────────────────────────────────────────────────────
   'table.busy': 'ЗАНЯТ',
   'table.free': 'СВОБОДЕН',
+  'table.heldBy': '{name} принимает заказ за этим столом',
   'table.waiterCall': 'Вызов официанта',
   'table.moveTitle': 'Перенос / объединение стола',
   'table.selectTable': 'Выберите стол...',

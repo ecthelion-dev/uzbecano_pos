@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Lock } from 'lucide-react';
 import { useT } from '../lib/i18n/LanguageProvider';
 
 export interface TableItemData {
@@ -9,6 +9,14 @@ export interface TableItemData {
   status: 'band' | 'bosh';
   total: number;
   hasWaiterCall?: boolean;
+  /**
+   * Buyurtma BOSHQA qurilmada yig'ilayotgan bo'lsa — kim yig'ayotgani.
+   *
+   * Bunday stolni ochib bo'lmaydi: ikkinchi savat ham yuborilsa, stolda
+   * ikkita ochiq chek paydo bo'ladi va ulardan biri hech qachon yopilmay
+   * qoladi — kassada esa bittasigina ko'rinadi.
+   */
+  heldBy?: string;
 }
 
 interface TableCardProps {
@@ -35,6 +43,14 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
       }`}
     >
       <div className="flex justify-between items-center gap-1 min-w-0">
+        {table.heldBy && (
+          <span
+            className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-slate-700 text-slate-200 flex items-center justify-center shadow-sm"
+            title={t('table.heldBy', { name: table.heldBy })}
+          >
+            <Lock className="w-3 h-3" />
+          </span>
+        )}
         <span className={`font-bold text-xs sm:text-sm md:text-base tracking-tight truncate whitespace-nowrap ${table.status === 'band' ? 'text-white' : 'text-slate-900'}`}>
           {table.number}
         </span>
@@ -65,7 +81,9 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
 
       {table.status === 'band' ? (
         <div className="bg-[#2A2D2F] p-1.5 sm:p-2 rounded-xl border border-[#3A3E41] flex items-center justify-between gap-1 min-w-0">
-          <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium shrink-0">{t('common.total')}</span>
+          <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium shrink-0 truncate">
+            {table.heldBy || t('common.total')}
+          </span>
           {/* Valyuta nomi ataylab yozilmaydi: kartochka tor va "so'm" summani
               qirqib, "15,000 s..." qilib qo'yardi — ya'ni birlik uchun eng
               kerakli narsa, raqamning o'zi yo'qolardi. */}

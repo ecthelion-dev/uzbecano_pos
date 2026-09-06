@@ -31,7 +31,7 @@ export interface PulseData {
    *
    * Eski serverda bu maydon yo'q, shuning uchun bo'sh ro'yxatga tushadi.
    */
-  tableHolds: { tableNumber: string; holder: string; deviceId: string }[];
+  tableHolds: { tableNumber: string; holder: string; deviceId: string; total?: number }[];
 }
 
 export type PulseResult =

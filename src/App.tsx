@@ -88,6 +88,7 @@ import { Wallet } from 'lucide-react';
 import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
 import { splitPayment } from './lib/payment';
 import { cashCategoryLabel, dedupeCategories } from './lib/cashCategories';
+import { getDeviceId } from './lib/deviceId';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -215,6 +216,17 @@ export default function App() {
   const [showCashDrawerModal, setShowCashDrawerModal] = useState<boolean>(false);
   /** Ilgari ishlatilgan turkum nomlari — kassa oynasida tugma bo'lib chiqadi. */
   const [knownCashCategories, setKnownCashCategories] = useState<string[]>([]);
+  /**
+   * Boshqa qurilmalarda buyurtma yig'ilayotgan stollar.
+   *
+   * Savat serverga chiqmaydi — u "Tasdiqlash" bosilgunga qadar shu
+   * qurilmaning diskida turadi. Shuning uchun desktop kassada band ko'ringan
+   * stol telefondagi ilovada bo'sh turardi va ikki kishi bitta stolga
+   * buyurtma yozib yuborishi mumkin edi.
+   */
+  const [tableHolds, setTableHolds] = useState<{ tableNumber: string; holder: string; deviceId: string }[]>([]);
+  /** Shu qurilmaning nomi — o'z belgisini boshqalarnikidan ajratish uchun. */
+  const deviceId = useMemo(() => getDeviceId(), []);
   /*
    * Xarajat bo'limi rahbar tasdig'i bilan ochiladi va tasdiq tokeni oyna
    * yopilguncha saqlanadi: o'qish ham, yozish ham server tomonda shu
@@ -1137,6 +1149,7 @@ export default function App() {
       if (result.kind === 'failed') return;
 
       applyActiveOrders(result.data.orders as DBOrder[]);
+      setTableHolds(result.data.tableHolds);
       // Chaqiruv ovozi ekran oldida turgan odam uchun — yig'ilgan oynada
       // chalinsa, u shunchaki e'tiborsiz qoladi.
       if (visible) applyWaiterCalls(result.data.waiterCalls);
@@ -1165,6 +1178,48 @@ export default function App() {
     };
   }, [currentWaiter, fetchOrders, fetchWaiterCalls, hasLiveWork, getAuthHeaders,
       applyActiveOrders, applyWaiterCalls, drainPrintJobs]);
+
+  /*
+   * Kassa qaysi stollarda buyurtma yig'ayotganini serverga aytadi.
+   *
+   * So'rov TO'LIQ ro'yxat yuboradi, o'zgarishni emas: shuning uchun stol
+   * savatdan chiqqanda darhol bo'shaydi va "bo'shatishni unutish" degan
+   * xato imkoni yo'q.
+   *
+   * Belgi serverda ikki daqiqada eskiradi, shuning uchun savat turgan
+   * ekan, muntazam takrorlanadi — ilova yopilib qolsa stol o'zi bo'shaydi.
+   */
+  useEffect(() => {
+    if (!currentWaiter || isOfflineMode) return;
+
+    const busy = Object.entries(tableCarts)
+      .filter(([, items]) => (items?.length ?? 0) > 0)
+      .map(([table]) => table);
+
+    let cancelled = false;
+
+    const report = async () => {
+      try {
+        await fetchWithTimeout(`${API_BASE_URL}/api/table-holds`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ deviceId, tables: busy }),
+        });
+      } catch {
+        // Yetib bormadi — belgi eskiradi va stol bo'shaydi. Bu savatning
+        // o'ziga ta'sir qilmaydi: u shu qurilmada joyida turaveradi.
+      }
+    };
+
+    void report();
+
+    // Savat bo'sh bo'lsa takrorlashning hojati yo'q: bir marta yuborilgan
+    // bo'sh ro'yxat serverdagi belgilarni allaqachon o'chirgan.
+    if (busy.length === 0) return;
+
+    const interval = setInterval(() => { if (!cancelled) void report(); }, 45000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [tableCarts, currentWaiter, isOfflineMode, deviceId, getAuthHeaders]);
 
   // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, ESC: Close)
   useEffect(() => {
@@ -1280,7 +1335,14 @@ export default function App() {
       const draftTotal = draftSubtotal + Math.round((draftSubtotal * serviceFeePercent) / 100);
 
       const total = activeOrder ? activeOrder.total : draftTotal;
-      const isOccupied = activeOrder || draftCart.length > 0;
+      // Boshqa qurilmadagi savat ham stolni band qiladi. Summasi ko'rinmaydi:
+      // u o'sha qurilmada, va taxmin qilib ko'rsatgandan ko'ra ko'rsatmagan
+      // ma'qul.
+      const heldElsewhere = tableHolds.some(
+        (h) => h.deviceId !== deviceId &&
+          (h.tableNumber || '').trim().toLowerCase() === numStr.trim().toLowerCase(),
+      );
+      const isOccupied = activeOrder || draftCart.length > 0 || heldElsewhere;
       const hasCall = waiterCalls.some(wn => (wn || '').trim().toLowerCase() === numStr.trim().toLowerCase());
 
       return {
@@ -1292,7 +1354,7 @@ export default function App() {
         hasWaiterCall: hasCall,
       };
     });
-  }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent]);
+  }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent, tableHolds, deviceId]);
 
   /* Zonalar kafening o'z stollaridan olinadi. Ilgari bu ro'yxat kodda
      qattiq yozilgan edi ("Asosiy Zal", "VIP Kabinalar"...), shuning uchun

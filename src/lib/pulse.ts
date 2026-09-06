@@ -22,6 +22,16 @@ export interface PulseData {
   orders: any[];
   waiterCalls: { id: string; tableNumber: string; createdAt: string }[];
   printJobs: PrintJob[];
+  /**
+   * Boshqa qurilmalarda buyurtma yig'ilayotgan stollar.
+   *
+   * Savat serverga chiqmaydi — u "Tasdiqlash" bosilgunga qadar o'sha
+   * qurilmaning diskida turadi. Bu belgilarsiz desktop kassada band
+   * ko'ringan stol telefondagi ilovada bo'sh turardi.
+   *
+   * Eski serverda bu maydon yo'q, shuning uchun bo'sh ro'yxatga tushadi.
+   */
+  tableHolds: { tableNumber: string; holder: string; deviceId: string }[];
 }
 
 export type PulseResult =
@@ -83,6 +93,9 @@ export async function fetchPulse(
         orders: data.orders,
         waiterCalls: Array.isArray(data.waiterCalls) ? data.waiterCalls : [],
         printJobs: Array.isArray(data.printJobs) ? data.printJobs : [],
+        // Eski serverda bu maydon yo'q — bo'sh ro'yxat zal ko'rinishini
+        // buzmaydi, shunchaki savat belgilari ko'rinmaydi.
+        tableHolds: Array.isArray(data.tableHolds) ? data.tableHolds : [],
       },
     };
   } catch {

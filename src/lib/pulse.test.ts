@@ -126,3 +126,30 @@ describe('server eski bo‘lsa', () => {
     expect((await fetchPulse(headers, false)).kind).toBe('failed');
   });
 });
+
+describe('stol belgilari', () => {
+  it('javobdagi belgilarni beradi', async () => {
+    mockFetch(() => okRes('"h1"', {
+      orders: [],
+      waiterCalls: [],
+      printJobs: [],
+      tableHolds: [{ tableNumber: 'Bar 3', holder: 'Ravshan', deviceId: 'd1' }],
+    }));
+
+    const result = await fetchPulse({}, false);
+    expect(result.kind).toBe('fresh');
+    if (result.kind === 'fresh') {
+      expect(result.data.tableHolds).toEqual([
+        { tableNumber: 'Bar 3', holder: 'Ravshan', deviceId: 'd1' },
+      ]);
+    }
+  });
+
+  it('eski serverda bo‘sh ro‘yxat — zal ko‘rinishi buzilmaydi', async () => {
+    // Kassa serverdan keyin yangilanadi: oraliqda maydon umuman bo'lmaydi.
+    mockFetch(() => okRes('"h2"', { orders: [], waiterCalls: [], printJobs: [] }));
+
+    const result = await fetchPulse({}, false);
+    if (result.kind === 'fresh') expect(result.data.tableHolds).toEqual([]);
+  });
+});

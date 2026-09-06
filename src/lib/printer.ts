@@ -836,8 +836,17 @@ function buildReceiptLayout(
     card: t('print.cardUpper'),
     aralash: t('print.mixedUpper'),
   };
-  const payMethodStr = paymentLabels[String(order.paymentMethod)] || t('print.cashUpper');
-  metaRow(t('print.payMethod'), payMethodStr);
+  // To'lov turi FAQAT ma'lum bo'lganda bosiladi.
+  //
+  // Ilgari noma'lum qiymat "NAQD" ga tushardi. To'lanmagan hisob ham shu
+  // yo'ldan chiqadi — mijoz hisobni so'raganda — va qog'ozda "TO'LOV TURI:
+  // NAQD" turardi. Mijoz karta bilan to'lasa, qo'lidagi chek yolg'on
+  // gapirardi: bazada aralash, qog'ozda naqd.
+  //
+  // To'lanmagan hisobda bu satr umuman bo'lmasligi kerak: hali hech kim
+  // hech narsa to'lamagan, ya'ni aytadigan gap yo'q.
+  const payMethodStr = paymentLabels[String(order.paymentMethod)];
+  if (payMethodStr) metaRow(t('print.payMethod'), payMethodStr);
 
   row('- '.repeat(Math.floor(cols / 2)).trimEnd());
   row();

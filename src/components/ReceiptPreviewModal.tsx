@@ -48,7 +48,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   subtotal,
   discountPercent = 0,
   discountAmount = 0,
-  paymentMethod = 'naqd',
+  paymentMethod,
   cashAmount,
   cardAmount,
   serviceFee,
@@ -68,7 +68,8 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   const payLabel =
     paymentMethod === 'karta' ? t('common.card')
     : paymentMethod === 'aralash' ? t('common.mixed')
-    : t('common.cash');
+    : paymentMethod ? t('common.cash')
+    : '';
 
   const combinedItems = useMemo(() => [
     ...activeTableOrderItems,
@@ -108,9 +109,15 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
           <div className="flex justify-between items-center text-xs font-semibold text-slate-800 border-b border-dashed border-slate-400 pb-2">
             <span className="font-bold text-sm">{selectedTable}</span>
-            <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold text-xs uppercase">
-              {payLabel} • {t('archive.paid')}
-            </span>
+            {/*
+              "TO'LANDI" belgisi faqat haqiqatan to'langanda. To'lovdan oldin
+              chiqarilgan hisobda ham "NAQD • TO'LANDI" yozilib turardi.
+            */}
+            {payLabel ? (
+              <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold text-xs uppercase">
+                {payLabel} • {t('archive.paid')}
+              </span>
+            ) : <span />}
             <span>{new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
 
@@ -157,18 +164,23 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               <span>{t('archive.totalPaid')}</span>
               <span className="text-[#0F172A] text-lg">{grandTotal.toLocaleString()} {t('common.currency')}</span>
             </div>
+            {/*
+              To'lov turi faqat ma'lum bo'lganda ko'rsatiladi. Mijoz hisobni
+              to'lashdan OLDIN so'raganda hech qanday tur yo'q — o'shanda bu
+              yerda "NAQD" turardi va u shunchaki taxmin edi.
+            */}
             {paymentMethod === 'aralash' ? (
               <>
                 <div className="flex justify-between text-slate-700">
                   <span className="flex items-center gap-1"><Banknote className="w-3.5 h-3.5" /> {t('common.cashLabel')}</span>
-                  <span className="font-semibold">{(cashAmount ?? Math.round(grandTotal / 2)).toLocaleString()} {t('common.currency')}</span>
+                  <span className="font-semibold">{(cashAmount ?? 0).toLocaleString()} {t('common.currency')}</span>
                 </div>
                 <div className="flex justify-between text-slate-700">
                   <span className="flex items-center gap-1"><CreditCard className="w-3.5 h-3.5" /> {t('common.cardLabel')}</span>
-                  <span className="font-semibold">{(cardAmount ?? grandTotal - Math.round(grandTotal / 2)).toLocaleString()} {t('common.currency')}</span>
+                  <span className="font-semibold">{(cardAmount ?? 0).toLocaleString()} {t('common.currency')}</span>
                 </div>
               </>
-            ) : (
+            ) : paymentMethod ? (
               <div className="flex justify-between text-slate-700">
                 <span>{t('print.payMethod')}:</span>
                 <span className="font-semibold uppercase flex items-center gap-1">
@@ -177,7 +189,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                     : <><Banknote className="w-3.5 h-3.5" /> {t('common.cash')}</>}
                 </span>
               </div>
-            )}
+            ) : null}
           </div>
 
           <div className="text-center pt-2 text-xs text-slate-500 font-sans">

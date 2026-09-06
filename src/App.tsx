@@ -223,9 +223,6 @@ export default function App() {
     }
   });
   const [discountPercent, setDiscountPercent] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<'naqd' | 'karta' | 'aralash'>('naqd');
-  const [customCashAmount, setCustomCashAmount] = useState<string>('');
-  const [customCardAmount, setCustomCardAmount] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
   const [adminPinAction, setAdminPinAction] = useState<((approvalToken?: string) => void) | null>(null);
@@ -329,9 +326,6 @@ export default function App() {
     setAuthToken(null);
     setTableCarts({});
     setDiscountPercent(0);
-    setCustomCashAmount('');
-    setCustomCardAmount('');
-    setPaymentMethod('naqd');
   }, [getActiveCafeId]);
 
   // Chek logotipini oldindan dekodlab qo'yamiz: chek yig'ilishi sinxron, ya'ni
@@ -1965,57 +1959,6 @@ export default function App() {
     }
   }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, serviceFeePercent, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse]);
 
-  const handlePrint = useCallback(async () => {
-    const allItems = [
-      ...activeTableOrderItems,
-      ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note || '' }))
-    ];
-    const cashAmt = paymentMethod === 'aralash'
-      ? (customCashAmount === '' ? Math.round(grandTotal / 2) : Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0)))
-      : paymentMethod === 'naqd' ? grandTotal : 0;
-    const cardAmt = paymentMethod === 'aralash'
-      ? Math.max(0, grandTotal - cashAmt)
-      : paymentMethod === 'karta' ? grandTotal : 0;
-
-    const receiptData = {
-      shopName: connectedCafeName || 'ORDERPLUS RESTORAN',
-      shopLogo: connectedCafeLogo || '',
-      shopAddress: connectedCafeAddress || '',
-      shopPhone: connectedCafePhone ? `Tel: ${connectedCafePhone}` : '',
-      waiterName: currentWaiter?.name || '',
-      tableName: selectedTable,
-      paymentMethod,
-      time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
-      items: allItems,
-      subtotal,
-      discountPercent,
-      discountAmount,
-      serviceFeePercent,
-      serviceFee,
-      grandTotal,
-      cashAmount: cashAmt,
-      cardAmount: cardAmt,
-    };
-
-    // Avval printerga to'g'ridan-to'g'ri, bo'lmasa pastdagi yashirin
-    // ThermalPrintArea brauzer orqali chop etiladi.
-    printReceiptOrFallback({
-      id: activeTableOrder?.id || selectedTable,
-      dailyNumber: activeTableOrder?.dailyNumber,
-      createdAt: new Date().toISOString(),
-      tableNumber: selectedTable,
-      waiterName: currentWaiter?.name || '',
-      items: allItems,
-      subtotal,
-      discount: discountAmount,
-      serviceFee,
-      total: grandTotal,
-      paymentMethod,
-      cashAmount: cashAmt,
-      cardAmount: cardAmt,
-    });
-  }, [activeTableOrderItems, cart, paymentMethod, customCashAmount, grandTotal, currentWaiter, selectedTable, subtotal, discountPercent, discountAmount, serviceFeePercent, serviceFee, activeTableOrder, printReceiptOrFallback]);
-
   const handleAddCashTransaction = useCallback((type: 'kirim' | 'chiqim', amount: number, note: string) => {
     const newTx: CashTransaction = {
       id: `tx_${Date.now()}`,
@@ -2856,9 +2799,6 @@ export default function App() {
         subtotal={subtotal}
         discountPercent={discountPercent}
         discountAmount={discountAmount}
-        paymentMethod={paymentMethod}
-        cashAmount={paymentMethod === 'aralash' ? Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0)) : paymentMethod === 'naqd' ? grandTotal : 0}
-        cardAmount={paymentMethod === 'aralash' ? Math.max(0, Number(customCardAmount) || 0) : paymentMethod === 'karta' ? grandTotal : 0}
         serviceFee={serviceFee}
         grandTotal={grandTotal}
         cafeName={connectedCafeName}
@@ -2878,9 +2818,8 @@ export default function App() {
           discount: discountAmount,
           serviceFee,
           total: grandTotal,
-          paymentMethod,
-          cashAmount: paymentMethod === 'aralash' ? Math.min(grandTotal, Math.max(0, Number(customCashAmount) || 0)) : paymentMethod === 'naqd' ? grandTotal : 0,
-          cardAmount: paymentMethod === 'aralash' ? Math.max(0, Number(customCardAmount) || 0) : paymentMethod === 'karta' ? grandTotal : 0,
+          // To'lov turi ATAYLAB berilmayapti: bu stol hali yopilmagan va
+          // mijoz hech narsa to'lamagan. Chek uni bosmaydi.
         })}
       />
 
@@ -2980,12 +2919,7 @@ export default function App() {
            * Holatga yozib, keyin chaqirsak, funksiya hali eski qiymatni
            * ko'rardi — React holatni darhol yangilamaydi va chek noto'g'ri
            * summa bilan chiqardi.
-           *
-           * Holat baribir yangilanadi: uni chek ko'rinishi o'qiydi.
            */
-          setPaymentMethod(splitPayment(grandTotal, cash).method);
-          setCustomCashAmount(String(cash));
-          setCustomCardAmount(String(card));
           handleCloseTable(selectedTable, true, { cash, card });
         }}
         onClose={() => setShowPaymentModal(false)}

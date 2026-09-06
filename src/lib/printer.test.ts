@@ -129,6 +129,53 @@ describe('kassa cheki (ESC/POS)', () => {
   });
 });
 
+describe("to'lov turi", () => {
+  /*
+   * Chek to'lov turini O'YLAB TOPMASLIGI kerak.
+   *
+   * Ilgari noma'lum qiymat "NAQD" ga tushardi. Mijoz hisobni to'lashdan
+   * oldin so'raganda ham shu yo'ldan chek chiqardi va qog'ozda "NAQD"
+   * yozilardi — mijoz karta bilan to'lasa, bazada aralash, qo'lidagi
+   * qog'ozda naqd bo'lardi.
+   */
+  it("to'lanmagan hisobda to'lov turi BOSILMAYDI", () => {
+    const text = asAscii(generateEscPosReceipt(order, 'Test Kafe', settings));
+    expect(text).not.toContain('NAQD');
+    expect(text).not.toContain('KARTA');
+  });
+
+  it("noma'lum qiymat ham naqdga aylanmaydi", () => {
+    const text = asAscii(
+      generateEscPosReceipt({ ...order, paymentMethod: 'shubhali' }, 'Test Kafe', settings)
+    );
+    expect(text).not.toContain('NAQD');
+  });
+
+  it("to'langan chekda tur bosiladi", () => {
+    const naqd = asAscii(
+      generateEscPosReceipt({ ...order, paymentMethod: 'naqd' }, 'Test Kafe', settings)
+    );
+    expect(naqd).toContain('NAQD');
+
+    const karta = asAscii(
+      generateEscPosReceipt({ ...order, paymentMethod: 'karta' }, 'Test Kafe', settings)
+    );
+    expect(karta).toContain('KARTA');
+  });
+
+  it("aralash to'lovda ikkala summa ham ko'rinadi", () => {
+    const text = asAscii(
+      generateEscPosReceipt(
+        { ...order, paymentMethod: 'aralash', cashAmount: 50000, cardAmount: 21500 },
+        'Test Kafe',
+        settings
+      )
+    );
+    expect(text).toContain('50 000');
+    expect(text).toContain('21 500');
+  });
+});
+
 describe('taomlar JSON matn bo\'lganda', () => {
   it('matnni massivga o\'girib, taomlarni chekka chiqaradi', () => {
     const text = asAscii(generateEscPosReceipt(

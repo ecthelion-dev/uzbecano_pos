@@ -84,7 +84,7 @@ import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
 import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, printReceiptViaBrowser, getLastPrintError, setReceiptLogo } from './lib/printer';
 import { Wallet } from 'lucide-react';
-import { cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
+import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -1908,16 +1908,12 @@ export default function App() {
             if (!res.ok) {
               queueOrderForSync(newOrderObj);
             } else {
-              // Chek raqamini javobning o'zidan olamiz. Aks holda u faqat
-              // keyingi so'rovda kelardi, va tez yopilgan stolning chekiga
-              // raqam o'rniga id ning oxiri tushib qolardi.
-              try {
-                const created = await res.clone().json();
-                if (Number(created?.dailyNumber) > 0) {
-                  newOrderObj.dailyNumber = Number(created.dailyNumber);
-                  kitchenDailyNumber = Number(created.dailyNumber);
-                }
-              } catch {}
+              // Serverning id si va chek raqami — ikkalasi ham javobdan.
+              // Raqam usiz faqat keyingi so'rovda kelardi va tez yopilgan
+              // stolning chekiga raqam o'rniga id ning oxiri tushardi.
+              await adoptServerId(res, newOrderObj);
+              kitchenOrderId = newOrderObj.id;
+              kitchenDailyNumber = Number(newOrderObj.dailyNumber) || 0;
             }
           } catch {
             queueOrderForSync(newOrderObj);
@@ -2175,14 +2171,21 @@ export default function App() {
         return;
       }
 
-      const newItems = currentCart.map(c => ({
+      /*
+       * Tasdiqlashsiz to'g'ridan-to'g'ri yopish yo'li.
+       *
+       * Bu yerda taomlar `selectedVariant` deb yuborilardi — bu KASSANING
+       * ichki nomi, server esa faqat `selectedSize` ni o'qiydi. Natijada
+       * o'lcham jimgina tushib qolar va taom asosiy narxda yozilardi.
+       *
+       * Aynan shuning uchun "Tasdiqlash" bosilganda hammasi to'g'ri, uni
+       * bosmasdan yopilganda esa noto'g'ri edi: tasdiqlash boshqa yo'ldan
+       * ketadi va o'sha yo'l o'lchamni to'g'ri yuboradi.
+       */
+      const newItems = currentCart.map((c) => ({
         id: c.product.id,
-        name: c.product.name,
-        price: Number(c.product.price) || 0,
-        quantity: c.quantity,
-        selectedVariant: c.selectedVariant,
+        ...cartLineToOrderItem(c),
         selectedAddons: c.selectedAddons,
-        note: c.note || ''
       }));
 
       const sub = draftSubtotal;
@@ -2218,6 +2221,7 @@ export default function App() {
               body: JSON.stringify({ ...newOrderObj, idempotencyKey: newOrderObj.id })
             });
             if (!res.ok) queueOrderForSync(newOrderObj);
+            else await adoptServerId(res, newOrderObj);
           } catch {
             queueOrderForSync(newOrderObj);
           }

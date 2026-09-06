@@ -70,3 +70,34 @@ export function sentItemToOrderItem(raw: any): OutgoingOrderItem {
     ...(label ? { selectedSize: { label } } : {}),
   };
 }
+
+/**
+ * Serverning buyurtma id sini o'zlashtirish.
+ *
+ * Kassa buyurtmani avval O'ZIDA yaratadi va unga tasodifiy id beradi —
+ * internet yo'q bo'lsa ham stol ochilishi kerak. Server esa qabul qilganda
+ * o'zining id sini beradi.
+ *
+ * Ilgari kassa o'sha mahalliy id bilan qolib ketardi va keyingi har bir
+ * amalni — to'lov, taom qo'shish, yopish — server tanimaydigan manzilga
+ * yuborardi. Loglarda bu `PATCH /api/orders/<uuid> -> 400` bo'lib ko'rinardi:
+ * stol kassada yopilgandek ko'rinar, serverda esa ochiq va to'lanmagan
+ * bo'lib qolaverardi.
+ *
+ * `idempotencyKey` mahalliy id bo'lib qoladi, ya'ni qayta yuborish baribir
+ * ikkinchi buyurtma yaratmaydi.
+ */
+export async function adoptServerId(
+  res: Response,
+  target: { id: string; dailyNumber?: number },
+): Promise<void> {
+  try {
+    const created = await res.clone().json();
+    if (created?.id) target.id = String(created.id);
+    if (Number(created?.dailyNumber) > 0) target.dailyNumber = Number(created.dailyNumber);
+  } catch {
+    // Javobni o'qib bo'lmadi — mahalliy id qoladi va sinxronizatsiya
+    // navbati keyin to'g'rilaydi. Bu yerda xato tashlash stolni yopilmay
+    // qoldirardi.
+  }
+}

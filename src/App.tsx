@@ -2857,15 +2857,20 @@ export default function App() {
           /* Stollar Zali View */
           <div className="flex-1 flex flex-col gap-2.5 sm:gap-4 overflow-y-auto pr-1 min-h-0 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-2">
             {/* Top Bar for Tables */}
-            <div className="flex items-center justify-between bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
+            {/*
+              Telefonda bu panel faqat sarlavha va ikkita belgi — stollarning
+              o'zi esa pastda. Shuning uchun bu yerdagi padding kichik: balandlik
+              qancha ko'p bo'lsa, ekranga shuncha kam stol sig'adi.
+            */}
+            <div className="flex items-center justify-between bg-white px-3 py-2 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
               <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
                 <Grid className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 shrink-0" /> {t('table.layout')}
               </h2>
-              <div className="flex items-center gap-2 sm:gap-4 text-[11px] sm:text-xs font-medium">
-                <span className="flex items-center gap-1.5 bg-emerald-50 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-emerald-700 border border-emerald-200 whitespace-nowrap">
+              <div className="flex items-center gap-1.5 sm:gap-4 text-[11px] sm:text-xs font-medium">
+                <span className="flex items-center gap-1.5 bg-emerald-50 px-2 sm:px-3 py-0.5 sm:py-1.5 rounded-lg text-emerald-700 border border-emerald-200 whitespace-nowrap">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span> {t('table.free')}
                 </span>
-                <span className="flex items-center gap-1.5 bg-orange-50 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-orange-700 border border-orange-200 whitespace-nowrap">
+                <span className="flex items-center gap-1.5 bg-orange-50 px-2 sm:px-3 py-0.5 sm:py-1.5 rounded-lg text-orange-700 border border-orange-200 whitespace-nowrap">
                   <span className="w-2 h-2 rounded-full bg-orange-500"></span> {t('table.busy')}
                 </span>
               </div>

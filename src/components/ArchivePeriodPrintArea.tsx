@@ -5,6 +5,7 @@ import { useT, useLocale } from '../lib/i18n/LanguageProvider';
 import { monthName } from '../lib/i18n/months';
 import { summariseCashReport, netAfterExpenses, cashAfterExpenses } from '../lib/cashReport';
 import type { Locale } from '../lib/i18n/locales';
+import { aggregateReportLines } from '../lib/reportLines';
 
 export interface PeriodPrintData {
   orders: DBOrder[];
@@ -83,7 +84,7 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
   const { locale } = useLocale();
 
   const report = useMemo(() => {
-    const lines = new Map<string, { name: string; price: number; qty: number; sum: number }>();
+    const allItems: any[] = [];
     let orderCount = 0;
     let itemsSubtotal = 0;
     let serviceFee = 0;
@@ -107,22 +108,13 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
       orderCount += 1;
       if (ord.waiterName) waiters.add(ord.waiterName);
 
+      // Qatorlarni yig'ish lib/reportLines.ts da: bu jadval bo'yicha
+      // oshxona mahsulot buyuradi, ya'ni u testsiz qolishi mumkin emas.
       parseItems(ord.items).forEach((it: any) => {
-        const name = it.product?.name || it.name || t('print.unnamed');
+        allItems.push(it);
         const price = Number(it.price ?? it.product?.price ?? it.unitPrice ?? 0);
         const qty = Number(it.quantity ?? it.count ?? 1) || 1;
-        const sum = Number(it.totalPrice ?? price * qty) || price * qty;
-
-        // O'lchami boshqa taom — narxi ham boshqa, shuning uchun kalitda narx ham bor.
-        const key = `${name}__${price}`;
-        const prev = lines.get(key);
-        if (prev) {
-          prev.qty += qty;
-          prev.sum += sum;
-        } else {
-          lines.set(key, { name, price, qty, sum });
-        }
-        itemsSubtotal += sum;
+        itemsSubtotal += Number(it.totalPrice ?? price * qty) || price * qty;
       });
 
       serviceFee += Number(ord.serviceFee) || 0;
@@ -140,7 +132,7 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
     });
 
     return {
-      rows: [...lines.values()].sort((a, b) => b.sum - a.sum),
+      rows: aggregateReportLines(allItems, t('print.unnamed')).sort((a, b) => b.sum - a.sum),
       orderCount,
       itemsSubtotal,
       serviceFee,
@@ -212,7 +204,10 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
                 key={`${row.name}-${row.price}-${idx}`}
                 className="report-row grid grid-cols-[1fr_auto_auto_auto] gap-x-1.5 text-[10px] font-semibold text-slate-900 print-text-dark py-0.5 border-b border-slate-200/70"
               >
-                <span className="leading-snug break-words">{row.name}</span>
+                <span className="leading-snug break-words">
+                  {row.name}
+                  {row.takeaway && ` (${t('print.takeaway')})`}
+                </span>
                 <span className="text-right w-7">{row.qty}</span>
                 <span className="text-right w-12">{row.price.toLocaleString()}</span>
                 <span className="text-right w-14 font-bold">{row.sum.toLocaleString()}</span>

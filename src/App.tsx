@@ -3169,6 +3169,10 @@ export default function App() {
           waiterName: (activeTableOrder as any)?.waiterName || currentWaiter?.name || '',
           items: [...activeTableOrderItems, ...cart.map(c => ({
             name: c.product.name, quantity: c.quantity, price: c.product.price, note: c.note,
+            // Saboy belgisi ham ketadi. Tushib qolsa, hali tasdiqlanmagan
+            // qatorlar chekda oddiy taomdek chiqardi — tasdiqlangani esa
+            // to'g'ri, ya'ni xato faqat ba'zi cheklarda ko'rinardi.
+            takeaway: c.takeaway,
           }))],
           subtotal,
           discount: discountAmount,

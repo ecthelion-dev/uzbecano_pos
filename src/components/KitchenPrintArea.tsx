@@ -2,6 +2,7 @@ import React from 'react';
 import { PenLine } from 'lucide-react';
 import { KitchenSlipData } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
+import { TakeawayTag } from './TakeawayTag';
 
 /**
  * Oshxona kvitansiyasining qog'ozdagi ko'rinishi.
@@ -44,9 +45,13 @@ export const KitchenPrintArea: React.FC<{ data: KitchenSlipData | null }> = ({ d
         {data.items.map((item: any, idx: number) => (
           <div key={idx} className="flex justify-between items-start text-xs border-b border-slate-200/80 pb-1 last:border-b-0">
             <div className="min-w-0 pr-2">
-              <p className="font-bold text-sm text-slate-900 print-text-dark">{item.name}</p>
-              {item.note && (
-                <p className="text-xs font-semibold text-amber-950 print-text-dark"><PenLine className="w-3 h-3 inline mr-0.5" />{t('print.note')}: {item.note}</p>
+              <p className="font-bold text-sm text-slate-900 print-text-dark">
+                {item.name}
+                {/* Oshpaz uchun bu izohdan muhimroq: idishgami, tovoqqami. */}
+                <TakeawayTag item={item} className="ml-1.5" />
+              </p>
+              {(item.note || item.notes) && (
+                <p className="text-xs font-semibold text-amber-950 print-text-dark"><PenLine className="w-3 h-3 inline mr-0.5" />{t('print.note')}: {item.note || item.notes}</p>
               )}
             </div>
             <span className="font-bold text-base text-slate-900 print-text-dark whitespace-nowrap">x{item.quantity}</span>

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Receipt, Search, ArrowLeft, Printer, ChevronRight, Calendar, Clock, RotateCcw, X, Utensils, AlertTriangle, PenLine, User, Banknote, CreditCard, Shuffle } from 'lucide-react';
 import { DBOrder, DBWaiter } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
+import { TakeawayTag } from './TakeawayTag';
 
 interface ArchiveModalProps {
   show: boolean;
@@ -263,9 +264,19 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     items.map((item: any, idx: number) => (
                       <div key={idx} className="flex justify-between items-start text-xs pb-1.5 border-b border-slate-100 last:border-b-0">
                         <div className="flex-1 pr-2">
-                          <p className="font-bold text-slate-900 text-sm">{item.name}</p>
+                          <p className="font-bold text-slate-900 text-sm">
+                            {item.name}
+                            <TakeawayTag item={item} className="ml-1.5" />
+                          </p>
                           <p className="text-[11px] text-slate-600 font-medium">{item.quantity} x {(item.price || 0).toLocaleString()} {t('common.currency')}</p>
-                          {item.note && <p className="text-[11px] font-semibold text-amber-900 mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />{item.note}</p>}
+                          {/* Kassa `note`, server esa `notes` deb saqlaydi.
+                              Bittasini o'qib ikkinchisini unutish arxivdagi
+                              chekdan izohni jimgina yo'qotardi. */}
+                          {(item.note || item.notes) && (
+                            <p className="text-[11px] font-semibold text-amber-900 mt-0.5">
+                              <PenLine className="w-3 h-3 inline mr-0.5" />{item.note || item.notes}
+                            </p>
+                          )}
                         </div>
                         <span className="font-bold text-slate-900 text-sm">{((item.price || 0) * (item.quantity || 1)).toLocaleString()} {t('common.currency')}</span>
                       </div>

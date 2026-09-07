@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Printer, Banknote, CreditCard, PenLine } from 'lucide-react';
 import { DBWaiter } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
+import { TakeawayTag } from './TakeawayTag';
 
 interface ReceiptPreviewModalProps {
   show: boolean;
@@ -73,7 +74,13 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
   const combinedItems = useMemo(() => [
     ...activeTableOrderItems,
-    ...cart.map(c => ({ name: c.product.name, price: c.product.price, quantity: c.quantity, note: c.note }))
+    // Saboy belgisi ham ko'chadi: chek ko'rinishi qog'ozdagi chek bilan
+    // bir xil bo'lishi kerak, aks holda kassir uni faqat bosgandan keyin
+    // ko'rardi.
+    ...cart.map(c => ({
+      name: c.product.name, price: c.product.price, quantity: c.quantity,
+      note: c.note, takeaway: c.takeaway,
+    }))
   ], [activeTableOrderItems, cart]);
 
   return (
@@ -129,7 +136,10 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               combinedItems.map((item: any, idx: number) => (
                 <div key={idx} className="flex justify-between items-start text-xs pb-1 border-b border-slate-100 last:border-b-0">
                   <div className="flex-1 pr-2">
-                    <p className="font-semibold text-slate-900 text-sm">{item.name}</p>
+                    <p className="font-semibold text-slate-900 text-sm">
+                      {item.name}
+                      <TakeawayTag item={item} className="ml-1.5" />
+                    </p>
                     <p className="text-xs text-slate-600 font-medium">{item.quantity} x {(item.price || 0).toLocaleString()} {t('common.currency')}</p>
                     {item.note && (
                       <p className="text-xs font-semibold text-amber-900 mt-0.5"><PenLine className="w-3 h-3 inline mr-0.5" />{t('print.note')}: {item.note}</p>

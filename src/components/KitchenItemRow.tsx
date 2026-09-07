@@ -1,6 +1,7 @@
 import React from 'react';
 import { PenLine, Trash2 } from 'lucide-react';
 import { useT } from '../lib/i18n/LanguageProvider';
+import { TakeawayTag } from './TakeawayTag';
 
 interface KitchenItemRowProps {
   item: any;
@@ -22,7 +23,10 @@ export const KitchenItemRow: React.FC<KitchenItemRowProps> = React.memo(({
     <div className="bg-orange-50/60 p-2.5 rounded-xl border border-orange-200/70 space-y-1">
       <div className="flex justify-between items-start">
         <div className="flex-1 pr-2">
-          <p className="font-bold text-xs text-slate-900">{item.name}</p>
+          <p className="font-bold text-xs text-slate-900">
+            {item.name}
+            <TakeawayTag item={item} className="ml-1.5" />
+          </p>
           <p className="text-[10px] text-slate-500 font-medium">
             {qty} ta x {price.toLocaleString()} {t('common.currency')}
           </p>

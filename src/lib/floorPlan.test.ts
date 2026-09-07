@@ -86,10 +86,9 @@ describe('o‘z belgim', () => {
 });
 
 describe('serverdagi ochiq chek', () => {
-  it('qulfni BEKOR QILADI — buyurtma allaqachon serverda', () => {
-    // Yuborilgan buyurtmaga har qanday xodim taom qo'sha oladi: ikkinchi
-    // chek yaratilmaydi, mavjudiga qo'shiladi.
-    const s = state({ openOrderTotal: 77000, holds: [OTHER] });
+  it('egasi noma’lum bo‘lsa qulf yo‘q — eski cheklar va QR buyurtmasi', () => {
+    // Ularni hech kim olmagan, ya'ni himoya qiladigan narsa yo'q.
+    const s = state({ openOrder: { total: 77000 }, holds: [OTHER] });
     expect(s.occupied).toBe(true);
     expect(s.heldBy).toBeUndefined();
     expect(s.total).toBe(77000);
@@ -98,7 +97,7 @@ describe('serverdagi ochiq chek', () => {
   it('nol summali ochiq chek ham chek — stol band', () => {
     // `0` ni "chek yo'q" deb tushunib bo'lmaydi: to'liq chegirmali chek
     // ochiq stolni bo'sh ko'rsatardi.
-    expect(state({ openOrderTotal: 0 }).occupied).toBe(true);
+    expect(state({ openOrder: { total: 0 } }).occupied).toBe(true);
   });
 });
 
@@ -159,5 +158,50 @@ describe('qulf QURILMAGA emas, XODIMGA bog‘langan', () => {
      */
     const anonymous: TableHold = { ...OTHER, holder: '', holderId: undefined };
     expect(state({ holds: [anonymous], user: {} }).heldBy).toBe('');
+  });
+});
+
+describe('yuborilgan buyurtma ham egasiniki bo‘lib qoladi', () => {
+  const RAVSHANNIKI = { total: 77000, waiterId: 'w_ravshan', waiterName: 'Ravshan' };
+
+  it('boshqa ofitsiant begona stolga taom QO‘SHA OLMAYDI', () => {
+    /*
+     * Ilgari chek serverga tushishi bilan qulf ochilib ketardi va istalgan
+     * xodim begona stolga yozib yuborardi — chekda esa kim xizmat qilgani
+     * noaniq bo'lib qolardi.
+     */
+    expect(state({ openOrder: RAVSHANNIKI, user: DILSORA }).heldBy).toBe('Ravshan');
+  });
+
+  it('buyurtmani olgan ofitsiant o‘z stolini ocha oladi', () => {
+    expect(state({ openOrder: RAVSHANNIKI, user: RAVSHAN }).heldBy).toBeUndefined();
+  });
+
+  it('kassir va rahbar qulfdan o‘tadi', () => {
+    // Ular stolni yopishi va tuzatishi kerak, aks holda oddiy ish
+    // to'xtab qolardi.
+    for (const role of ['manager', 'admin', 'cafe_admin', 'cashier']) {
+      expect(state({ openOrder: RAVSHANNIKI, user: { ...DILSORA, role } }).heldBy).toBeUndefined();
+    }
+  });
+
+  it('oddiy ofitsiant qulfdan o‘tmaydi', () => {
+    expect(state({ openOrder: RAVSHANNIKI, user: { ...DILSORA, role: 'waiter' } }).heldBy).toBe('Ravshan');
+  });
+
+  it('shu qurilmadagi savat qulfni ochadi — kassir o‘z ishini davom ettiradi', () => {
+    const s = state({ openOrder: RAVSHANNIKI, user: DILSORA, draftTotal: 5000 });
+    expect(s.heldBy).toBeUndefined();
+  });
+
+  it('serverdagi chek savat belgisidan ustun', () => {
+    // Belgi eskirgan bo'lishi mumkin, chek esa aniq.
+    const s = state({
+      openOrder: RAVSHANNIKI,
+      holds: [{ ...OTHER, holder: 'Kimdir', holderId: 'w_kimdir' }],
+      user: DILSORA,
+    });
+    expect(s.heldBy).toBe('Ravshan');
+    expect(s.total).toBe(77000);
   });
 });

@@ -1395,11 +1395,17 @@ export default function App() {
       // holatda qulflangan va summa qayerdan olinadi.
       const state = tableState({
         tableNumber: numStr,
-        openOrderTotal: activeOrder ? activeOrder.total : undefined,
+        openOrder: activeOrder
+          ? {
+              total: activeOrder.total,
+              waiterId: (activeOrder as any).waiterId,
+              waiterName: (activeOrder as any).waiterName,
+            }
+          : undefined,
         draftTotal: draftCart.length > 0 ? draftTotal : 0,
         holds: tableHolds,
         deviceId,
-        user: { id: currentWaiter?.id, name: currentWaiter?.name },
+        user: { id: currentWaiter?.id, name: currentWaiter?.name, role: currentWaiter?.role },
       });
       const hasCall = waiterCalls.some(wn => (wn || '').trim().toLowerCase() === numStr.trim().toLowerCase());
 
@@ -3165,7 +3171,10 @@ export default function App() {
           id: activeTableOrder?.id || selectedTable,
           createdAt: new Date().toISOString(),
           tableNumber: selectedTable,
-          waiterName: currentWaiter?.name || '',
+          // Buyurtmani OLGAN ofitsiant, chekni bosayotgan odam emas.
+          // Ilgari bu yerda har doim hozir kirgan odam turardi va chekka
+          // admin nomi tushardi.
+          waiterName: (activeTableOrder as any)?.waiterName || currentWaiter?.name || '',
           items: [...activeTableOrderItems, ...cart.map(c => ({
             name: c.product.name, quantity: c.quantity, price: c.product.price, note: c.note,
           }))],

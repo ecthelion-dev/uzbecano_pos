@@ -33,6 +33,26 @@ export interface TableHold {
 export interface CurrentUser {
   id?: string;
   name?: string;
+  /**
+   * Kassadagi rol. "manager" — kafe admini, "admin" — kassir.
+   *
+   * Ular qulfdan o'tadi: kassir istalgan stolni yopishi va tuzatishi kerak,
+   * aks holda oddiy ish to'xtab qolardi.
+   */
+  role?: string;
+}
+
+/** Buyurtma egasi — serverda saqlanadi. */
+export interface OpenOrder {
+  total: number;
+  waiterId?: string;
+  waiterName?: string;
+}
+
+const ELEVATED_ROLES = ['manager', 'admin', 'cafe_admin', 'platform_admin', 'cashier'];
+
+function isElevated(user: CurrentUser): boolean {
+  return ELEVATED_ROLES.includes(String(user?.role || '').trim().toLocaleLowerCase());
 }
 
 /**
@@ -44,14 +64,17 @@ export interface CurrentUser {
  * eng yomon holatda bitta xodim o'z stoliga kira olmaydi, ikkita xodim
  * bitta stolga yozib yubormaydi.
  */
-function samePerson(hold: TableHold, me: CurrentUser): boolean {
-  const holdId = (hold.holderId || '').trim();
+function samePerson(
+  owner: { id?: string; name?: string },
+  me: CurrentUser,
+): boolean {
+  const ownerId = (owner?.id || '').trim();
   const myId = (me?.id || '').trim();
-  if (holdId && myId) return holdId === myId;
+  if (ownerId && myId) return ownerId === myId;
 
-  const holdName = (hold.holder || '').trim().toLocaleLowerCase();
+  const ownerName = (owner?.name || '').trim().toLocaleLowerCase();
   const myName = (me?.name || '').trim().toLocaleLowerCase();
-  return !!holdName && holdName === myName;
+  return !!ownerName && ownerName === myName;
 }
 
 export interface TableState {
@@ -66,8 +89,8 @@ const sameTable = (a: string, b: string) =>
 
 export function tableState(input: {
   tableNumber: string;
-  /** Serverdagi ochiq chek summasi. Chek bo'lmasa — undefined. */
-  openOrderTotal?: number;
+  /** Serverdagi ochiq chek. Chek bo'lmasa — undefined. */
+  openOrder?: OpenOrder;
   /** Shu qurilmadagi savat summasi (0 — savat bo'sh). */
   draftTotal: number;
   holds: TableHold[];
@@ -75,7 +98,7 @@ export function tableState(input: {
   /** Hozir kirgan xodim — qulf shunga qarab ochiladi. */
   user: CurrentUser;
 }): TableState {
-  const { tableNumber, openOrderTotal, draftTotal, holds, deviceId, user } = input;
+  const { tableNumber, openOrder, draftTotal, holds, deviceId, user } = input;
 
   // Shu qurilmaning o'z belgisi hisobga olinmaydi: savat allaqachon shu
   // yerda va uni ikkinchi marta sanashning ma'nosi yo'q.
@@ -84,10 +107,10 @@ export function tableState(input: {
   );
 
   const hasOwnDraft = draftTotal > 0;
-  const hasOpenOrder = typeof openOrderTotal === 'number';
+  const hasOpenOrder = !!openOrder;
 
   const total = hasOpenOrder
-    ? openOrderTotal
+    ? openOrder.total
     : hasOwnDraft
       ? draftTotal
       // Boshqa qurilma hisoblab yuborgan summa. Bu yerda taxmin
@@ -97,16 +120,45 @@ export function tableState(input: {
   return {
     occupied: hasOpenOrder || hasOwnDraft || !!elsewhere,
     total,
-    /*
-     * Qulf faqat BOSHQA xodimning savati uchun.
-     *
-     * Ochiq chek yoki shu qurilmadagi savat bo'lsa ham qulf yo'q:
-     * birinchisida buyurtma allaqachon serverda, ikkinchisida kassir o'z
-     * ishini davom ettiradi.
-     */
-    heldBy:
-      elsewhere && !hasOpenOrder && !hasOwnDraft && !samePerson(elsewhere, user)
-        ? elsewhere.holder || ''
-        : undefined,
+    heldBy: lockedBy({ openOrder, elsewhere, hasOwnDraft, user }),
   };
+}
+
+/**
+ * Stol kimga qulflangan.
+ *
+ * Stol buyurtmani boshlagan xodimniki — u yuborilgandan keyin ham. Ilgari
+ * qulf faqat yuborilmagan savatga qo'yilardi va chek serverga tushishi bilan
+ * ochilib ketardi: shundan keyin istalgan xodim begona stolga taom qo'sha
+ * olardi va chekda kim xizmat qilgani noaniq bo'lib qolardi.
+ *
+ * Uchta holatda qulf yo'q:
+ *
+ *   1. Shu qurilmada savat ochiq — kassir o'z ishini davom ettiradi.
+ *   2. Xodim rahbar yoki kassir — u istalgan stolni yopishi va tuzatishi
+ *      kerak, aks holda oddiy ish to'xtab qolardi.
+ *   3. Buyurtma egasi noma'lum — eski cheklar va QR mehmoni buyurtmasi.
+ *      Ularni hech kim olmagan, ya'ni himoya qiladigan narsa yo'q.
+ */
+function lockedBy(input: {
+  openOrder?: OpenOrder;
+  elsewhere?: TableHold;
+  hasOwnDraft: boolean;
+  user: CurrentUser;
+}): string | undefined {
+  const { openOrder, elsewhere, hasOwnDraft, user } = input;
+
+  if (hasOwnDraft || isElevated(user)) return undefined;
+
+  // Serverdagi chek birinchi: u savat belgisidan ishonchliroq va uzoq
+  // yashaydi.
+  if (openOrder) {
+    const owner = { id: openOrder.waiterId, name: openOrder.waiterName };
+    if (!owner.id && !owner.name) return undefined;
+    return samePerson(owner, user) ? undefined : openOrder.waiterName || '';
+  }
+
+  if (!elsewhere) return undefined;
+  const holder = { id: elsewhere.holderId, name: elsewhere.holder };
+  return samePerson(holder, user) ? undefined : elsewhere.holder || '';
 }

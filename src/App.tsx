@@ -91,6 +91,7 @@ import { cashCategoryLabel, dedupeCategories } from './lib/cashCategories';
 import { getDeviceId } from './lib/deviceId';
 import { tableState } from './lib/floorPlan';
 import { cartToHoldLines, holdLinesToCart, parseHoldItems } from './lib/cartSync';
+import { buildVariants } from './lib/productVariants';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -101,37 +102,12 @@ const normalizeCategoryName = (name?: string | null): string =>
 
 const mapDBProductModifiers = (prods: DBProduct[]): DBProduct[] => {
   return prods.map((p: any) => {
-    let variants: ProductVariant[] = p.variants || [];
-    if (!variants.length && p.sizes) {
-      try {
-        const parsed = typeof p.sizes === 'string' ? JSON.parse(p.sizes) : p.sizes;
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const validSizes = parsed.filter((s: any) => s && (s.label || s.name));
-          if (validSizes.length > 0) {
-            variants = [
-              // `isBase` — bu bazadagi o'lcham emas, taomning asosiy narxi.
-              // Serverga yuborilmasligi kerak: u bunday o'lchamni topolmay
-              // butun buyurtmani rad etadi.
-              { name: 'Standart', price: p.price, isBase: true },
-              ...validSizes.map((s: any) => ({
-                name: s.label || s.name,
-                price: Number(s.price) || p.price
-              }))
-            ];
-            const seen = new Set<string>();
-            variants = variants.filter(v => {
-              const k = `${v.name.toLowerCase().trim()}-${v.price}`;
-              if (seen.has(k)) return false;
-              seen.add(k);
-              return true;
-            });
-          }
-        }
-      } catch { }
-    }
+    // O'lchamlar ro'yxati lib/productVariants.ts da yig'iladi: u narxga
+    // tegadi, ya'ni testsiz komponent ichida turishi mumkin emas.
+    const variants = buildVariants(p);
     return {
       ...p,
-      variants: variants.length > 0 ? variants : undefined,
+      variants,
       addons: p.addons && p.addons.length > 0 ? p.addons : undefined
     };
   });

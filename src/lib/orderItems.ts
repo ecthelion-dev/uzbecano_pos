@@ -20,6 +20,8 @@ export interface OutgoingOrderItem {
   quantity: number;
   note: string;
   selectedSize?: { label: string };
+  /** Saboy qator. Serverda saqlanadi va chekda qaytib chiqadi. */
+  takeaway?: boolean;
 }
 
 /**
@@ -47,6 +49,7 @@ export function cartLineToOrderItem(item: CartItem): OutgoingOrderItem {
     price: Number(item.product.price) || 0,
     quantity: Number(item.quantity) || 1,
     note: item.note || '',
+    ...(item.takeaway ? { takeaway: true } : {}),
     ...outgoingSize(item.selectedVariant),
   };
 }
@@ -67,6 +70,10 @@ export function sentItemToOrderItem(raw: any): OutgoingOrderItem {
     price: Number(raw?.price) || 0,
     quantity: Number(raw?.quantity) || 1,
     note: raw?.note || raw?.notes || '',
+    // Saboy belgisi qayta yuborilishi SHART: stolga ikkinchi marta taom
+    // qo'shilganda server barcha qatorlarni qaytadan yozadi, va belgi
+    // yuborilmasa avvalgi saboy qatorlar jimgina oddiy qatorga aylanardi.
+    ...(raw?.takeaway === true ? { takeaway: true } : {}),
     ...(label ? { selectedSize: { label } } : {}),
   };
 }

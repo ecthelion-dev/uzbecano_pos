@@ -81,6 +81,9 @@ export const en: Record<TranslationKey, string> = {
   'modifier.addons': 'Extras:',
   'modifier.note': 'Note for the kitchen (e.g. no onion, spicier...)',
   'modifier.addToCart': 'Add to cart',
+  'modifier.takeaway': 'Takeaway',
+  'modifier.takeawayHint': 'Leaves in a box, not on a plate',
+  'cart.takeaway': 'TAKEAWAY',
   'modifier.pickSize': 'Pick the portion or size you need',
 
   // ── Split payment ───────────────────────────────────────────────────
@@ -328,6 +331,7 @@ export const en: Record<TranslationKey, string> = {
   'print.colQty': 'Qty',
   'print.colPrice': 'Price',
   'print.colSum': 'Sum',
+  'print.takeaway': 'TAKEAWAY',
   'print.note': 'Note',
   'print.noteUpper': 'NOTE',
   'print.discount': 'Discount',

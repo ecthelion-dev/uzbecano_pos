@@ -395,6 +395,17 @@ function itemNote(it: any): string {
   return String(it?.note ?? it?.notes ?? '').trim();
 }
 
+/**
+ * Qator saboymi — uyga olib ketiladimi.
+ *
+ * Oshxona uchun bu izohdan muhimroq: taom idishga solinadimi yoki tovoqda
+ * beriladimi. Shuning uchun u izohning ichiga matn bo'lib emas, alohida
+ * satr bo'lib bosiladi va izohdan OLDIN turadi.
+ */
+function isTakeaway(it: any): boolean {
+  return it?.takeaway === true;
+}
+
 function normalizeItems(items: any): any[] {
   if (Array.isArray(items)) return items;
   if (typeof items === 'string') {
@@ -779,6 +790,8 @@ function buildReceiptLayout(
       bodyRow(padEndTo(calc, cols - totalCol) + padStartTo(fmtPrice(sum), totalCol));
     }
 
+    if (isTakeaway(it)) bodyRow(`  * ${t('print.takeaway')}`);
+
     const note = itemNote(it);
     if (note) {
       for (const noteLine of wrapText(`* ${t('print.note')}: ${note}`, cols - 2)) {
@@ -1042,6 +1055,8 @@ export function generateEscPosKitchenSlip(
     const name = itemName(it, t('print.unnamed'));
     const qty = Number(it.quantity || 1);
     enc.bold(true).line(`${qty} x ${name}`).bold(false);
+    if (isTakeaway(it)) enc.bold(true).line(`   >> ${t('print.takeaway')}`).bold(false);
+
     const note = itemNote(it);
     if (note) {
       enc.line(`   >> ${t('print.noteUpper')}: ${note}`);

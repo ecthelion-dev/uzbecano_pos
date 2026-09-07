@@ -81,6 +81,9 @@ export const ru: Record<TranslationKey, string> = {
   'modifier.addons': 'Добавки:',
   'modifier.note': 'Комментарий на кухню (например: без лука, поострее...)',
   'modifier.addToCart': 'Добавить в корзину',
+  'modifier.takeaway': 'С собой',
+  'modifier.takeawayHint': 'Заберут с собой — кухня упакует',
+  'cart.takeaway': 'С СОБОЙ',
   'modifier.pickSize': 'Выберите нужную порцию или размер',
 
   // ── Смешанная оплата ────────────────────────────────────────────────
@@ -328,6 +331,7 @@ export const ru: Record<TranslationKey, string> = {
   'print.colQty': 'Кол',
   'print.colPrice': 'Цена',
   'print.colSum': 'Сумма',
+  'print.takeaway': 'С СОБОЙ',
   'print.note': 'Коммент',
   'print.noteUpper': 'КОММЕНТ',
   'print.discount': 'Скидка',

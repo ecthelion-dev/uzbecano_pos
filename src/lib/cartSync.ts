@@ -20,6 +20,8 @@ export interface HoldLine {
   note?: string;
   variant?: string;
   addons?: string[];
+  /** Saboy qator — boshqa qurilmada ham shunday qolishi kerak. */
+  takeaway?: boolean;
 }
 
 /** Savatni serverga yuboriladigan shaklga o'tkazadi. */
@@ -33,6 +35,7 @@ export function cartToHoldLines(cart: CartItem[]): HoldLine[] {
     ...(item.selectedAddons?.length
       ? { addons: item.selectedAddons.map((a) => a.name) }
       : {}),
+    ...(item.takeaway ? { takeaway: true } : {}),
   }));
 }
 
@@ -78,6 +81,7 @@ export function holdLinesToCart(lines: HoldLine[], products: DBProduct[]): CartI
       ...(line.note ? { note: line.note } : {}),
       ...(variant ? { selectedVariant: variant } : {}),
       ...(addons?.length ? { selectedAddons: addons } : {}),
+      ...(line.takeaway === true ? { takeaway: true } : {}),
     });
   }
 

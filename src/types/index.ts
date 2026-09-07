@@ -54,6 +54,13 @@ export interface CartItem {
   note?: string;
   selectedVariant?: ProductVariant;
   selectedAddons?: ProductAddon[];
+  /**
+   * Saboy — shu qator uyga olib ketiladi.
+   *
+   * Narxga tegmaydi: xizmat haqi butun chek bo'yicha hisoblanadi. Bu belgi
+   * oshxona uchun — taom idishga solinadimi yoki tovoqda beriladimi.
+   */
+  takeaway?: boolean;
 }
 
 export interface DBOrder {

@@ -94,6 +94,9 @@ export const uz = {
   'modifier.addons': "Qo'shimchalar:",
   'modifier.note': 'Oshxonaga izoh yozing (masalan: piyozsiz, achchiqroq...)',
   'modifier.addToCart': "Savatga qo'shish",
+  'modifier.takeaway': 'Saboy',
+  'modifier.takeawayHint': "Uyga olib ketiladi — oshxona idishga soladi",
+  'cart.takeaway': 'SABOY',
   'modifier.pickSize': "Kerakli porsiya yoki o'lchamni tanlang",
 
   // ── Aralash to'lov ──────────────────────────────────────────────────
@@ -342,6 +345,7 @@ export const uz = {
   'print.colQty': 'Soni',
   'print.colPrice': 'Narxi',
   'print.colSum': 'Jami',
+  'print.takeaway': 'SABOY',
   'print.note': 'Izoh',
   'print.noteUpper': 'IZOH',
   'print.discount': 'Chegirma',

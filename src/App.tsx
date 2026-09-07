@@ -1477,7 +1477,12 @@ export default function App() {
     setSelectedCategoryName(categoryName);
   }, []);
 
-  const handleAddToCart = useCallback((product: DBProduct, note?: string, variant?: ProductVariant) => {
+  const handleAddToCart = useCallback((
+    product: DBProduct,
+    note?: string,
+    variant?: ProductVariant,
+    takeaway?: boolean,
+  ) => {
     if (!selectedModifierProduct && (product.variants?.length || product.addons?.length)) {
       setSelectedModifierProduct(product);
       return;
@@ -1494,7 +1499,10 @@ export default function App() {
       const sameLine = (item: CartItem) =>
         item.product.id === product.id &&
         (item.selectedVariant?.name || '') === (variant?.name || '') &&
-        item.note === note;
+        item.note === note &&
+        // Saboy qator alohida: bittasi idishga, bittasi tovoqqa ketadi.
+        // Qo'shilib ketsa oshxona ikkalasini bir xil chiqarardi.
+        (item.takeaway === true) === (takeaway === true);
 
       if (currentCart.some(sameLine)) {
         return {
@@ -1508,7 +1516,14 @@ export default function App() {
         ...prev,
         [selectedTable]: [
           ...currentCart,
-          { lineId: crypto.randomUUID(), product, quantity: 1, note, selectedVariant: variant },
+          {
+            lineId: crypto.randomUUID(),
+            product,
+            quantity: 1,
+            note,
+            selectedVariant: variant,
+            ...(takeaway ? { takeaway: true } : {}),
+          },
         ],
       };
     });
@@ -3229,8 +3244,8 @@ export default function App() {
 
       <ProductModifierModal
         product={selectedModifierProduct}
-        onAddToCart={(modProd, note, variant) => {
-          handleAddToCart(modProd, note, variant);
+        onAddToCart={(modProd, note, variant, takeaway) => {
+          handleAddToCart(modProd, note, variant, takeaway);
           setSelectedModifierProduct(null);
         }}
         onClose={() => setSelectedModifierProduct(null)}

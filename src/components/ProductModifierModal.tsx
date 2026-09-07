@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { Layers, Check, X, ShoppingBag, UtensilsCrossed } from 'lucide-react';
+import { Layers, Check, X, Package, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { DBProduct, ProductVariant, ProductAddon } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 
 interface ProductModifierModalProps {
   product: DBProduct | null;
-  onAddToCart: (modifiedProduct: DBProduct, note?: string, variant?: ProductVariant) => void;
+  onAddToCart: (
+    modifiedProduct: DBProduct,
+    note?: string,
+    variant?: ProductVariant,
+    takeaway?: boolean,
+  ) => void;
   onClose: () => void;
 }
 
@@ -25,6 +30,14 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
   );
   const [selectedAddons, setSelectedAddons] = useState<ProductAddon[]>([]);
   const [itemNote, setItemNote] = useState<string>('');
+  /*
+   * Saboy — SHU qatorga tegishli, butun chekka emas.
+   *
+   * Stolda o'tirgan mijoz ko'pincha bitta taomni uyga oladi: qolgani
+   * tovoqda chiqadi, o'sha bittasi idishda. Oshpaz buni chekdan bilishi
+   * kerak, ofitsiantning og'zaki aytganidan emas.
+   */
+  const [takeaway, setTakeaway] = useState(false);
 
   const toggleAddon = (addon: ProductAddon) => {
     if (selectedAddons.some(a => a.name === addon.name)) {
@@ -59,7 +72,7 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
 
     // Variant AYNAN o'zi uzatiladi: narx serverda shu yorliq bo'yicha
     // qayta topiladi, nomdagi qavs ichidagi matn bo'yicha emas.
-    onAddToCart(modifiedProduct, fullNote || undefined, selectedVariant || undefined);
+    onAddToCart(modifiedProduct, fullNote || undefined, selectedVariant || undefined, takeaway);
     onClose();
   };
 
@@ -182,6 +195,40 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
               </div>
             </div>
           )}
+
+          {/*
+            Saboy — o'lchamdan keyin, izohdan oldin.
+            Izohning ichiga matn bo'lib yozilmaydi: matnni oshpaz o'qishi
+            mumkin, kassa esa uni hech qachon tushunmaydi. Bu alohida
+            belgi bo'lgani uchun chekda ham, oshxona kvitansiyasida ham
+            bir xil ko'rinadi va serverda saqlanadi.
+          */}
+          <button
+            type="button"
+            onClick={() => setTakeaway((v) => !v)}
+            className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all cursor-pointer text-left ${
+              takeaway
+                ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
+                : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-orange-300'
+            }`}
+          >
+            <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+              takeaway ? 'bg-white/20 text-white' : 'bg-white text-orange-500 border border-slate-200'
+            }`}>
+              <Package className="w-4.5 h-4.5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-bold text-sm leading-tight">{t('modifier.takeaway')}</span>
+              <span className={`block text-[11px] leading-tight ${takeaway ? 'text-white/80' : 'text-slate-400'}`}>
+                {t('modifier.takeawayHint')}
+              </span>
+            </span>
+            <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+              takeaway ? 'bg-white text-orange-500 border-white' : 'border-slate-300 bg-white'
+            }`}>
+              {takeaway && <Check className="w-3 h-3 stroke-[3]" />}
+            </span>
+          </button>
 
           {/* Izoh Input */}
           <div className="pt-0.5">

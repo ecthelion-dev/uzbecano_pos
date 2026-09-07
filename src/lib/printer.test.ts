@@ -842,3 +842,45 @@ describe('chek tili', () => {
     expect(text).toContain('Yana kuting!');
   });
 });
+
+/**
+ * Saboy qatori.
+ *
+ * Oshpaz uchun bu izohdan muhimroq: taom idishga solinadimi yoki tovoqda
+ * beriladimi. Chekda ham turishi kerak — mijoz nima olib ketayotganini
+ * ko'rishi va ofitsiant idishni to'g'ri qatorga qo'yishi uchun.
+ */
+describe('saboy qatori', () => {
+  const mixed = {
+    ...order,
+    items: [
+      { name: 'Osh', quantity: 1, price: 35000, total: 35000, takeaway: true },
+      { name: 'Choy', quantity: 1, price: 5000, total: 5000 },
+    ],
+  };
+
+  it('mijoz chekida belgilanadi', () => {
+    const text = asAscii(generateEscPosReceipt(mixed, 'Test Kafe', settings));
+    expect(text).toContain('SABOY');
+  });
+
+  it('oshxona kvitansiyasida ham belgilanadi', () => {
+    // Aslida u eng avval shu yerga kerak: taomni kim idishga soladi.
+    const text = asAscii(generateEscPosKitchenSlip(
+      { tableNumber: '5', items: mixed.items } as any,
+      'Test Kafe',
+      settings,
+    ));
+    expect(text).toContain('SABOY');
+  });
+
+  it('saboy bo\'lmagan chekda bu yozuv umuman chiqmaydi', () => {
+    expect(asAscii(generateEscPosReceipt(order, 'Test Kafe', settings))).not.toContain('SABOY');
+  });
+
+  it('faqat belgilangan qator saboy bo\'ladi', () => {
+    // Ikkalasi ham belgilansa oshxona ikkalasini idishga solib yuboradi.
+    const text = asAscii(generateEscPosReceipt(mixed, 'Test Kafe', settings));
+    expect((text.match(/SABOY/g) ?? []).length).toBe(1);
+  });
+});

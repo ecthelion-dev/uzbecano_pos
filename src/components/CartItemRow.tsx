@@ -19,7 +19,16 @@ export const CartItemRow: React.FC<CartItemRowProps> = React.memo(({
     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 shadow-xs space-y-1.5">
       <div className="flex justify-between items-center">
         <div className="flex-1 pr-2">
-          <p className="font-semibold text-xs text-slate-900">{item.product.name}</p>
+          <p className="font-semibold text-xs text-slate-900">
+            {item.product.name}
+            {/* Saboy qatori savatda ham ko'rinib tursin: kassir tasdiqlashdan
+                oldin uni tekshira olishi kerak, chekni kutib emas. */}
+            {item.takeaway && (
+              <span className="ml-1.5 align-middle text-[9px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                {t('cart.takeaway')}
+              </span>
+            )}
+          </p>
           <p className="text-[11px] text-orange-600 font-medium mt-0.5">
             {((Number(item.product.price) || 0) * (Number(item.quantity) || 1)).toLocaleString()} {t('common.currency')}
           </p>

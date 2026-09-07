@@ -107,30 +107,38 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-orange-500" /> {t('modifier.size')}
               </label>
-              <div className={`grid grid-cols-2 ${product.variants!.length > 2 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-2 sm:gap-2.5`}>
+              {/*
+                Telefonda ham uchtadan.
+                Ikkitadan bo'lganda uchta o'lchamli taom ikki qatorga
+                bo'linardi va uchinchisi yolg'iz qolib, qo'shimcha
+                variantdek emas, boshqa narsadek ko'rinardi. Uch ustunda
+                esa hammasi bir qarashda ko'rinadi va kassir kamroq
+                suradi — bu har buyurtmada takrorlanadigan harakat.
+              */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
                 {product.variants!.map((variant) => {
                   const isSelected = selectedVariant?.name === variant.name;
                   return (
                     <button
                       key={variant.name}
                       onClick={() => setSelectedVariant(variant)}
-                      className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center justify-between group ${
+                      className={`relative p-2.5 rounded-xl border-2 text-center transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
                           : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-orange-300 text-slate-800'
                       }`}
                     >
-                      <div className="space-y-0.5">
-                        <p className="font-bold text-sm leading-tight">{variant.name}</p>
-                        <p className={`text-xs font-medium ${isSelected ? 'text-white/90' : 'text-slate-500'}`}>
-                          {variant.price.toLocaleString()} {t('common.currency')}
-                        </p>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        isSelected ? 'bg-white text-orange-500 border-white' : 'border-slate-300 bg-white'
-                      }`}>
-                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                      </div>
+                      {/* Tanlangani rangidan bilinadi; belgi burchakda,
+                          chunki uch ustunda uning yoniga joy yo'q. */}
+                      {isSelected && (
+                        <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-white text-orange-500 flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        </span>
+                      )}
+                      <p className="font-bold text-xs leading-tight line-clamp-2 break-words">{variant.name}</p>
+                      <p className={`mt-1 text-[11px] font-semibold whitespace-nowrap ${isSelected ? 'text-white/90' : 'text-slate-500'}`}>
+                        {variant.price.toLocaleString()} {t('common.currency')}
+                      </p>
                     </button>
                   );
                 })}

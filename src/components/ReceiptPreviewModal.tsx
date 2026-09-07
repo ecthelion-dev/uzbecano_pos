@@ -3,6 +3,7 @@ import { Printer, Banknote, CreditCard, PenLine } from 'lucide-react';
 import { DBWaiter } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { TakeawayTag } from './TakeawayTag';
+import { formatClock } from '../lib/timeFormat';
 
 interface ReceiptPreviewModalProps {
   show: boolean;
@@ -125,7 +126,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                 {payLabel} • {t('archive.paid')}
               </span>
             ) : <span />}
-            <span>{new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>{formatClock(new Date())}</span>
           </div>
 
           {/* Items List */}

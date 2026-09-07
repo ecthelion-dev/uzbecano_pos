@@ -167,7 +167,7 @@ export const uz = {
   'archive.filterAll': 'Barchasi',
   'archive.filterToday': 'Bugun',
   'archive.filterYesterday': 'Kecha',
-  'archive.filterCustom': 'Oraliq tanlash',
+  'archive.filterCustom': 'Oraliq',
 
   // ── Kassa qutisi ────────────────────────────────────────────────────
   'drawer.title': 'Kassa xarajatlari',

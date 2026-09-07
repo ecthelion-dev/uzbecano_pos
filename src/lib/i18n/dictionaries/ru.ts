@@ -154,7 +154,7 @@ export const ru: Record<TranslationKey, string> = {
   'archive.filterAll': 'Все',
   'archive.filterToday': 'Сегодня',
   'archive.filterYesterday': 'Вчера',
-  'archive.filterCustom': 'Выбрать период',
+  'archive.filterCustom': 'Период',
 
   // ── Денежный ящик ───────────────────────────────────────────────────
   'drawer.title': 'Расходы кассы',

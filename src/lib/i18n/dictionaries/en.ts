@@ -154,7 +154,7 @@ export const en: Record<TranslationKey, string> = {
   'archive.filterAll': 'All',
   'archive.filterToday': 'Today',
   'archive.filterYesterday': 'Yesterday',
-  'archive.filterCustom': 'Pick a range',
+  'archive.filterCustom': 'Range',
 
   // ── Cash drawer ─────────────────────────────────────────────────────
   'drawer.title': 'Till expenses',

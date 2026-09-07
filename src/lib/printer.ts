@@ -6,6 +6,7 @@ import { GLOBAL_KEYS, readJson, writeJson } from './storage';
 import { activeLocale, translate, translator } from './i18n/translate';
 import { monthName } from './i18n/months';
 import type { Locale } from './i18n/locales';
+import { formatClock } from './timeFormat';
 
 export interface PrinterSettings {
   mode: 'browser' | 'bluetooth' | 'serial';
@@ -1042,7 +1043,7 @@ export function generateEscPosKitchenSlip(
   enc.divider(columnsFor(settings.paperWidth, 'A'));
 
   // Meta ma'lumotlar
-  const timeStr = data.time || (data.timestamp ? new Date(data.timestamp).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }));
+  const timeStr = data.time || formatClock(data.timestamp ?? new Date());
   if (data.waiterName) enc.twoColumn(`${t('print.waiter')}:`, data.waiterName, settings.paperWidth);
   enc.twoColumn(`${t('print.time')}:`, timeStr, settings.paperWidth);
 

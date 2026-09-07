@@ -4,6 +4,7 @@ import { CashTransaction } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { cashCategoryLabel, normalizeCategory, MAX_CATEGORY_LENGTH } from '../lib/cashCategories';
 import { amountValue, digitsOnly, formatAmount } from '../lib/amountInput';
+import { formatClock } from '../lib/timeFormat';
 
 interface CashDrawerModalProps {
   show: boolean;
@@ -201,7 +202,7 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
                     {tx.note && <span className="text-slate-500">· {tx.note}</span>}
                   </div>
                   <p className="text-[10px] text-slate-400">
-                    {new Date(tx.createdAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })} • {tx.createdBy}
+                    {formatClock(tx.createdAt)} • {tx.createdBy}
                   </p>
                 </div>
                 <span className="font-bold text-sm text-rose-700 tabular-nums">

@@ -3,6 +3,7 @@ import { Receipt, Search, ArrowLeft, Printer, ChevronRight, Calendar, Clock, Rot
 import { DBOrder, DBWaiter } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { TakeawayTag } from './TakeawayTag';
+import { formatClock, formatDateClock, normalizeTimeText } from '../lib/timeFormat';
 
 interface ArchiveModalProps {
   show: boolean;
@@ -221,7 +222,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 )}
                 <p className="text-xs text-slate-600 font-semibold">{t('archive.closedReceipt')}{selectedArchiveOrder.id.slice(-6)}</p>
                 {selectedArchiveOrder.closedAt && (
-                  <p className="text-xs text-slate-600 font-medium">Sana: {new Date(selectedArchiveOrder.closedAt).toLocaleString('uz-UZ')}</p>
+                  <p className="text-xs text-slate-600 font-medium">Sana: {formatDateClock(selectedArchiveOrder.closedAt)}</p>
                 )}
                 <p className="text-xs text-slate-900 font-bold mt-0.5">
                   {/* closedBy — serverda qayd etilgan, to'lovni qabul qilgan
@@ -401,13 +402,12 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
               {/* Time Presets Toolbar */}
               {/*
-                Telefonda ikki qatorda, ikkitadan.
-                Bitta qatorga siqilganda "Oraliq tanlash" o'ng chetdan
-                chiqib ketardi: u yonga suriladigan qator edi, lekin
-                surilishini hech narsa ko'rsatmasdi — kassir tugma
-                umuman yo'q deb o'ylardi.
+                To'rttasi bitta qatorda, teng ulushda.
+                Ilgari qator yonga surilardi va oxirgi tugma ekrandan
+                chiqib ketardi — surilishini esa hech narsa ko'rsatmasdi,
+                ya'ni sana oralig'ini ochadigan tugma yo'qdek edi.
               */}
-              <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200 w-full sm:w-auto sm:shrink-0">
+              <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200 w-full sm:w-auto sm:shrink-0">
                 {[
                   { id: 'all', label: t('archive.filterAll') },
                   { id: 'today', label: t('archive.filterToday') },
@@ -417,7 +417,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                   <button
                     key={preset.id}
                     onClick={() => setTimePreset(preset.id as TimePreset)}
-                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
+                    className={`px-1.5 sm:px-3.5 py-1.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all whitespace-nowrap truncate cursor-pointer ${
                       timePreset === preset.id
                         ? 'bg-orange-500 text-white shadow-sm'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-white'
@@ -441,11 +441,22 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       onChange={(e) => setStartDate(e.target.value)}
                       className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
                     />
+                    {/*
+                      Oddiy maydon, `type="time"` emas.
+                      Brauzerning o'z vaqt maydoni AM/PM ni QURILMA tiliga
+                      qarab ko'rsatadi va buni sahifadan boshqarib
+                      bo'lmaydi: ingliz tiliga sozlangan telefonda kassir
+                      "8:00 AM" ni ko'rardi. Yozilganini tartibga solish
+                      lib/timeFormat.ts da.
+                    */}
                     <input
-                      type="time"
+                      type="text"
+                      inputMode="numeric"
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-[124px] sm:w-[86px] shrink-0"
+                      onBlur={(e) => setStartTime(normalizeTimeText(e.target.value, '00:00'))}
+                      placeholder="00:00"
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-[72px] text-center shrink-0"
                     />
                   </div>
                 </div>
@@ -460,10 +471,13 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
                     />
                     <input
-                      type="time"
+                      type="text"
+                      inputMode="numeric"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-[124px] sm:w-[86px] shrink-0"
+                      onBlur={(e) => setEndTime(normalizeTimeText(e.target.value, '23:59'))}
+                      placeholder="23:59"
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-[72px] text-center shrink-0"
                     />
                   </div>
                 </div>
@@ -587,7 +601,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                           {orderDate && (
                             <p className="text-xs font-medium text-slate-400 flex items-center justify-start sm:justify-end gap-1 mt-0.5">
                               <Calendar className="w-3 h-3" />
-                              {orderDate.toLocaleDateString('uz-UZ')} {orderDate.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}
+                              {formatDateClock(orderDate)}
                             </p>
                           )}
                         </div>

@@ -92,6 +92,7 @@ import { getDeviceId } from './lib/deviceId';
 import { tableState } from './lib/floorPlan';
 import { cartToHoldLines, holdLinesToCart, parseHoldItems } from './lib/cartSync';
 import { buildVariants } from './lib/productVariants';
+import { formatClock } from './lib/timeFormat';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -1742,7 +1743,7 @@ export default function App() {
       // qarab kimdan so'rashini bilishi kerak, "Offitsiant: —" esa aytmaydi.
       waiterName: 'QR menyu',
       items,
-      time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+      time: formatClock(new Date()),
       timestamp: new Date().toISOString(),
       // Serverning raqami — kassa o'z hisobini yuritmaydi, aks holda har bir
       // qurilmada raqamlar boshqacha ketardi.
@@ -2189,7 +2190,7 @@ export default function App() {
         tableNumber: selectedTable,
         waiterName: currentWaiter?.name || 'Offitsiant',
         items: newItems,
-        time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+        time: formatClock(new Date()),
         timestamp: new Date().toISOString(),
         /*
          * Raqam SERVERDAN — buyurtmaning kunlik tartib raqami.

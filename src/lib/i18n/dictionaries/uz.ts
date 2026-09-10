@@ -279,6 +279,8 @@ export const uz = {
   'net.online': 'Online',
   'net.offline': 'Offline',
   'net.startSync': 'Sinxlashni boshlash',
+  'net.pending': '{n} kutilmoqda',
+  'net.failed': '{n} xato',
 
   // ── Muzlatilgan kafe ────────────────────────────────────────────────
   'frozen.title': 'Kassa vaqtincha muzlatilgan',

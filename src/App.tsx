@@ -60,6 +60,7 @@ import { readSession, writeSession, clearSession, purgeLegacySession } from './l
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
+import { canSync, decideFromStatus } from './lib/syncQueue';
 import { useT } from './lib/i18n/LanguageProvider';
 import type { TranslationKey } from './lib/i18n/dictionaries/uz';
 import { PinLoginScreen } from './components/PinLoginScreen';
@@ -910,8 +911,6 @@ export default function App() {
    * har 10 soniyada qayta yuborilardi — kassa serverni bezovta qilaverar,
    * navbat esa hech qachon bo'shamasdi.
    */
-  const isRetryableStatus = (status: number) =>
-    status >= 500 || status === 429 || status === 408;
 
   // Offline Sync Queue Handler — retries queued creates/patches that
   // previously failed to reach the server. Runs on an interval and on the
@@ -923,7 +922,15 @@ export default function App() {
     const queue = readSyncQueue(cafeId);
     if (queue.length === 0) return;
 
+    /*
+     * Sessiyasiz urinmaymiz. Kassa sessiyasi ilova yopilishi bilan o'chadi,
+     * navbat esa diskda qoladi — ya'ni ilova qayta ochilgan, PIN esa hali
+     * kiritilmagan payt bo'ladi. O'shanda yuborilgan so'rov faqat 401 oladi.
+     */
+    if (!canSync(authToken)) return;
+
     const remaining: SyncQueueItem[] = [];
+    const parked: SyncQueueItem[] = [];
     const failedOrderIds = new Set<string>();
     const rejectedLabels: string[] = [];
     let anySucceeded = false;
@@ -970,13 +977,15 @@ export default function App() {
           // qoladi va to'lovdan keyin o'zi yuboriladi.
           remaining.push(...queue.slice(idx));
           break;
-        } else if (isRetryableStatus(res.status)) {
+        } else if (decideFromStatus(res.status) === 'retry') {
           remaining.push(item);
           if (blockedOrderId) failedOrderIds.add(blockedOrderId);
         } else {
           // Server bu so'rovni printsipial rad etdi (masalan taom o'chirilgan
-          // yoki buyurtma bo'sh). Navbatda saqlab qo'yish foydasiz — kassirga
-          // aytamiz va tashlab yuboramiz, aks holda navbat tiqilib qoladi.
+          // yoki buyurtma bo'sh). Qayta yuborish foydasiz, shuning uchun u
+          // navbatdan chiqadi — lekin O'CHIRILMAYDI: bu pul, uni jimgina
+          // yo'qotib bo'lmaydi. Alohida ro'yxatda ko'rib chiqishni kutadi.
+          parked.push(item);
           const label =
             item.kind === 'create'
               ? item.order?.tableNumber || t('common.order')
@@ -993,6 +1002,11 @@ export default function App() {
     }
 
     writeSyncQueue(cafeId, remaining);
+
+    if (parked.length > 0) {
+      const before = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
+      writeCafeJson(cafeId, 'sync_failed', [...(Array.isArray(before) ? before : []), ...parked]);
+    }
 
     if (rejectedLabels.length > 0) {
       setToastMessage(
@@ -1011,7 +1025,7 @@ export default function App() {
     }
 
     if (anySucceeded) fetchOrders();
-  }, [getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, writeSyncQueue, applyFrozenFromResponse]);
+  }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, writeSyncQueue, applyFrozenFromResponse]);
 
   useEffect(() => {
     const interval = setInterval(syncOfflineOrders, 10000);

@@ -3,44 +3,60 @@ import { Wifi, WifiOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { useT } from '../lib/i18n/LanguageProvider';
 
+/**
+ * Aloqa holati va yuborilmagan amallar soni.
+ *
+ * Bu komponent ancha oldin yozilgan edi, lekin hech qayerda chizilmasdi.
+ * 2026-09-10 da uzbecano kafesida Wi-Fi uzildi, to'rtta buyurtma navbatda
+ * qoldi va keyin yo'qoldi — kassir esa buni ko'rmadi, chunki ko'radigan
+ * joyi yo'q edi. Endi u sarlavhada, printer tugmasi yonida turadi.
+ *
+ * Ranglar sarlavhaning o'z lug'atidan: oq fon, slate hoshiya. Ilgari bu
+ * yerda to'q fon uchun yozilgan ranglar bor edi — oq sarlavhada ular
+ * o'qilmasdi.
+ */
 export const NetworkIndicator: React.FC = () => {
   const t = useT();
   const { isOnline, pendingCount, failedCount, triggerSync } = useNetworkStatus();
 
+  // Hammasi joyida bo'lsa sarlavhada joy egallamaydi: kassirga har soniyada
+  // "hammasi yaxshi" deb turishning keragi yo'q, u faqat muammoni bilishi
+  // kerak. Shuning uchun yashil "Online" yorlig'i chizilmaydi.
+  if (isOnline && pendingCount === 0 && failedCount === 0) return null;
+
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border bg-slate-800 border-slate-700 text-slate-200 shadow-sm">
+    <div className="hidden sm:flex items-center gap-2 h-10 px-3 rounded-xl border bg-white border-slate-200 shadow-2xs shrink-0">
       {isOnline ? (
-        <span className="flex items-center gap-1 text-emerald-400">
-          <Wifi className="w-3.5 h-3.5" />
-          <span>{t('net.online')}</span>
+        <span className="flex items-center gap-1.5 text-emerald-600">
+          <Wifi className="w-4 h-4" />
         </span>
       ) : (
-        <span className="flex items-center gap-1 text-amber-400">
-          <WifiOff className="w-3.5 h-3.5" />
-          <span>{t('net.offline')}</span>
+        <span className="flex items-center gap-1.5 text-amber-600">
+          <WifiOff className="w-4 h-4" />
+          <span className="text-[11px] font-bold">{t('net.offline')}</span>
         </span>
       )}
 
       {pendingCount > 0 && (
-        <span className="flex items-center gap-1 bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">
-          <span>{pendingCount} kutilmoqda</span>
+        <span className="text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg whitespace-nowrap">
+          {t('net.pending', { n: pendingCount })}
         </span>
       )}
 
       {failedCount > 0 && (
-        <span className="flex items-center gap-1 bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full">
-          <AlertCircle className="w-3 h-3" />
-          <span>{failedCount} xato</span>
+        <span className="flex items-center gap-1 text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-lg whitespace-nowrap">
+          <AlertCircle className="w-3 h-3 shrink-0" />
+          {t('net.failed', { n: failedCount })}
         </span>
       )}
 
       {isOnline && pendingCount > 0 && (
         <button
           onClick={triggerSync}
-          className="p-1 hover:bg-slate-700 rounded-full transition-colors"
+          className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
           title={t('net.startSync')}
         >
-          <RefreshCw className="w-3 h-3 text-slate-300 animate-spin" />
+          <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
         </button>
       )}
     </div>

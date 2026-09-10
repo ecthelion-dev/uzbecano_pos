@@ -265,6 +265,8 @@ export const en: Record<TranslationKey, string> = {
   'net.online': 'Online',
   'net.offline': 'Offline',
   'net.startSync': 'Start syncing',
+  'net.pending': '{n} pending',
+  'net.failed': '{n} failed',
 
   // ── Frozen ──────────────────────────────────────────────────────────
   'frozen.title': 'The till is temporarily frozen',

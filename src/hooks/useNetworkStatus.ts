@@ -12,8 +12,8 @@ import { readCafeJson } from '../lib/storage';
  */
 const SYNC_POLL_MS = 5000;
 
-function readPendingCount(): number {
-  const queue = readCafeJson<unknown>(resolveActiveCafeId(), 'sync_queue', []);
+function countOf(key: 'sync_queue' | 'sync_failed'): number {
+  const queue = readCafeJson<unknown>(resolveActiveCafeId(), key, []);
   return Array.isArray(queue) ? queue.length : 0;
 }
 
@@ -22,9 +22,11 @@ export function useNetworkStatus() {
     typeof navigator === 'undefined' ? true : navigator.onLine
   );
   const [pendingCount, setPendingCount] = useState<number>(0);
+  const [failedCount, setFailedCount] = useState<number>(0);
 
   const refresh = useCallback(() => {
-    setPendingCount(readPendingCount());
+    setPendingCount(countOf('sync_queue'));
+    setFailedCount(countOf('sync_failed'));
   }, []);
 
   // The queue drains on its own interval in App.tsx; asking the browser to go
@@ -59,9 +61,12 @@ export function useNetworkStatus() {
   return {
     isOnline,
     pendingCount,
-    // Nothing distinguishes a permanently failed entry from one still being
-    // retried: the queue retries forever until the server accepts it.
-    failedCount: 0,
+    /*
+     * Server rad etgan amallar. Ular navbatdan chiqadi, lekin o'chirilmaydi —
+     * `sync_failed` da qoladi. Kassir buni ko'rib turishi kerak: 2026-09-10
+     * da yo'qotish aynan hech kim hech narsa ko'rmagani uchun sezilmadi.
+     */
+    failedCount,
     triggerSync,
   };
 }

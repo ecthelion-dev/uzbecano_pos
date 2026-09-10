@@ -44,6 +44,8 @@ export const CAFE_KEYS = [
   'session',
   'sub_end',
   'sync_queue',
+  /** Server rad etgan amallar — o'chirilmaydi, ko'rib chiqiladi. */
+  'sync_failed',
   'tables',
   'waiters',
 ] as const;
@@ -191,6 +193,7 @@ export const OPERATIONAL_KEYS = [
   'kitchen_printed',
   'orders',
   'sync_queue',
+  'sync_failed',
 ] as const satisfies readonly CafeKey[];
 
 /**

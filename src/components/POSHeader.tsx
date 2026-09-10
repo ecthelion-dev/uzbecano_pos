@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { DBWaiter } from '../types';
 import LanguageSwitcher from './LanguageSwitcher';
+import { NetworkIndicator } from './NetworkIndicator';
 import { useT } from '../lib/i18n/LanguageProvider';
 
 interface POSHeaderProps {
@@ -119,6 +120,13 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           muhimrog'i, o'sha blok `lg` dan kichik ekranda yashiringani uchun
           telefonda tilni umuman o'zgartirib bo'lmasdi.
         */}
+        {/*
+          Aloqa holati tildan oldin: yuborilmagan buyurtma bo'lsa, kassir
+          uni sarlavhada ko'radi. Hammasi joyida bo'lsa bu yerda hech narsa
+          chizilmaydi va joy ham egallanmaydi.
+        */}
+        <NetworkIndicator />
+
         <LanguageSwitcher />
 
         {/*

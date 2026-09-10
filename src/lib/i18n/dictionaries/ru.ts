@@ -265,6 +265,8 @@ export const ru: Record<TranslationKey, string> = {
   'net.online': 'Онлайн',
   'net.offline': 'Офлайн',
   'net.startSync': 'Начать синхронизацию',
+  'net.pending': '{n} в очереди',
+  'net.failed': '{n} с ошибкой',
 
   // ── Заморожено ──────────────────────────────────────────────────────
   'frozen.title': 'Касса временно заморожена',

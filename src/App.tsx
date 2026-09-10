@@ -1988,7 +1988,7 @@ export default function App() {
             body: JSON.stringify(patchBody)
           });
           if (!res.ok) {
-            if (!isRetryableStatus(res.status)) {
+            if (decideFromStatus(res.status) !== 'retry') {
               // Server printsipial rad etdi — masalan rahbar tasdig'i
               // yaroqsiz. Mahalliy holatga tegmaymiz: ilgari taom ekrandan
               // yo'qolar, keyingi so'rov uni qaytarib kelar va kassir nega
@@ -2035,7 +2035,7 @@ export default function App() {
           });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            if (!isRetryableStatus(res.status)) {
+            if (decideFromStatus(res.status) !== 'retry') {
               // Server printsipial rad etdi — masalan rahbar tasdig'i
               // yaroqsiz yoki chek allaqachon vozvrat qilingan. Mahalliy
               // holatga TEGMAYMIZ: ilgari chek arxivda "vozvrat qilingan"

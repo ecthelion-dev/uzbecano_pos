@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fetchPulse, resetPulse } from './pulse';
+import { fetchPulse, resetPulse, pulseQuery } from './pulse';
 
 /**
  * Bitta so'rov va barmoq izi.
@@ -151,5 +151,28 @@ describe('stol belgilari', () => {
 
     const result = await fetchPulse({}, false);
     if (result.kind === 'fresh') expect(result.data.tableHolds).toEqual([]);
+  });
+});
+
+/**
+ * Nabz — kassaning yurak urishi. Manzil buzilsa kassa serverdan hech narsa
+ * eshitmay qoladi, shuning uchun uni yig'ish qoidasi ham qulflangan.
+ */
+describe('nabz manzili', () => {
+  it('printerli qurilma va kafe — ikkalasi ham qo‘shiladi', () => {
+    expect(pulseQuery(true, 'uzbecano')).toBe('?consumer=1&cafe=uzbecano');
+  });
+
+  it('printersiz qurilmada faqat kafe', () => {
+    expect(pulseQuery(false, 'uzbecano')).toBe('?cafe=uzbecano');
+  });
+
+  it('kafe noma‘lum bo‘lsa eski manzil o‘zgarmaydi', () => {
+    expect(pulseQuery(true, '')).toBe('?consumer=1');
+    expect(pulseQuery(false, '')).toBe('');
+  });
+
+  it('kafe nomi manzil uchun xavfsiz yoziladi', () => {
+    expect(pulseQuery(false, 'a b&c')).toBe('?cafe=a%20b%26c');
   });
 });

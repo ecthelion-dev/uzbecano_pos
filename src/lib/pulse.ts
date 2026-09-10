@@ -68,13 +68,32 @@ export function resetPulse(): void {
  * navbati beriladi va faqat shu qurilma "men ochiqman" deb belgilanadi —
  * telefon chekni baribir bosa olmaydi.
  */
+/**
+ * So'rov manzilida kafe nomi.
+ *
+ * Serverga kerak emas — u kafeni sessiyadan biladi. Bu nginx JURNALI
+ * uchun: nabz har 5 soniyada keladi, ya'ni u kassaning yagona ishonchli
+ * yurak urishi. Jurnalda kafe ko'rinsa, "falon kafedan yarim soatdan beri
+ * ovoz yo'q" degan savolga javob beradigan joy paydo bo'ladi.
+ *
+ * 2026-09-10 da uzbecano oflayn qolganini kafedan tashqarida hech kim
+ * bilmadi. Kafe nomi sir emas — u boshqa har bir so'rovda ham bor.
+ */
+export function pulseQuery(isConsumer: boolean, cafeId: string): string {
+  const parts: string[] = [];
+  if (isConsumer) parts.push('consumer=1');
+  if (cafeId) parts.push(`cafe=${encodeURIComponent(cafeId)}`);
+  return parts.length > 0 ? `?${parts.join('&')}` : '';
+}
+
 export async function fetchPulse(
   headers: Record<string, string>,
   isConsumer: boolean,
+  cafeId: string = '',
 ): Promise<PulseResult> {
   try {
     const res = await fetchWithTimeout(
-      `${API_BASE_URL}/api/pulse${isConsumer ? '?consumer=1' : ''}`,
+      `${API_BASE_URL}/api/pulse${pulseQuery(isConsumer, cafeId)}`,
       {
         cache: 'no-store',
         headers: { ...headers, ...(lastEtag ? { 'If-None-Match': lastEtag } : {}) },

@@ -1176,7 +1176,7 @@ export default function App() {
       // ekranga qarab turishini kutmasligi kerak.
       if (!visible && !(IS_DESKTOP_APP || getPrinterSettings().autoPrintQrKitchenSlip)) return;
 
-      const result = await fetchPulse(getAuthHeaders(), IS_DESKTOP_APP);
+      const result = await fetchPulse(getAuthHeaders(), IS_DESKTOP_APP, getActiveCafeId());
       if (result.kind === 'same') return;
 
       if (result.kind === 'unsupported') {

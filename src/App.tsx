@@ -61,6 +61,7 @@ import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, Ca
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
 import { canSync, decideFromStatus } from './lib/syncQueue';
+import { oldestQueuedAt, summariseBacklog } from './lib/syncHealth';
 import { useT } from './lib/i18n/LanguageProvider';
 import type { TranslationKey } from './lib/i18n/dictionaries/uz';
 import { PinLoginScreen } from './components/PinLoginScreen';
@@ -838,13 +839,51 @@ export default function App() {
   // client-side (crypto.randomUUID()) and the backend now honors it as the
   // real primary key (see POST /api/orders), so a PATCH's target id is valid
   // whether the order synced immediately or was queued.
-  type SyncQueueItem =
+  /*
+   * `queuedAt` — yozuv navbatga qachon tushgani. Usiz "necha vaqtdan beri
+   * kutyapti" degan savolga javob yo'q, ya'ni tiqilib qolgan navbatni
+   * sekin ishlayotganidan ajratib bo'lmaydi.
+   */
+  type SyncQueueItem = { queuedAt?: number } & (
     | { kind: 'create'; order: any }
     | { kind: 'patch'; orderId: string; body: any; label?: string; approvalToken?: string }
     | { kind: 'delete'; orderId: string; label?: string }
     // Kassa xarajati. Internet uzilganda ham sut sotib olinaveradi va
     // o'sha payt yozib qo'yolmasa, kassir keyin esdan chiqaradi.
-    | { kind: 'cash'; entry: any; label?: string; approvalToken?: string };
+    | { kind: 'cash'; entry: any; label?: string; approvalToken?: string }
+  );
+
+  /**
+   * Chetga qo'yilgan amallarni navbatga qaytarish.
+   *
+   * Ular server rad etgani uchun chiqib qolgan (masalan taom o'chirilgan
+   * edi). Sabab tuzatilgach ular o'zi ketmaydi — kimdir qaytadan
+   * urinishi kerak, va buni qo'lda qilish to'g'ri: avtomatik qaytarish
+   * xuddi o'sha xatoni cheksiz aylantirardi.
+   */
+  const retryFailedSync = useCallback(() => {
+    const cafeId = getActiveCafeId();
+    const failed = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
+    if (!Array.isArray(failed) || failed.length === 0) return;
+    const queue = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_queue', []);
+    writeCafeJson(cafeId, 'sync_queue', [...(Array.isArray(queue) ? queue : []), ...failed]);
+    writeCafeJson(cafeId, 'sync_failed', []);
+  }, [getActiveCafeId]);
+
+  /** Smena hisoboti ochilganda navbatning holati. */
+  const shiftBacklog = useMemo(() => {
+    const empty = { total: 0, incomplete: false, stuck: false, waitingMinutes: 0 };
+    if (!showShiftReport) return empty;
+    const cafeId = getActiveCafeId();
+    const raw = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_queue', []);
+    const rawFailed = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
+    const queue = Array.isArray(raw) ? raw : [];
+    const failed = Array.isArray(rawFailed) ? rawFailed : [];
+    return summariseBacklog(
+      { pending: queue.length, failed: failed.length, oldestQueuedAt: oldestQueuedAt(queue) },
+      Date.now(),
+    );
+  }, [showShiftReport, getActiveCafeId]);
 
   const readSyncQueue = useCallback((cafeId: string): SyncQueueItem[] => {
     const parsed = readCafeJson<unknown>(cafeId, 'sync_queue', []);
@@ -862,7 +901,7 @@ export default function App() {
   const queueOrderForSync = useCallback((order: any) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
-    queue.push({ kind: 'create', order: { ...order, idempotencyKey: order.idempotencyKey || order.id } });
+    queue.push({ kind: 'create', queuedAt: Date.now(), order: { ...order, idempotencyKey: order.idempotencyKey || order.id } });
     writeSyncQueue(cafeId, queue);
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
@@ -876,7 +915,7 @@ export default function App() {
     // aloqa tiklanganda server tasdiqni tekshira olishi uchun boshqa dalil
     // yo'q. Shuning uchun u qisqa muddatli qilib beriladi va navbat
     // bo'shashi bilan yo'qoladi.
-    queue.push({ kind: 'patch', orderId, body, label, approvalToken });
+    queue.push({ kind: 'patch', queuedAt: Date.now(), orderId, body, label, approvalToken });
     writeSyncQueue(cafeId, queue);
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
@@ -891,14 +930,14 @@ export default function App() {
     // Tasdiq tokeni navbat bilan birga diskka tushadi — buyurtma
     // tuzatishlaridagi kabi. Usiz aloqa tiklanganda server yozuvni rad
     // etardi va oflayn kiritilgan xarajat yo'qolib ketardi.
-    queue.push({ kind: 'cash', entry, label, approvalToken });
+    queue.push({ kind: 'cash', queuedAt: Date.now(), entry, label, approvalToken });
     writeSyncQueue(cafeId, queue);
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
   const queueDeleteForSync = useCallback((orderId: string, label?: string) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
-    queue.push({ kind: 'delete', orderId, label });
+    queue.push({ kind: 'delete', queuedAt: Date.now(), orderId, label });
     writeSyncQueue(cafeId, queue);
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
@@ -3248,6 +3287,13 @@ export default function App() {
         show={showShiftReport}
         orders={orders}
         cashTransactions={cashTransactions}
+        /*
+         * Smena hisoboti — pul sanaladigan payt. Serverga yetib bormagan
+         * amal bo'lsa, raqam to'liq emas va buni AYNAN SHU YERDA aytish
+         * kerak: kassir hisobotni yozib qo'ygandan keyin aytish kech.
+         */
+        backlog={shiftBacklog}
+        onRetryFailed={retryFailedSync}
         onClose={() => setShowShiftReport(false)}
         onPrint={() => window.print()}
       />

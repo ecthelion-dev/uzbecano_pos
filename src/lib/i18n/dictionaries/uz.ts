@@ -203,6 +203,10 @@ export const uz = {
   'shift.tableCount': 'Stollar soni',
   'shift.waiterRevenue': 'Ofitsiantlar tushumi',
   'shift.print': 'Z-REPORT CHOP ETISH',
+  'shift.incompleteTitle': 'HISOBOT TO‘LIQ EMAS',
+  'shift.incompleteBody': '{n} ta amal serverga yetib bormagan — quyidagi summalar ularsiz hisoblangan.',
+  'shift.incompleteStuck': 'Ular o‘zi ketmaydi, rahbarga ayting.',
+  'shift.retryFailed': 'Qayta yuborishga urinish',
   'shift.tablesClosed': '{n} ta stol yopilgan',
 
   // ── Boshqaruv paneli ────────────────────────────────────────────────

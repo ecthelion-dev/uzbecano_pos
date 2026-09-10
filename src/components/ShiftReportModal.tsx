@@ -1,12 +1,16 @@
 import React from 'react';
-import { Sparkles, Printer, ChefHat } from 'lucide-react';
+import { Sparkles, Printer, ChefHat, AlertTriangle, RefreshCw } from 'lucide-react';
 import { DBOrder, CashTransaction } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
+import type { SyncVerdict } from '../lib/syncHealth';
 
 interface ShiftReportModalProps {
   show: boolean;
   orders: DBOrder[];
   cashTransactions?: CashTransaction[];
+  /** Serverga yetib bormagan amallar — hisobot to'liqligining o'lchovi. */
+  backlog?: SyncVerdict;
+  onRetryFailed?: () => void;
   onClose: () => void;
   onPrint: () => void;
 }
@@ -15,6 +19,8 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
   show,
   orders,
   cashTransactions = [],
+  backlog,
+  onRetryFailed,
   onClose,
   onPrint,
 }) => {
@@ -56,6 +62,34 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
         </div>
 
         <div className="space-y-4 overflow-y-auto pr-1">
+          {/*
+            Ogohlantirish raqamlardan YUQORIDA va chop etiladigan qismning
+            ichida: qog'ozga ham tushadi. Kassir hisobotni yozib qo'ygandan
+            keyin aytish kech bo'ladi.
+          */}
+          {backlog?.incomplete && (
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-rose-800">{t('shift.incompleteTitle')}</p>
+                  <p className="text-[11px] text-rose-700 font-medium mt-0.5 leading-relaxed">
+                    {t('shift.incompleteBody', { n: backlog.total })}
+                    {backlog.stuck ? ' ' + t('shift.incompleteStuck') : ''}
+                  </p>
+                </div>
+              </div>
+              {backlog.stuck && onRetryFailed && (
+                <button
+                  onClick={onRetryFailed}
+                  className="print:hidden w-full bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-2 rounded-xl text-[11px] flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> {t('shift.retryFailed')}
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3">
               <p className="text-[11px] font-medium text-orange-700">{t('shift.netRevenue')}</p>

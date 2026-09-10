@@ -190,6 +190,10 @@ export const en: Record<TranslationKey, string> = {
   'shift.tableCount': 'Tables served',
   'shift.waiterRevenue': 'Revenue by waiter',
   'shift.print': 'PRINT Z-REPORT',
+  'shift.incompleteTitle': 'THIS REPORT IS INCOMPLETE',
+  'shift.incompleteBody': '{n} operations never reached the server; the totals below are counted without them.',
+  'shift.incompleteStuck': 'They will not go on their own — tell the manager.',
+  'shift.retryFailed': 'Try sending again',
   'shift.tablesClosed': '{n} tables closed',
 
   // ── Dashboard ───────────────────────────────────────────────────────

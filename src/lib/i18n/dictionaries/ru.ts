@@ -190,6 +190,10 @@ export const ru: Record<TranslationKey, string> = {
   'shift.tableCount': 'Количество столов',
   'shift.waiterRevenue': 'Выручка официантов',
   'shift.print': 'ПЕЧАТЬ Z-ОТЧЁТА',
+  'shift.incompleteTitle': 'ОТЧЁТ НЕПОЛНЫЙ',
+  'shift.incompleteBody': '{n} операций не дошли до сервера — суммы ниже посчитаны без них.',
+  'shift.incompleteStuck': 'Сами они не уйдут, сообщите руководителю.',
+  'shift.retryFailed': 'Попробовать отправить снова',
   'shift.tablesClosed': 'Закрыто столов: {n}',
 
   // ── Панель ──────────────────────────────────────────────────────────

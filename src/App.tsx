@@ -2307,7 +2307,20 @@ export default function App() {
 
     // Serverdagi yozuvda kim kiritgani SESSIYADAN olinadi — bu yerdan
     // yuborilgan ismga ishonilmaydi.
-    const payload = { type: 'chiqim', category, amount, note: note || undefined };
+    /*
+     * `idempotencyKey` shu yerda, yozuv tug'ilgan paytda beriladi va qayta
+     * yuborishda o'zgarmaydi. Server aynan shunga qarab takrorni tanaydi.
+     *
+     * `newTx.id` emas, chunki u `tx_${Date.now()}` — bitta kafedagi ikkita
+     * kassa bir millisekundda yozsa, ikkinchisi jimgina yo'qolardi.
+     */
+    const payload = {
+      type: 'chiqim',
+      category,
+      amount,
+      note: note || undefined,
+      idempotencyKey: crypto.randomUUID(),
+    };
 
     if (isOfflineMode) {
       queueCashForSync(payload, cashCategoryLabel(category), cashApprovalToken);

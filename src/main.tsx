@@ -4,6 +4,7 @@ import App from './App'
 import { LanguageProvider } from './lib/i18n/LanguageProvider';
 import { UpdateBanner } from './components/UpdateBanner';
 import { initAutoUpdater } from './lib/autoUpdater';
+import { initPwaUpdater } from './lib/pwaUpdater';
 import './index.css';
 import { IS_DESKTOP_APP } from './constants';
 
@@ -36,3 +37,4 @@ if ('serviceWorker' in navigator && !IS_DESKTOP_APP) {
 }
 
 initAutoUpdater();
+initPwaUpdater();

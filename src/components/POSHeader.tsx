@@ -11,6 +11,7 @@ import {
   MoreVertical,
   Wallet,
   Check,
+  ChevronDown,
 } from 'lucide-react';
 import { DBWaiter } from '../types';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -53,6 +54,9 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   // Desktopda ham til, kassa va printer tugmalari sarlavhani band qilib
   // turardi. Ular endi shu bitta uch nuqtali tugma ostiga yig'ilgan.
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
+  // Til ro'yxati shu menyu ichida o'z ichiga yig'iladigan/ochiladigan qator —
+  // uch tilni doim ko'rsatib turish menyuni keraksiz uzaytirardi.
+  const [langExpanded, setLangExpanded] = useState(false);
 
   return (
     <header className="bg-white border-b border-slate-200 px-2 sm:px-6 py-2 sm:py-3 flex items-center justify-between shadow-sm sticky top-0 z-50 gap-1.5 sm:gap-4 shrink-0 relative">
@@ -164,7 +168,10 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           sarlavhani band qilib turardi.
         */}
         <button
-          onClick={() => setDesktopMenuOpen((prev) => !prev)}
+          onClick={() => {
+            setDesktopMenuOpen((prev) => !prev);
+            setLangExpanded(false);
+          }}
           className={`hidden lg:flex w-10 h-10 items-center justify-center border rounded-xl transition-all cursor-pointer shadow-2xs shrink-0 ${
             desktopMenuOpen
               ? 'bg-slate-900 border-slate-900 text-white'
@@ -191,43 +198,58 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 
       {desktopMenuOpen && (
         <>
-          <div onClick={() => setDesktopMenuOpen(false)} className="hidden lg:block fixed inset-0 z-40" />
+          <div
+            onClick={() => {
+              setDesktopMenuOpen(false);
+              setLangExpanded(false);
+            }}
+            className="hidden lg:block fixed inset-0 z-40"
+          />
           <div className="hidden lg:block absolute right-2 top-full mt-1.5 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden animate-fadeIn">
             {/*
-              Til ro'yxati shu yerda TO'G'RIDAN-TO'G'RI ko'rsatiladi —
-              o'ziga xos ochiladigan ro'yxatli <LanguageSwitcher /> shu
-              menyu ichida ikkinchi qavat popover yasab, pastdagi Kassa
-              va Printer qatorlarini bosib qolardi.
+              Til — bosilganda ochiladigan qator, o'ziga xos ro'yxatli
+              <LanguageSwitcher /> emas: u shu menyu ichida ikkinchi qavat
+              popover yasab, pastdagi Kassa va Printer qatorlarini bosib
+              qolardi. Ro'yxatning o'zi endi ODDIY OQIMDA ochiladi (absolute
+              popover emas), shuning uchun hech narsani bosib qolmaydi.
             */}
-            <div className="px-3.5 pt-3 pb-1.5 border-b border-slate-100">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                {t('header.language')}
-              </span>
-            </div>
-            {LOCALES.map((code) => {
-              const active = code === locale;
-              return (
-                <button
-                  key={code}
-                  onClick={() => {
-                    setLocale(code);
-                    setDesktopMenuOpen(false);
-                  }}
-                  className={`w-full px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs transition-colors cursor-pointer ${
-                    active ? 'bg-orange-50 text-orange-600 font-semibold' : 'text-slate-700 hover:bg-slate-50 font-semibold'
-                  }`}
-                >
-                  <span>{LOCALE_LABELS[code]}</span>
-                  {active ? (
-                    <Check className="w-3.5 h-3.5 shrink-0" />
-                  ) : (
-                    <span className="text-[10px] font-bold tracking-wide text-slate-400 shrink-0">
-                      {LOCALE_SHORT[code]}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            <button
+              onClick={() => setLangExpanded((prev) => !prev)}
+              className="w-full px-3.5 py-3 flex items-center justify-between gap-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <span>{t('header.language')}: {LOCALE_LABELS[locale]}</span>
+              <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform ${langExpanded ? 'rotate-180' : ''}`} />
+            </button>
+
+            {langExpanded && (
+              <div className="bg-slate-50 border-y border-slate-100">
+                {LOCALES.map((code) => {
+                  const active = code === locale;
+                  return (
+                    <button
+                      key={code}
+                      onClick={() => {
+                        setLocale(code);
+                        setDesktopMenuOpen(false);
+                        setLangExpanded(false);
+                      }}
+                      className={`w-full pl-6 pr-3.5 py-2.5 flex items-center justify-between gap-3 text-xs transition-colors cursor-pointer ${
+                        active ? 'text-orange-600 font-semibold' : 'text-slate-600 hover:bg-slate-100 font-semibold'
+                      }`}
+                    >
+                      <span>{LOCALE_LABELS[code]}</span>
+                      {active ? (
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                      ) : (
+                        <span className="text-[10px] font-bold tracking-wide text-slate-400 shrink-0">
+                          {LOCALE_SHORT[code]}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="border-t border-slate-100" />
 

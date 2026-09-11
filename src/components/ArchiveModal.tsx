@@ -431,15 +431,15 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
             {/* Custom Date & Time Range Pickers (only when custom active) */}
             {timePreset === 'custom' && (
-              <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-2xl flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 text-xs shrink-0 animate-fadeIn">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 flex-1 w-full min-w-0 sm:min-w-[240px]">
-                  <span className="font-semibold text-slate-600 text-xs shrink-0">{t('archive.periodStart')}</span>
-                  <div className="flex items-center gap-1.5 min-w-0 w-full sm:flex-1">
+              <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5 sm:gap-4 text-sm shrink-0 animate-fadeIn">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 flex-1 w-full min-w-0 sm:min-w-[260px]">
+                  <span className="font-semibold text-slate-600 text-sm shrink-0">{t('archive.periodStart')}</span>
+                  <div className="flex items-center gap-2 min-w-0 w-full sm:flex-1">
                     <input
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
                     />
                     {/*
                       Oddiy maydon, `type="time"` emas.
@@ -465,19 +465,19 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       onBlur={(e) => setStartTime(normalizeTimeText(e.target.value, '00:00'))}
                       placeholder="00:00"
                       maxLength={5}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-24 text-center shrink-0"
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-28 text-center shrink-0"
                     />
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 flex-1 w-full min-w-0 sm:min-w-[240px]">
-                  <span className="font-semibold text-slate-600 text-xs shrink-0">{t('archive.periodEnd')}</span>
-                  <div className="flex items-center gap-1.5 min-w-0 w-full sm:flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 flex-1 w-full min-w-0 sm:min-w-[260px]">
+                  <span className="font-semibold text-slate-600 text-sm shrink-0">{t('archive.periodEnd')}</span>
+                  <div className="flex items-center gap-2 min-w-0 w-full sm:flex-1">
                     <input
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
                     />
                     <input
                       type="text"
@@ -487,7 +487,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       onBlur={(e) => setEndTime(normalizeTimeText(e.target.value, '23:59'))}
                       placeholder="23:59"
                       maxLength={5}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-24 text-center shrink-0"
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-28 text-center shrink-0"
                     />
                   </div>
                 </div>
@@ -499,11 +499,11 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     setStartTime('00:00');
                     setEndTime('23:59');
                   }}
-                  className="self-end sm:self-auto shrink-0 h-9 sm:h-auto px-3 sm:p-1.5 flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 cursor-pointer shadow-2xs active:scale-95 transition-transform"
+                  className="self-end sm:self-auto shrink-0 h-11 sm:h-auto px-4 sm:p-2.5 flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 cursor-pointer shadow-2xs active:scale-95 transition-transform"
                   title={t('archive.reset')}
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span className="sm:hidden font-semibold text-xs">{t('archive.backToToday')}</span>
+                  <RotateCcw className="w-4 h-4" />
+                  <span className="sm:hidden font-semibold text-sm">{t('archive.backToToday')}</span>
                 </button>
               </div>
             )}

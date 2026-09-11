@@ -14,21 +14,22 @@ import { useT } from '../lib/i18n/LanguageProvider';
  * Ranglar sarlavhaning o'z lug'atidan: oq fon, slate hoshiya. Ilgari bu
  * yerda to'q fon uchun yozilgan ranglar bor edi — oq sarlavhada ular
  * o'qilmasdi.
+ *
+ * Ilgari hammasi joyida bo'lsa bu yerda hech narsa chizilmasdi — kassir
+ * "Wi-Fi umuman ishlayaptimi" degan savolga javobni faqat muammo
+ * chiqqandagina ko'rar edi. Endi holat doim ko'rinadi: onlaynda yashil
+ * "Wi-Fi" belgisi, oflaynda amber "Offline" yozuvi bilan.
  */
 export const NetworkIndicator: React.FC = () => {
   const t = useT();
   const { isOnline, pendingCount, failedCount, triggerSync } = useNetworkStatus();
 
-  // Hammasi joyida bo'lsa sarlavhada joy egallamaydi: kassirga har soniyada
-  // "hammasi yaxshi" deb turishning keragi yo'q, u faqat muammoni bilishi
-  // kerak. Shuning uchun yashil "Online" yorlig'i chizilmaydi.
-  if (isOnline && pendingCount === 0 && failedCount === 0) return null;
-
   return (
     <div className="hidden sm:flex items-center gap-2 h-10 px-3 rounded-xl border bg-white border-slate-200 shadow-2xs shrink-0">
       {isOnline ? (
-        <span className="flex items-center gap-1.5 text-emerald-600">
+        <span className="flex items-center gap-1.5 text-emerald-600" title={t('net.online')}>
           <Wifi className="w-4 h-4" />
+          <span className="text-[11px] font-bold">{t('net.online')}</span>
         </span>
       ) : (
         <span className="flex items-center gap-1.5 text-amber-600">

@@ -33,6 +33,23 @@ export function formatDateClock(value: Date | string | number | null | undefined
 }
 
 /**
+ * Kiritilayotgan paytdagi ko'rinish — raqam bo'lmagan belgini yozdirmaydi.
+ *
+ * `normalizeTimeText` faqat maydondan chiqilganda (`onBlur`) ishlaydi, ya'ni
+ * yozish paytida ekranda harflar ham, ortiqcha belgilar ham ko'rinaverardi
+ * ("s324242" kabi) — chunki controlled input o'zi qabul qilgan qiymatni
+ * qaytadan chizadi. Bu funksiya har bosilgan tugmada chaqiriladi: faqat
+ * raqam qoladi, to'rttadan oshgani kesiladi, ikkinchisidan keyin ":" o'zi
+ * qo'yiladi. Diapazonga (23/59) qisqartirish shu yerda emas — u faqat
+ * `normalizeTimeText` da, maydon tugagach.
+ */
+export function maskTimeText(raw: unknown): string {
+  const digits = String(raw ?? '').replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
+/**
  * Qo'lda yozilgan vaqtni "HH:MM" ga keltiradi.
  *
  * Brauzerning o'z `type="time"` maydoni AM/PM ni qurilma tiliga qarab

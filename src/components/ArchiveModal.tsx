@@ -3,7 +3,7 @@ import { Receipt, Search, ArrowLeft, Printer, ChevronRight, Calendar, Clock, Rot
 import { DBOrder, DBWaiter } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { TakeawayTag } from './TakeawayTag';
-import { formatClock, formatDateClock, normalizeTimeText } from '../lib/timeFormat';
+import { formatClock, formatDateClock, maskTimeText, normalizeTimeText } from '../lib/timeFormat';
 
 interface ArchiveModalProps {
   show: boolean;
@@ -448,15 +448,24 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       bo'lmaydi: ingliz tiliga sozlangan telefonda kassir
                       "8:00 AM" ni ko'rardi. Yozilganini tartibga solish
                       lib/timeFormat.ts da.
+
+                      `onChange` endi xom qiymatni emas, `maskTimeText`
+                      natijasini yozadi — shuning uchun "s324242" kabi harf
+                      aralashgan matn ekranda umuman ko'rinmaydi, faqat
+                      raqamlar va ular orasidagi ":" qoladi. Diapazonga
+                      (23:59) qisqartirish esa maydondan chiqilgandagina
+                      (`onBlur`) bo'ladi — hali yozib turgan kassirni
+                      to'sqinlik qilmasin.
                     */}
                     <input
                       type="text"
                       inputMode="numeric"
                       value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
+                      onChange={(e) => setStartTime(maskTimeText(e.target.value))}
                       onBlur={(e) => setStartTime(normalizeTimeText(e.target.value, '00:00'))}
                       placeholder="00:00"
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-[72px] text-center shrink-0"
+                      maxLength={5}
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-24 text-center shrink-0"
                     />
                   </div>
                 </div>
@@ -474,10 +483,11 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       type="text"
                       inputMode="numeric"
                       value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
+                      onChange={(e) => setEndTime(maskTimeText(e.target.value))}
                       onBlur={(e) => setEndTime(normalizeTimeText(e.target.value, '23:59'))}
                       placeholder="23:59"
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-[72px] text-center shrink-0"
+                      maxLength={5}
+                      className="bg-white border border-slate-200 rounded-lg px-2 py-2 sm:py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-24 text-center shrink-0"
                     />
                   </div>
                 </div>

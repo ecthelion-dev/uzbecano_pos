@@ -567,7 +567,23 @@ export default function App() {
     // stay pure, and persisting needs the result synchronously.
     const byId = new Map<string, DBOrder>();
     for (const o of ordersRef.current) byId.set(o.id, o);
-    for (const o of data) byId.set(o.id, o);
+    for (const o of data) {
+      const local = byId.get(o.id);
+      /*
+       * Mahalliy tugagan buyurtmani serverning eskirgan "faol" nusxasi
+       * bilan almashtirmaymiz.
+       *
+       * `active=1` so'rovi to'lov PATCH'i hali yetib bormagan buyurtmani
+       * ham qaytaradi — navbatda kutib turgan yoki rad etilib
+       * `sync_failed`ga tushib qolgan bo'lsa, u serverda abadiy
+       * "oshxonaga yuborilgan" bo'lib qoladi. Kassir esa to'lovni allaqachon
+       * olgan, chekni chiqargan: ekran shu buyurtmani qayta "ochiq" qilib
+       * ko'rsatsa, stol xatoan ikkinchi marta sotilishi mumkin bo'lardi.
+       * Yozuv `sync_failed`da qoladi — admin uni qo'lda ko'rib chiqadi.
+       */
+      if (local && !isActiveOrder(local.status) && isActiveOrder(o.status)) continue;
+      byId.set(o.id, o);
+    }
     const merged = sortOrders(Array.from(byId.values()));
     ordersRef.current = merged;
     setOrders(merged);

@@ -14,7 +14,6 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { DBWaiter } from '../types';
-import LanguageSwitcher from './LanguageSwitcher';
 import { NetworkIndicator } from './NetworkIndicator';
 import { useT, useLocale } from '../lib/i18n/LanguageProvider';
 import { LOCALES, LOCALE_LABELS, LOCALE_SHORT } from '../lib/i18n/locales';
@@ -57,6 +56,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   // Til ro'yxati shu menyu ichida o'z ichiga yig'iladigan/ochiladigan qator —
   // uch tilni doim ko'rsatib turish menyuni keraksiz uzaytirardi.
   const [langExpanded, setLangExpanded] = useState(false);
+  const [mobileLangExpanded, setMobileLangExpanded] = useState(false);
 
   return (
     <header className="bg-white border-b border-slate-200 px-2 sm:px-6 py-2 sm:py-3 flex items-center justify-between shadow-sm sticky top-0 z-50 gap-1.5 sm:gap-4 shrink-0 relative">
@@ -128,8 +128,18 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         */}
         <NetworkIndicator />
 
-        {/* Telefonda til shu yerda qoladi — pastdagi menyuda yo'q. */}
-        <LanguageSwitcher className="lg:hidden" />
+        {/*
+          Telefonda arxiv shu yerda, bir bosishda ochiladi — smena davomida
+          eng ko'p ishlatiladigan amal shu. Til esa kamdan-kam o'zgaradi,
+          shuning uchun pastdagi menyuga tushirilgan.
+        */}
+        <button
+          onClick={onOpenArchive}
+          className="lg:hidden w-10 h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 shadow-2xs flex items-center justify-center text-slate-700 transition-all active:scale-95 cursor-pointer shrink-0"
+          title={t('header.archiveTitle')}
+        >
+          <Receipt className="w-4 h-4 text-orange-500" />
+        </button>
 
         <button
           onClick={onRefreshOrders}
@@ -184,7 +194,10 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 
         {/* Telefon uchun yagona menyu tugmasi */}
         <button
-          onClick={() => setMenuOpen((prev) => !prev)}
+          onClick={() => {
+            setMenuOpen((prev) => !prev);
+            setMobileLangExpanded(false);
+          }}
           className={`lg:hidden w-11 h-11 flex items-center justify-center border rounded-xl transition-all cursor-pointer shadow-2xs shrink-0 ${
             menuOpen
               ? 'bg-slate-900 border-slate-900 text-white'
@@ -284,7 +297,13 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
       {menuOpen && (
         <>
           {/* Tashqariga bosilganda yopiladi */}
-          <div onClick={() => setMenuOpen(false)} className="lg:hidden fixed inset-0 z-40" />
+          <div
+            onClick={() => {
+              setMenuOpen(false);
+              setMobileLangExpanded(false);
+            }}
+            className="lg:hidden fixed inset-0 z-40"
+          />
           <div className="lg:hidden absolute right-2 top-full mt-1.5 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden animate-fadeIn">
             {currentWaiter && (
               <div className="flex items-center gap-2.5 px-3.5 py-3 bg-slate-50 border-b border-slate-100">
@@ -300,12 +319,49 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
               </div>
             )}
 
+            {/*
+              Til — arxiv sarlavhaga chiqqani uchun bo'shagan joyga tushdi.
+              Desktopdagi kabi oddiy oqimda ochiladi, popover emas.
+            */}
+            <button
+              onClick={() => setMobileLangExpanded((prev) => !prev)}
+              className="w-full px-3.5 py-3.5 flex items-center justify-between gap-3 text-xs font-semibold text-slate-700 active:bg-slate-100 border-b border-slate-100 transition-colors"
+            >
+              <span>{t('header.language')}: {LOCALE_LABELS[locale]}</span>
+              <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform ${mobileLangExpanded ? 'rotate-180' : ''}`} />
+            </button>
+
+            {mobileLangExpanded && (
+              <div className="bg-slate-50 border-b border-slate-100">
+                {LOCALES.map((code) => {
+                  const active = code === locale;
+                  return (
+                    <button
+                      key={code}
+                      onClick={() => {
+                        setLocale(code);
+                        setMenuOpen(false);
+                        setMobileLangExpanded(false);
+                      }}
+                      className={`w-full pl-6 pr-3.5 py-3 flex items-center justify-between gap-3 text-xs transition-colors cursor-pointer ${
+                        active ? 'text-orange-600 font-semibold' : 'text-slate-600 hover:bg-slate-100 font-semibold'
+                      }`}
+                    >
+                      <span>{LOCALE_LABELS[code]}</span>
+                      {active ? (
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                      ) : (
+                        <span className="text-[10px] font-bold tracking-wide text-slate-400 shrink-0">
+                          {LOCALE_SHORT[code]}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {[
-              {
-                label: t('archive.title'),
-                icon: <Receipt className="w-4 h-4 text-orange-500" />,
-                onClick: onOpenArchive,
-              },
               {
                 label: t('drawer.title'),
                 icon: <Wallet className="w-4 h-4 text-emerald-600" />,

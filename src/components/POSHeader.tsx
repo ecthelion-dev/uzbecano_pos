@@ -47,6 +47,9 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   // Telefonda sarlavhaga hamma tugma sig'maydi: ikkinchi darajali amallar
   // (arxiv, printer, yangilash, chiqish) shu menyu ostiga yig'ilgan.
   const [menuOpen, setMenuOpen] = useState(false);
+  // Desktopda ham til, kassa va printer tugmalari sarlavhani band qilib
+  // turardi. Ular endi shu bitta uch nuqtali tugma ostiga yig'ilgan.
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
 
   return (
     <header className="bg-white border-b border-slate-200 px-2 sm:px-6 py-2 sm:py-3 flex items-center justify-between shadow-sm sticky top-0 z-50 gap-1.5 sm:gap-4 shrink-0 relative">
@@ -113,42 +116,13 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
       {/* Actions & Staff Bar */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/*
-          Til — xodim kartochkasidan tashqarida, printer va yangilash
-          tugmalari bilan bir qatorda.
-          Ilgari u kartochka ichida, ism bilan chiqish tugmasi orasida
-          turardi: sozlama xodimning o'ziga tegishli narsadek ko'rinardi va,
-          muhimrog'i, o'sha blok `lg` dan kichik ekranda yashiringani uchun
-          telefonda tilni umuman o'zgartirib bo'lmasdi.
-        */}
-        {/*
-          Aloqa holati tildan oldin: yuborilmagan buyurtma bo'lsa, kassir
-          uni sarlavhada ko'radi. Hammasi joyida bo'lsa bu yerda hech narsa
-          chizilmaydi va joy ham egallanmaydi.
+          Aloqa holati: yuborilmagan buyurtma bo'lsa, kassir uni sarlavhada
+          ko'radi.
         */}
         <NetworkIndicator />
 
-        <LanguageSwitcher />
-
-        {/*
-          Kassadan olingan pul — sut, obed, gazli suv.
-          Oyna allaqachon yozilgan edi, lekin uni ochadigan tugma yo'q edi:
-          kod bor, yo'l yo'q.
-        */}
-        <button
-          onClick={onOpenCashDrawer}
-          className="hidden lg:flex w-10 h-10 items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs shrink-0"
-          title={t('drawer.title')}
-        >
-          <Wallet className="w-4 h-4 text-emerald-600 shrink-0" />
-        </button>
-
-        <button
-          onClick={onOpenPrinterSettings}
-          className="hidden lg:flex w-10 h-10 items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs shrink-0"
-          title={t('header.printerTitle')}
-        >
-          <Printer className="w-4 h-4 text-orange-500 shrink-0" />
-        </button>
+        {/* Telefonda til shu yerda qoladi — pastdagi menyuda yo'q. */}
+        <LanguageSwitcher className="lg:hidden" />
 
         <button
           onClick={onRefreshOrders}
@@ -181,6 +155,23 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           </div>
         )}
 
+        {/*
+          Desktop uchun uch nuqtali menyu: til, kassa va printer sozlamasi
+          shu ostiga yig'ilgan — ilgari uchtasi alohida tugma bo'lib
+          sarlavhani band qilib turardi.
+        */}
+        <button
+          onClick={() => setDesktopMenuOpen((prev) => !prev)}
+          className={`hidden lg:flex w-10 h-10 items-center justify-center border rounded-xl transition-all cursor-pointer shadow-2xs shrink-0 ${
+            desktopMenuOpen
+              ? 'bg-slate-900 border-slate-900 text-white'
+              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
+          title={t('header.menu')}
+        >
+          <MoreVertical className="w-5 h-5" />
+        </button>
+
         {/* Telefon uchun yagona menyu tugmasi */}
         <button
           onClick={() => setMenuOpen((prev) => !prev)}
@@ -194,6 +185,43 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           <MoreVertical className="w-6 h-6" />
         </button>
       </div>
+
+      {desktopMenuOpen && (
+        <>
+          <div onClick={() => setDesktopMenuOpen(false)} className="hidden lg:block fixed inset-0 z-40" />
+          <div className="hidden lg:block absolute right-2 top-full mt-1.5 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden animate-fadeIn">
+            <div className="flex items-center justify-between gap-3 px-3.5 py-3 border-b border-slate-100">
+              <span className="text-xs font-semibold text-slate-700">{t('header.language')}</span>
+              <LanguageSwitcher />
+            </div>
+
+            {[
+              {
+                label: t('drawer.title'),
+                icon: <Wallet className="w-4 h-4 text-emerald-600" />,
+                onClick: onOpenCashDrawer,
+              },
+              {
+                label: t('header.printerSettings'),
+                icon: <Printer className="w-4 h-4 text-orange-500" />,
+                onClick: onOpenPrinterSettings,
+              },
+            ].map((item) => (
+              <button
+                key={item.label}
+                onClick={() => {
+                  setDesktopMenuOpen(false);
+                  item.onClick();
+                }}
+                className="w-full px-3.5 py-3 flex items-center gap-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {menuOpen && (
         <>

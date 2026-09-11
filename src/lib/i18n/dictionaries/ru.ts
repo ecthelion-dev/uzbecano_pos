@@ -45,6 +45,7 @@ export const ru: Record<TranslationKey, string> = {
   'header.printerTitle': 'Термопринтер и настройки чека',
   'header.waiterCallTitle': 'Вызов официанта',
   'header.printerSettings': 'Настройки принтера',
+  'header.language': 'Язык',
   'nav.tables': 'Столы',
   'nav.menu': 'Меню',
   'role.cashier': 'Кассир',

@@ -45,6 +45,7 @@ export const en: Record<TranslationKey, string> = {
   'header.printerTitle': 'Thermal printer and receipt settings',
   'header.waiterCallTitle': 'Waiter call',
   'header.printerSettings': 'Printer settings',
+  'header.language': 'Language',
   'nav.tables': 'Tables',
   'nav.menu': 'Menu',
   'role.cashier': 'Cashier',

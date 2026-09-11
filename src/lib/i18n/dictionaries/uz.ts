@@ -58,6 +58,7 @@ export const uz = {
   'header.printerTitle': 'Termoprinter va chek sozlamalari',
   'header.waiterCallTitle': 'Ofitsiant chaqiruvi',
   'header.printerSettings': 'Printer sozlamalari',
+  'header.language': 'Til',
   'nav.tables': 'Stollar',
   'nav.menu': 'Menyu',
   'role.cashier': 'Kassir',

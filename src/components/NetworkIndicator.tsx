@@ -29,7 +29,6 @@ export const NetworkIndicator: React.FC = () => {
       {isOnline ? (
         <span className="flex items-center gap-1.5 text-emerald-600" title={t('net.online')}>
           <Wifi className="w-4 h-4" />
-          <span className="text-[11px] font-bold">{t('net.online')}</span>
         </span>
       ) : (
         <span className="flex items-center gap-1.5 text-amber-600">

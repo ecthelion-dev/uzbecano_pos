@@ -272,6 +272,10 @@ export const en: Record<TranslationKey, string> = {
   'net.pending': '{n} pending',
   'net.failed': '{n} failed',
 
+  // ── Storage writes ──────────────────────────────────────────────────
+  'storage.writeFailed': 'Data was not saved. Check the till\'s storage.',
+  'storage.healthWarning': 'Cannot write to storage. Data may be lost — check the till\'s storage.',
+
   // ── Frozen ──────────────────────────────────────────────────────────
   'frozen.title': 'The till is temporarily frozen',
   'frozen.badge': 'Frozen',

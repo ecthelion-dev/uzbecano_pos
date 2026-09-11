@@ -55,6 +55,7 @@ import {
   writeGlobalText,
   purgeLegacyCafeKeys,
   clearOperationalData,
+  checkStorageHealth,
 } from './lib/storage';
 import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
@@ -146,6 +147,17 @@ export default function App() {
   // reading state that may have moved on since the request went out.
   const ordersRef = React.useRef<DBOrder[]>([]);
   /**
+   * `syncOfflineOrders` uchun qulf.
+   *
+   * Funksiya 10 soniyalik intervalda HAM, `online` hodisasida HAM
+   * chaqiriladi va o'zi `await` bilan to'la — navbat katta bo'lsa 10
+   * soniyadan uzoqroq ishlashi mumkin. Qulfsiz ikkinchi chaqiruv birinchisi
+   * hali `writeSyncQueue` qilmagan paytda boshlanib, ikkalasi ham bir xil
+   * eskirgan navbatni o'qir, bittasi muvaffaqiyatli yuborgan yozuvni
+   * ikkinchisi yana yuborib yuborardi.
+   */
+  const syncInProgressRef = React.useRef(false);
+  /**
    * Yozilayotgan savatlar — diskda.
    *
    * Ilgari bular faqat xotirada edi va ilova yopilishi bilan yo'qolardi.
@@ -175,6 +187,12 @@ export default function App() {
     writeCafeJson(resolveActiveCafeId(), 'carts', tableCarts);
   }, [tableCarts]);
 
+  // Ishga tushishda bir marta: disk yozadimi-o'qiydimi. Birinchi savdogacha
+  // ko'rinsin — keyin bilib qolish kech bo'ladi.
+  useEffect(() => {
+    if (!checkStorageHealth()) setStorageHealthWarning(true);
+  }, []);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [apiError, setApiError] = useState<string | null>(null);
@@ -192,6 +210,18 @@ export default function App() {
   const [archiveSearch, setArchiveSearch] = useState<string>('');
   const [selectedArchiveOrder, setSelectedArchiveOrder] = useState<any | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  /**
+   * Diskka yozib bo'lmasa ko'rsatiladigan to'suvchi xato.
+   *
+   * "Muvaffaqiyatli yopildi" degan chekni ko'rgan kassir savdo saqlangan
+   * deb o'ylaydi — aslida disk to'lgan yoki shaxsiy rejim bo'lsa, yozuv
+   * hech qayerga tushmagan bo'ladi. Shu sababli chek va "yopildi" degan
+   * xabar faqat yozuv muvaffaqiyatli bo'lgandagina chiqadi.
+   */
+  const [storageBlockingError, setStorageBlockingError] = useState<string | null>(null);
+  /** Ishga tushishda diskka yozib-o'qib bo'lmasa — kassir savdo boshlashdan oldin ko'rishi kerak. */
+  const [storageHealthWarning, setStorageHealthWarning] = useState(false);
 
   const [showTableMoveModal, setShowTableMoveModal] = useState<boolean>(false);
   const [showCashDrawerModal, setShowCashDrawerModal] = useState<boolean>(false);
@@ -866,8 +896,11 @@ export default function App() {
     const failed = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
     if (!Array.isArray(failed) || failed.length === 0) return;
     const queue = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_queue', []);
-    writeCafeJson(cafeId, 'sync_queue', [...(Array.isArray(queue) ? queue : []), ...failed]);
-    writeCafeJson(cafeId, 'sync_failed', []);
+    const queuedOk = writeCafeJson(cafeId, 'sync_queue', [...(Array.isArray(queue) ? queue : []), ...failed]);
+    // `sync_failed` faqat itemlar navbatga QAYTA YOZILGANI tasdiqlangach
+    // tozalanadi. Aks holda yozib bo'lmasa-yu shu yerda tozalab yuborilsa,
+    // o'sha yozuvlar na navbatda, na "rad etilganlar"da qoladi.
+    if (queuedOk) writeCafeJson(cafeId, 'sync_failed', []);
   }, [getActiveCafeId]);
 
   /** Smena hisoboti ochilganda navbatning holati. */
@@ -957,113 +990,131 @@ export default function App() {
   // retrying later items for an order once an earlier item for that same
   // order fails, so a status PATCH is never attempted before its CREATE.
   const syncOfflineOrders = useCallback(async () => {
-    const cafeId = getActiveCafeId();
-    const queue = readSyncQueue(cafeId);
-    if (queue.length === 0) return;
+    if (syncInProgressRef.current) return;
+    syncInProgressRef.current = true;
+    try {
+      const cafeId = getActiveCafeId();
+      const queue = readSyncQueue(cafeId);
+      if (queue.length === 0) return;
 
-    /*
-     * Sessiyasiz urinmaymiz. Kassa sessiyasi ilova yopilishi bilan o'chadi,
-     * navbat esa diskda qoladi — ya'ni ilova qayta ochilgan, PIN esa hali
-     * kiritilmagan payt bo'ladi. O'shanda yuborilgan so'rov faqat 401 oladi.
-     */
-    if (!canSync(authToken)) return;
+      /*
+       * Sessiyasiz urinmaymiz. Kassa sessiyasi ilova yopilishi bilan o'chadi,
+       * navbat esa diskda qoladi — ya'ni ilova qayta ochilgan, PIN esa hali
+       * kiritilmagan payt bo'ladi. O'shanda yuborilgan so'rov faqat 401 oladi.
+       */
+      if (!canSync(authToken)) return;
 
-    const remaining: SyncQueueItem[] = [];
-    const parked: SyncQueueItem[] = [];
-    const failedOrderIds = new Set<string>();
-    const rejectedLabels: string[] = [];
-    let anySucceeded = false;
+      const remaining: SyncQueueItem[] = [];
+      const parked: SyncQueueItem[] = [];
+      const failedOrderIds = new Set<string>();
+      const rejectedLabels: string[] = [];
+      let anySucceeded = false;
 
-    for (const [idx, item] of queue.entries()) {
-      const blockedOrderId =
-        item.kind === 'create' ? item.order?.id : item.kind === 'cash' ? undefined : item.orderId;
-      if (blockedOrderId && failedOrderIds.has(blockedOrderId)) {
-        remaining.push(item);
-        continue;
-      }
-      try {
-        let res: Response;
-        if (item.kind === 'create') {
-          res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ ...item.order, cafeId }),
-          });
-        } else if (item.kind === 'patch') {
-          res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
-            method: 'PATCH',
-            headers: getAuthHeaders(item.approvalToken),
-            body: JSON.stringify(item.body),
-          });
-        } else if (item.kind === 'cash') {
-          res = await fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
-            method: 'POST',
-            headers: getAuthHeaders(item.approvalToken),
-            body: JSON.stringify(item.entry),
-          });
-        } else {
-          res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders(),
-          });
+      for (const [idx, item] of queue.entries()) {
+        const blockedOrderId =
+          item.kind === 'create' ? item.order?.id : item.kind === 'cash' ? undefined : item.orderId;
+        if (blockedOrderId && failedOrderIds.has(blockedOrderId)) {
+          remaining.push(item);
+          continue;
         }
+        try {
+          let res: Response;
+          if (item.kind === 'create') {
+            res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
+              method: 'POST',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({ ...item.order, cafeId }),
+            });
+          } else if (item.kind === 'patch') {
+            res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
+              method: 'PATCH',
+              headers: getAuthHeaders(item.approvalToken),
+              body: JSON.stringify(item.body),
+            });
+          } else if (item.kind === 'cash') {
+            res = await fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
+              method: 'POST',
+              headers: getAuthHeaders(item.approvalToken),
+              body: JSON.stringify(item.entry),
+            });
+          } else {
+            res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
+              method: 'DELETE',
+              headers: getAuthHeaders(),
+            });
+          }
 
-        if (res.ok) {
-          anySucceeded = true;
-        } else if (await applyFrozenFromResponse(res, cafeId)) {
-          // Kafe muzlatilgan: navbatni davom ettirish befoyda, ekran baribir
-          // muzlatish oynasiga o'tadi. Shu amaldan boshlab hammasi navbatda
-          // qoladi va to'lovdan keyin o'zi yuboriladi.
-          remaining.push(...queue.slice(idx));
-          break;
-        } else if (decideFromStatus(res.status) === 'retry') {
+          if (res.ok) {
+            anySucceeded = true;
+          } else if (await applyFrozenFromResponse(res, cafeId)) {
+            // Kafe muzlatilgan: navbatni davom ettirish befoyda, ekran baribir
+            // muzlatish oynasiga o'tadi. Shu amaldan boshlab hammasi navbatda
+            // qoladi va to'lovdan keyin o'zi yuboriladi.
+            remaining.push(...queue.slice(idx));
+            break;
+          } else if (decideFromStatus(res.status) === 'retry') {
+            remaining.push(item);
+            if (blockedOrderId) failedOrderIds.add(blockedOrderId);
+          } else {
+            // Server bu so'rovni printsipial rad etdi (masalan taom o'chirilgan
+            // yoki buyurtma bo'sh). Qayta yuborish foydasiz, shuning uchun u
+            // navbatdan chiqadi — lekin O'CHIRILMAYDI: bu pul, uni jimgina
+            // yo'qotib bo'lmaydi. Alohida ro'yxatda ko'rib chiqishni kutadi.
+            parked.push(item);
+            const label =
+              item.kind === 'create'
+                ? item.order?.tableNumber || t('common.order')
+                : item.kind === 'cash'
+                  ? item.label || t('drawer.title')
+                  : item.label || item.orderId;
+            rejectedLabels.push(String(label));
+            if (blockedOrderId) failedOrderIds.add(blockedOrderId);
+          }
+        } catch {
           remaining.push(item);
           if (blockedOrderId) failedOrderIds.add(blockedOrderId);
-        } else {
-          // Server bu so'rovni printsipial rad etdi (masalan taom o'chirilgan
-          // yoki buyurtma bo'sh). Qayta yuborish foydasiz, shuning uchun u
-          // navbatdan chiqadi — lekin O'CHIRILMAYDI: bu pul, uni jimgina
-          // yo'qotib bo'lmaydi. Alohida ro'yxatda ko'rib chiqishni kutadi.
-          parked.push(item);
-          const label =
-            item.kind === 'create'
-              ? item.order?.tableNumber || t('common.order')
-              : item.kind === 'cash'
-                ? item.label || t('drawer.title')
-                : item.label || item.orderId;
-          rejectedLabels.push(String(label));
-          if (blockedOrderId) failedOrderIds.add(blockedOrderId);
         }
-      } catch {
-        remaining.push(item);
-        if (blockedOrderId) failedOrderIds.add(blockedOrderId);
       }
+
+      /*
+       * Rad etilganlar `sync_queue`dan chiqishidan OLDIN `sync_failed`ga
+       * yozilishi shart — aks holda ikkisi orasida ilova yiqilsa (yoki
+       * `sync_failed` yozuvi disk to'lgani uchun muvaffaqiyatsiz bo'lsa),
+       * o'sha pul HECH QAYERDA qolmay ketardi: navbatdan chiqqan, arxivga
+       * ham tushmagan. Yozib bo'lmasa parked itemlar navbatda QOLDIRILADI —
+       * ikki marta ko'rinishi (keyingi urinishda yana rad etilib, yana shu
+       * yozuvga tushishi) yo'qolishidan yaxshiroq.
+       */
+      let queueAfterSync = remaining;
+      if (parked.length > 0) {
+        const before = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
+        const parkedSaved = writeCafeJson(cafeId, 'sync_failed', [...(Array.isArray(before) ? before : []), ...parked]);
+        if (!parkedSaved) {
+          queueAfterSync = [...remaining, ...parked];
+        }
+      }
+      writeSyncQueue(cafeId, queueAfterSync);
+
+      if (rejectedLabels.length > 0) {
+        setToastMessage(
+          t('toast.syncRejected', {
+            list:
+              rejectedLabels.slice(0, 3).join(', ') +
+              (rejectedLabels.length > 3
+                ? ' ' + t('toast.andMore', { n: rejectedLabels.length - 3 })
+                : ''),
+          })
+        );
+        setTimeout(() => setToastMessage(null), 6000);
+      } else if (anySucceeded) {
+        setToastMessage("Oflayn amallar serverga sinxronlandi!");
+        setTimeout(() => setToastMessage(null), 2500);
+      }
+
+      if (anySucceeded) fetchOrders();
+    } finally {
+      syncInProgressRef.current = false;
     }
-
-    writeSyncQueue(cafeId, remaining);
-
-    if (parked.length > 0) {
-      const before = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
-      writeCafeJson(cafeId, 'sync_failed', [...(Array.isArray(before) ? before : []), ...parked]);
-    }
-
-    if (rejectedLabels.length > 0) {
-      setToastMessage(
-        t('toast.syncRejected', {
-          list:
-            rejectedLabels.slice(0, 3).join(', ') +
-            (rejectedLabels.length > 3
-              ? ' ' + t('toast.andMore', { n: rejectedLabels.length - 3 })
-              : ''),
-        })
-      );
-      setTimeout(() => setToastMessage(null), 6000);
-    } else if (anySucceeded) {
-      setToastMessage("Oflayn amallar serverga sinxronlandi!");
-      setTimeout(() => setToastMessage(null), 2500);
-    }
-
-    if (anySucceeded) fetchOrders();
   }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, writeSyncQueue, applyFrozenFromResponse]);
 
   useEffect(() => {
@@ -2235,7 +2286,13 @@ export default function App() {
 
       ordersRef.current = updatedOrders;
       setOrders(updatedOrders);
-      writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
+      // Yozib bo'lmasa oshxona kvitansiyasi ham, "yuborildi" degan xabar
+      // ham chiqmaydi — kassir hali hech narsa yo'qotmagan, faqat qaytadan
+      // urinishi kerak.
+      if (!writeCafeJson(getActiveCafeId(), 'orders', updatedOrders)) {
+        setStorageBlockingError(t('storage.writeFailed'));
+        return;
+      }
       setTableCarts(prev => ({ ...prev, [selectedTable]: [] }));
 
       const kitchenPayload: KitchenSlipData = {
@@ -2612,7 +2669,12 @@ export default function App() {
       // bosilganda hech nima yopilmas, chek ham chiqmasdi.
       ordersRef.current = currentOrders;
       setOrders(currentOrders);
-      writeCafeJson(getActiveCafeId(), 'orders', currentOrders);
+      // Savatdagi taomlar ro'yxatga yozilmasa, pastdagi to'lov-yopish bloki
+      // ularsiz ishlaydi — chek noto'liq chiqadi. Shu yerda to'xtatamiz.
+      if (!writeCafeJson(getActiveCafeId(), 'orders', currentOrders)) {
+        setStorageBlockingError(t('storage.writeFailed'));
+        return;
+      }
     }
 
     setApiError(null);
@@ -2655,7 +2717,14 @@ export default function App() {
 
         ordersRef.current = updatedOrders;
         setOrders(updatedOrders);
-        writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
+        // Yozib bo'lmasa stol "yopilgan" hisoblanmaydi: chek chiqmaydi,
+        // "muvaffaqiyatli yopildi" degan xabar ham chiqmaydi. Kassir buni
+        // ko'rib qaytadan urinishi kerak — aks holda pul olingan, lekin
+        // hech qanday yozuv qolmagan bo'lardi.
+        if (!writeCafeJson(getActiveCafeId(), 'orders', updatedOrders)) {
+          setStorageBlockingError(t('storage.writeFailed'));
+          return;
+        }
         setSelectedArchiveOrder(closedOrder);
 
         /*
@@ -2916,6 +2985,18 @@ export default function App() {
         currentWaiter={currentWaiter}
         onLogout={handleLogout}
       />
+
+      {/*
+        Diskka yozib-o'qib bo'lmasa ko'rinadi. Ishga tushishda bir marta
+        tekshiriladi (checkStorageHealth) — savdo boshlanmasdan oldin
+        kassir buni bilishi kerak.
+      */}
+      {storageHealthWarning && (
+        <div className="bg-amber-50 border-b-2 border-amber-300 text-amber-900 px-4 py-2 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-center shrink-0">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {t('storage.healthWarning')}
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden p-2 sm:p-4 gap-2 sm:gap-4 relative min-h-0">
@@ -3405,6 +3486,28 @@ export default function App() {
         cafeAddress={connectedCafeAddress}
         cafePhone={connectedCafePhone}
       />
+
+      {/*
+        Diskka yozib bo'lmagani uchun to'sib turadi: chek chiqmagan, stol
+        yopilmagan, "muvaffaqiyatli" degan xabar chiqmagan — kassir buni
+        ko'rmasdan davom etsa, savdo hech qayerda qolmagan bo'lib chiqadi.
+      */}
+      {storageBlockingError && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-rose-200 space-y-4 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <p className="font-bold text-slate-900">{storageBlockingError}</p>
+            <button
+              onClick={() => setStorageBlockingError(null)}
+              className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl cursor-pointer transition-colors"
+            >
+              {t('common.close')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Thermal Printer Settings Modal */}
       <PrinterSettingsModal

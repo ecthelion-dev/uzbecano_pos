@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { installMemoryStorage } from './testStorage';
 
 installMemoryStorage();
@@ -18,6 +18,7 @@ const {
   removeCafeKey,
   purgeLegacyCafeKeys,
   clearOperationalData,
+  checkStorageHealth,
   OPERATIONAL_KEYS,
   PRESERVED_KEYS,
 } = await import('./storage');
@@ -167,5 +168,73 @@ describe('diskdagi yozuvlar', () => {
     expect(localStorage.getItem('orderplus_cafe_logo')).toBe(null);
     // Kafega bog'langan yozuvga tegmaydi.
     expect(readCafeText('uzbecano', 'name')).toBe('Uzbecano');
+  });
+
+  /*
+   * "Muvaffaqiyatli yopildi" degan chek ko'rgan kassir savdo saqlangan deb
+   * o'ylaydi. Xato jimgina yutilib qolmasligi uchun ikki narsa kerak:
+   * yozib bo'lmaganda iz qoladigan bo'lishi (konsolga) va ishga tushishda
+   * disk umuman ishlaydimi tekshirib ko'rish.
+   */
+  describe('yozuv xatosini qayd etish', () => {
+    it('yozib bo\'lmaganda konsolga yozadi', () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const broken = {
+        getItem() { return null; },
+        setItem() { throw new Error('disk to\'lgan'); },
+        removeItem() {},
+      };
+      Object.defineProperty(globalThis, 'localStorage', { value: broken, configurable: true });
+
+      expect(writeText('orderplus_test', 'qiymat')).toBe(false);
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
+    it('aylanma havolali obyektda ham konsolga yozadi', () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const loop: any = { a: 1 };
+      loop.self = loop;
+
+      expect(writeJson('orderplus_test', loop)).toBe(false);
+      expect(spy).toHaveBeenCalled();
+      spy.mockRestore();
+    });
+  });
+
+  /*
+   * Ishga tushishda disk yozadimi-o'qiydimi tekshiradi. Sinov kaliti
+   * doimiy yozuvlarga aralashmasligi va o'zidan keyin iz qoldirmasligi
+   * shart — aks holda har ishga tushishda bitta keraksiz kalit qolib
+   * ketardi.
+   */
+  describe('disk salomatligi', () => {
+    it('yoza va o\'qiy olsa true qaytaradi hamda iz qoldirmaydi', () => {
+      expect(checkStorageHealth()).toBe(true);
+      expect(localStorage.getItem('orderplus_storage_health_check')).toBe(null);
+    });
+
+    it('yozib bo\'lmasa false qaytaradi', () => {
+      const broken = {
+        getItem() { return null; },
+        setItem() { throw new Error('disk to\'lgan'); },
+        removeItem() {},
+      };
+      Object.defineProperty(globalThis, 'localStorage', { value: broken, configurable: true });
+      expect(checkStorageHealth()).toBe(false);
+    });
+
+    it('yozilgan qiymat qaytib o\'qilmasa false qaytaradi', () => {
+      // Yozish "muvaffaqiyatli" bo'lib, o'qish boshqa narsa qaytarsa —
+      // masalan boshqa freym yoki kvota siyosati aralashgan bo'lsa —
+      // sog'lom deb hisoblanmasin.
+      const fake = {
+        setItem() {},
+        getItem() { return 'boshqa qiymat'; },
+        removeItem() {},
+      };
+      Object.defineProperty(globalThis, 'localStorage', { value: fake, configurable: true });
+      expect(checkStorageHealth()).toBe(false);
+    });
   });
 });

@@ -286,6 +286,10 @@ export const uz = {
   'net.pending': '{n} kutilmoqda',
   'net.failed': '{n} xato',
 
+  // ── Disk yozuvi ─────────────────────────────────────────────────────
+  'storage.writeFailed': "Ma'lumot saqlanmadi. Disk xotirasini tekshiring.",
+  'storage.healthWarning': "Diskka yozib bo'lmayapti. Ma'lumot yo'qolishi mumkin — kassa xotirasini tekshiring.",
+
   // ── Muzlatilgan kafe ────────────────────────────────────────────────
   'frozen.title': 'Kassa vaqtincha muzlatilgan',
   'frozen.badge': 'Muzlatilgan',

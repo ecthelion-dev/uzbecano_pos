@@ -99,12 +99,26 @@ export function readText(key: string, kind: 'local' | 'session' = 'local'): stri
   }
 }
 
+/**
+ * Yozib bo'lmagan har bir urinish shu yerda qayd etiladi.
+ *
+ * Ilgari `writeJson`/`writeText` xato bo'lsa `false` qaytarardi, lekin
+ * chaqiruvchilarning aksariyati bu qiymatni tekshirmasdi — disk to'lgan yoki
+ * shaxsiy rejimda savdo "saqlandi" deb ko'rinar, aslida hech qayerga
+ * yozilmagan bo'lardi. Konsolga yozish bu holatni hech bo'lmasa iz
+ * qoldiradigan qiladi, chaqiruvchi kodni o'zgartirmasdan.
+ */
+function logWriteFailure(key: string): void {
+  console.error(`[storage] yozib bo'lmadi: ${key}`);
+}
+
 /** Yozib bo'lganini qaytaradi — chaqiruvchi buni bilishi kerak bo'lsa. */
 export function writeText(key: string, value: string, kind: 'local' | 'session' = 'local'): boolean {
   try {
     store(kind)?.setItem(key, value);
     return true;
   } catch {
+    logWriteFailure(key);
     return false;
   }
 }
@@ -134,6 +148,8 @@ export function writeJson(key: string, value: unknown, kind: 'local' | 'session'
     return writeText(key, JSON.stringify(value), kind);
   } catch {
     // Aylanma havolali obyekt — JSON.stringify xato tashlaydi.
+    // `writeText` bu yerga yetib kelmagani uchun o'zi qayd etolmaydi.
+    logWriteFailure(key);
     return false;
   }
 }
@@ -223,6 +239,22 @@ export const PRESERVED_KEYS = [
   'tables',
   'waiters',
 ] as const satisfies readonly CafeKey[];
+
+const HEALTH_CHECK_KEY = 'orderplus_storage_health_check';
+
+/**
+ * Disk haqiqatan ham yozib-o'qiy olayotganini tekshiradi: yozadi, o'qiydi,
+ * o'chiradi. Kassa ishga tushganda bir marta chaqiriladi — shaxsiy rejim
+ * yoki to'lgan disk kabi holatlarni birinchi savdogacha, kassir hali hech
+ * narsa yo'qotmagan paytda ko'rsatish uchun.
+ */
+export function checkStorageHealth(): boolean {
+  const probe = String(Date.now());
+  if (!writeText(HEALTH_CHECK_KEY, probe)) return false;
+  const read = readText(HEALTH_CHECK_KEY);
+  removeKey(HEALTH_CHECK_KEY);
+  return read === probe;
+}
 
 /**
  * Kunlik ish yozuvlarini o'chiradi. Menyuga, stollarga, xodimlarga va printer

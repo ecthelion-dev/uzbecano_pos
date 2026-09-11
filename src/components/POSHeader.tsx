@@ -10,11 +10,13 @@ import {
   Building2,
   MoreVertical,
   Wallet,
+  Check,
 } from 'lucide-react';
 import { DBWaiter } from '../types';
 import LanguageSwitcher from './LanguageSwitcher';
 import { NetworkIndicator } from './NetworkIndicator';
-import { useT } from '../lib/i18n/LanguageProvider';
+import { useT, useLocale } from '../lib/i18n/LanguageProvider';
+import { LOCALES, LOCALE_LABELS, LOCALE_SHORT } from '../lib/i18n/locales';
 
 interface POSHeaderProps {
   connectedCafeName: string;
@@ -44,6 +46,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   onLogout,
 }) => {
   const t = useT();
+  const { locale, setLocale } = useLocale();
   // Telefonda sarlavhaga hamma tugma sig'maydi: ikkinchi darajali amallar
   // (arxiv, printer, yangilash, chiqish) shu menyu ostiga yig'ilgan.
   const [menuOpen, setMenuOpen] = useState(false);
@@ -190,10 +193,43 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         <>
           <div onClick={() => setDesktopMenuOpen(false)} className="hidden lg:block fixed inset-0 z-40" />
           <div className="hidden lg:block absolute right-2 top-full mt-1.5 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden animate-fadeIn">
-            <div className="flex items-center justify-between gap-3 px-3.5 py-3 border-b border-slate-100">
-              <span className="text-xs font-semibold text-slate-700">{t('header.language')}</span>
-              <LanguageSwitcher />
+            {/*
+              Til ro'yxati shu yerda TO'G'RIDAN-TO'G'RI ko'rsatiladi —
+              o'ziga xos ochiladigan ro'yxatli <LanguageSwitcher /> shu
+              menyu ichida ikkinchi qavat popover yasab, pastdagi Kassa
+              va Printer qatorlarini bosib qolardi.
+            */}
+            <div className="px-3.5 pt-3 pb-1.5 border-b border-slate-100">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                {t('header.language')}
+              </span>
             </div>
+            {LOCALES.map((code) => {
+              const active = code === locale;
+              return (
+                <button
+                  key={code}
+                  onClick={() => {
+                    setLocale(code);
+                    setDesktopMenuOpen(false);
+                  }}
+                  className={`w-full px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs transition-colors cursor-pointer ${
+                    active ? 'bg-orange-50 text-orange-600 font-semibold' : 'text-slate-700 hover:bg-slate-50 font-semibold'
+                  }`}
+                >
+                  <span>{LOCALE_LABELS[code]}</span>
+                  {active ? (
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                  ) : (
+                    <span className="text-[10px] font-bold tracking-wide text-slate-400 shrink-0">
+                      {LOCALE_SHORT[code]}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+
+            <div className="border-t border-slate-100" />
 
             {[
               {

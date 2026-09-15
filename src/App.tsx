@@ -88,6 +88,7 @@ import { FrozenCafeScreen } from './components/FrozenCafeScreen';
 import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, printReceiptViaBrowser, getLastPrintError, setReceiptLogo } from './lib/printer';
 import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
 import { splitPayment } from './lib/payment';
+import { orderTotals, parsePromoTerms } from './lib/promo';
 import { getDeviceId } from './lib/deviceId';
 import { tableState } from './lib/floorPlan';
 import { cartToHoldLines, holdLinesToCart, parseHoldItems } from './lib/cartSync';
@@ -243,7 +244,6 @@ export default function App() {
   const deviceId = useMemo(() => getDeviceId(), []);
   const [showUnsavedCartModal, setShowUnsavedCartModal] = useState<boolean>(false);
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
-  const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
   const [adminPinAction, setAdminPinAction] = useState<((approvalToken?: string) => void) | null>(null);
@@ -352,7 +352,6 @@ export default function App() {
     setCurrentWaiter(null);
     setAuthToken(null);
     setTableCarts({});
-    setDiscountPercent(0);
   }, [getActiveCafeId]);
 
   // Chek logotipini oldindan dekodlab qo'yamiz: chek yig'ilishi sinxron, ya'ni
@@ -1657,10 +1656,53 @@ export default function App() {
   const activeSubtotal = useMemo(() => activeTableOrderItems.reduce((sum: number, item: any) => sum + ((Number(item.price) || 0) * (Number(item.quantity) || 1)), 0), [activeTableOrderItems]);
 
   const subtotal = useMemo(() => activeSubtotal + draftSubtotal, [activeSubtotal, draftSubtotal]);
-  const discountAmount = useMemo(() => Math.round((subtotal * discountPercent) / 100), [subtotal, discountPercent]);
-  const netSubtotal = useMemo(() => subtotal - discountAmount, [subtotal, discountAmount]);
-  const serviceFee = useMemo(() => Math.round((netSubtotal * serviceFeePercent) / 100), [netSubtotal, serviceFeePercent]);
-  const grandTotal = useMemo(() => netSubtotal + serviceFee, [netSubtotal, serviceFee]);
+  /*
+   * Chegirma buyurtmaga qo'llangan promo-kod shartlaridan, xizmat haqi esa
+   * chegirmagacha bo'lgan summadan — server aynan shunday hisoblaydi. Farq
+   * qilsa, to'lovdagi summa serverniki bilan tenglashmay, to'lov rad etiladi.
+   */
+  const activePromo = useMemo(() => parsePromoTerms(activeTableOrder?.promo), [activeTableOrder]);
+  const { serviceFee, discount: discountAmount, total: grandTotal } = useMemo(
+    () => orderTotals(subtotal, serviceFeePercent, activePromo),
+    [subtotal, serviceFeePercent, activePromo]
+  );
+  const discountPercent = activePromo?.type === 'percent' ? activePromo.value : 0;
+
+  /**
+   * Promo-kodni stolning ochiq buyurtmasiga qo'llaydi, bo'sh kod bilan esa
+   * olib tashlaydi.
+   *
+   * Faqat onlayn: kodning yaroqliligi va hisoblagichi serverda. Navbatga
+   * qo'yilsa, kassir mijozga chegirmali summani aytib bo'lgach server kodni
+   * rad etishi mumkin edi. Summalar mahalliy taomlardan qayta hisoblanadi —
+   * hali serverga yetmagan taom ham chekda qolsin.
+   */
+  const handleApplyPromo = useCallback(async (code: string): Promise<string | null> => {
+    const order = activeTableOrder;
+    if (!order) return t('promo.needOrder');
+    if (isOfflineMode) return t('promo.offline');
+    try {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ promoCode: code }),
+      });
+      const body: any = await res.json().catch(() => null);
+      if (!res.ok) return body?.error || t('promo.failed');
+
+      const promo = parsePromoTerms(body?.promo);
+      const totals = orderTotals(activeSubtotal, serviceFeePercent, promo);
+      const updated = ordersRef.current.map((o) => (o.id === order.id
+        ? { ...o, promo, subtotal: activeSubtotal, serviceFee: totals.serviceFee, discount: totals.discount, total: totals.total }
+        : o));
+      ordersRef.current = updated;
+      setOrders(updated);
+      persistOrders(updated);
+      return null;
+    } catch {
+      return t('promo.offline');
+    }
+  }, [activeTableOrder, isOfflineMode, getAuthHeaders, activeSubtotal, serviceFeePercent, persistOrders, t]);
   const mobileCartCount = useMemo(
     () => activeTableOrderItems.length + cart.length,
     [activeTableOrderItems, cart]
@@ -2160,8 +2202,8 @@ export default function App() {
         });
         const combinedItems = Array.from(itemMap.values());
         const combinedSubtotal = combinedItems.reduce((s: number, i: any) => s + i.price * i.quantity, 0);
-        const combinedFee = Math.round((combinedSubtotal * serviceFeePercent) / 100);
-        const combinedTotal = combinedSubtotal + combinedFee;
+        const { serviceFee: combinedFee, discount: combinedDiscount, total: combinedTotal } =
+          orderTotals(combinedSubtotal, serviceFeePercent, parsePromoTerms(activeTableOrder.promo));
 
         const mergePatchBody = {
           items: JSON.stringify(combinedItems),
@@ -2185,7 +2227,7 @@ export default function App() {
           queuePatchForSync(activeTableOrder.id, mergePatchBody, 'add_items');
         }
 
-        updatedOrders = updatedOrders.map(o => o.id === activeTableOrder.id ? { ...o, items: JSON.stringify(combinedItems), total: combinedTotal } : o);
+        updatedOrders = updatedOrders.map(o => o.id === activeTableOrder.id ? { ...o, items: JSON.stringify(combinedItems), subtotal: combinedSubtotal, serviceFee: combinedFee, discount: combinedDiscount, total: combinedTotal } : o);
       } else {
         const sub = draftSubtotal;
         const fee = Math.round((sub * serviceFeePercent) / 100);
@@ -2468,9 +2510,11 @@ export default function App() {
         let existingItems: any[] = [];
         try { existingItems = typeof latestActive.items === 'string' ? JSON.parse(latestActive.items) : (latestActive.items || []); } catch { }
         const combinedItems = [...existingItems, ...newItems];
-        const combinedTotal = (latestActive.total || 0) + tot;
+        const combinedSubtotal = combinedItems.reduce((s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
+        // Promo bor bo'lsa chegirma yangi summadan — to'lov server summasiga teng chiqsin.
+        const combined = orderTotals(combinedSubtotal, serviceFeePercent, parsePromoTerms(latestActive.promo));
 
-        currentOrders = currentOrders.map(o => o.id === latestActive.id ? { ...o, items: JSON.stringify(combinedItems), total: combinedTotal } : o);
+        currentOrders = currentOrders.map(o => o.id === latestActive.id ? { ...o, items: JSON.stringify(combinedItems), subtotal: combinedSubtotal, serviceFee: combined.serviceFee, discount: combined.discount, total: combined.total } : o);
       } else {
         const newOrderObj = {
           id: crypto.randomUUID(),
@@ -3060,6 +3104,9 @@ export default function App() {
                 serviceFeePercent={serviceFeePercent}
                 serviceFee={serviceFee}
                 grandTotal={grandTotal}
+                promo={activePromo}
+                canApplyPromo={Boolean(activeTableOrder)}
+                onApplyPromo={handleApplyPromo}
                 onSendToKitchen={() => {
                   handleSendToKitchen();
                   setShowMobileCart(false);

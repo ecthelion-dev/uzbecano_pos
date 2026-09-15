@@ -11,6 +11,8 @@ import { CartItem } from '../types';
 import { CartItemRow } from './CartItemRow';
 import { KitchenItemRow } from './KitchenItemRow';
 import { useT } from '../lib/i18n/LanguageProvider';
+import type { PromoTerms } from '../lib/promo';
+import { PromoCodeField } from './PromoCodeField';
 
 interface POSCartSidebarProps {
   selectedTable: string;
@@ -22,6 +24,10 @@ interface POSCartSidebarProps {
   subtotal: number;
   discountPercent: number;
   discountAmount: number;
+  /** Stolning ochiq buyurtmasiga qo'llangan promo-kod. */
+  promo: PromoTerms | null;
+  canApplyPromo: boolean;
+  onApplyPromo: (code: string) => Promise<string | null>;
   serviceFeePercent: number;
   serviceFee: number;
   grandTotal: number;
@@ -43,6 +49,9 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
   subtotal,
   discountPercent,
   discountAmount,
+  promo,
+  canApplyPromo,
+  onApplyPromo,
   serviceFeePercent,
   serviceFee,
   grandTotal,
@@ -134,7 +143,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
         </div>
         {discountAmount > 0 && (
           <div className="flex justify-between text-xs text-emerald-600 font-semibold">
-            <span>Chegirma ({discountPercent}%):</span>
+            <span>{t('cart.discount', { code: promo?.code ?? `${discountPercent}%` })}</span>
             <span>-{discountAmount.toLocaleString()} {t('common.currency')}</span>
           </div>
         )}
@@ -184,6 +193,8 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
               <Shuffle className="w-4 h-4 text-orange-600" /> {t('cart.moveTable')}
             </button>
           </div>
+
+          <PromoCodeField promo={promo} canApply={canApplyPromo} onApply={onApplyPromo} />
         </div>
       </div>
     </div>

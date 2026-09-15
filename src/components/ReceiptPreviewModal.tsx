@@ -160,7 +160,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
             </div>
             {discountAmount > 0 && (
               <div className="flex justify-between text-emerald-700 font-semibold">
-                <span>{t('print.discountPct', { n: discountPercent })}:</span>
+                <span>{discountPercent > 0 ? t('print.discountPct', { n: discountPercent }) : t('print.discount')}:</span>
                 <span>-{discountAmount.toLocaleString()} {t('common.currency')}</span>
               </div>
             )}

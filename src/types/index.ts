@@ -1,3 +1,5 @@
+import type { PromoTerms } from '../lib/promo';
+
 export interface ProductVariant {
   name: string;
   price: number;
@@ -95,6 +97,10 @@ export interface DBOrder {
   createdAt?: string;
   discountPercent?: number;
   discountAmount?: number;
+  /** Serverdagi chegirma summasi. */
+  discount?: number;
+  /** Qo'llangan promo-kod shartlari — serverdan. Chegirma shundan hisoblanadi. */
+  promo?: PromoTerms | null;
   paymentMethod?: 'naqd' | 'karta' | 'aralash';
   cashAmount?: number;
   cardAmount?: number;

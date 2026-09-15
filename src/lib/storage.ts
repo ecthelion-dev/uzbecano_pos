@@ -196,9 +196,10 @@ export function removeGlobalKey(key: GlobalKey): void {
  * lekin kassaning O'ZIDAGI yozuvlar server bilan birga tozalanmaydi. Ularning
  * uchtasi haqiqiy zarar keltiradi:
  *
- *   - `cash_transactions` hech qachon o'chirilmaydi va smena hisoboti uni
- *     boshidan jamlaydi: sinovdagi kirim-chiqim keyingi har bir smenaning
- *     kassa qoldig'ini buzib turadi;
+ *   - `cash_transactions` — eski versiyadagi kassa xarajatlari oynasining
+ *     diskdagi nusxasi. Oyna olib tashlangan (xarajat endi admin panelda
+ *     kiritiladi), lekin yangilangan kassaning diskida u qolib ketadi —
+ *     kalit shu nusxani ham tozalash uchun ro'yxatda turadi;
  *   - `sync_queue` da qolgan sinov buyurtmasi aloqa tiklanganda serverga
  *     ketadi va endigina tozalangan bazani yana to'ldiradi;
  *   - `carts` da yozilib qolgan sinov savati stolda ochiq turadi.

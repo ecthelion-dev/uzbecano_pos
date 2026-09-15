@@ -58,7 +58,7 @@ import {
   checkStorageHealth,
 } from './lib/storage';
 import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
-import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, CashTransaction, ProductVariant } from './types';
+import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
 import { canSync, decideFromStatus } from './lib/syncQueue';
@@ -73,7 +73,6 @@ import { ArchiveModal } from './components/ArchiveModal';
 import { ShiftReportModal } from './components/ShiftReportModal';
 import { AdminPinModal } from './components/AdminPinModal';
 import { TableMoveModal } from './components/TableMoveModal';
-import { CashDrawerModal } from './components/CashDrawerModal';
 import { ProductModifierModal } from './components/ProductModifierModal';
 import { PaymentModal } from './components/PaymentModal';
 import { UnsavedCartModal } from './components/UnsavedCartModal';
@@ -87,10 +86,8 @@ import { POSHeader } from './components/POSHeader';
 import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
 import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, printReceiptViaBrowser, getLastPrintError, setReceiptLogo } from './lib/printer';
-import { Wallet } from 'lucide-react';
 import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
 import { splitPayment } from './lib/payment';
-import { cashCategoryLabel, dedupeCategories } from './lib/cashCategories';
 import { getDeviceId } from './lib/deviceId';
 import { tableState } from './lib/floorPlan';
 import { cartToHoldLines, holdLinesToCart, parseHoldItems } from './lib/cartSync';
@@ -224,9 +221,6 @@ export default function App() {
   const [storageHealthWarning, setStorageHealthWarning] = useState(false);
 
   const [showTableMoveModal, setShowTableMoveModal] = useState<boolean>(false);
-  const [showCashDrawerModal, setShowCashDrawerModal] = useState<boolean>(false);
-  /** Ilgari ishlatilgan turkum nomlari — kassa oynasida tugma bo'lib chiqadi. */
-  const [knownCashCategories, setKnownCashCategories] = useState<string[]>([]);
   /**
    * Boshqa qurilmalarda buyurtma yig'ilayotgan stollar.
    *
@@ -247,24 +241,8 @@ export default function App() {
   >([]);
   /** Shu qurilmaning nomi — o'z belgisini boshqalarnikidan ajratish uchun. */
   const deviceId = useMemo(() => getDeviceId(), []);
-  /*
-   * Xarajat bo'limi rahbar tasdig'i bilan ochiladi va tasdiq tokeni oyna
-   * yopilguncha saqlanadi: o'qish ham, yozish ham server tomonda shu
-   * dalilni talab qiladi, ya'ni har bir so'rovda qaytadan PIN so'rash
-   * kassirni bir necha marta to'xtatardi.
-   */
-  const [cashApprovalToken, setCashApprovalToken] = useState<string | undefined>(undefined);
   const [showUnsavedCartModal, setShowUnsavedCartModal] = useState<boolean>(false);
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
-  const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(() => {
-    try {
-      const cafeId = resolveActiveCafeId();
-      const saved = readCafeText(cafeId, 'cash_transactions');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
@@ -970,18 +948,6 @@ export default function App() {
 
   // Queues a DELETE (e.g. removing a source order after merging its items
   // into another table) that failed to reach the server.
-  // Kassa xarajati serverga yetmasa navbatda qoladi: internet uzilganda ham
-  // sut sotib olinaveradi, va o'sha payt yozib qo'yolmasa kassir keyin
-  // esdan chiqaradi.
-  const queueCashForSync = useCallback((entry: any, label?: string, approvalToken?: string) => {
-    const cafeId = getActiveCafeId();
-    const queue = readSyncQueue(cafeId);
-    // Tasdiq tokeni navbat bilan birga diskka tushadi — buyurtma
-    // tuzatishlaridagi kabi. Usiz aloqa tiklanganda server yozuvni rad
-    // etardi va oflayn kiritilgan xarajat yo'qolib ketardi.
-    queue.push({ kind: 'cash', queuedAt: Date.now(), entry, label, approvalToken });
-    writeSyncQueue(cafeId, queue);
-  }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
   const queueDeleteForSync = useCallback((orderId: string, label?: string) => {
     const cafeId = getActiveCafeId();
@@ -1394,9 +1360,6 @@ export default function App() {
       } else if (e.key === 'F4') {
         e.preventDefault();
         setShowShiftReport(prev => !prev);
-      } else if (e.key === 'F5') {
-        e.preventDefault();
-        setShowCashDrawerModal(prev => !prev);
       } else if (e.key === 'Escape') {
         setShowMobileCart(false);
         setShowMobileSearch(false);
@@ -1404,7 +1367,6 @@ export default function App() {
         setShowArchiveModal(false);
         setShowShiftReport(false);
         setShowTableMoveModal(false);
-        setShowCashDrawerModal(false);
         setShowUnsavedCartModal(false);
       }
     };
@@ -1877,8 +1839,6 @@ export default function App() {
     window.setTimeout(() => setToastMessage(null), 4000);
   }, [orders, kitchenSlipData, currentWaiter, getActiveCafeId]);
 
-
-
   /**
    * Yopilgan stolning chekini bosadi.
    *
@@ -2060,21 +2020,6 @@ export default function App() {
       window.setTimeout(() => window.location.reload(), 900);
     });
   }, [requestAdminPin, getActiveCafeId]);
-
-  /**
-   * Xarajat bo'limi — rahbar PIN kodi bilan.
-   *
-   * Kassadan pul olish kafedagi eng oson suiiste'mol qilinadigan amal.
-   * Oynaning o'zi hech narsani himoya qilmaydi: server ham shu tasdiqni
-   * talab qiladi, aks holda so'rovni oynani chetlab o'tib yuborish mumkin
-   * bo'lardi.
-   */
-  const openCashDrawer = useCallback(() => {
-    requestAdminPin((approvalToken?: string) => {
-      setCashApprovalToken(approvalToken);
-      setShowCashDrawerModal(true);
-    }, 'admin.pinCashDrawer');
-  }, [requestAdminPin]);
 
   const handleRemoveKitchenItem = useCallback((itemIndex: number) => {
     requestAdminPin(async (approvalToken?: string) => {
@@ -2345,126 +2290,6 @@ export default function App() {
       setApiError(`Ulanish xatosi: ${err.message || err}`);
     }
   }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, serviceFeePercent, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse]);
-
-  /**
-   * Kassadan olingan yoki kassaga solingan naqd pul.
-   *
-   * Yozuv SERVERGA boradi. Ilgari u faqat shu kompyuterning diskida
-   * qolardi: ikkita kassa ikkita alohida daftar yuritardi, admin panel
-   * ularni umuman ko'rmasdi, va Windows qayta o'rnatilsa butun tarix
-   * ogohlantirishsiz yo'qolardi — kechalik zaxira nusxa bazani oladi,
-   * kassaning diskini emas.
-   *
-   * Diskdagi nusxa qoladi, lekin endi u ekran uchun: server javob berguncha
-   * yozuv ro'yxatda darhol ko'rinishi kerak.
-   */
-  const handleAddCashTransaction = useCallback(async (
-    category: string,
-    amount: number,
-    note: string,
-  ) => {
-    const newTx: CashTransaction = {
-      id: `tx_${Date.now()}`,
-      // Faqat chiqim: kassaga pul savdodan tushadi, uni alohida yozib
-      // borish o'sha pulni ikki marta sanash bo'lardi.
-      type: 'chiqim',
-      category,
-      amount,
-      note,
-      createdAt: new Date().toISOString(),
-      createdBy: currentWaiter?.name || ''
-    };
-    const updated = [newTx, ...cashTransactions];
-    setCashTransactions(updated);
-    writeCafeJson(getActiveCafeId(), 'cash_transactions', updated);
-
-    // Serverdagi yozuvda kim kiritgani SESSIYADAN olinadi — bu yerdan
-    // yuborilgan ismga ishonilmaydi.
-    /*
-     * `idempotencyKey` shu yerda, yozuv tug'ilgan paytda beriladi va qayta
-     * yuborishda o'zgarmaydi. Server aynan shunga qarab takrorni tanaydi.
-     *
-     * `newTx.id` emas, chunki u `tx_${Date.now()}` — bitta kafedagi ikkita
-     * kassa bir millisekundda yozsa, ikkinchisi jimgina yo'qolardi.
-     */
-    const payload = {
-      type: 'chiqim',
-      category,
-      amount,
-      note: note || undefined,
-      idempotencyKey: crypto.randomUUID(),
-    };
-
-    if (isOfflineMode) {
-      queueCashForSync(payload, cashCategoryLabel(category), cashApprovalToken);
-    } else {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
-          method: 'POST',
-          headers: getAuthHeaders(cashApprovalToken),
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) queueCashForSync(payload, cashCategoryLabel(category), cashApprovalToken);
-      } catch {
-        queueCashForSync(payload, cashCategoryLabel(category), cashApprovalToken);
-      }
-    }
-
-    setToastMessage(t('drawer.savedExpense'));
-    setTimeout(() => setToastMessage(null), 2500);
-  }, [cashTransactions, currentWaiter, isOfflineMode, getActiveCafeId, getAuthHeaders, queueCashForSync, cashApprovalToken]);
-
-  /*
-   * Kassa oynasi ochilganda yozuvlar SERVERDAN o'qiladi.
-   *
-   * Diskdagi nusxa faqat shu kompyuternikini biladi. Ikkinchi kassadan
-   * kiritilgan xarajat unda yo'q, ya'ni jamlanma kam ko'rsatardi va
-   * ikkalasi ham "to'g'ri" bo'lib turardi.
-   */
-  useEffect(() => {
-    if (!showCashDrawerModal || isOfflineMode) return;
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const from = new Date();
-        from.setHours(0, 0, 0, 0);
-        const res = await fetchWithTimeout(
-          `${API_BASE_URL}/api/cash-entries?from=${from.toISOString()}`,
-          { cache: 'no-store', headers: getAuthHeaders(cashApprovalToken) },
-        );
-        if (!res.ok) return;
-        const rows = await res.json();
-        if (cancelled || !Array.isArray(rows)) return;
-
-        setCashTransactions(rows.map((r: any) => ({
-          id: String(r.id),
-          type: r.type === 'kirim' ? 'kirim' : 'chiqim',
-          category: String(r.category || ''),
-          amount: Number(r.amount) || 0,
-          note: r.note || '',
-          createdAt: r.createdAt,
-          createdBy: r.createdBy || '',
-        })));
-
-        // Turkumlar alohida so'raladi: bugungi yozuvlardan yig'ilsa, kecha
-        // ishlatilgan nom bugun tugma bo'lib chiqmasdi va kassir uni
-        // qaytadan terib, ikkinchi turkum hosil qilardi.
-        const catRes = await fetchWithTimeout(
-          `${API_BASE_URL}/api/cash-entries/categories`,
-          { cache: 'no-store', headers: getAuthHeaders(cashApprovalToken) },
-        );
-        if (catRes.ok && !cancelled) {
-          const names = await catRes.json();
-          if (Array.isArray(names)) setKnownCashCategories(dedupeCategories(names));
-        }
-      } catch {
-        // Serverga yetib bo'lmadi — diskdagi nusxa ekranda qoladi.
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [showCashDrawerModal, isOfflineMode, getAuthHeaders, cashApprovalToken]);
 
   const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
     const sourceOrder = orders.find(o => o.tableNumber === sourceTable && isActiveOrder(o.status));
@@ -2995,7 +2820,6 @@ export default function App() {
         }}
         onOpenArchive={() => setShowArchiveModal(true)}
         onOpenPrinterSettings={() => setShowPrinterModal(true)}
-        onOpenCashDrawer={openCashDrawer}
         onRefreshOrders={handleManualRefresh}
         isLoading={loading}
         currentWaiter={currentWaiter}
@@ -3396,7 +3220,6 @@ export default function App() {
       <ShiftReportModal
         show={showShiftReport}
         orders={orders}
-        cashTransactions={cashTransactions}
         /*
          * Smena hisoboti — pul sanaladigan payt. Serverga yetib bormagan
          * amal bo'lsa, raqam to'liq emas va buni AYNAN SHU YERDA aytish
@@ -3406,21 +3229,6 @@ export default function App() {
         onRetryFailed={retryFailedSync}
         onClose={() => setShowShiftReport(false)}
         onPrint={() => window.print()}
-      />
-
-      <CashDrawerModal
-        show={showCashDrawerModal}
-        transactions={cashTransactions}
-        knownCategories={knownCashCategories}
-        currentWaiterName={currentWaiter?.name || ''}
-        onAddTransaction={handleAddCashTransaction}
-        onClose={() => {
-          setShowCashDrawerModal(false);
-          // Tasdiq oyna bilan birga tugaydi: keyingi safar qaytadan
-          // so'raladi, aks holda bir marta ochilgan PIN smena oxirigacha
-          // ochiq turgan eshik bo'lib qolardi.
-          setCashApprovalToken(undefined);
-        }}
       />
 
       <ProductModifierModal

@@ -1,13 +1,12 @@
 import React from 'react';
 import { Sparkles, Printer, ChefHat, AlertTriangle, RefreshCw } from 'lucide-react';
-import { DBOrder, CashTransaction } from '../types';
+import { DBOrder } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 import type { SyncVerdict } from '../lib/syncHealth';
 
 interface ShiftReportModalProps {
   show: boolean;
   orders: DBOrder[];
-  cashTransactions?: CashTransaction[];
   /** Serverga yetib bormagan amallar — hisobot to'liqligining o'lchovi. */
   backlog?: SyncVerdict;
   onRetryFailed?: () => void;
@@ -18,7 +17,6 @@ interface ShiftReportModalProps {
 export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
   show,
   orders,
-  cashTransactions = [],
   backlog,
   onRetryFailed,
   onClose,
@@ -32,9 +30,6 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
   const refundedOrders = servedOrders.filter((o) => o.refunded);
   const totalRefunds = refundedOrders.reduce((sum, o) => sum + (o.total || 0), 0);
   const netRevenue = grossRevenue - totalRefunds;
-
-  const totalKirim = cashTransactions.filter(t => t.type === 'kirim').reduce((sum, t) => sum + t.amount, 0);
-  const totalChiqim = cashTransactions.filter(t => t.type === 'chiqim').reduce((sum, t) => sum + t.amount, 0);
 
   const waiterStats: Record<string, { count: number; total: number }> = {};
   servedOrders.forEach((o) => {
@@ -102,17 +97,6 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
               <p className="text-[11px] font-medium text-slate-500">{t('shift.tableCount')}</p>
               <p className="text-lg font-bold text-slate-900 mt-0.5">{servedOrders.length} ta</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
-            <div>
-              <p className="text-[10px] text-slate-500 font-semibold">{t('shift.drawerIn')}</p>
-              <p className="text-sm font-bold text-emerald-700">+{totalKirim.toLocaleString()} {t('common.currency')}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-500 font-semibold">{t('shift.drawerOut')}</p>
-              <p className="text-sm font-bold text-rose-700">-{totalChiqim.toLocaleString()} {t('common.currency')}</p>
             </div>
           </div>
 

@@ -9,7 +9,6 @@ import {
   LogOut,
   Building2,
   MoreVertical,
-  Wallet,
   Check,
   ChevronDown,
 } from 'lucide-react';
@@ -25,7 +24,6 @@ interface POSHeaderProps {
   onTabChange: (tab: 'stollar' | 'menyu') => void;
   onOpenArchive: () => void;
   onOpenPrinterSettings: () => void;
-  onOpenCashDrawer: () => void;
   onRefreshOrders: () => void;
   isLoading: boolean;
   currentWaiter: DBWaiter | null;
@@ -39,7 +37,6 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   onTabChange,
   onOpenArchive,
   onOpenPrinterSettings,
-  onOpenCashDrawer,
   onRefreshOrders,
   isLoading,
   currentWaiter,
@@ -268,11 +265,6 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 
             {[
               {
-                label: t('drawer.title'),
-                icon: <Wallet className="w-4 h-4 text-emerald-600" />,
-                onClick: onOpenCashDrawer,
-              },
-              {
                 label: t('header.printerSettings'),
                 icon: <Printer className="w-4 h-4 text-orange-500" />,
                 onClick: onOpenPrinterSettings,
@@ -362,11 +354,6 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
             )}
 
             {[
-              {
-                label: t('drawer.title'),
-                icon: <Wallet className="w-4 h-4 text-emerald-600" />,
-                onClick: onOpenCashDrawer,
-              },
               {
                 label: t('header.printerSettings'),
                 icon: <Printer className="w-4 h-4 text-orange-500" />,

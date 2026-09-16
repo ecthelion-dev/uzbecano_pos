@@ -61,7 +61,8 @@ import { readSession, writeSession, clearSession, purgeLegacySession } from './l
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
-import { canSync, decideFromStatus } from './lib/syncQueue';
+import { canSync, decideFromStatus, newQueueId, removeProcessed, withQueueIds } from './lib/syncQueue';
+import { mergeActiveOrders, mergeOrderHistory, unsyncedOrderIds } from './lib/orderMerge';
 import { oldestQueuedAt, summariseBacklog } from './lib/syncHealth';
 import { useT } from './lib/i18n/LanguageProvider';
 import type { TranslationKey } from './lib/i18n/dictionaries/uz';
@@ -492,27 +493,25 @@ export default function App() {
       if (!Array.isArray(data)) return;
       lastHistoryFetchRef.current = Date.now();
 
-      // A ticket the server has not accepted yet — queued while offline, or
-      // rejected and awaiting retry — exists only on this till. Replacing the
-      // list with the server's copy wiped it off the table screen while the
-      // sync queue was still holding it, so the food was on its way to the
-      // kitchen with nothing left on screen to charge for. Keep anything the
-      // queue still owns; drop the rest, which really is gone.
-      const queued = readCafeJson<unknown>(cafeId, 'sync_queue', []);
-      const pendingIds = new Set<string>(
-        Array.isArray(queued)
-          ? queued
-              .map((q: any) => (q?.kind === 'create' ? q?.order?.id : q?.orderId))
-              .filter((id: any): id is string => typeof id === 'string')
-          : []
+      /*
+       * Serverga yetib bormagan chek faqat shu kassada mavjud. U navbatda
+       * kutayotgan ham, rad etilib `sync_failed`ga chiqib qolgan ham
+       * bo'lishi mumkin — shuning uchun IKKALA ro'yxat ham o'qiladi.
+       * Ilgari faqat navbatga qaralardi va rad etilgan chek ro'yxatdan
+       * butunlay o'chib ketardi: pul olingan, chek bosilgan, yozuv yo'q.
+       *
+       * Birlashtirish qoidasining o'zi `lib/orderMerge.ts` da: u yerda
+       * yopilgan chekni serverning eskirgan "faol" nusxasi bosib
+       * ketmasligi ham qulflangan. Aynan shu qoida bu yerda yo'q edi, va
+       * u smena hisoboti ochilgan payt ishga tushib, to'lovi navbatda
+       * turgan chekni hisobotdan tushirib qoldirardi.
+       */
+      const unsyncedIds = unsyncedOrderIds(
+        readCafeJson<unknown>(cafeId, 'sync_queue', []),
+        readCafeJson<unknown>(cafeId, 'sync_failed', []),
       );
 
-      const serverIds = new Set(data.map((o) => o.id));
-      const unsynced = pendingIds.size
-        ? ordersRef.current.filter((o) => !serverIds.has(o.id) && pendingIds.has(o.id))
-        : [];
-
-      const sorted = sortOrders([...data, ...unsynced]);
+      const sorted = sortOrders(mergeOrderHistory(ordersRef.current, data, unsyncedIds));
       ordersRef.current = sorted;
       setOrders(sorted);
       persistOrders(sorted);
@@ -542,26 +541,12 @@ export default function App() {
 
     // Merged off a ref rather than inside a setState updater: updaters must
     // stay pure, and persisting needs the result synchronously.
-    const byId = new Map<string, DBOrder>();
-    for (const o of ordersRef.current) byId.set(o.id, o);
-    for (const o of data) {
-      const local = byId.get(o.id);
-      /*
-       * Mahalliy tugagan buyurtmani serverning eskirgan "faol" nusxasi
-       * bilan almashtirmaymiz.
-       *
-       * `active=1` so'rovi to'lov PATCH'i hali yetib bormagan buyurtmani
-       * ham qaytaradi — navbatda kutib turgan yoki rad etilib
-       * `sync_failed`ga tushib qolgan bo'lsa, u serverda abadiy
-       * "oshxonaga yuborilgan" bo'lib qoladi. Kassir esa to'lovni allaqachon
-       * olgan, chekni chiqargan: ekran shu buyurtmani qayta "ochiq" qilib
-       * ko'rsatsa, stol xatoan ikkinchi marta sotilishi mumkin bo'lardi.
-       * Yozuv `sync_failed`da qoladi — admin uni qo'lda ko'rib chiqadi.
-       */
-      if (local && !isActiveOrder(local.status) && isActiveOrder(o.status)) continue;
-      byId.set(o.id, o);
-    }
-    const merged = sortOrders(Array.from(byId.values()));
+    //
+    // Qoidaning o'zi `lib/orderMerge.ts` da: yopilgan chekni serverning
+    // eskirgan "faol" nusxasi qayta ochmaydi. U yerda turibdi, chunki
+    // tarix yo'li ham AYNAN shu qoidani ishlatishi shart — ikkita nusxa
+    // saqlanganda ulardan biri orqada qolgan edi.
+    const merged = sortOrders(mergeActiveOrders(ordersRef.current, data));
     ordersRef.current = merged;
     setOrders(merged);
     persistOrders(merged);
@@ -867,7 +852,13 @@ export default function App() {
    * kutyapti" degan savolga javob yo'q, ya'ni tiqilib qolgan navbatni
    * sekin ishlayotganidan ajratib bo'lmaydi.
    */
-  type SyncQueueItem = { queuedAt?: number } & (
+  /*
+   * `qid` — yozuvning o'z nomi. Navbatni butunlay almashtirmasdan, faqat
+   * ishlangan yozuvni olib tashlash uchun kerak (pastdagi drenajga qarang).
+   * Ixtiyoriy, chunki eski versiyalardan qolgan yozuvlar nomsiz keladi —
+   * ularga nom `readSyncQueue` da qo'yiladi.
+   */
+  type SyncQueueItem = { queuedAt?: number; qid?: string } & (
     | { kind: 'create'; order: any }
     | { kind: 'patch'; orderId: string; body: any; label?: string; approvalToken?: string }
     | { kind: 'delete'; orderId: string; label?: string }
@@ -911,9 +902,21 @@ export default function App() {
     );
   }, [showShiftReport, getActiveCafeId]);
 
+  /*
+   * Navbatni o'qiydi va har bir yozuvda nom borligiga kafolat beradi.
+   *
+   * Nom diskka DARHOL qaytariladi: drenaj yakunda ishlangan yozuvlarni
+   * nomi bo'yicha olib tashlaydi, ya'ni diskdagi nusxada ham o'sha nom
+   * turishi shart. Yozib bo'lmasa (disk to'la, yashirin oyna) drenaj
+   * baribir ishlaydi — yozuv ikkinchi marta yuborilishi mumkin, lekin
+   * `idempotencyKey` uni zararsiz qiladi. Yo'qotishdan afzal.
+   */
   const readSyncQueue = useCallback((cafeId: string): SyncQueueItem[] => {
-    const parsed = readCafeJson<unknown>(cafeId, 'sync_queue', []);
-    return Array.isArray(parsed) ? parsed : [];
+    const { queue, changed } = withQueueIds<SyncQueueItem>(
+      readCafeJson<unknown>(cafeId, 'sync_queue', []),
+    );
+    if (changed) writeCafeJson(cafeId, 'sync_queue', queue);
+    return queue;
   }, []);
 
   const writeSyncQueue = useCallback((cafeId: string, queue: SyncQueueItem[]) => {
@@ -927,7 +930,7 @@ export default function App() {
   const queueOrderForSync = useCallback((order: any) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
-    queue.push({ kind: 'create', queuedAt: Date.now(), order: { ...order, idempotencyKey: order.idempotencyKey || order.id } });
+    queue.push({ kind: 'create', qid: newQueueId(), queuedAt: Date.now(), order: { ...order, idempotencyKey: order.idempotencyKey || order.id } });
     writeSyncQueue(cafeId, queue);
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
@@ -941,7 +944,7 @@ export default function App() {
     // aloqa tiklanganda server tasdiqni tekshira olishi uchun boshqa dalil
     // yo'q. Shuning uchun u qisqa muddatli qilib beriladi va navbat
     // bo'shashi bilan yo'qoladi.
-    queue.push({ kind: 'patch', queuedAt: Date.now(), orderId, body, label, approvalToken });
+    queue.push({ kind: 'patch', qid: newQueueId(), queuedAt: Date.now(), orderId, body, label, approvalToken });
     writeSyncQueue(cafeId, queue);
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
@@ -951,7 +954,7 @@ export default function App() {
   const queueDeleteForSync = useCallback((orderId: string, label?: string) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
-    queue.push({ kind: 'delete', queuedAt: Date.now(), orderId, label });
+    queue.push({ kind: 'delete', qid: newQueueId(), queuedAt: Date.now(), orderId, label });
     writeSyncQueue(cafeId, queue);
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
 
@@ -985,19 +988,22 @@ export default function App() {
        */
       if (!canSync(authToken)) return;
 
-      const remaining: SyncQueueItem[] = [];
+      /*
+       * Yakunda navbatdan OLIB TASHLANADIGAN yozuvlar nomi. Qolgani —
+       * ishlanmagani — o'z joyida qolaveradi, ya'ni uni bu yerda alohida
+       * ro'yxatga yig'ish shart emas. Aynan o'sha "qolganlar ro'yxati"
+       * navbat ustidan yozilganda oradagi yangi buyurtmani yeb qo'yardi.
+       */
+      const processedIds = new Set<string>();
       const parked: SyncQueueItem[] = [];
       const failedOrderIds = new Set<string>();
       const rejectedLabels: string[] = [];
       let anySucceeded = false;
 
-      for (const [idx, item] of queue.entries()) {
+      for (const item of queue) {
         const blockedOrderId =
           item.kind === 'create' ? item.order?.id : item.kind === 'cash' ? undefined : item.orderId;
-        if (blockedOrderId && failedOrderIds.has(blockedOrderId)) {
-          remaining.push(item);
-          continue;
-        }
+        if (blockedOrderId && failedOrderIds.has(blockedOrderId)) continue;
         try {
           let res: Response;
           if (item.kind === 'create') {
@@ -1027,14 +1033,14 @@ export default function App() {
 
           if (res.ok) {
             anySucceeded = true;
+            if (item.qid) processedIds.add(item.qid);
           } else if (await applyFrozenFromResponse(res, cafeId)) {
             // Kafe muzlatilgan: navbatni davom ettirish befoyda, ekran baribir
             // muzlatish oynasiga o'tadi. Shu amaldan boshlab hammasi navbatda
-            // qoladi va to'lovdan keyin o'zi yuboriladi.
-            remaining.push(...queue.slice(idx));
+            // qoladi va to'lovdan keyin o'zi yuboriladi — hech biri
+            // "ishlangan" deb belgilanmagani uchun o'zi shunday bo'ladi.
             break;
           } else if (decideFromStatus(res.status) === 'retry') {
-            remaining.push(item);
             if (blockedOrderId) failedOrderIds.add(blockedOrderId);
           } else {
             // Server bu so'rovni printsipial rad etdi (masalan taom o'chirilgan
@@ -1052,29 +1058,38 @@ export default function App() {
             if (blockedOrderId) failedOrderIds.add(blockedOrderId);
           }
         } catch {
-          remaining.push(item);
           if (blockedOrderId) failedOrderIds.add(blockedOrderId);
         }
       }
 
       /*
        * Rad etilganlar `sync_queue`dan chiqishidan OLDIN `sync_failed`ga
-       * yozilishi shart — aks holda ikkisi orasida ilova yiqilsa (yoki
-       * `sync_failed` yozuvi disk to'lgani uchun muvaffaqiyatsiz bo'lsa),
-       * o'sha pul HECH QAYERDA qolmay ketardi: navbatdan chiqqan, arxivga
-       * ham tushmagan. Yozib bo'lmasa parked itemlar navbatda QOLDIRILADI —
-       * ikki marta ko'rinishi (keyingi urinishda yana rad etilib, yana shu
-       * yozuvga tushishi) yo'qolishidan yaxshiroq.
+       * yozilishi shart — aks holda ikkisi orasida ilova yiqilsa, o'sha pul
+       * HECH QAYERDA qolmay ketardi: navbatdan chiqqan, arxivga ham
+       * tushmagan. Yozib bo'lmasa ular navbatda QOLDIRILADI — ikki marta
+       * ko'rinishi yo'qolishidan yaxshiroq.
+       *
+       * Navbat esa BUTUNLAY almashtirilmaydi — faqat ishlangan yozuvlar nomi
+       * bo'yicha olib tashlanadi, va buning uchun u SHU YERDA qaytadan
+       * o'qiladi. Yuqoridagi tsikl har bir yozuv uchun tarmoqni 8 soniyagacha
+       * kutadi: Wi-Fi o'lgan, navbatda beshta yozuv bor — bu yergacha yarim
+       * daqiqa. Ilgari navbat tsikl BOSHIDAGI nusxadan hisoblangan ro'yxat
+       * bilan almashtirilardi, ya'ni o'sha yarim daqiqada kassir urgan
+       * buyurtma yakuniy yozuv ostida qolib ketardi: xatosiz,
+       * ogohlantirishsiz va `sync_failed`ga ham tushmasdan. Navbat bo'sh
+       * bo'lgani uchun smena hisoboti o'zini "to'liq" deb e'lon qilardi.
        */
-      let queueAfterSync = remaining;
       if (parked.length > 0) {
         const before = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
         const parkedSaved = writeCafeJson(cafeId, 'sync_failed', [...(Array.isArray(before) ? before : []), ...parked]);
-        if (!parkedSaved) {
-          queueAfterSync = [...remaining, ...parked];
+        // Yozib bo'lmasa ular "ishlangan" deb belgilanmaydi, ya'ni navbatda
+        // qolaveradi — yuqoridagi izohdagi kelishuv aynan shu.
+        if (parkedSaved) {
+          for (const item of parked) if (item.qid) processedIds.add(item.qid);
         }
       }
-      writeSyncQueue(cafeId, queueAfterSync);
+
+      writeSyncQueue(cafeId, removeProcessed(readSyncQueue(cafeId), processedIds));
 
       if (rejectedLabels.length > 0) {
         setToastMessage(

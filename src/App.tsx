@@ -922,12 +922,23 @@ export default function App() {
   // it is retried instead of silently lost. Each entry carries a stable
   // idempotencyKey so a later successful retry can never create a duplicate
   // order even if an earlier attempt actually reached the server.
+  /*
+   * Amalni kim navbatga qo'shdi.
+   *
+   * Sessiyadan o'qiladi, holatdan emas: bu funksiyalar barqaror bo'lishi
+   * kerak, va sessiya baribir shu paytdagi haqiqatni biladi. Server rad
+   * etsa, "kim qildi" degan savolga javob faqat shu yerdan qoladi.
+   */
+  const actorName = useCallback((cafeId: string): string | undefined => {
+    return readSession(cafeId)?.waiter?.name || undefined;
+  }, []);
+
   const queueOrderForSync = useCallback((order: any) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
-    queue.push({ kind: 'create', qid: newQueueId(), queuedAt: Date.now(), order: { ...order, idempotencyKey: order.idempotencyKey || order.id } });
+    queue.push({ kind: 'create', qid: newQueueId(), queuedAt: Date.now(), actor: actorName(cafeId), order: { ...order, idempotencyKey: order.idempotencyKey || order.id } });
     writeSyncQueue(cafeId, queue);
-  }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName]);
 
   // Queues a PATCH (status/payment/items/refund) against an existing order
   // that failed to reach the server, so it is retried automatically instead
@@ -939,9 +950,9 @@ export default function App() {
     // aloqa tiklanganda server tasdiqni tekshira olishi uchun boshqa dalil
     // yo'q. Shuning uchun u qisqa muddatli qilib beriladi va navbat
     // bo'shashi bilan yo'qoladi.
-    queue.push({ kind: 'patch', qid: newQueueId(), queuedAt: Date.now(), orderId, body, label, approvalToken });
+    queue.push({ kind: 'patch', qid: newQueueId(), queuedAt: Date.now(), actor: actorName(cafeId), orderId, body, label, approvalToken });
     writeSyncQueue(cafeId, queue);
-  }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName]);
 
   // Queues a DELETE (e.g. removing a source order after merging its items
   // into another table) that failed to reach the server.
@@ -949,9 +960,9 @@ export default function App() {
   const queueDeleteForSync = useCallback((orderId: string, label?: string) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
-    queue.push({ kind: 'delete', qid: newQueueId(), queuedAt: Date.now(), orderId, label });
+    queue.push({ kind: 'delete', qid: newQueueId(), queuedAt: Date.now(), actor: actorName(cafeId), orderId, label });
     writeSyncQueue(cafeId, queue);
-  }, [getActiveCafeId, readSyncQueue, writeSyncQueue]);
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName]);
 
   /**
    * Server javobi qaytadan urinishga arziydimi?
@@ -1042,6 +1053,15 @@ export default function App() {
       }
 
       if (outcome.rejectedLabels.length > 0) {
+        /*
+         * Ro'yxatni O'ZI ochamiz.
+         *
+         * Olti soniyalik xabar yetarli emasligi 2026-09-16 da ko'rindi:
+         * rad etish zal ish paytida sodir bo'ladi, xabar esa hech kim
+         * ekranga qaramagan paytda chiqib o'tib ketadi. Keyin faqat
+         * kichkina belgi qoladi va hech kim bosmaydi.
+         */
+        window.dispatchEvent(new Event('sync-rejected'));
         setToastMessage(
           t('toast.syncRejected', {
             list:

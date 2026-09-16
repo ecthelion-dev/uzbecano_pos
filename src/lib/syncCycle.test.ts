@@ -120,6 +120,32 @@ describe('server rad etganda', () => {
     expect(res?.rejectedLabels).toHaveLength(1);
   });
 
+  it('rad etilgan yozuv SABABINI, vaqtini va kimligini olib qoladi', async () => {
+    // Kassada "nega o'tmadi" degan savolga javob shu yerdan chiqadi —
+    // boshqa hech qayerda saqlanmaydi.
+    const store = fakeStore([{ ...patch('o1', 'q1'), actor: 'Dilsora' }]);
+    const body = JSON.stringify({ error: 'Naqd va karta summalari mos emas' });
+
+    await runSyncCycle(
+      store.ports({ send: async () => new Response(body, { status: 400 }) }),
+      'token',
+    );
+
+    const [failed] = store.state.failed as any[];
+    expect(failed.rejectedReason).toBe('Naqd va karta summalari mos emas');
+    expect(failed.rejectedStatus).toBe(400);
+    expect(failed.actor).toBe('Dilsora');
+    expect(typeof failed.rejectedAt).toBe('number');
+  });
+
+  it('javob tanasi bo`sh bo`lsa ham sabab yoziladi', async () => {
+    const store = fakeStore([patch('o1', 'q1')]);
+
+    await runSyncCycle(store.ports({ send: async () => new Response('', { status: 404 }) }), 'token');
+
+    expect((store.state.failed[0] as any).rejectedReason).toContain('404');
+  });
+
   it('rad etilganlar avvalgilarining ustiga QO`SHILADI', async () => {
     const store = fakeStore([create('o2', 'q2')], [create('o1', 'q1')]);
 

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Wifi, WifiOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { RejectedActionsModal } from './RejectedActionsModal';
 import { useT } from '../lib/i18n/LanguageProvider';
 
 /**
@@ -22,9 +23,20 @@ import { useT } from '../lib/i18n/LanguageProvider';
  */
 export const NetworkIndicator: React.FC = () => {
   const t = useT();
-  const { isOnline, pendingCount, failedCount, triggerSync } = useNetworkStatus();
+  const { isOnline, pendingCount, failedCount, failed, acknowledgeFailed, triggerSync } =
+    useNetworkStatus();
+  const [isRejectedOpen, setIsRejectedOpen] = useState(false);
+
+  // Drenaj biror amalni rad etilgan deb belgilasa, ro'yxat o'zi ochiladi:
+  // buni ko'rmay qolish mumkin bo'lmasligi kerak.
+  useEffect(() => {
+    const open = () => setIsRejectedOpen(true);
+    window.addEventListener('sync-rejected', open);
+    return () => window.removeEventListener('sync-rejected', open);
+  }, []);
 
   return (
+    <>
     <div className="hidden sm:flex items-center gap-2 h-10 px-3 rounded-xl border bg-white border-slate-200 shadow-2xs shrink-0">
       {isOnline ? (
         <span className="flex items-center gap-1.5 text-emerald-600" title={t('net.online')}>
@@ -43,11 +55,20 @@ export const NetworkIndicator: React.FC = () => {
         </span>
       )}
 
+      {/*
+        Bosiladigan: son o'zi hech narsa aytmaydi. Nima rad etilgani, kim
+        qilgani va nega o'tmagani shu tugma ortida turadi — aks holda
+        javobni serverdagi loglardan qidirishga to'g'ri keladi.
+      */}
       {failedCount > 0 && (
-        <span className="flex items-center gap-1 text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-lg whitespace-nowrap">
+        <button
+          onClick={() => setIsRejectedOpen(true)}
+          title={t('net.rejectedTitle')}
+          className="flex items-center gap-1 text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-lg whitespace-nowrap hover:bg-rose-100 transition-colors cursor-pointer"
+        >
           <AlertCircle className="w-3 h-3 shrink-0" />
           {t('net.failed', { n: failedCount })}
-        </span>
+        </button>
       )}
 
       {isOnline && pendingCount > 0 && (
@@ -60,5 +81,19 @@ export const NetworkIndicator: React.FC = () => {
         </button>
       )}
     </div>
+
+    {/*
+      Ro'yxat belgidan TASHQARIDA: belgi `hidden sm:flex`, ya'ni tor
+      ekranda ko'rinmaydi — ichida qolsa, rad etilgan amal ham o'sha
+      ekranlarda ko'rinmay ketardi.
+    */}
+    {isRejectedOpen && (
+      <RejectedActionsModal
+        items={failed}
+        onAcknowledge={acknowledgeFailed}
+        onClose={() => setIsRejectedOpen(false)}
+      />
+    )}
+    </>
   );
 };

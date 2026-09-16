@@ -265,6 +265,13 @@ export const ru: Record<TranslationKey, string> = {
   'net.startSync': 'Начать синхронизацию',
   'net.pending': '{n} в очереди',
   'net.failed': '{n} с ошибкой',
+  'net.rejectedTitle': 'Не дошли до сервера',
+  'net.rejectedHint': 'Эти изменения не дошли до сервера. Введите их заново.',
+  'net.rejectedBy': 'Кто: {name}',
+  'net.rejectedByUnknown': 'Кто: неизвестно',
+  'net.rejectedAck': 'Понятно',
+  'net.rejectedEmpty': 'Таких действий нет',
+  'net.rejectedClose': 'Закрыть',
 
   // ── Запись на диск ──────────────────────────────────────────────────
   'storage.writeFailed': 'Данные не сохранены. Проверьте память кассы.',

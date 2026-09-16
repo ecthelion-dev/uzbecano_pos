@@ -1,4 +1,5 @@
 import { canSync, decideFromStatus, removeProcessed } from './syncQueue';
+import { extractReason, stampRejection, type FailedAction } from './failedActions';
 
 /**
  * Oflayn navbatni bo'shatish — bir sikl.
@@ -13,8 +14,14 @@ import { canSync, decideFromStatus, removeProcessed } from './syncQueue';
  * shu paytda uzildi" degan savolni test qo'ya oladi.
  */
 
-/** Navbatdagi amal. `qid` — yozuvning barqaror nomi. */
-export type QueuedItem = { queuedAt?: number; qid?: string } & (
+/**
+ * Navbatdagi amal. `qid` — yozuvning barqaror nomi, `actor` — uni kim
+ * qo'shgani.
+ *
+ * `actor` siz rad etilgan amal egasiz qolardi: kassada "kim qildi" degan
+ * savolga javob yo'q edi va aybni bir-biriga ag'darish shundan boshlanardi.
+ */
+export type QueuedItem = { queuedAt?: number; qid?: string; actor?: string } & (
   | { kind: 'create'; order: any }
   | { kind: 'patch'; orderId: string; body: any; label?: string; approvalToken?: string }
   | { kind: 'delete'; orderId: string; label?: string }
@@ -51,6 +58,21 @@ export interface SyncOutcome {
  * Naqd yozuvi hech qanday chekni ushlab turmaydi — u buyurtma emas,
  * kassadan olingan pul.
  */
+/**
+ * Javobdan rad etish sababini o'qiydi.
+ *
+ * `clone()` — tanani chaqiruvchi allaqachon o'qigan bo'lishi mumkin
+ * (masalan kafe muzlatilganini tekshirish). O'qib bo'lmasa holat kodining
+ * o'zi qoladi: sababsiz qolishdan afzal.
+ */
+async function readReason(res: Response): Promise<string> {
+  try {
+    return extractReason(await res.clone().text(), res.status);
+  } catch {
+    return extractReason(null, res.status);
+  }
+}
+
 function orderIdOf(item: QueuedItem): string | undefined {
   if (item.kind === 'create') return item.order?.id;
   if (item.kind === 'cash') return undefined;
@@ -84,7 +106,7 @@ export async function runSyncCycle(
    * buyurtmani yeb qo'yardi.
    */
   const processedIds = new Set<string>();
-  const parked: QueuedItem[] = [];
+  const parked: FailedAction[] = [];
   const blockedOrders = new Set<string>();
   const rejectedLabels: string[] = [];
   let anySucceeded = false;
@@ -116,8 +138,12 @@ export async function runSyncCycle(
          * Server printsipial rad etdi. Qayta yuborish foydasiz, shuning
          * uchun yozuv navbatdan chiqadi — lekin O'CHIRILMAYDI: bu pul va
          * uni jimgina yo'qotib bo'lmaydi.
+         *
+         * Sabab AYNAN shu yerda o'qiladi: javob bir marta qo'ldan ketsa,
+         * "nega o'tmadi" degan savolga boshqa hech qayerdan javob topib
+         * bo'lmaydi va xodimlar bir-birini ayblay boshlaydi.
          */
-        parked.push(item);
+        parked.push(stampRejection(item, res.status, await readReason(res), Date.now()));
         rejectedLabels.push(ports.label(item));
         if (orderId) blockedOrders.add(orderId);
       }

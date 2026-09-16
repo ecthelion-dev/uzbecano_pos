@@ -279,6 +279,13 @@ export const uz = {
   'net.startSync': 'Sinxlashni boshlash',
   'net.pending': '{n} kutilmoqda',
   'net.failed': '{n} xato',
+  'net.rejectedTitle': 'Serverga o‘tmagan amallar',
+  'net.rejectedHint': 'Bu o‘zgarishlar serverga yetmadi. Ularni qaytadan kiriting.',
+  'net.rejectedBy': 'Kim: {name}',
+  'net.rejectedByUnknown': 'Kim: noma’lum',
+  'net.rejectedAck': 'Tushunarli',
+  'net.rejectedEmpty': 'O‘tmagan amal yo‘q',
+  'net.rejectedClose': 'Yopish',
 
   // ── Disk yozuvi ─────────────────────────────────────────────────────
   'storage.writeFailed': "Ma'lumot saqlanmadi. Disk xotirasini tekshiring.",

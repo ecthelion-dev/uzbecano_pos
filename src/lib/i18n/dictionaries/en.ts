@@ -265,6 +265,13 @@ export const en: Record<TranslationKey, string> = {
   'net.startSync': 'Start syncing',
   'net.pending': '{n} pending',
   'net.failed': '{n} failed',
+  'net.rejectedTitle': 'Never reached the server',
+  'net.rejectedHint': 'These changes did not reach the server. Enter them again.',
+  'net.rejectedBy': 'By: {name}',
+  'net.rejectedByUnknown': 'By: unknown',
+  'net.rejectedAck': 'Got it',
+  'net.rejectedEmpty': 'Nothing was rejected',
+  'net.rejectedClose': 'Close',
 
   // ── Storage writes ──────────────────────────────────────────────────
   'storage.writeFailed': 'Data was not saved. Check the till\'s storage.',

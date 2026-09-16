@@ -84,14 +84,25 @@ function byId<T extends MergeableOrder>(list: T[]): Map<string, T> {
  * Javobda yopilgan cheklar UMUMAN yo'q, shuning uchun mahalliy ro'yxatdan
  * hech narsa o'chirilmaydi — aks holda har bir so'rov butun arxivni
  * ekrandan olib tashlardi.
+ *
+ * `unsyncedIds` berilsa: navbatda yoki rad etilganlarda kutayotgan faol chek
+ * serverning eskirgan nusxasi bilan bosib ketilmaydi. Aks holda ofitsiant
+ * taom qo'shganda, bir necha soniyadan keyin kelgan javob yangi taomlarni
+ * ekrandan o'chirib yuborardi.
  */
-export function mergeActiveOrders<T extends MergeableOrder>(local: T[], incoming: T[]): T[] {
+export function mergeActiveOrders<T extends MergeableOrder>(
+  local: T[],
+  incoming: T[],
+  unsyncedIds?: Set<string>,
+): T[] {
   const merged = byId(Array.isArray(local) ? local : []);
   if (!Array.isArray(incoming)) return [...merged.values()];
 
   for (const o of incoming) {
     if (!o || typeof o.id !== 'string') continue;
-    if (keepsLocal(merged.get(o.id), o)) continue;
+    const mine = merged.get(o.id);
+    if (keepsLocal(mine, o)) continue;
+    if (mine && isActiveOrder(o.status) && unsyncedIds?.has(o.id)) continue;
     merged.set(o.id, o);
   }
   return [...merged.values()];
@@ -119,7 +130,13 @@ export function mergeOrderHistory<T extends MergeableOrder>(
   for (const o of server) {
     if (!o || typeof o.id !== 'string') continue;
     const mine = localById.get(o.id);
-    merged.push(keepsLocal(mine, o) ? (mine as T) : o);
+    if (keepsLocal(mine, o)) {
+      merged.push(mine as T);
+    } else if (mine && isActiveOrder(o.status) && unsyncedIds.has(o.id)) {
+      merged.push(mine as T);
+    } else {
+      merged.push(o);
+    }
   }
 
   const serverIds = new Set(merged.map((o) => o.id));

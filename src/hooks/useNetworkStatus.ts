@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { resolveActiveCafeId } from '../constants';
-import { readCafeJson, writeCafeJson } from '../lib/storage';
-import { acknowledge, type FailedAction } from '../lib/failedActions';
+import { readCafeJson, writeCafeJson, writeCafeJsonMany } from '../lib/storage';
+import {
+  acknowledge,
+  retryFailedAction,
+  retryAllFailedActions,
+  type FailedAction,
+} from '../lib/failedActions';
+import type { QueuedItem } from '../lib/syncCycle';
 
 /**
  * Connection state and the size of the offline backlog.
@@ -60,6 +66,36 @@ export function useNetworkStatus() {
     refresh();
   }, [refresh]);
 
+  /**
+   * Rad etilgan bitta amalni navbatga qaytaradi va sinxronizatsiyani boshlaydi.
+   */
+  const retryFailed = useCallback((qid: string) => {
+    const cafeId = resolveActiveCafeId();
+    const currentQueue = readCafeJson<QueuedItem[]>(cafeId, 'sync_queue', []);
+    const currentFailed = readFailed();
+    const { nextQueue, nextFailed } = retryFailedAction(currentQueue, currentFailed, qid);
+    writeCafeJsonMany(cafeId, [
+      { key: 'sync_queue', value: nextQueue },
+      { key: 'sync_failed', value: nextFailed },
+    ]);
+    triggerSync();
+  }, [triggerSync]);
+
+  /**
+   * Barcha rad etilgan amallarni navbatga qaytaradi va sinxronizatsiyani boshlaydi.
+   */
+  const retryAllFailed = useCallback(() => {
+    const cafeId = resolveActiveCafeId();
+    const currentQueue = readCafeJson<QueuedItem[]>(cafeId, 'sync_queue', []);
+    const currentFailed = readFailed();
+    const { nextQueue, nextFailed } = retryAllFailedActions(currentQueue, currentFailed);
+    writeCafeJsonMany(cafeId, [
+      { key: 'sync_queue', value: nextQueue },
+      { key: 'sync_failed', value: nextFailed },
+    ]);
+    triggerSync();
+  }, [triggerSync]);
+
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -92,6 +128,8 @@ export function useNetworkStatus() {
     /** Rad etilganlarning o'zi — kim, nega va qachon. */
     failed,
     acknowledgeFailed,
+    retryFailed,
+    retryAllFailed,
     triggerSync,
   };
 }

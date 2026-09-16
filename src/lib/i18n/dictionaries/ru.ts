@@ -274,6 +274,11 @@ export const ru: Record<TranslationKey, string> = {
   'net.rejectedAck': 'Понятно',
   'net.rejectedEmpty': 'Таких действий нет',
   'net.rejectedClose': 'Закрыть',
+  'net.retry': 'Повторить',
+  'net.retryAll': 'Повторить все',
+  'net.restoreToCart': 'В корзину',
+  'net.restoredToCartToast': 'Блюда возвращены в корзину стола {table}',
+  'net.itemsPreview': 'Блюда:',
 
   // ── Запись на диск ──────────────────────────────────────────────────
   'storage.writeFailed': 'Данные не сохранены. Проверьте память кассы.',

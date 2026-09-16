@@ -4,6 +4,10 @@ import {
   stampRejection,
   acknowledge,
   actorOf,
+  retryFailedAction,
+  retryAllFailedActions,
+  extractActionItems,
+  tableNumberOfAction,
   type FailedAction,
 } from './failedActions';
 
@@ -119,5 +123,78 @@ describe('acknowledge', () => {
 
   it('massiv bo‘lmasa bo‘sh ro‘yxat qaytadi', () => {
     expect(acknowledge(null as never, 'q-1')).toEqual([]);
+  });
+});
+
+describe('retryFailedAction va retryAllFailedActions', () => {
+  const failedList = [
+    stampRejection({ ...ITEM, qid: 'q-1' }, 400, 'xato 1', 1),
+    stampRejection({ ...ITEM, qid: 'q-2' }, 400, 'xato 2', 2),
+  ];
+
+  it('bitta amalni rad etilganlardan navbatga ko‘chiradi va tamg‘alarni tozalaydi', () => {
+    const queue = [{ kind: 'cash' as const, qid: 'q-0', entry: {} }];
+    const { nextQueue, nextFailed } = retryFailedAction(queue, failedList, 'q-1');
+
+    expect(nextFailed.map((x) => x.qid)).toEqual(['q-2']);
+    expect(nextQueue.map((x) => x.qid)).toEqual(['q-0', 'q-1']);
+    const restored = nextQueue.find((x) => x.qid === 'q-1') as any;
+    expect(restored.rejectedAt).toBeUndefined();
+    expect(restored.rejectedStatus).toBeUndefined();
+    expect(restored.rejectedReason).toBeUndefined();
+  });
+
+  it('barcha amallarni navbatga qaytaradi', () => {
+    const queue = [{ kind: 'cash' as const, qid: 'q-0', entry: {} }];
+    const { nextQueue, nextFailed } = retryAllFailedActions(queue, failedList);
+
+    expect(nextFailed).toEqual([]);
+    expect(nextQueue.map((x) => x.qid)).toEqual(['q-0', 'q-1', 'q-2']);
+  });
+});
+
+describe('extractActionItems va tableNumberOfAction', () => {
+  it('create amalidan taomlar va stol raqamini oladi', () => {
+    const item = stampRejection(
+      {
+        kind: 'create',
+        qid: 'q-c',
+        order: {
+          tableNumber: 'Stol 5',
+          items: JSON.stringify([{ name: 'Osh', quantity: 2, price: 35000 }]),
+        },
+      },
+      400,
+      'xato',
+      1,
+    );
+
+    expect(tableNumberOfAction(item)).toBe('Stol 5');
+    expect(extractActionItems(item)).toEqual([
+      { productId: undefined, name: 'Osh', quantity: 2, price: 35000, note: undefined, variant: undefined },
+    ]);
+  });
+
+  it('patch amalidan taomlar va stol nomini oladi', () => {
+    const item = stampRejection(
+      {
+        kind: 'patch',
+        qid: 'q-p',
+        orderId: 'o1',
+        label: 'VIP 1',
+        body: {
+          tableNumber: 'VIP 1',
+          items: [{ name: 'Somsa', quantity: 3, price: 10000, note: 'Issiq bo‘lsin' }],
+        },
+      },
+      400,
+      'xato',
+      1,
+    );
+
+    expect(tableNumberOfAction(item)).toBe('VIP 1');
+    expect(extractActionItems(item)).toEqual([
+      { productId: undefined, name: 'Somsa', quantity: 3, price: 10000, note: 'Issiq bo‘lsin', variant: undefined },
+    ]);
   });
 });

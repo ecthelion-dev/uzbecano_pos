@@ -1,4 +1,5 @@
 import type { QueuedItem } from './syncCycle';
+import type { CartItem, DBProduct } from '../types';
 
 /**
  * Server rad etgan amal — kim qildi, nega o'tmadi, qachon.
@@ -89,4 +90,146 @@ export function acknowledge(list: FailedAction[], qid: string): FailedAction[] {
   if (!Array.isArray(list)) return [];
   if (!qid) return [...list];
   return list.filter((item) => item?.qid !== qid);
+}
+
+/**
+ * Rad etilgan amalni navbatga qaytaradi.
+ *
+ * Rad etish belgilari olib tashlanadi va yozuv navbat oxiriga qo'shiladi.
+ */
+export function retryFailedAction(
+  queue: QueuedItem[],
+  failed: FailedAction[],
+  qid: string,
+): { nextQueue: QueuedItem[]; nextFailed: FailedAction[] } {
+  if (!Array.isArray(failed)) return { nextQueue: queue || [], nextFailed: [] };
+  const target = failed.find((item) => item?.qid === qid);
+  if (!target) return { nextQueue: queue || [], nextFailed: [...failed] };
+
+  const { rejectedAt: _a, rejectedStatus: _s, rejectedReason: _r, ...cleanItem } = target;
+  const nextQueue = [...(Array.isArray(queue) ? queue : []), { ...cleanItem, queuedAt: Date.now() }];
+  const nextFailed = failed.filter((item) => item?.qid !== qid);
+  return { nextQueue, nextFailed };
+}
+
+/**
+ * Barcha rad etilgan amallarni navbatga qaytaradi.
+ */
+export function retryAllFailedActions(
+  queue: QueuedItem[],
+  failed: FailedAction[],
+): { nextQueue: QueuedItem[]; nextFailed: FailedAction[] } {
+  if (!Array.isArray(failed) || failed.length === 0) {
+    return { nextQueue: queue || [], nextFailed: [] };
+  }
+
+  const restored: QueuedItem[] = failed.map((item) => {
+    const { rejectedAt: _a, rejectedStatus: _s, rejectedReason: _r, ...cleanItem } = item;
+    return { ...cleanItem, queuedAt: Date.now() };
+  });
+
+  return {
+    nextQueue: [...(Array.isArray(queue) ? queue : []), ...restored],
+    nextFailed: [],
+  };
+}
+
+export interface ExtractedActionItem {
+  productId?: string;
+  name: string;
+  quantity: number;
+  price?: number;
+  note?: string;
+  variant?: string;
+}
+
+/**
+ * Amal ichidagi taomlar ro'yxatini ajratib oladi (agar mavjud bo'lsa).
+ */
+export function extractActionItems(item: FailedAction): ExtractedActionItem[] {
+  let raw: unknown = null;
+  if (item.kind === 'create') {
+    raw = item.order?.items;
+  } else if (item.kind === 'patch') {
+    raw = item.body?.items;
+  }
+  if (!raw) return [];
+
+  let parsed: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .filter((i) => i && typeof i === 'object' && typeof (i as any).name === 'string')
+    .map((i: any) => ({
+      productId: typeof i.productId === 'string' ? i.productId : undefined,
+      name: String(i.name),
+      quantity: Math.max(1, Number(i.quantity) || 1),
+      price: Number(i.price) || 0,
+      note: typeof i.note === 'string' ? i.note : undefined,
+      variant: typeof i.selectedSize?.label === 'string' ? i.selectedSize.label : typeof i.variant === 'string' ? i.variant : undefined,
+    }));
+}
+
+/**
+ * Amal tegishli bo'lgan stol raqamini aniqlaydi.
+ */
+export function tableNumberOfAction(item: FailedAction): string | null {
+  if (item.kind === 'create') {
+    return item.order?.tableNumber ? String(item.order.tableNumber) : null;
+  }
+  if (item.kind === 'patch') {
+    if (item.body?.tableNumber) return String(item.body.tableNumber);
+    if (item.label && !item.label.includes('—') && item.label.length <= 15) {
+      return item.label;
+    }
+  }
+  return null;
+}
+
+/**
+ * Rad etilgan amal ichidagi taomlarni savat qatorlariga aylantiradi.
+ */
+export function failedActionToCartItems(item: FailedAction, products: DBProduct[]): CartItem[] {
+  const actionItems = extractActionItems(item);
+  if (actionItems.length === 0) return [];
+
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const byName = new Map(products.map((p) => [p.name.trim().toLowerCase(), p]));
+
+  const cart: CartItem[] = [];
+  actionItems.forEach((ai, idx) => {
+    const product =
+      (ai.productId ? byId.get(ai.productId) : undefined) ||
+      byName.get(ai.name.trim().toLowerCase()) || {
+        id: ai.productId || `custom_${Date.now()}_${idx}`,
+        name: ai.name,
+        price: ai.price || 0,
+        category: 'Boshqa',
+        isAvailable: true,
+      };
+
+    const variant = ai.variant ? product.variants?.find((v) => v.name === ai.variant) : undefined;
+    const basePrice = variant ? variant.price : product.price;
+
+    cart.push({
+      lineId: `line_restored_${Date.now()}_${idx}`,
+      product: {
+        ...product,
+        name: variant ? `${product.name} (${variant.name})` : product.name,
+        price: basePrice,
+      },
+      quantity: ai.quantity,
+      ...(ai.note ? { note: ai.note } : {}),
+      ...(variant ? { selectedVariant: variant } : {}),
+    });
+  });
+
+  return cart;
 }

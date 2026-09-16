@@ -66,6 +66,7 @@ import { decideFromStatus, newQueueId, withQueueIds } from './lib/syncQueue';
 import { runSyncCycle, type QueuedItem } from './lib/syncCycle';
 import { mergeActiveOrders, mergeOrderHistory, unsyncedOrderIds } from './lib/orderMerge';
 import { oldestQueuedAt, summariseBacklog } from './lib/syncHealth';
+import { failedActionToCartItems, tableNumberOfAction, type FailedAction } from './lib/failedActions';
 import { useT } from './lib/i18n/LanguageProvider';
 import type { TranslationKey } from './lib/i18n/dictionaries/uz';
 import { PinLoginScreen } from './components/PinLoginScreen';
@@ -570,17 +571,22 @@ export default function App() {
     // stay pure, and persisting needs the result synchronously.
     //
     // Qoidaning o'zi `lib/orderMerge.ts` da: yopilgan chekni serverning
-    // eskirgan "faol" nusxasi qayta ochmaydi. U yerda turibdi, chunki
-    // tarix yo'li ham AYNAN shu qoidani ishlatishi shart — ikkita nusxa
-    // saqlanganda ulardan biri orqada qolgan edi.
-    const merged = sortOrders(mergeActiveOrders(ordersRef.current, data));
+    // eskirgan "faol" nusxasi qayta ochmaydi, va navbatdagi/rad etilgan
+    // amali bor faol chekning taomlari serverning eski nusxasi bilan
+    // bosib ketilmaydi.
+    const cafeId = getActiveCafeId();
+    const unsyncedIds = unsyncedOrderIds(
+      readCafeJson<unknown>(cafeId, 'sync_queue', []),
+      readCafeJson<unknown>(cafeId, 'sync_failed', []),
+    );
+    const merged = sortOrders(mergeActiveOrders(ordersRef.current, data, unsyncedIds));
     ordersRef.current = merged;
     setOrders(merged);
     persistOrders(merged);
     setIsOfflineMode(false);
 
     if (departed) fetchOrderHistory();
-  }, [sortOrders, persistOrders, fetchOrderHistory]);
+  }, [getActiveCafeId, sortOrders, persistOrders, fetchOrderHistory]);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -1125,6 +1131,31 @@ export default function App() {
       window.removeEventListener('online', syncOfflineOrders);
     };
   }, [syncOfflineOrders, refreshUnsynced]);
+
+  useEffect(() => {
+    const handleRestoreFailed = (e: Event) => {
+      const customEvent = e as CustomEvent<FailedAction>;
+      const item = customEvent.detail;
+      if (!item) return;
+
+      const restoredCartItems = failedActionToCartItems(item, products);
+      if (restoredCartItems.length === 0) return;
+
+      const targetTable = tableNumberOfAction(item) || selectedTable || '1';
+
+      setTableCarts((prev) => ({
+        ...prev,
+        [targetTable]: [...(prev[targetTable] || []), ...restoredCartItems],
+      }));
+      setSelectedTable(targetTable);
+      setActiveTab('menyu');
+      setToastMessage(t('net.restoredToCartToast', { table: targetTable }));
+      setTimeout(() => setToastMessage(null), 4000);
+    };
+
+    window.addEventListener('restore-failed-action', handleRestoreFailed);
+    return () => window.removeEventListener('restore-failed-action', handleRestoreFailed);
+  }, [products, selectedTable, t]);
 
   /**
    * Buyurtmalar va chaqiruvlarni fonda yangilab turadi.

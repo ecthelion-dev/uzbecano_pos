@@ -288,6 +288,11 @@ export const uz = {
   'net.rejectedAck': 'Tushunarli',
   'net.rejectedEmpty': 'O‘tmagan amal yo‘q',
   'net.rejectedClose': 'Yopish',
+  'net.retry': 'Qayta yuborish',
+  'net.retryAll': 'Barchasini qayta yuborish',
+  'net.restoreToCart': 'Savatga yuklash',
+  'net.restoredToCartToast': 'Taomlar {table}-stol savatiga qaytarildi',
+  'net.itemsPreview': 'Taomlar:',
 
   // ── Disk yozuvi ─────────────────────────────────────────────────────
   'storage.writeFailed': "Ma'lumot saqlanmadi. Disk xotirasini tekshiring.",

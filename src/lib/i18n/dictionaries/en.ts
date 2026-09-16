@@ -274,6 +274,11 @@ export const en: Record<TranslationKey, string> = {
   'net.rejectedAck': 'Got it',
   'net.rejectedEmpty': 'Nothing was rejected',
   'net.rejectedClose': 'Close',
+  'net.retry': 'Retry',
+  'net.retryAll': 'Retry all',
+  'net.restoreToCart': 'Restore to cart',
+  'net.restoredToCartToast': 'Items restored to cart for table {table}',
+  'net.itemsPreview': 'Items:',
 
   // ── Storage writes ──────────────────────────────────────────────────
   'storage.writeFailed': 'Data was not saved. Check the till\'s storage.',

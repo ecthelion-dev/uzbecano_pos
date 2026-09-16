@@ -23,8 +23,16 @@ import { useT } from '../lib/i18n/LanguageProvider';
  */
 export const NetworkIndicator: React.FC = () => {
   const t = useT();
-  const { isOnline, pendingCount, failedCount, failed, acknowledgeFailed, triggerSync } =
-    useNetworkStatus();
+  const {
+    isOnline,
+    pendingCount,
+    failedCount,
+    failed,
+    acknowledgeFailed,
+    retryFailed,
+    retryAllFailed,
+    triggerSync,
+  } = useNetworkStatus();
   const [isRejectedOpen, setIsRejectedOpen] = useState(false);
 
   // Drenaj biror amalni rad etilgan deb belgilasa, ro'yxat o'zi ochiladi:
@@ -91,6 +99,12 @@ export const NetworkIndicator: React.FC = () => {
       <RejectedActionsModal
         items={failed}
         onAcknowledge={acknowledgeFailed}
+        onRetry={retryFailed}
+        onRetryAll={retryAllFailed}
+        onRestoreToCart={(item) => {
+          window.dispatchEvent(new CustomEvent('restore-failed-action', { detail: item }));
+          if (item.qid) acknowledgeFailed(item.qid);
+        }}
         onClose={() => setIsRejectedOpen(false)}
       />
     )}

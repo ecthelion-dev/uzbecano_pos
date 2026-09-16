@@ -188,4 +188,25 @@ describe('mergeActiveOrders', () => {
 
     expect(merged.map((o) => o.id).sort()).toEqual(['o1', 'o2']);
   });
+
+  test('navbatdagi o‘zgarishi bor faol chekni serverning eskirgan nusxasi bosib ketmaydi', () => {
+    // Kassir yoki ofitsiant stolga taom qo'shdi, o'zgarish navbatda turibdi.
+    // Server esa hali eski chekni qaytaryapti. Agar server nusxasi yutsa,
+    // yangi taomlar ekrandan yo'qolib ketadi.
+    const local = [{ id: 'o1', status: 'sent_to_kitchen', items: '[{"name":"Choy"}]' }];
+    const server = [{ id: 'o1', status: 'sent_to_kitchen', items: '[]' }];
+
+    const merged = mergeActiveOrders(local, server, new Set(['o1']));
+
+    expect(merged).toEqual(local);
+  });
+
+  test('navbatda bo‘lmagan faol chek server nusxasi bilan yangilanadi', () => {
+    const local = [{ id: 'o1', status: 'sent_to_kitchen', items: '[]' }];
+    const server = [{ id: 'o1', status: 'sent_to_kitchen', items: '[{"name":"Choy"}]' }];
+
+    const merged = mergeActiveOrders(local, server, new Set());
+
+    expect(merged).toEqual(server);
+  });
 });

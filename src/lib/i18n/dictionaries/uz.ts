@@ -130,6 +130,8 @@ export const uz = {
   'table.free': 'BOSH',
   'table.heldBy': '{name} shu stolda buyurtma yig‘yapti',
   'table.waiterCall': 'Ofitsiant chaqiruvi',
+  'table.unsynced': 'Chek serverga yetmagan — adminkada ko‘rinmaydi',
+  'table.unsyncedShort': 'YUBORILMADI',
   'table.moveTitle': "Stolni Ko'chirish / Birlashtirish",
   'table.selectTable': 'Stolni tanlang...',
   'table.move': "Ko'chirish (Move)",

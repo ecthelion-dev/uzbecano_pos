@@ -324,6 +324,31 @@ export default function App() {
     return cafeId;
   }, []);
 
+  /*
+   * Serverga yetib bormagan cheklarning id lari — zal ko'rinishi uchun.
+   *
+   * 2026-09-16: kassada uchta stol band, adminkada ikkita buyurtma edi.
+   * Uchinchisining cheki navbatda turardi. Chek ataylab o'chirilmaydi
+   * (`lib/orderMerge.ts`) — yuborilmagan pulni yo'qotish bo'lardi — lekin
+   * ekranda uni oddiy band stoldan ajratib bo'lmasdi, va ikkita xodim
+   * ikki xil ro'yxatga qarab bir-birini aybladi.
+   *
+   * Diskdan o'qiladi: navbatning yagona nusxasi o'sha yerda. Navbat
+   * o'zgaradigan har bir joydan yangilanadi — yozuv qo'shilganda va
+   * drenajdan keyin.
+   */
+  const [unsyncedIds, setUnsyncedIds] = useState<Set<string>>(() => new Set());
+
+  const refreshUnsynced = useCallback(() => {
+    const cafeId = getActiveCafeId();
+    setUnsyncedIds(
+      unsyncedOrderIds(
+        readCafeJson<unknown>(cafeId, 'sync_queue', []),
+        readCafeJson<unknown>(cafeId, 'sync_failed', []),
+      ),
+    );
+  }, [getActiveCafeId]);
+
   // Staff-authenticated backend requests (orders create/update/list) require
   // this Bearer token, issued by /api/auth/pin on login.
   const getAuthHeaders = useCallback((approvalToken?: string): Record<string, string> => {
@@ -938,7 +963,8 @@ export default function App() {
     const queue = readSyncQueue(cafeId);
     queue.push({ kind: 'create', qid: newQueueId(), queuedAt: Date.now(), actor: actorName(cafeId), order: { ...order, idempotencyKey: order.idempotencyKey || order.id } });
     writeSyncQueue(cafeId, queue);
-  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName]);
+    refreshUnsynced();
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
 
   // Queues a PATCH (status/payment/items/refund) against an existing order
   // that failed to reach the server, so it is retried automatically instead
@@ -952,7 +978,8 @@ export default function App() {
     // bo'shashi bilan yo'qoladi.
     queue.push({ kind: 'patch', qid: newQueueId(), queuedAt: Date.now(), actor: actorName(cafeId), orderId, body, label, approvalToken });
     writeSyncQueue(cafeId, queue);
-  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName]);
+    refreshUnsynced();
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
 
   // Queues a DELETE (e.g. removing a source order after merging its items
   // into another table) that failed to reach the server.
@@ -962,7 +989,8 @@ export default function App() {
     const queue = readSyncQueue(cafeId);
     queue.push({ kind: 'delete', qid: newQueueId(), queuedAt: Date.now(), actor: actorName(cafeId), orderId, label });
     writeSyncQueue(cafeId, queue);
-  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName]);
+    refreshUnsynced();
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
 
   /**
    * Server javobi qaytadan urinishga arziydimi?
@@ -1042,6 +1070,9 @@ export default function App() {
           ),
       }, authToken);
 
+      // Navbat diskda o'zgargan bo'lishi mumkin — zal ko'rinishi undan o'qiydi.
+      refreshUnsynced();
+
       // Navbat bo'sh yoki sessiya yo'q — aytadigan gap ham yo'q.
       if (!outcome) return;
 
@@ -1081,16 +1112,19 @@ export default function App() {
     } finally {
       syncInProgressRef.current = false;
     }
-  }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, applyFrozenFromResponse, t]);
+  }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, applyFrozenFromResponse, refreshUnsynced, t]);
 
   useEffect(() => {
+    // Ochilishdayoq bir marta: drenaj o'n soniyadan keyin ishlaydi, kassir
+    // esa zalni undan oldin ko'radi.
+    refreshUnsynced();
     const interval = setInterval(syncOfflineOrders, 10000);
     window.addEventListener('online', syncOfflineOrders);
     return () => {
       clearInterval(interval);
       window.removeEventListener('online', syncOfflineOrders);
     };
-  }, [syncOfflineOrders]);
+  }, [syncOfflineOrders, refreshUnsynced]);
 
   /**
    * Buyurtmalar va chaqiruvlarni fonda yangilab turadi.
@@ -1440,6 +1474,7 @@ export default function App() {
         tableNumber: numStr,
         openOrder: activeOrder
           ? {
+              id: activeOrder.id,
               total: activeOrder.total,
               waiterId: (activeOrder as any).waiterId,
               waiterName: (activeOrder as any).waiterName,
@@ -1449,6 +1484,7 @@ export default function App() {
         holds: tableHolds,
         deviceId,
         user: { id: currentWaiter?.id, name: currentWaiter?.name, role: currentWaiter?.role },
+        unsyncedIds,
       });
       const hasCall = waiterCalls.some(wn => (wn || '').trim().toLowerCase() === numStr.trim().toLowerCase());
 
@@ -1460,9 +1496,10 @@ export default function App() {
         total: state.total,
         hasWaiterCall: hasCall,
         heldBy: state.heldBy,
+        unsynced: state.unsynced,
       };
     });
-  }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent, tableHolds, deviceId, currentWaiter]);
+  }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent, tableHolds, deviceId, currentWaiter, unsyncedIds]);
 
   /* Zonalar kafening o'z stollaridan olinadi. Ilgari bu ro'yxat kodda
      qattiq yozilgan edi ("Asosiy Zal", "VIP Kabinalar"...), shuning uchun

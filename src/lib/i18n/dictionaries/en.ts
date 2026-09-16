@@ -117,6 +117,8 @@ export const en: Record<TranslationKey, string> = {
   'table.free': 'FREE',
   'table.heldBy': '{name} is taking an order at this table',
   'table.waiterCall': 'Waiter call',
+  'table.unsynced': 'Receipt has not reached the server — not visible in admin',
+  'table.unsyncedShort': 'NOT SENT',
   'table.moveTitle': 'Move / merge table',
   'table.selectTable': 'Select a table...',
   'table.move': 'Move',

@@ -117,6 +117,8 @@ export const ru: Record<TranslationKey, string> = {
   'table.free': 'СВОБОДЕН',
   'table.heldBy': '{name} принимает заказ за этим столом',
   'table.waiterCall': 'Вызов официанта',
+  'table.unsynced': 'Чек не дошёл до сервера — в админке его нет',
+  'table.unsyncedShort': 'НЕ ОТПРАВЛЕН',
   'table.moveTitle': 'Перенос / объединение стола',
   'table.selectTable': 'Выберите стол...',
   'table.move': 'Перенести',

@@ -27,7 +27,7 @@ const state = (over: Partial<Parameters<typeof tableState>[0]> = {}) =>
 
 describe('bo‘sh stol', () => {
   it('band emas va summasi nol', () => {
-    expect(state()).toEqual({ occupied: false, total: 0, heldBy: undefined });
+    expect(state()).toEqual({ occupied: false, total: 0, heldBy: undefined, unsynced: false });
   });
 });
 
@@ -37,6 +37,7 @@ describe('shu qurilmadagi savat', () => {
       occupied: true,
       total: 30000,
       heldBy: undefined,
+      unsynced: false,
     });
   });
 });
@@ -203,5 +204,38 @@ describe('yuborilgan buyurtma ham egasiniki bo‘lib qoladi', () => {
     });
     expect(s.heldBy).toBe('Ravshan');
     expect(s.total).toBe(77000);
+  });
+});
+
+describe('serverga yetib bormagan chek', () => {
+  const CHEK = { id: 'ord_77', total: 77000, waiterId: 'w_ravshan', waiterName: 'Ravshan' };
+
+  it('navbatdagi chekli stol BELGILANADI', () => {
+    /*
+     * Aynan shu holat 2026-09-16 da tortishuv chiqardi: kassada uchta stol
+     * band, adminkada esa ikkita buyurtma. Uchinchisining cheki serverga
+     * yetmagan edi va buni ekrandan bilib bo'lmasdi.
+     */
+    const s = state({ openOrder: CHEK, unsyncedIds: new Set(['ord_77']) });
+    expect(s.unsynced).toBe(true);
+  });
+
+  it('serverdagi chek belgilanmaydi', () => {
+    expect(state({ openOrder: CHEK, unsyncedIds: new Set(['boshqa']) }).unsynced).toBe(false);
+  });
+
+  it('ro‘yxat berilmasa hech narsa belgilanmaydi', () => {
+    expect(state({ openOrder: CHEK }).unsynced).toBe(false);
+  });
+
+  it('yuborilmagan savat belgi OLMAYDI — u hali chek emas', () => {
+    // Savat hali yuborilmagani normal holat. Belgi faqat YUBORILGAN, lekin
+    // serverga yetmagan chek uchun — aks holda belgi ma'nosini yo'qotadi.
+    const s = state({ draftTotal: 30000, unsyncedIds: new Set(['ord_77']) });
+    expect(s.unsynced).toBe(false);
+  });
+
+  it('id siz eski chek belgilanmaydi', () => {
+    expect(state({ openOrder: { total: 77000 }, unsyncedIds: new Set(['ord_77']) }).unsynced).toBe(false);
   });
 });

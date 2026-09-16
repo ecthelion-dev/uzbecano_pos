@@ -44,6 +44,8 @@ export interface CurrentUser {
 
 /** Buyurtma egasi — serverda saqlanadi. */
 export interface OpenOrder {
+  /** Chek id si. Chek serverga yetganini shu bo'yicha tekshiriladi. */
+  id?: string;
   total: number;
   waiterId?: string;
   waiterName?: string;
@@ -82,6 +84,16 @@ export interface TableState {
   total: number;
   /** Boshqa qurilma yig'ayotgan bo'lsa — kim. Shunda stol ochilmaydi. */
   heldBy?: string;
+  /**
+   * Chek YUBORILGAN, lekin serverga hali yetmagan.
+   *
+   * 2026-09-16: kassada uchta stol band, adminkada ikkita buyurtma edi.
+   * Uchinchisining cheki navbatda turardi va buni ekrandan bilib
+   * bo'lmasdi — ikkita xodim ikki xil ro'yxatga qarab bir-birini
+   * ayblardi. Chek o'chirilmaydi (yuborilmagan pulni yo'qotish bo'lardi),
+   * shuning uchun yagona chora — uni belgilab qo'yish.
+   */
+  unsynced: boolean;
 }
 
 const sameTable = (a: string, b: string) =>
@@ -97,8 +109,13 @@ export function tableState(input: {
   deviceId: string;
   /** Hozir kirgan xodim — qulf shunga qarab ochiladi. */
   user: CurrentUser;
+  /**
+   * Serverga yetib bormagan cheklarning id lari — navbatdagilar ham,
+   * rad etilganlar ham. `lib/orderMerge.ts` dagi `unsyncedOrderIds`.
+   */
+  unsyncedIds?: Set<string>;
 }): TableState {
-  const { tableNumber, openOrder, draftTotal, holds, deviceId, user } = input;
+  const { tableNumber, openOrder, draftTotal, holds, deviceId, user, unsyncedIds } = input;
 
   // Shu qurilmaning o'z belgisi hisobga olinmaydi: savat allaqachon shu
   // yerda va uni ikkinchi marta sanashning ma'nosi yo'q.
@@ -121,6 +138,9 @@ export function tableState(input: {
     occupied: hasOpenOrder || hasOwnDraft || !!elsewhere,
     total,
     heldBy: lockedBy({ openOrder, elsewhere, hasOwnDraft, user }),
+    // Faqat YUBORILGAN chek uchun. Yig'ilayotgan savat hali serverga
+    // yetishi shart emas — uni belgilash belgining ma'nosini yo'qotardi.
+    unsynced: !!openOrder?.id && !!unsyncedIds?.has(openOrder.id),
   };
 }
 

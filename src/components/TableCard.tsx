@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Lock } from 'lucide-react';
+import { Bell, Lock, CloudOff } from 'lucide-react';
 import { useT } from '../lib/i18n/LanguageProvider';
 
 export interface TableItemData {
@@ -17,6 +17,14 @@ export interface TableItemData {
    * qoladi — kassada esa bittasigina ko'rinadi.
    */
   heldBy?: string;
+  /**
+   * Chek yuborilgan, lekin serverga hali yetmagan.
+   *
+   * 2026-09-16: kassada uchta stol band, adminkada ikkita buyurtma edi —
+   * uchinchisining cheki navbatda turardi va buni ekrandan bilib
+   * bo'lmasdi. Ikkita xodim ikki xil ro'yxatga qarab bir-birini aybladi.
+   */
+  unsynced?: boolean;
 }
 
 interface TableCardProps {
@@ -37,6 +45,12 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
           ? table.status === 'band'
             ? 'bg-[#1E2021] text-white border-amber-500 ring-2 ring-amber-400 animate-pulse shadow-lg shadow-amber-500/20'
             : 'bg-white text-slate-800 border-amber-500 ring-2 ring-amber-400 animate-pulse shadow-lg shadow-amber-500/20'
+          : table.unsynced
+          ? // Sarg'ish hoshiya — chek serverga yetmagan. Chaqiruvdan farqli
+            // o'laroq miltillamaydi: bu shoshilinch emas, lekin ko'rinib
+            // turishi shart, aks holda adminka bilan farq tushuntirilmay
+            // qoladi va xodimlar bir-birini ayblaydi.
+            'bg-[#1E2021] border-amber-500 ring-1 ring-amber-500/60 text-white'
           : table.status === 'band'
           ? 'bg-[#1E2021] border-[#2A2D2F] text-white hover:border-orange-500'
           : 'bg-white border-slate-200 text-slate-800 hover:border-orange-400'
@@ -55,6 +69,14 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
           {table.number}
         </span>
         <div className="flex items-center gap-1.5 shrink-0">
+          {table.unsynced && (
+            <span
+              className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm"
+              title={t('table.unsynced')}
+            >
+              <CloudOff className="w-3 h-3" />
+            </span>
+          )}
           {table.hasWaiterCall && (
             <span className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm animate-bounce" title={t('table.waiterCall')}>
               <Bell className="w-3 h-3 fill-white" />
@@ -81,8 +103,19 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
 
       {table.status === 'band' ? (
         <div className="bg-[#2A2D2F] p-1.5 sm:p-2 rounded-xl border border-[#3A3E41] flex items-center justify-between gap-1 min-w-0">
-          <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium shrink-0 truncate">
-            {table.heldBy || t('common.total')}
+          {/*
+            Ikonka yetarli emas: kassa sensorli ekran, ustiga olib borish
+            yo'q, ya'ni tooltipni hech kim ko'rmaydi. Yozuv "Jami" o'rnini
+            egallaydi — summaning o'zi joyida qoladi.
+          */}
+          <span
+            className={`text-[9px] sm:text-[10px] font-medium shrink-0 truncate ${
+              table.unsynced ? 'text-amber-400 font-bold' : 'text-slate-400'
+            }`}
+          >
+            {table.unsynced
+              ? t('table.unsyncedShort')
+              : table.heldBy || t('common.total')}
           </span>
           {/* Valyuta nomi ataylab yozilmaydi: kartochka tor va "so'm" summani
               qirqib, "15,000 s..." qilib qo'yardi — ya'ni birlik uchun eng

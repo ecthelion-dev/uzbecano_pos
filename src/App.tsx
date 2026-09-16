@@ -62,7 +62,8 @@ import { readSession, writeSession, clearSession, purgeLegacySession } from './l
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
-import { canSync, decideFromStatus, newQueueId, removeProcessed, withQueueIds } from './lib/syncQueue';
+import { decideFromStatus, newQueueId, withQueueIds } from './lib/syncQueue';
+import { runSyncCycle, type QueuedItem } from './lib/syncCycle';
 import { mergeActiveOrders, mergeOrderHistory, unsyncedOrderIds } from './lib/orderMerge';
 import { oldestQueuedAt, summariseBacklog } from './lib/syncHealth';
 import { useT } from './lib/i18n/LanguageProvider';
@@ -859,14 +860,7 @@ export default function App() {
    * Ixtiyoriy, chunki eski versiyalardan qolgan yozuvlar nomsiz keladi —
    * ularga nom `readSyncQueue` da qo'yiladi.
    */
-  type SyncQueueItem = { queuedAt?: number; qid?: string } & (
-    | { kind: 'create'; order: any }
-    | { kind: 'patch'; orderId: string; body: any; label?: string; approvalToken?: string }
-    | { kind: 'delete'; orderId: string; label?: string }
-    // Kassa xarajati. Internet uzilganda ham sut sotib olinaveradi va
-    // o'sha payt yozib qo'yolmasa, kassir keyin esdan chiqaradi.
-    | { kind: 'cash'; entry: any; label?: string; approvalToken?: string }
-  );
+  type SyncQueueItem = QueuedItem;
 
   /**
    * Chetga qo'yilgan amallarni navbatga qaytarish.
@@ -979,151 +973,95 @@ export default function App() {
     syncInProgressRef.current = true;
     try {
       const cafeId = getActiveCafeId();
-      const queue = readSyncQueue(cafeId);
-      if (queue.length === 0) return;
 
       /*
-       * Sessiyasiz urinmaymiz. Kassa sessiyasi ilova yopilishi bilan o'chadi,
-       * navbat esa diskda qoladi — ya'ni ilova qayta ochilgan, PIN esa hali
-       * kiritilmagan payt bo'ladi. O'shanda yuborilgan so'rov faqat 401 oladi.
+       * Siklning o'zi `lib/syncCycle.ts` da. Bu yerda faqat portlar
+       * yig'iladi: tarmoq, disk va kassirga ko'rinadigan nomlar.
+       *
+       * Ajratilishining sababi tarixiy: qoidalar shu komponent ichida
+       * turganda ularga test yetib bormasdi, va 2026-09-16 dagi uchala
+       * pul yo'qotadigan xato ham aynan shu yerdan chiqqan edi.
        */
-      if (!canSync(authToken)) return;
-
-      /*
-       * Yakunda navbatdan OLIB TASHLANADIGAN yozuvlar nomi. Qolgani —
-       * ishlanmagani — o'z joyida qolaveradi, ya'ni uni bu yerda alohida
-       * ro'yxatga yig'ish shart emas. Aynan o'sha "qolganlar ro'yxati"
-       * navbat ustidan yozilganda oradagi yangi buyurtmani yeb qo'yardi.
-       */
-      const processedIds = new Set<string>();
-      const parked: SyncQueueItem[] = [];
-      const failedOrderIds = new Set<string>();
-      const rejectedLabels: string[] = [];
-      let anySucceeded = false;
-
-      for (const item of queue) {
-        const blockedOrderId =
-          item.kind === 'create' ? item.order?.id : item.kind === 'cash' ? undefined : item.orderId;
-        if (blockedOrderId && failedOrderIds.has(blockedOrderId)) continue;
-        try {
-          let res: Response;
+      const outcome = await runSyncCycle({
+        readQueue: () => readSyncQueue(cafeId),
+        readFailed: () => {
+          const raw = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
+          return Array.isArray(raw) ? raw : [];
+        },
+        commit: (queue, failed) =>
+          writeCafeJsonMany(cafeId, [
+            { key: 'sync_queue', value: queue },
+            ...(failed ? [{ key: 'sync_failed' as const, value: failed }] : []),
+          ]),
+        send: (item) => {
           if (item.kind === 'create') {
-            res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
+            return fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
               method: 'POST',
               headers: getAuthHeaders(),
               body: JSON.stringify({ ...item.order, cafeId }),
             });
-          } else if (item.kind === 'patch') {
-            res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
+          }
+          if (item.kind === 'patch') {
+            return fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
               method: 'PATCH',
               headers: getAuthHeaders(item.approvalToken),
               body: JSON.stringify(item.body),
             });
-          } else if (item.kind === 'cash') {
-            res = await fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
+          }
+          if (item.kind === 'cash') {
+            return fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
               method: 'POST',
               headers: getAuthHeaders(item.approvalToken),
               body: JSON.stringify(item.entry),
             });
-          } else {
-            res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
-              method: 'DELETE',
-              headers: getAuthHeaders(),
-            });
           }
+          return fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(),
+          });
+        },
+        isFrozen: (res) => applyFrozenFromResponse(res, cafeId),
+        label: (item) =>
+          String(
+            item.kind === 'create'
+              ? item.order?.tableNumber || t('common.order')
+              : item.kind === 'cash'
+                ? item.label || t('drawer.title')
+                : item.label || item.orderId,
+          ),
+      }, authToken);
 
-          if (res.ok) {
-            anySucceeded = true;
-            if (item.qid) processedIds.add(item.qid);
-          } else if (await applyFrozenFromResponse(res, cafeId)) {
-            // Kafe muzlatilgan: navbatni davom ettirish befoyda, ekran baribir
-            // muzlatish oynasiga o'tadi. Shu amaldan boshlab hammasi navbatda
-            // qoladi va to'lovdan keyin o'zi yuboriladi — hech biri
-            // "ishlangan" deb belgilanmagani uchun o'zi shunday bo'ladi.
-            break;
-          } else if (decideFromStatus(res.status) === 'retry') {
-            if (blockedOrderId) failedOrderIds.add(blockedOrderId);
-          } else {
-            // Server bu so'rovni printsipial rad etdi (masalan taom o'chirilgan
-            // yoki buyurtma bo'sh). Qayta yuborish foydasiz, shuning uchun u
-            // navbatdan chiqadi — lekin O'CHIRILMAYDI: bu pul, uni jimgina
-            // yo'qotib bo'lmaydi. Alohida ro'yxatda ko'rib chiqishni kutadi.
-            parked.push(item);
-            const label =
-              item.kind === 'create'
-                ? item.order?.tableNumber || t('common.order')
-                : item.kind === 'cash'
-                  ? item.label || t('drawer.title')
-                  : item.label || item.orderId;
-            rejectedLabels.push(String(label));
-            if (blockedOrderId) failedOrderIds.add(blockedOrderId);
-          }
-        } catch {
-          if (blockedOrderId) failedOrderIds.add(blockedOrderId);
-        }
-      }
+      // Navbat bo'sh yoki sessiya yo'q — aytadigan gap ham yo'q.
+      if (!outcome) return;
 
-      /*
-       * Rad etilganlarni `sync_failed`ga qo'shish va ularni navbatdan
-       * chiqarish — BITTA TRANZAKSIYA.
-       *
-       * Ilgari bu ikkita alohida yozuv edi va ular orasida ilova yiqilsa
-       * o'sha pul hech qayerda qolmasdi: navbatdan chiqqan, arxivga ham
-       * tushmagan. Kod buni yozuvlar TARTIBIGA tayanib yumshatardi — avval
-       * `sync_failed`, keyin navbat. Bu ishlaydi, lekin ehtiyotkorlik, himoya
-       * emas: ikkinchi yozuv baribir mustaqil ravishda yiqilishi mumkin edi.
-       *
-       * Navbat esa BUTUNLAY almashtirilmaydi — faqat ishlangan yozuvlar nomi
-       * bo'yicha olib tashlanadi, va buning uchun u SHU YERDA qaytadan
-       * o'qiladi. Yuqoridagi tsikl har bir yozuv uchun tarmoqni 8 soniyagacha
-       * kutadi: Wi-Fi o'lgan, navbatda beshta yozuv bor — bu yergacha yarim
-       * daqiqa. Ilgari navbat tsikl BOSHIDAGI nusxadan hisoblangan ro'yxat
-       * bilan almashtirilardi, ya'ni o'sha yarim daqiqada kassir urgan
-       * buyurtma yakuniy yozuv ostida qolib ketardi: xatosiz,
-       * ogohlantirishsiz va `sync_failed`ga ham tushmasdan. Navbat bo'sh
-       * bo'lgani uchun smena hisoboti o'zini "to'liq" deb e'lon qilardi.
-       */
-      for (const item of parked) if (item.qid) processedIds.add(item.qid);
-      const nextQueue = removeProcessed(readSyncQueue(cafeId), processedIds);
-
-      const failedBefore = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
-      const saved = writeCafeJsonMany(cafeId, [
-        { key: 'sync_queue', value: nextQueue },
-        ...(parked.length > 0
-          ? [{
-              key: 'sync_failed' as const,
-              value: [...(Array.isArray(failedBefore) ? failedBefore : []), ...parked],
-            }]
-          : []),
-      ]);
-      if (!saved) {
-        // Diskka tushmadi. Navbat o'z holicha qoladi va keyingi urinishda
+      if (outcome.commitFailed) {
+        // Diskka tushmadi. Navbat o'z holicha qoldi va keyingi urinishda
         // hammasi qaytadan yuboriladi — `idempotencyKey` buni zararsiz
         // qiladi. Yo'qotishdan afzal.
-        console.error('[sync] navbat holatini saqlab bo\'lmadi');
+        console.error("[sync] navbat holatini saqlab bo'lmadi");
       }
 
-      if (rejectedLabels.length > 0) {
+      if (outcome.rejectedLabels.length > 0) {
         setToastMessage(
           t('toast.syncRejected', {
             list:
-              rejectedLabels.slice(0, 3).join(', ') +
-              (rejectedLabels.length > 3
-                ? ' ' + t('toast.andMore', { n: rejectedLabels.length - 3 })
+              outcome.rejectedLabels.slice(0, 3).join(', ') +
+              (outcome.rejectedLabels.length > 3
+                ? ' ' + t('toast.andMore', { n: outcome.rejectedLabels.length - 3 })
                 : ''),
           })
         );
         setTimeout(() => setToastMessage(null), 6000);
-      } else if (anySucceeded) {
+      } else if (outcome.anySucceeded) {
         setToastMessage("Oflayn amallar serverga sinxronlandi!");
         setTimeout(() => setToastMessage(null), 2500);
       }
 
-      if (anySucceeded) fetchOrders();
+      if (outcome.anySucceeded) fetchOrders();
     } finally {
       syncInProgressRef.current = false;
     }
-  }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, applyFrozenFromResponse]);
+  }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, applyFrozenFromResponse, t]);
 
   useEffect(() => {
     const interval = setInterval(syncOfflineOrders, 10000);

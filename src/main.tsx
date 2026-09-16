@@ -7,17 +7,32 @@ import { initAutoUpdater } from './lib/autoUpdater';
 import { initPwaUpdater } from './lib/pwaUpdater';
 import './index.css';
 import { IS_DESKTOP_APP } from './constants';
+import { hydrateStorage } from './lib/storage';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <LanguageProvider>
-      <App />
-      {/* Provider ICHIDA: banner ham `useT` ishlatadi, tashqarida u otadi
-          va butun ilova oq ekranga aylanadi. */}
-      <UpdateBanner />
-    </LanguageProvider>
-  </React.StrictMode>
-);
+/**
+ * Saqlash CHIZISHDAN OLDIN ochiladi.
+ *
+ * Kassaning diskdagi yozuvlari endi IndexedDB da (sabablari `kvStore.ts`
+ * da). O'qish sinxron bo'lib qolgani uchun ilova kutmasa ham ishlaydi —
+ * xotira `localStorage` dan darhol urug'lanadi — lekin o'shanda bazadagi,
+ * ya'ni `localStorage` ga sig'magan yozuvlar birinchi soniyalarda
+ * ko'rinmay turardi. Ochiq stol ko'rinmasligi esa kassir uchun
+ * "buyurtma yo'qoldi" degani.
+ *
+ * `hydrateStorage` hech qachon rad etmaydi va o'z vaqt chegarasi bor.
+ */
+hydrateStorage().then(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <LanguageProvider>
+        <App />
+        {/* Provider ICHIDA: banner ham `useT` ishlatadi, tashqarida u otadi
+            va butun ilova oq ekranga aylanadi. */}
+        <UpdateBanner />
+      </LanguageProvider>
+    </React.StrictMode>
+  );
+});
 
 /**
  * Service worker faqat brauzerdagi PWA uchun.

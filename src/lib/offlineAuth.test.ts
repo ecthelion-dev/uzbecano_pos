@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { installMemoryStorage } from './testStorage';
+import { reloadStorage } from './storage';
 
 installMemoryStorage();
 
@@ -96,6 +97,9 @@ describe('oflayn kirish keshi', () => {
     const list = JSON.parse(localStorage.getItem(key)!);
     list[0].cachedAt = new Date(Date.now() - OFFLINE_LOGIN_MAX_AGE_MS - 1000).toISOString();
     localStorage.setItem(key, JSON.stringify(list));
+    // Yozuv `storage` moduli ustidan qo'yildi — uning xotiradagi nusxasi
+    // hali eski qiymatni ushlab turibdi.
+    reloadStorage();
 
     expect((await verifyCachedPin(CAFE, '1234')).status).toBe('invalid');
   });

@@ -50,6 +50,7 @@ import {
   writeCafeText,
   readCafeJson,
   writeCafeJson,
+  writeCafeJsonMany,
   removeCafeKey,
   readGlobalText,
   writeGlobalText,
@@ -1063,11 +1064,14 @@ export default function App() {
       }
 
       /*
-       * Rad etilganlar `sync_queue`dan chiqishidan OLDIN `sync_failed`ga
-       * yozilishi shart — aks holda ikkisi orasida ilova yiqilsa, o'sha pul
-       * HECH QAYERDA qolmay ketardi: navbatdan chiqqan, arxivga ham
-       * tushmagan. Yozib bo'lmasa ular navbatda QOLDIRILADI — ikki marta
-       * ko'rinishi yo'qolishidan yaxshiroq.
+       * Rad etilganlarni `sync_failed`ga qo'shish va ularni navbatdan
+       * chiqarish — BITTA TRANZAKSIYA.
+       *
+       * Ilgari bu ikkita alohida yozuv edi va ular orasida ilova yiqilsa
+       * o'sha pul hech qayerda qolmasdi: navbatdan chiqqan, arxivga ham
+       * tushmagan. Kod buni yozuvlar TARTIBIGA tayanib yumshatardi — avval
+       * `sync_failed`, keyin navbat. Bu ishlaydi, lekin ehtiyotkorlik, himoya
+       * emas: ikkinchi yozuv baribir mustaqil ravishda yiqilishi mumkin edi.
        *
        * Navbat esa BUTUNLAY almashtirilmaydi — faqat ishlangan yozuvlar nomi
        * bo'yicha olib tashlanadi, va buning uchun u SHU YERDA qaytadan
@@ -1079,17 +1083,25 @@ export default function App() {
        * ogohlantirishsiz va `sync_failed`ga ham tushmasdan. Navbat bo'sh
        * bo'lgani uchun smena hisoboti o'zini "to'liq" deb e'lon qilardi.
        */
-      if (parked.length > 0) {
-        const before = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
-        const parkedSaved = writeCafeJson(cafeId, 'sync_failed', [...(Array.isArray(before) ? before : []), ...parked]);
-        // Yozib bo'lmasa ular "ishlangan" deb belgilanmaydi, ya'ni navbatda
-        // qolaveradi — yuqoridagi izohdagi kelishuv aynan shu.
-        if (parkedSaved) {
-          for (const item of parked) if (item.qid) processedIds.add(item.qid);
-        }
-      }
+      for (const item of parked) if (item.qid) processedIds.add(item.qid);
+      const nextQueue = removeProcessed(readSyncQueue(cafeId), processedIds);
 
-      writeSyncQueue(cafeId, removeProcessed(readSyncQueue(cafeId), processedIds));
+      const failedBefore = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
+      const saved = writeCafeJsonMany(cafeId, [
+        { key: 'sync_queue', value: nextQueue },
+        ...(parked.length > 0
+          ? [{
+              key: 'sync_failed' as const,
+              value: [...(Array.isArray(failedBefore) ? failedBefore : []), ...parked],
+            }]
+          : []),
+      ]);
+      if (!saved) {
+        // Diskka tushmadi. Navbat o'z holicha qoladi va keyingi urinishda
+        // hammasi qaytadan yuboriladi — `idempotencyKey` buni zararsiz
+        // qiladi. Yo'qotishdan afzal.
+        console.error('[sync] navbat holatini saqlab bo\'lmadi');
+      }
 
       if (rejectedLabels.length > 0) {
         setToastMessage(
@@ -1111,7 +1123,7 @@ export default function App() {
     } finally {
       syncInProgressRef.current = false;
     }
-  }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, writeSyncQueue, applyFrozenFromResponse]);
+  }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, applyFrozenFromResponse]);
 
   useEffect(() => {
     const interval = setInterval(syncOfflineOrders, 10000);

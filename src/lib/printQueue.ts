@@ -91,6 +91,24 @@ export async function enqueuePrintJob(
   if (!orderId) return NOT_QUEUED;
   if (offlineForSure()) return NOT_QUEUED;
 
+  /*
+   * `NOT_QUEUED` — topshiriq YO'QOLDI degani emas.
+   *
+   * Chaqiruvchida to'liq zaxira zanjiri bor: navbat ishlamasa ESC/POS
+   * bilan to'g'ridan-to'g'ri printerga, u ham bo'lmasa brauzer chop
+   * etishiga tushiladi, va uchalasi ham yiqilsa kassirga xabar
+   * ko'rsatiladi. Ya'ni bu yerdagi "yo'q" qog'ozni bekor qilmaydi, uni
+   * boshqa yo'lga buradi.
+   *
+   * Izoh shu yerda turibdi, chunki bu faylning o'zini o'qigan odam buni
+   * bilmaydi va "oflaynda chek jimgina tashlab yuborilar ekan" degan
+   * xato xulosaga keladi — 2026-09-16 da aynan shunday bo'ldi.
+   *
+   * Topshiriq ATAYLAB navbatda saqlanmaydi: aloqa tiklanganda bir soat
+   * oldingi oshxona kvitansiyasini bosish foydadan ko'ra zarar — taom
+   * allaqachon tayyor yoki buyurtma o'zgargan.
+   */
+
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), ENQUEUE_TIMEOUT_MS);
   try {

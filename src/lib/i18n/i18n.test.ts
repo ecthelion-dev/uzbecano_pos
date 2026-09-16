@@ -144,6 +144,9 @@ describe('matndagi o‘rin egallovchilar', () => {
       setItem: () => {},
       removeItem: () => {},
     } as unknown as Storage;
+    // Saqlash almashdi — `storage` modulining xotiradagi nusxasi ham
+    // tashlanishi kerak, aks holda oldingi til shu yerda qolib ketardi.
+    (await import('../storage')).reloadStorage();
 
     const Probe = () => {
       const t = useT();
@@ -182,6 +185,9 @@ describe('til tanlagich', () => {
       setItem: () => {},
       removeItem: () => {},
     } as unknown as Storage;
+    // Saqlash almashdi — `storage` modulining xotiradagi nusxasi ham
+    // tashlanishi kerak, aks holda oldingi til shu yerda qolib ketardi.
+    (await import('../storage')).reloadStorage();
 
     return renderToStaticMarkup(
       createElement(LanguageProvider, null, createElement(LanguageSwitcher)),

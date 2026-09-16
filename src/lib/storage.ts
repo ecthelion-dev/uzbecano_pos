@@ -20,6 +20,9 @@
  *     chiqarishni to'xtatmasligi kerak.
  */
 
+import { createKvStore } from './kvStore';
+import { createIdbBackend } from './idbBackend';
+
 /**
  * Kafega tegishli yozuvlar. To'liq kalit — `orderplus_<cafeId>_<nom>`.
  *
@@ -78,25 +81,77 @@ export function cafeKey(cafeId: string, key: CafeKey): string {
 }
 
 /**
- * Brauzer xotirasi — yo'q bo'lsa `null`.
+ * Doimiy yozuvlar `kvStore` da: IndexedDB, `localStorage` esa zaxira nusxa.
  *
- * Tauri WebView2 da ham, testlarda ham `localStorage` bo'lmasligi mumkin;
- * o'shanda kassa yiqilmasligi kerak.
+ * `localStorage` pul saqlanadigan joy uchun noto'g'ri idish edi — tranzaksiya
+ * yo'q, joy ~5MB va o'qish-o'zgartirish-yozish poygasi ochiq. Sabablar to'liq
+ * holda `kvStore.ts` da yozilgan.
+ *
+ * SESSIYA bu ko'chishga KIRMAYDI. U ilova yopilishi bilan o'chishi SHART:
+ * kassa sessiyasining qisqa umri himoya vositasi, kamchilik emas.
  */
-function store(kind: 'local' | 'session'): Storage | null {
+const kv = createKvStore(createIdbBackend());
+
+/**
+ * Chidamli bazani ochadi va yozuvlarni xotiraga oladi.
+ *
+ * Ilova chizilishidan OLDIN chaqiriladi. Kutmasdan ham ishlaydi — xotira
+ * `localStorage` dan darhol urug'lanadi — lekin o'shanda bazadagi, ya'ni
+ * `localStorage` ga sig'magan yozuvlar ko'rinmay turadi.
+ */
+export function hydrateStorage(): Promise<void> {
+  /*
+   * Kutish CHEKLANGAN. IndexedDB ochilishi osilib qolishi mumkin — boshqa
+   * oyna eski versiyani ushlab tursa yoki profil buzilgan bo'lsa. Kutishni
+   * cheksiz qoldirish kassani oq ekranda qoldirardi, ya'ni savdo umuman
+   * boshlanmasdi.
+   *
+   * Vaqt tugasa ilova baribir ochiladi: xotira `localStorage` dan
+   * urug'langan, ya'ni kassa hech bo'lmasa bugungi holatida ishlaydi.
+   * Hidratatsiya esa fonda tugaydi va tugagach yozuvlar bazaga ketadi.
+   */
+  return Promise.race([
+    kv.hydrate(),
+    new Promise<void>((resolve) => setTimeout(resolve, HYDRATE_TIMEOUT_MS)),
+  ]);
+}
+
+/** Shundan uzoq kutilgan bazaga ishonib o'tirilmaydi. */
+const HYDRATE_TIMEOUT_MS = 3000;
+
+/** Kutayotgan yozuvlar diskka tushguncha kutadi. */
+export function flushStorage(): Promise<void> {
+  return kv.flush();
+}
+
+/** Chidamli baza ochildimi. `false` — kassa `localStorage` bilan ishlayapti. */
+export function isStorageDurable(): boolean {
+  return kv.isDurable();
+}
+
+/** Xotiradagi nusxani diskdan qaytadan o'qiydi. */
+export function reloadStorage(): void {
+  kv.reload();
+}
+
+/** Sessiya xotirasi — yo'q bo'lsa `null`. */
+function sessionStore(): Storage | null {
   try {
-    return kind === 'local' ? localStorage : sessionStorage;
+    return sessionStorage;
   } catch {
     return null;
   }
 }
 
 export function readText(key: string, kind: 'local' | 'session' = 'local'): string | null {
-  try {
-    return store(kind)?.getItem(key) ?? null;
-  } catch {
-    return null;
+  if (kind === 'session') {
+    try {
+      return sessionStore()?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
   }
+  return kv.get(key);
 }
 
 /**
@@ -114,21 +169,28 @@ function logWriteFailure(key: string): void {
 
 /** Yozib bo'lganini qaytaradi — chaqiruvchi buni bilishi kerak bo'lsa. */
 export function writeText(key: string, value: string, kind: 'local' | 'session' = 'local'): boolean {
-  try {
-    store(kind)?.setItem(key, value);
-    return true;
-  } catch {
-    logWriteFailure(key);
-    return false;
+  if (kind === 'session') {
+    try {
+      sessionStore()?.setItem(key, value);
+      return true;
+    } catch {
+      logWriteFailure(key);
+      return false;
+    }
   }
+  return kv.set(key, value);
 }
 
 export function removeKey(key: string, kind: 'local' | 'session' = 'local'): void {
-  try {
-    store(kind)?.removeItem(key);
-  } catch {
-    /* ignore */
+  if (kind === 'session') {
+    try {
+      sessionStore()?.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+    return;
   }
+  kv.remove(key);
 }
 
 /** Buzuq yoki yo'q yozuvda zaxira qiymat qaytadi — hech qachon xato emas. */
@@ -171,6 +233,32 @@ export function readCafeJson<T>(cafeId: string, key: CafeKey, fallback: T): T {
 
 export function writeCafeJson(cafeId: string, key: CafeKey, value: unknown): boolean {
   return writeJson(cafeKey(cafeId, key), value);
+}
+
+/**
+ * Bir nechta kafe yozuvini BITTA tranzaksiyada yozadi.
+ *
+ * `sync_queue` dan `sync_failed` ga ko'chirish aynan shuni talab qiladi:
+ * ikkita alohida yozuv orasida ilova yiqilsa, pul ikkala ro'yxatdan ham
+ * tushib qolardi. Ilgari bu yerda himoya emas, yozuvlar TARTIBIGA
+ * tayangan ehtiyotkorlik turardi.
+ */
+export function writeCafeJsonMany(
+  cafeId: string,
+  entries: { key: CafeKey; value: unknown }[],
+): boolean {
+  const rows: { key: string; value: string | null }[] = [];
+  for (const entry of entries) {
+    try {
+      rows.push({ key: cafeKey(cafeId, entry.key), value: JSON.stringify(entry.value) });
+    } catch {
+      // Aylanma havolali obyekt — butun to'plam yozilmaydi, chunki
+      // yarmini yozish aynan qochmoqchi bo'lgan holatimiz.
+      logWriteFailure(cafeKey(cafeId, entry.key));
+      return false;
+    }
+  }
+  return kv.setMany(rows);
 }
 
 export function removeCafeKey(cafeId: string, key: CafeKey, kind: 'local' | 'session' = 'local'): void {
@@ -250,11 +338,22 @@ const HEALTH_CHECK_KEY = 'orderplus_storage_health_check';
  * narsa yo'qotmagan paytda ko'rsatish uchun.
  */
 export function checkStorageHealth(): boolean {
-  const probe = String(Date.now());
-  if (!writeText(HEALTH_CHECK_KEY, probe)) return false;
-  const read = readText(HEALTH_CHECK_KEY);
-  removeKey(HEALTH_CHECK_KEY);
-  return read === probe;
+  // Chidamli baza ochilgan bo'lsa savol yopiq: u `localStorage` ning
+  // kvotasiga ham, shaxsiy rejimiga ham bog'liq emas.
+  if (kv.isDurable()) return true;
+
+  // Aks holda yagona umid `localStorage` — va u haqiqatan sinaladi.
+  // `writeText` bu yerda yaramaydi: u xotiradagi nusxaga yozib, diskka
+  // yetib bormagan taqdirda ham "muvaffaqiyat" qaytarardi.
+  try {
+    const probe = String(Date.now());
+    localStorage.setItem(HEALTH_CHECK_KEY, probe);
+    const read = localStorage.getItem(HEALTH_CHECK_KEY);
+    localStorage.removeItem(HEALTH_CHECK_KEY);
+    return read === probe;
+  } catch {
+    return false;
+  }
 }
 
 /**

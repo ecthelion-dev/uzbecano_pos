@@ -1,3 +1,5 @@
+import { reloadStorage } from './storage';
+
 /**
  * Testlar uchun `localStorage` / `sessionStorage` o'rnini bosuvchi oddiy
  * xotira. jsdom keltirmaslik uchun: sinaladigan kod bu ikkitasidan boshqa
@@ -31,11 +33,18 @@ export class MemoryStorage implements Storage {
   }
 }
 
-/** Ikkala saqlashni ham toza holatga qo'yadi va o'shalarni qaytaradi. */
+/**
+ * Ikkala saqlashni ham toza holatga qo'yadi va o'shalarni qaytaradi.
+ *
+ * `storage` modulining xotiradagi nusxasi ham tashlanadi: u ostidagi
+ * saqlashni kuzatmaydi, ya'ni almashtirilgandan keyin oldingi testning
+ * yozuvlari shu yerga sudralib kelardi.
+ */
 export function installMemoryStorage(): { local: MemoryStorage; session: MemoryStorage } {
   const local = new MemoryStorage();
   const session = new MemoryStorage();
   Object.defineProperty(globalThis, 'localStorage', { value: local, configurable: true });
   Object.defineProperty(globalThis, 'sessionStorage', { value: session, configurable: true });
+  reloadStorage();
   return { local, session };
 }

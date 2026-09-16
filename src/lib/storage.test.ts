@@ -21,10 +21,15 @@ const {
   checkStorageHealth,
   OPERATIONAL_KEYS,
   PRESERVED_KEYS,
+  reloadStorage,
 } = await import('./storage');
 
 beforeEach(() => {
   installMemoryStorage();
+  // Saqlash boshqasiga almashdi — xotiradagi nusxa ham u bilan birga
+  // yangilanishi kerak, aks holda oldingi testning yozuvi bu yerga
+  // sudralib kelardi.
+  reloadStorage();
 });
 
 describe('diskdagi yozuvlar', () => {

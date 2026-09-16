@@ -278,3 +278,62 @@ describe('hidratatsiyagacha bo`lgan payt', () => {
     expect(fake.rows.get('orderplus_a')).toBe('yangi');
   });
 });
+
+describe('boshqa oyna yozgan o`zgarish', () => {
+  test('yangilangan qiymat xotiraga o`tadi', async () => {
+    // Ikkita tab ochilgan: biri yozdi, ikkinchisi buni bilishi kerak.
+    // Xotiradagi nusxa oynaga tegishli, ya'ni u o'zi yangilanmaydi.
+    const kv = createKvStore(fakeBackend({ 'orderplus_a': 'eski' }).backend);
+    await kv.hydrate();
+
+    kv.applyExternalChange('orderplus_a', 'yangi');
+
+    expect(kv.get('orderplus_a')).toBe('yangi');
+  });
+
+  test('o`chirilgan kalit xotiradan ham chiqadi', async () => {
+    const kv = createKvStore(fakeBackend({ 'orderplus_a': '1' }).backend);
+    await kv.hydrate();
+
+    kv.applyExternalChange('orderplus_a', null);
+
+    expect(kv.get('orderplus_a')).toBeNull();
+  });
+
+  test('begona kalit e`tiborsiz qoldiriladi', async () => {
+    const kv = createKvStore(fakeBackend().backend);
+    await kv.hydrate();
+
+    kv.applyExternalChange('begona_kalit', 'x');
+
+    expect(kv.get('begona_kalit')).toBeNull();
+  });
+
+  test('butun saqlash tozalanganda nusxa diskdan qayta o`qiladi', async () => {
+    // `localStorage.clear()` da hodisaning kaliti `null` bo'ladi — qaysi
+    // kalit o'zgarganini aytib bo'lmaydi, ya'ni hammasini qayta olish kerak.
+    const kv = createKvStore(fakeBackend().backend);
+    await kv.hydrate();
+    kv.set('orderplus_a', '1');
+    localStorage.clear();
+
+    kv.applyExternalChange(null, null);
+
+    expect(kv.get('orderplus_a')).toBeNull();
+  });
+
+  test('tashqi o`zgarish bazaga QAYTA yozilmaydi', async () => {
+    // Yozgan oyna uni allaqachon bazaga tushirgan. Ikkinchi marta yozish
+    // ortiqcha, va yomoni — yozuvlar tartibini buzishi mumkin.
+    const fake = fakeBackend();
+    const kv = createKvStore(fake.backend);
+    await kv.hydrate();
+    await kv.flush();
+    const before = fake.writes.length;
+
+    kv.applyExternalChange('orderplus_a', 'yangi');
+    await kv.flush();
+
+    expect(fake.writes.length).toBe(before);
+  });
+});

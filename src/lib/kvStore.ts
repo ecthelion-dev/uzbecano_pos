@@ -54,10 +54,16 @@ export interface KvStore {
   /**
    * Xotiradagi nusxani tashlab, brauzer saqlashidan qaytadan o'qiydi.
    *
-   * Ostidagi saqlash BOSHQASIGA almashganda kerak — bu testlarda bo'ladi,
-   * va nazariy jihatdan boshqa oyna yozuvlarni almashtirganda ham.
+   * Ostidagi saqlash BOSHQASIGA almashganda kerak — bu testlarda bo'ladi.
    */
   reload(): void;
+  /**
+   * Boshqa oyna yozgan o'zgarishni xotiraga qo'llaydi.
+   *
+   * `storage` hodisasi chaqiradi. `key` `null` bo'lsa — butun saqlash
+   * tozalangan.
+   */
+  applyExternalChange(key: string | null, newValue: string | null): void;
 }
 
 function browserStore(): Storage | null {
@@ -106,6 +112,24 @@ export function createKvStore(backend: DurableBackend): KvStore {
 
   // Xotira DARHOL to'ldiriladi: sinxron o'qish hidratatsiyani kuta olmaydi.
   for (const [key, value] of Object.entries(readOwnKeys())) mirror.set(key, value);
+
+  /*
+   * Boshqa oyna yozganini eshitib turamiz.
+   *
+   * Xotiradagi nusxa OYNAGA tegishli. Ikkinchi tab ochilsa (telefondagi
+   * brauzer kassasida bu bo'ladi), har biri o'z nusxasini ushlaydi va biri
+   * ikkinchisining yozuvini ko'rmay qolardi. Ilgari `localStorage` umumiy
+   * edi va o'qish har doim eng oxirgi qiymatni olardi — nusxa kiritilganda
+   * o'sha xususiyat yo'qolgan edi, shu yerda qaytariladi.
+   *
+   * `storage` hodisasi faqat BOSHQA oynalarda otadi, yozgan oynada emas —
+   * ya'ni o'z yozuvimiz bu yerga qaytib kelmaydi.
+   */
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('storage', (event) => {
+      store.applyExternalChange(event.key, event.newValue);
+    });
+  }
 
   /*
    * Yozuvlar BITTA zanjirda ketadi. Parallel yuborilsa ular o'rin
@@ -176,7 +200,7 @@ export function createKvStore(backend: DurableBackend): KvStore {
     return durable || browserOk;
   }
 
-  return {
+  const store: KvStore = {
     async hydrate() {
       let rows: Record<string, string> | null = null;
       try {
@@ -279,5 +303,28 @@ export function createKvStore(backend: DurableBackend): KvStore {
       writtenBeforeHydrate.clear();
       for (const [key, value] of Object.entries(readOwnKeys())) mirror.set(key, value);
     },
+
+    applyExternalChange(key, newValue) {
+      // Butun saqlash tozalangan: qaysi kalit o'zgarganini aytib bo'lmaydi.
+      if (key === null) {
+        mirror.clear();
+        for (const [k, v] of Object.entries(readOwnKeys())) mirror.set(k, v);
+        return;
+      }
+      if (!key.startsWith(KEY_PREFIX)) return;
+
+      /*
+       * Faqat XOTIRA yangilanadi.
+       *
+       * Yozgan oyna qiymatni allaqachon bazaga ham tushirgan — bu yerda
+       * qaytadan yozish ortiqcha bo'lardi va yomoni: ikkala oynaning
+       * yozuvlari bir-biriga aralashib, eski qiymat yangisini bosib
+       * ketishi mumkin edi.
+       */
+      if (newValue === null) mirror.delete(key);
+      else mirror.set(key, newValue);
+    },
   };
+
+  return store;
 }

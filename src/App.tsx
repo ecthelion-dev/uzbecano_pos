@@ -90,7 +90,7 @@ import { POSHeader } from './components/POSHeader';
 import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
 import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, printReceiptViaBrowser, getLastPrintError, setReceiptLogo } from './lib/printer';
-import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
+import { adoptServerId, appendItemsPatch, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
 import { splitPayment } from './lib/payment';
 import { orderTotals, parsePromoTerms } from './lib/promo';
 import { getDeviceId } from './lib/deviceId';
@@ -997,6 +997,46 @@ export default function App() {
     writeSyncQueue(cafeId, queue);
     refreshUnsynced();
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
+
+  /*
+   * Ochiq chekka taom QO'SHADI — butun ro'yxatni almashtirmaydi.
+   *
+   * Ilgari chekning butun ro'yxati yuborilardi va server uni joriy ro'yxat
+   * o'rniga yozardi: boshqa qurilma shu orada qo'shgan taom ham, puli ham
+   * jimgina yo'qolardi. Qoidalar `lib/orderItems.ts` da (`appendItemsPatch`).
+   *
+   * Muvaffaqiyatli bo'lsa serverning chekini qaytaradi — unda boshqa
+   * qurilmalar qo'shgan taomlar va server hisoblagan summa bor, ya'ni
+   * to'lov aynan shu summaga qilinishi kerak. Yetib bormasa amal navbatga
+   * tushadi va `null` qaytadi: kalit navbatda ham o'sha, shuning uchun
+   * qayta yuborish taomni ikki marta qo'shmaydi.
+   */
+  const sendAppendItems = useCallback(async (
+    orderId: string,
+    items: OutgoingOrderItem[],
+  ): Promise<DBOrder | null> => {
+    const body = appendItemsPatch(items, newQueueId());
+    if (isOfflineMode) {
+      queuePatchForSync(orderId, body, 'add_items');
+      return null;
+    }
+    try {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        queuePatchForSync(orderId, body, 'add_items');
+        return null;
+      }
+      const serverOrder = await res.json().catch(() => null);
+      return serverOrder && serverOrder.id === orderId ? (serverOrder as DBOrder) : null;
+    } catch {
+      queuePatchForSync(orderId, body, 'add_items');
+      return null;
+    }
+  }, [isOfflineMode, getAuthHeaders, queuePatchForSync]);
 
   /**
    * Server javobi qaytadan urinishga arziydimi?
@@ -2258,29 +2298,16 @@ export default function App() {
         const { serviceFee: combinedFee, discount: combinedDiscount, total: combinedTotal } =
           orderTotals(combinedSubtotal, serviceFeePercent, parsePromoTerms(activeTableOrder.promo));
 
-        const mergePatchBody = {
-          items: JSON.stringify(combinedItems),
-          subtotal: combinedSubtotal,
-          serviceFee: combinedFee,
-          total: combinedTotal,
-          status: 'sent_to_kitchen'
-        };
-        if (!isOfflineMode) {
-          try {
-            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
-              method: 'PATCH',
-              headers: getAuthHeaders(),
-              body: JSON.stringify(mergePatchBody)
-            });
-            if (!res.ok) queuePatchForSync(activeTableOrder.id, mergePatchBody, 'add_items');
-          } catch {
-            queuePatchForSync(activeTableOrder.id, mergePatchBody, 'add_items');
-          }
-        } else {
-          queuePatchForSync(activeTableOrder.id, mergePatchBody, 'add_items');
-        }
+        // Serverga faqat YANGI taomlar ketadi. Ekranda esa darhol birlashgan
+        // ro'yxat ko'rinadi; server javob bersa, uning nusxasi ustun turadi —
+        // unda boshqa qurilmalar qo'shgan taomlar ham bor.
+        const serverOrder = await sendAppendItems(activeTableOrder.id, newItems);
 
-        updatedOrders = updatedOrders.map(o => o.id === activeTableOrder.id ? { ...o, items: JSON.stringify(combinedItems), subtotal: combinedSubtotal, serviceFee: combinedFee, discount: combinedDiscount, total: combinedTotal } : o);
+        updatedOrders = updatedOrders.map(o => o.id !== activeTableOrder.id
+          ? o
+          : serverOrder
+            ? { ...o, ...serverOrder }
+            : { ...o, items: JSON.stringify(combinedItems), subtotal: combinedSubtotal, serviceFee: combinedFee, discount: combinedDiscount, total: combinedTotal });
       } else {
         const sub = draftSubtotal;
         const fee = Math.round((sub * serviceFeePercent) / 100);
@@ -2384,7 +2411,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Ulanish xatosi: ${err.message || err}`);
     }
-  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, serviceFeePercent, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse]);
+  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, serviceFeePercent, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse]);
 
   const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
     const sourceOrder = orders.find(o => o.tableNumber === sourceTable && isActiveOrder(o.status));
@@ -2567,7 +2594,25 @@ export default function App() {
         // Promo bor bo'lsa chegirma yangi summadan — to'lov server summasiga teng chiqsin.
         const combined = orderTotals(combinedSubtotal, serviceFeePercent, parsePromoTerms(latestActive.promo));
 
-        currentOrders = currentOrders.map(o => o.id === latestActive.id ? { ...o, items: JSON.stringify(combinedItems), subtotal: combinedSubtotal, serviceFee: combined.serviceFee, discount: combined.discount, total: combined.total } : o);
+        /*
+         * Yangi taomlar SERVERGA ham yuboriladi.
+         *
+         * Ilgari ular faqat shu kassada chekka qo'shilardi: server ularni
+         * hech qachon ko'rmasdi, to'lov esa yangi summa bilan ketardi va
+         * "yig'indi chek summasiga teng emas" deb rad etilardi — stol
+         * kassada yopilgan, serverda ochiq qolardi.
+         *
+         * To'lovdan OLDIN kutiladi: server qabul qilsa, to'lov uning
+         * summasiga qilinadi. Qabul qilmasa taom navbatga tushadi va to'lov
+         * ham undan KEYIN navbatga yoziladi — navbat tartib bilan ishlaydi.
+         */
+        const serverOrder = await sendAppendItems(latestActive.id, newItems);
+
+        currentOrders = currentOrders.map(o => o.id !== latestActive.id
+          ? o
+          : serverOrder
+            ? { ...o, ...serverOrder }
+            : { ...o, items: JSON.stringify(combinedItems), subtotal: combinedSubtotal, serviceFee: combined.serviceFee, discount: combined.discount, total: combined.total });
       } else {
         const newOrderObj = {
           id: crypto.randomUUID(),
@@ -2706,7 +2751,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt]);
+  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {

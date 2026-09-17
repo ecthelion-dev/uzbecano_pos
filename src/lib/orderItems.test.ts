@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, outgoingSize } from './orderItems';
+import { adoptServerId, appendItemsPatch, cartLineToOrderItem, sentItemToOrderItem, outgoingSize, type OutgoingOrderItem } from './orderItems';
 import type { CartItem } from '../types';
 
 /**
@@ -179,5 +179,35 @@ describe('yuborish yo‘llari', () => {
     expect(src.includes('cartLineToOrderItem')).toBe(true);
     expect(src.includes('sentItemToOrderItem')).toBe(true);
     expect(src.includes('adoptServerId')).toBe(true);
+  });
+});
+
+describe('ochiq chekka taom qo‘shish so‘rovi', () => {
+  const CHOY: OutgoingOrderItem = { productId: 'p_choy', name: 'Choy', price: 8000, quantity: 1, note: '' };
+
+  it('faqat YANGI taomlarni yuboradi — chekning butun ro‘yxatini emas', () => {
+    /*
+     * Butun ro'yxat yuborilganda server uni joriy ro'yxat o'rniga yozardi:
+     * shu orada boshqa qurilma qo'shgan taom (va uning puli) yo'qolardi.
+     */
+    const body = appendItemsPatch([CHOY], 'q_1');
+    expect(body.addItems).toEqual([CHOY]);
+    expect(body).not.toHaveProperty('items');
+  });
+
+  it('kalit bilan keladi — qayta yuborilganda ikki marta qo‘shilmaydi', () => {
+    expect(appendItemsPatch([CHOY], 'q_1').appendKey).toBe('q_1');
+  });
+
+  it('summalarni yubormaydi — ularni server o‘zidagi to‘liq ro‘yxatdan hisoblaydi', () => {
+    const body = appendItemsPatch([CHOY], 'q_1') as unknown as Record<string, unknown>;
+    expect(body.total).toBeUndefined();
+    expect(body.subtotal).toBeUndefined();
+  });
+
+  it('asl ro‘yxatni o‘zgartirmaydi', () => {
+    const items = Object.freeze([CHOY]);
+    const body = appendItemsPatch(items, 'q_1');
+    expect(body.addItems).not.toBe(items);
   });
 });

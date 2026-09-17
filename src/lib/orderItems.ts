@@ -78,6 +78,36 @@ export function sentItemToOrderItem(raw: any): OutgoingOrderItem {
   };
 }
 
+export interface AppendItemsPatch {
+  addItems: OutgoingOrderItem[];
+  appendKey: string;
+  status: 'sent_to_kitchen';
+}
+
+/**
+ * Ochiq chekka taom QO'SHISH so'rovining tanasi.
+ *
+ * Ilgari kassa chekning BUTUN ro'yxatini yuborardi va server uni joriy
+ * ro'yxat o'rniga yozardi. Kassa o'zi ko'rgan ro'yxat eskirgan bo'lishi
+ * mumkin — boshqa qurilma shu orada taom qo'shgan, yoki so'rov oflayn
+ * navbatda daqiqalab turgan. O'shanda boshqa qurilmaning taomi ham, puli
+ * ham jimgina yo'qolardi.
+ *
+ * Endi faqat yangi taomlar yuboriladi, server ularni o'zidagi joriy
+ * ro'yxatga qo'shadi. Summalar yuborilmaydi: ularni server to'liq
+ * ro'yxatdan o'zi hisoblaydi.
+ *
+ * `appendKey` navbatga ham shu tana bilan tushadi, ya'ni jonli urinish
+ * javobi yo'qolib, navbat qayta yuborsa, server taomni ikkinchi marta
+ * qo'shmaydi.
+ */
+export function appendItemsPatch(
+  items: readonly OutgoingOrderItem[],
+  appendKey: string,
+): AppendItemsPatch {
+  return { addItems: [...items], appendKey, status: 'sent_to_kitchen' };
+}
+
 /**
  * Serverning buyurtma id sini o'zlashtirish.
  *

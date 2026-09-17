@@ -3,6 +3,8 @@ import {
   extractReason,
   stampRejection,
   acknowledge,
+  awaitingReview,
+  discard,
   actorOf,
   retryFailedAction,
   retryAllFailedActions,
@@ -10,6 +12,7 @@ import {
   tableNumberOfAction,
   type FailedAction,
 } from './failedActions';
+import { unsyncedOrderIds } from './orderMerge';
 
 /**
  * Rad etilgan amal — kassadagi eng og'ir holat, chunki uni QILGAN odam
@@ -101,28 +104,78 @@ describe('actorOf', () => {
   });
 });
 
-describe('acknowledge', () => {
+describe('acknowledge — "Tushunarli"', () => {
+  const list = [
+    stampRejection({ ...ITEM, qid: 'q-1' }, 400, 'a', 1),
+    stampRejection({ ...ITEM, qid: 'q-2' }, 400, 'b', 2),
+  ];
+
+  it('yozuvni O‘CHIRMAYDI — faqat ko‘rildi deb belgilaydi', () => {
+    /*
+     * Ilgari yozuv ro'yxatdan chiqarilardi. Rad etilgan buyurtma yaratish
+     * bo'lsa, keyingi tarix yangilanishida mahalliy chek ham o'chardi:
+     * u endi na navbatda, na rad etilganlar orasida, na serverda edi.
+     * Pul olingan, chek bosilgan — va hech qayerda yozuv qolmasdi.
+     */
+    const next = acknowledge(list, 'q-1', 500);
+    expect(next.map((x) => x.qid)).toEqual(['q-1', 'q-2']);
+    expect(next[0].acknowledgedAt).toBe(500);
+    expect(next[1].acknowledgedAt).toBeUndefined();
+  });
+
+  it('ko‘rilgan yaratish yozuvi chekni kassada USHLAB turadi', () => {
+    const create = stampRejection(
+      { kind: 'create', qid: 'q-c', order: { id: 'ord-local' } },
+      400, 'rad', 1,
+    );
+    const next = acknowledge([create], 'q-c', 500);
+    expect(unsyncedOrderIds([], next).has('ord-local')).toBe(true);
+  });
+
+  it('notanish nom hech narsani o‘zgartirmaydi', () => {
+    expect(acknowledge(list, 'yo-q', 500)).toEqual(list);
+  });
+
+  it('asl ro‘yxatni o‘zgartirmaydi', () => {
+    acknowledge(list, 'q-1', 500);
+    expect(list[0].acknowledgedAt).toBeUndefined();
+  });
+
+  it('massiv bo‘lmasa bo‘sh ro‘yxat qaytadi', () => {
+    expect(acknowledge(null as never, 'q-1', 500)).toEqual([]);
+  });
+});
+
+describe('awaitingReview — belgi va ro‘yxat nimani ko‘rsatadi', () => {
+  it('faqat ko‘rilmaganlarni qaytaradi', () => {
+    const list = acknowledge(
+      [
+        stampRejection({ ...ITEM, qid: 'q-1' }, 400, 'a', 1),
+        stampRejection({ ...ITEM, qid: 'q-2' }, 400, 'b', 2),
+      ],
+      'q-1',
+      500,
+    );
+    expect(awaitingReview(list).map((x) => x.qid)).toEqual(['q-2']);
+  });
+
+  it('massiv bo‘lmasa bo‘sh ro‘yxat', () => {
+    expect(awaitingReview(undefined as never)).toEqual([]);
+  });
+});
+
+describe('discard — amal savatdan qaytadan bajarilganda', () => {
   const list = [
     stampRejection({ ...ITEM, qid: 'q-1' }, 400, 'a', 1),
     stampRejection({ ...ITEM, qid: 'q-2' }, 400, 'b', 2),
   ];
 
   it('faqat bitta yozuvni olib tashlaydi', () => {
-    const next = acknowledge(list, 'q-1');
-    expect(next.map((x) => x.qid)).toEqual(['q-2']);
+    expect(discard(list, 'q-1').map((x) => x.qid)).toEqual(['q-2']);
   });
 
-  it('notanish nom hech narsani o‘chirmaydi', () => {
-    expect(acknowledge(list, 'yo-q')).toHaveLength(2);
-  });
-
-  it('asl ro‘yxatni o‘zgartirmaydi', () => {
-    acknowledge(list, 'q-1');
-    expect(list).toHaveLength(2);
-  });
-
-  it('massiv bo‘lmasa bo‘sh ro‘yxat qaytadi', () => {
-    expect(acknowledge(null as never, 'q-1')).toEqual([]);
+  it('nomsiz so‘rov hech narsani o‘chirmaydi', () => {
+    expect(discard(list, '')).toHaveLength(2);
   });
 });
 
@@ -195,6 +248,25 @@ describe('extractActionItems va tableNumberOfAction', () => {
     expect(tableNumberOfAction(item)).toBe('VIP 1');
     expect(extractActionItems(item)).toEqual([
       { productId: undefined, name: 'Somsa', quantity: 3, price: 10000, note: 'Issiq bo‘lsin', variant: undefined },
+    ]);
+  });
+});
+
+describe('extractActionItems — taom qo‘shish so‘rovi', () => {
+  it('`addItems` dan ham taomlarni oladi', () => {
+    // Taom qo'shish endi faqat yangi taomlarni `addItems` da yuboradi.
+    // Ularni o'qimasa "savatga qaytarish" rad etilgan qo'shishda bo'sh qolardi.
+    const item = stampRejection(
+      {
+        kind: 'patch',
+        qid: 'q-a',
+        orderId: 'ord-1',
+        body: { addItems: [{ productId: 'p_choy', name: 'Choy', quantity: 2, price: 8000 }], appendKey: 'q-a' },
+      },
+      400, 'rad', 1,
+    );
+    expect(extractActionItems(item)).toEqual([
+      expect.objectContaining({ productId: 'p_choy', name: 'Choy', quantity: 2 }),
     ]);
   });
 });

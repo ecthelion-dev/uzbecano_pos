@@ -3,6 +3,8 @@ import { resolveActiveCafeId } from '../constants';
 import { readCafeJson, writeCafeJson, writeCafeJsonMany } from '../lib/storage';
 import {
   acknowledge,
+  awaitingReview,
+  discard,
   retryFailedAction,
   retryAllFailedActions,
   type FailedAction,
@@ -39,12 +41,16 @@ export function useNetworkStatus() {
 
   const refresh = useCallback(() => {
     setPendingCount(countOf('sync_queue'));
-    setFailedCount(countOf('sync_failed'));
-    setFailed(readFailed());
+    // Faqat ko'rilmaganlar: "Tushunarli" deyilgan yozuv chekni kassada
+    // ushlab turish uchun saqlanadi, lekin belgini yondirib turmaydi.
+    const unseen = awaitingReview(readFailed());
+    setFailedCount(unseen.length);
+    setFailed(unseen);
   }, []);
 
   /**
-   * Xodim ko'rdi va tushundi — yozuv ro'yxatdan chiqadi.
+   * Xodim ko'rdi va tushundi — yozuv belgilanadi va ro'yxatdan yashirinadi,
+   * lekin o'chmaydi: u chekni kassada ushlab turadi.
    *
    * Diskka yozib bo'lmasa ro'yxat o'z holicha qoladi va belgi yonaveradi.
    * Bu ataylab: ko'rilmagan rad etishni jimgina yo'qotgandan ko'ra,
@@ -54,6 +60,13 @@ export function useNetworkStatus() {
     const cafeId = resolveActiveCafeId();
     const next = acknowledge(readFailed(), qid);
     writeCafeJson(cafeId, 'sync_failed', next);
+    refresh();
+  }, [refresh]);
+
+  /** Amal savatdan qaytadan bajarilyapti — yozuv butunlay olib tashlanadi. */
+  const discardFailed = useCallback((qid: string) => {
+    const cafeId = resolveActiveCafeId();
+    writeCafeJson(cafeId, 'sync_failed', discard(readFailed(), qid));
     refresh();
   }, [refresh]);
 
@@ -128,6 +141,7 @@ export function useNetworkStatus() {
     /** Rad etilganlarning o'zi — kim, nega va qachon. */
     failed,
     acknowledgeFailed,
+    discardFailed,
     retryFailed,
     retryAllFailed,
     triggerSync,

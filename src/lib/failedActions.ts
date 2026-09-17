@@ -22,6 +22,8 @@ export type FailedAction = QueuedItem & {
   rejectedAt: number;
   rejectedStatus: number;
   rejectedReason: string;
+  /** Xodim "Tushunarli" degan payt. Yozuv o'chmaydi — `acknowledge`. */
+  acknowledgedAt?: number;
 };
 
 function clamp(text: string): string {
@@ -81,12 +83,35 @@ export function actorOf(item: unknown): string | null {
 }
 
 /**
- * Xodim ko'rib "tushunarli" degan yozuvni ro'yxatdan chiqaradi.
+ * Xodim ko'rib "Tushunarli" dedi — yozuv belgilanadi, lekin O'CHIRILMAYDI.
  *
- * Faqat nomi bo'yicha: nomsiz eski yozuvni tasodifan o'chirib yubormaslik
- * uchun. Ularni ro'yxatdagi "hammasini tozalash" olib tashlaydi.
+ * Ilgari u ro'yxatdan chiqarilardi. Rad etilgan buyurtma yaratish bo'lsa,
+ * keyingi tarix yangilanishida mahalliy chek ham o'chib ketardi
+ * (`orderMerge.ts` faqat navbatda yoki shu ro'yxatda turgan chekni
+ * saqlaydi): pul olingan, chek bosilgan — va hech qayerda yozuv qolmasdi.
+ *
+ * Belgi va ro'yxat endi faqat ko'rilmaganlarni ko'rsatadi (`awaitingReview`),
+ * yozuvning o'zi esa chekni kassada ushlab turadi.
+ *
+ * Faqat nomi bo'yicha: nomsiz eski yozuv tasodifan belgilanmasin.
  */
-export function acknowledge(list: FailedAction[], qid: string): FailedAction[] {
+export function acknowledge(list: FailedAction[], qid: string, now: number = Date.now()): FailedAction[] {
+  if (!Array.isArray(list)) return [];
+  if (!qid) return [...list];
+  return list.map((item) => (item?.qid === qid ? { ...item, acknowledgedAt: now } : item));
+}
+
+/** Xodim hali ko'rmagan rad etishlar — belgi soni va ro'yxat shundan. */
+export function awaitingReview(list: FailedAction[]): FailedAction[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((item) => item && !item.acknowledgedAt);
+}
+
+/**
+ * Yozuvni butunlay olib tashlaydi — faqat amal qaytadan bajarilganda
+ * ("savatga qaytarish"). Oddiy "Tushunarli" uchun `acknowledge`.
+ */
+export function discard(list: FailedAction[], qid: string): FailedAction[] {
   if (!Array.isArray(list)) return [];
   if (!qid) return [...list];
   return list.filter((item) => item?.qid !== qid);
@@ -106,7 +131,7 @@ export function retryFailedAction(
   const target = failed.find((item) => item?.qid === qid);
   if (!target) return { nextQueue: queue || [], nextFailed: [...failed] };
 
-  const { rejectedAt: _a, rejectedStatus: _s, rejectedReason: _r, ...cleanItem } = target;
+  const { rejectedAt: _a, rejectedStatus: _s, rejectedReason: _r, acknowledgedAt: _k, ...cleanItem } = target;
   const nextQueue = [...(Array.isArray(queue) ? queue : []), { ...cleanItem, queuedAt: Date.now() }];
   const nextFailed = failed.filter((item) => item?.qid !== qid);
   return { nextQueue, nextFailed };
@@ -124,7 +149,7 @@ export function retryAllFailedActions(
   }
 
   const restored: QueuedItem[] = failed.map((item) => {
-    const { rejectedAt: _a, rejectedStatus: _s, rejectedReason: _r, ...cleanItem } = item;
+    const { rejectedAt: _a, rejectedStatus: _s, rejectedReason: _r, acknowledgedAt: _k, ...cleanItem } = item;
     return { ...cleanItem, queuedAt: Date.now() };
   });
 
@@ -151,7 +176,8 @@ export function extractActionItems(item: FailedAction): ExtractedActionItem[] {
   if (item.kind === 'create') {
     raw = item.order?.items;
   } else if (item.kind === 'patch') {
-    raw = item.body?.items;
+    // Taom qo'shish faqat yangi taomlarni `addItems` da yuboradi.
+    raw = item.body?.addItems ?? item.body?.items;
   }
   if (!raw) return [];
 

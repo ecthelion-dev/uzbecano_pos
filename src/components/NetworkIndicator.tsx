@@ -29,6 +29,7 @@ export const NetworkIndicator: React.FC = () => {
     failedCount,
     failed,
     acknowledgeFailed,
+    discardFailed,
     retryFailed,
     retryAllFailed,
     triggerSync,
@@ -103,7 +104,8 @@ export const NetworkIndicator: React.FC = () => {
         onRetryAll={retryAllFailed}
         onRestoreToCart={(item) => {
           window.dispatchEvent(new CustomEvent('restore-failed-action', { detail: item }));
-          if (item.qid) acknowledgeFailed(item.qid);
+          // Amal savatdan qaytadan bajariladi — yozuv kerak emas.
+          if (item.qid) discardFailed(item.qid);
         }}
         onClose={() => setIsRejectedOpen(false)}
       />

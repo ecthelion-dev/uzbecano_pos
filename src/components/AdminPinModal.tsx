@@ -57,7 +57,10 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
           const res = await fetch(`${API_BASE_URL}/api/auth/pin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pin: nextPin, cafeId }),
+            // Faqat tasdiq: yangi server bu so'rovga rahbarning to'liq
+            // sessiya tokenini bermaydi — ofitsiant uni tarmoq javobidan
+            // ko'chirib olib, rahbar bo'lib ishlay olardi.
+            body: JSON.stringify({ pin: nextPin, cafeId, purpose: 'approval' }),
           });
           const data = await res.json().catch(() => ({} as any));
           const isValid = res.ok && data.success && ELEVATED_ROLES.includes(String(data.role || '').toLowerCase());

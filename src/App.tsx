@@ -1701,7 +1701,7 @@ export default function App() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setToastMessage(err.error || t('common.error'));
+        setToastMessage(err.error || t('reservation.error'));
         setTimeout(() => setToastMessage(null), 3000);
         return false;
       }
@@ -1711,7 +1711,7 @@ export default function App() {
       setTimeout(() => setToastMessage(null), 3000);
       return true;
     } catch (err: any) {
-      setToastMessage(err.message || t('common.error'));
+      setToastMessage(err.message || t('reservation.error'));
       setTimeout(() => setToastMessage(null), 3000);
       return false;
     }

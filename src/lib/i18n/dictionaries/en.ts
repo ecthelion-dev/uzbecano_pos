@@ -151,7 +151,8 @@ export const en: Record<TranslationKey, string> = {
   'reservation.guestLabel': '{count} guests',
   'reservation.empty': 'No active reservations',
   'reservation.namePlaceholder': 'Guest name',
-  'reservation.phonePlaceholder': '+1 555 123 4567',
+  'reservation.phonePlaceholder': '+1 (555) 123-4567',
+  'reservation.error': 'Failed to save reservation',
 
   // ── Unsaved cart ────────────────────────────────────────────────────
   'unsaved.title': 'There are unsent items!',

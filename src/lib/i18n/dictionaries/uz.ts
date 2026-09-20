@@ -165,6 +165,7 @@ export const uz = {
   'reservation.empty': 'Faol bronlar mavjud emas',
   'reservation.namePlaceholder': 'Ism sharifi',
   'reservation.phonePlaceholder': '+998 90 123 45 67',
+  'reservation.error': 'Bron qilishda xatolik yuz berdi',
 
   // ── Saqlanmagan savat ───────────────────────────────────────────────
   'unsaved.title': 'Yuborilmagan taomlar bor!',

@@ -151,7 +151,8 @@ export const ru: Record<TranslationKey, string> = {
   'reservation.guestLabel': '{count} гостей',
   'reservation.empty': 'Нет активных броней',
   'reservation.namePlaceholder': 'ФИО гостя',
-  'reservation.phonePlaceholder': '+998 (90) 123-45-67',
+  'reservation.phonePlaceholder': '+7 999 123 45 67',
+  'reservation.error': 'Произошла ошибка при бронировании',
 
   // ── Несохранённая корзина ───────────────────────────────────────────
   'unsaved.title': 'Есть неотправленные блюда!',

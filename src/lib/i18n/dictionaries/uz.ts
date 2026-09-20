@@ -166,6 +166,7 @@ export const uz = {
   'reservation.namePlaceholder': 'Ism sharifi',
   'reservation.phonePlaceholder': '+998 90 123 45 67',
   'reservation.error': 'Bron qilishda xatolik yuz berdi',
+  'reservation.pastTimeError': 'O‘tgan vaqt uchun bron qilish mumkin emas',
 
   // ── Saqlanmagan savat ───────────────────────────────────────────────
   'unsaved.title': 'Yuborilmagan taomlar bor!',

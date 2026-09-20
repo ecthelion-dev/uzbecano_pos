@@ -91,7 +91,18 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
       return;
     }
 
-    const isoString = new Date(`${reservedDate}T${reservedTime}:00`).toISOString();
+    const targetDate = new Date(`${reservedDate}T${reservedTime}:00`);
+    if (isNaN(targetDate.getTime())) {
+      setError(t('reservation.reservedTime'));
+      return;
+    }
+
+    if (targetDate.getTime() < Date.now() - 5 * 60 * 1000) {
+      setError(t('reservation.pastTimeError'));
+      return;
+    }
+
+    const isoString = targetDate.toISOString();
 
     setLoading(true);
     try {
@@ -116,6 +127,10 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   };
 
   const activeReservations = reservations.filter((r) => r.status === 'CONFIRMED');
+
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
   return (
     <div
@@ -250,6 +265,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                 <input
                   type="date"
                   required
+                  min={todayStr}
                   value={reservedDate}
                   onChange={(e) => setReservedDate(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -264,6 +280,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                 <input
                   type="time"
                   required
+                  min={reservedDate === todayStr ? currentTimeStr : undefined}
                   value={reservedTime}
                   onChange={(e) => setReservedTime(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"

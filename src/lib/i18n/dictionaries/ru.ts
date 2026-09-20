@@ -153,6 +153,7 @@ export const ru: Record<TranslationKey, string> = {
   'reservation.namePlaceholder': 'ФИО гостя',
   'reservation.phonePlaceholder': '+7 999 123 45 67',
   'reservation.error': 'Произошла ошибка при бронировании',
+  'reservation.pastTimeError': 'Нельзя забронировать на прошедшее время',
 
   // ── Несохранённая корзина ───────────────────────────────────────────
   'unsaved.title': 'Есть неотправленные блюда!',

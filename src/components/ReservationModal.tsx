@@ -39,7 +39,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [selectedTable, setSelectedTable] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
-  const [guestCount, setGuestCount] = useState<number>(2);
+  const [guestCount, setGuestCount] = useState<number | ''>(2);
   const [reservedDate, setReservedDate] = useState<string>('');
   const [reservedTime, setReservedTime] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
@@ -99,7 +99,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
         tableNumber: tbl,
         customerName: name,
         customerPhone: customerPhone.trim() || undefined,
-        guestCount: Math.max(1, guestCount),
+        guestCount: Math.max(1, Number(guestCount) || 1),
         reservedTime: isoString,
         notes: notes.trim() || undefined,
       });
@@ -280,7 +280,20 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   min="1"
                   max="50"
                   value={guestCount}
-                  onChange={(e) => setGuestCount(parseInt(e.target.value, 10) || 1)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setGuestCount('');
+                    } else {
+                      const num = parseInt(val, 10);
+                      if (!isNaN(num)) setGuestCount(num);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (guestCount === '' || Number(guestCount) < 1) {
+                      setGuestCount(1);
+                    }
+                  }}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>

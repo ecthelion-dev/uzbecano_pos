@@ -147,8 +147,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [selectedHour, selectedMinute] = (reservedTime || '20:00').split(':');
 
   return (
-    <div
-      onClick={onClose}
+    <>
+      <div
+        onClick={onClose}
       className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6 z-50 animate-fadeIn"
     >
       <div
@@ -286,146 +287,22 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                 />
               </div>
 
-              <div className="flex flex-col gap-1 relative">
-                <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-slate-400" />
-                    {t('reservation.reservedTime')}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowTimePicker((prev) => !prev)}
-                    className="text-[11px] text-purple-600 hover:text-purple-700 font-semibold cursor-pointer"
-                  >
-                    {showTimePicker ? t('common.close') : t('reservation.selectTime')}
-                  </button>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-slate-400" />
+                  {t('reservation.reservedTime')}
                 </label>
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    required
-                    value={reservedTime}
-                    onClick={() => setShowTimePicker(true)}
-                    onChange={(e) => setReservedTime(maskTimeText(e.target.value))}
-                    onBlur={(e) => setReservedTime(normalizeTimeText(e.target.value, reservedTime || '20:00'))}
-                    placeholder="20:00"
-                    maxLength={5}
-                    className="w-full px-3 py-2 pr-9 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowTimePicker((prev) => !prev)}
-                    className="absolute right-2.5 p-1 text-purple-600 hover:text-purple-700 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Clock className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {showTimePicker && (
-                  <div className="absolute top-full left-0 sm:-left-12 mt-1 w-72 sm:w-80 bg-white border border-purple-200/80 rounded-2xl shadow-2xl p-3 z-30 flex flex-col gap-2.5 animate-fadeIn">
-                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => applyQuickOffsetMinutes(30)}
-                          className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold rounded-lg text-xs transition-colors cursor-pointer"
-                        >
-                          {t('reservation.quickPlus30m')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyQuickOffsetMinutes(60)}
-                          className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold rounded-lg text-xs transition-colors cursor-pointer"
-                        >
-                          {t('reservation.quickPlus1h')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyQuickOffsetMinutes(120)}
-                          className="px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold rounded-lg text-xs transition-colors cursor-pointer"
-                        >
-                          {t('reservation.quickPlus2h')}
-                        </button>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowTimePicker(false)}
-                        className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs cursor-pointer"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-6 gap-2">
-                      {/* Hours (col-span-4) */}
-                      <div className="col-span-4 flex flex-col gap-1">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">
-                          {t('reservation.hour')}
-                        </div>
-                        <div className="grid grid-cols-4 gap-1">
-                          {HOURS.map((h) => {
-                            const isPast = reservedDate === todayStr && Number(h) < now.getHours();
-                            const isSelected = selectedHour === h;
-                            return (
-                              <button
-                                key={h}
-                                type="button"
-                                disabled={isPast}
-                                onClick={() => setReservedTime(`${h}:${selectedMinute || '00'}`)}
-                                className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-purple-600 text-white shadow-xs'
-                                    : isPast
-                                    ? 'text-slate-300 opacity-30 cursor-not-allowed'
-                                    : 'bg-slate-50 text-slate-700 hover:bg-purple-50 hover:text-purple-700'
-                                }`}
-                              >
-                                {h}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Minutes (col-span-2) */}
-                      <div className="col-span-2 flex flex-col gap-1">
-                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">
-                          {t('reservation.minute')}
-                        </div>
-                        <div className="grid grid-cols-2 gap-1">
-                          {MINUTES.map((m) => {
-                            const isPast =
-                              reservedDate === todayStr &&
-                              Number(selectedHour) === now.getHours() &&
-                              Number(m) < now.getMinutes();
-                            const isSelected = selectedMinute === m;
-                            return (
-                              <button
-                                key={m}
-                                type="button"
-                                disabled={isPast}
-                                onClick={() => {
-                                  setReservedTime(`${selectedHour || '20'}:${m}`);
-                                  setShowTimePicker(false);
-                                }}
-                                className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-purple-600 text-white shadow-xs'
-                                    : isPast
-                                    ? 'text-slate-300 opacity-30 cursor-not-allowed'
-                                    : 'bg-slate-50 text-slate-700 hover:bg-purple-50 hover:text-purple-700'
-                                }`}
-                              >
-                                :{m}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowTimePicker(true)}
+                  className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-purple-600" />
+                    <span>{reservedTime || '20:00'}</span>
+                  </span>
+                  <span className="text-xs text-purple-600 font-semibold">{t('reservation.selectTime')}</span>
+                </button>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -540,5 +417,146 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
         )}
       </div>
     </div>
+
+    {/* Centered Time Picker Dialog */}
+    {showTimePicker && (
+      <div
+        onClick={() => setShowTimePicker(false)}
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-60 animate-fadeIn"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white rounded-3xl p-5 max-w-sm w-full shadow-2xl flex flex-col gap-4 border border-slate-100"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-purple-100 text-purple-600">
+                <Clock className="w-5 h-5" />
+              </div>
+              <span className="font-bold text-slate-900 text-base">{t('reservation.selectTime')}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowTimePicker(false)}
+              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Large Center Display */}
+          <div className="flex flex-col items-center justify-center py-3.5 bg-purple-50/80 rounded-2xl border border-purple-100">
+            <span className="text-xs font-semibold text-purple-600 mb-1">{t('reservation.reservedTime')}</span>
+            <div className="flex items-center gap-2 text-4xl font-extrabold text-slate-900">
+              <span className="bg-white px-3.5 py-1.5 rounded-xl shadow-xs border border-purple-200/80 text-purple-700 min-w-[72px] text-center">
+                {selectedHour}
+              </span>
+              <span className="text-purple-400 animate-pulse">:</span>
+              <span className="bg-white px-3.5 py-1.5 rounded-xl shadow-xs border border-purple-200/80 text-purple-700 min-w-[72px] text-center">
+                {selectedMinute}
+              </span>
+            </div>
+
+            {/* Quick Offset Chips */}
+            <div className="flex items-center gap-1.5 mt-3">
+              <button
+                type="button"
+                onClick={() => applyQuickOffsetMinutes(30)}
+                className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs"
+              >
+                {t('reservation.quickPlus30m')}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyQuickOffsetMinutes(60)}
+                className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs"
+              >
+                {t('reservation.quickPlus1h')}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyQuickOffsetMinutes(120)}
+                className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs"
+              >
+                {t('reservation.quickPlus2h')}
+              </button>
+            </div>
+          </div>
+
+          {/* Soat tanlash (Hours) */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+              <span>{t('reservation.hour')}</span>
+              <span className="text-[11px] text-slate-400 font-normal">00:00 - 23:00</span>
+            </div>
+            <div className="grid grid-cols-6 gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-slate-50 rounded-2xl border border-slate-200/70">
+              {HOURS.map((h) => {
+                const isPast = reservedDate === todayStr && Number(h) < now.getHours();
+                const isSelected = selectedHour === h;
+                return (
+                  <button
+                    key={h}
+                    type="button"
+                    disabled={isPast}
+                    onClick={() => setReservedTime(`${h}:${selectedMinute || '00'}`)}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-600 text-white shadow-sm scale-105 ring-2 ring-purple-400'
+                        : isPast
+                        ? 'text-slate-300 opacity-30 cursor-not-allowed'
+                        : 'bg-white text-slate-700 hover:bg-purple-100 hover:text-purple-700 border border-slate-200/50'
+                    }`}
+                  >
+                    {h}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Daqiqa tanlash (Minutes) */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-bold text-slate-700">{t('reservation.minute')}</span>
+            <div className="grid grid-cols-4 gap-2">
+              {['00', '15', '30', '45'].map((m) => {
+                const isPast =
+                  reservedDate === todayStr &&
+                  Number(selectedHour) === now.getHours() &&
+                  Number(m) < now.getMinutes();
+                const isSelected = selectedMinute === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    disabled={isPast}
+                    onClick={() => setReservedTime(`${selectedHour || '20'}:${m}`)}
+                    className={`py-2.5 rounded-xl text-sm font-bold transition-all text-center cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-600 text-white shadow-sm scale-102 ring-2 ring-purple-400'
+                        : isPast
+                        ? 'text-slate-300 opacity-30 cursor-not-allowed bg-slate-100'
+                        : 'bg-slate-50 text-slate-700 hover:bg-purple-100 hover:text-purple-700 border border-slate-200'
+                    }`}
+                  >
+                    :{m}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Confirm Button */}
+          <button
+            type="button"
+            onClick={() => setShowTimePicker(false)}
+            className="w-full py-3 bg-purple-600 hover:bg-purple-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer mt-1"
+          >
+            {t('common.confirm')}
+          </button>
+        </div>
+      </div>
+    )}
+  </>
   );
 };

@@ -1,11 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Plus, ListFilter, User, Phone, Clock, Users, FileText, X, AlertCircle, Trash2, CheckCircle2 } from 'lucide-react';
-import { useT } from '../lib/i18n/LanguageProvider';
+import { Calendar, Plus, ListFilter, User, Phone, Clock, Users, FileText, X, AlertCircle, Trash2, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useT, useLocale } from '../lib/i18n/LanguageProvider';
 import { formatClock, formatDateClock, maskTimeText, normalizeTimeText } from '../lib/timeFormat';
 import type { DBReservation } from '../types';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTES = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
+
+const MONTH_NAMES: Record<string, string[]> = {
+  uz: ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'],
+  ru: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+};
+
+const WEEKDAY_NAMES: Record<string, string[]> = {
+  uz: ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'],
+  ru: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+  en: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+};
 
 interface ReservationModalProps {
   show: boolean;
@@ -36,6 +48,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   onClose,
 }) => {
   const t = useT();
+  const { locale } = useLocale();
   const [activeTab, setActiveTab] = useState<'create' | 'list'>('create');
 
   // Form state
@@ -50,6 +63,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
+  const [calendarYear, setCalendarYear] = useState<number>(() => new Date().getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState<number>(() => new Date().getMonth());
 
   useEffect(() => {
     if (!show) return;
@@ -134,7 +150,73 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const tomorrowDate = new Date(now);
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowStr = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
   const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const openDatePicker = () => {
+    if (reservedDate) {
+      const parts = reservedDate.split('-').map(Number);
+      if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        setCalendarYear(parts[0]);
+        setCalendarMonth(parts[1] - 1);
+      }
+    }
+    setShowDatePicker(true);
+  };
+
+  const applyQuickDateOffset = (offsetDays: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const nextDate = `${yyyy}-${mm}-${dd}`;
+    setReservedDate(nextDate);
+    setCalendarYear(yyyy);
+    setCalendarMonth(d.getMonth());
+  };
+
+  const getDisplayDateText = (dateStr: string) => {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-');
+    const formatted = `${d}.${m}.${y}`;
+    if (dateStr === todayStr) {
+      return `${t('reservation.today')}, ${formatted}`;
+    }
+    if (dateStr === tomorrowStr) {
+      return `${t('reservation.tomorrow')}, ${formatted}`;
+    }
+    return formatted;
+  };
+
+  const isPrevMonthDisabled =
+    calendarYear < now.getFullYear() ||
+    (calendarYear === now.getFullYear() && calendarMonth <= now.getMonth());
+
+  const handlePrevMonth = () => {
+    if (isPrevMonthDisabled) return;
+    if (calendarMonth === 0) {
+      setCalendarYear((prev) => prev - 1);
+      setCalendarMonth(11);
+    } else {
+      setCalendarMonth((prev) => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (calendarMonth === 11) {
+      setCalendarYear((prev) => prev + 1);
+      setCalendarMonth(0);
+    } else {
+      setCalendarMonth((prev) => prev + 1);
+    }
+  };
+
+  const firstDayOfMonth = new Date(calendarYear, calendarMonth, 1);
+  const startDayOffset = (firstDayOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
   const applyQuickOffsetMinutes = (addMinutes: number) => {
     const d = new Date();
@@ -275,16 +357,19 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-slate-400" />
-                  {t('reservation.reservedTime')}
+                  {t('reservation.reservedDate')}
                 </label>
-                <input
-                  type="date"
-                  required
-                  min={todayStr}
-                  value={reservedDate}
-                  onChange={(e) => setReservedDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                <button
+                  type="button"
+                  onClick={openDatePicker}
+                  className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-purple-600" />
+                    <span>{getDisplayDateText(reservedDate)}</span>
+                  </span>
+                  <span className="text-xs text-purple-600 font-semibold">{t('reservation.selectDate')}</span>
+                </button>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -550,6 +635,156 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           <button
             type="button"
             onClick={() => setShowTimePicker(false)}
+            className="w-full py-3 bg-purple-600 hover:bg-purple-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer mt-1"
+          >
+            {t('common.confirm')}
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* Centered Date Picker Dialog */}
+    {showDatePicker && (
+      <div
+        onClick={() => setShowDatePicker(false)}
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fadeIn"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white rounded-3xl p-5 max-w-sm w-full shadow-2xl flex flex-col gap-4 border border-slate-100 animate-scaleUp"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-purple-100 text-purple-600">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <span className="font-bold text-slate-900 text-base">{t('reservation.selectDate')}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowDatePicker(false)}
+              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Quick Presets */}
+          <div className="flex items-center justify-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => applyQuickDateOffset(0)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                reservedDate === todayStr
+                  ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                  : 'bg-white hover:bg-purple-50 text-slate-700 border-slate-200 shadow-2xs'
+              }`}
+            >
+              {t('reservation.today')}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyQuickDateOffset(1)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                reservedDate === tomorrowStr
+                  ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                  : 'bg-white hover:bg-purple-50 text-slate-700 border-slate-200 shadow-2xs'
+              }`}
+            >
+              {t('reservation.tomorrow')}
+            </button>
+            <button
+              type="button"
+              onClick={() => applyQuickDateOffset(2)}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer bg-white hover:bg-purple-50 text-slate-700 border-slate-200 shadow-2xs"
+            >
+              +2 kun
+            </button>
+            <button
+              type="button"
+              onClick={() => applyQuickDateOffset(3)}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer bg-white hover:bg-purple-50 text-slate-700 border-slate-200 shadow-2xs"
+            >
+              +3 kun
+            </button>
+          </div>
+
+          {/* Month Navigator */}
+          <div className="flex items-center justify-between px-1">
+            <button
+              type="button"
+              disabled={isPrevMonthDisabled}
+              onClick={handlePrevMonth}
+              className={`p-2 rounded-xl border border-slate-200 transition-colors ${
+                isPrevMonthDisabled
+                  ? 'text-slate-300 opacity-30 cursor-not-allowed bg-slate-50'
+                  : 'hover:bg-slate-100 text-slate-700 cursor-pointer active:scale-95'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="font-bold text-slate-900 text-sm">
+              {(MONTH_NAMES[locale] || MONTH_NAMES.uz)[calendarMonth]} {calendarYear}
+            </div>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer active:scale-95 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Calendar Grid */}
+          <div className="flex flex-col gap-1.5 bg-slate-50/70 p-3 rounded-2xl border border-slate-200/70">
+            {/* Weekday headers */}
+            <div className="grid grid-cols-7 text-center mb-1">
+              {(WEEKDAY_NAMES[locale] || WEEKDAY_NAMES.uz).map((wd) => (
+                <span key={wd} className="text-[11px] font-bold text-slate-400">
+                  {wd}
+                </span>
+              ))}
+            </div>
+
+            {/* Days */}
+            <div className="grid grid-cols-7 gap-y-1 text-center">
+              {Array.from({ length: startDayOffset }).map((_, i) => (
+                <div key={`empty-${i}`} className="w-9 h-9" />
+              ))}
+              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+                const dayStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isPast = dayStr < todayStr;
+                const isSelected = dayStr === reservedDate;
+                const isToday = dayStr === todayStr;
+
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    disabled={isPast}
+                    onClick={() => setReservedDate(dayStr)}
+                    className={`w-9 h-9 mx-auto rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-600 text-white shadow-sm scale-105 ring-2 ring-purple-400'
+                        : isPast
+                        ? 'text-slate-300 opacity-30 cursor-not-allowed'
+                        : isToday
+                        ? 'bg-purple-50 text-purple-700 border border-purple-300 font-extrabold hover:bg-purple-100'
+                        : 'text-slate-700 hover:bg-purple-100 hover:text-purple-700'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Confirm Button */}
+          <button
+            type="button"
+            onClick={() => setShowDatePicker(false)}
             className="w-full py-3 bg-purple-600 hover:bg-purple-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer mt-1"
           >
             {t('common.confirm')}

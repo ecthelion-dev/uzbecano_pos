@@ -167,6 +167,12 @@ export const uz = {
   'reservation.phonePlaceholder': '+998 90 123 45 67',
   'reservation.error': 'Bron qilishda xatolik yuz berdi',
   'reservation.pastTimeError': 'O‘tgan vaqt uchun bron qilish mumkin emas',
+  'reservation.selectTime': 'Vaqtni tanlang',
+  'reservation.hour': 'Soat',
+  'reservation.minute': 'Daqiqa',
+  'reservation.quickPlus30m': '+30 daq',
+  'reservation.quickPlus1h': '+1 soat',
+  'reservation.quickPlus2h': '+2 soat',
 
   // ── Saqlanmagan savat ───────────────────────────────────────────────
   'unsaved.title': 'Yuborilmagan taomlar bor!',

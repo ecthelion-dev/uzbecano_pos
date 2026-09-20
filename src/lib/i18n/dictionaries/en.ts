@@ -154,6 +154,12 @@ export const en: Record<TranslationKey, string> = {
   'reservation.phonePlaceholder': '+1 (555) 123-4567',
   'reservation.error': 'Failed to save reservation',
   'reservation.pastTimeError': 'Cannot make a reservation for past time',
+  'reservation.selectTime': 'Select time',
+  'reservation.hour': 'Hour',
+  'reservation.minute': 'Minute',
+  'reservation.quickPlus30m': '+30m',
+  'reservation.quickPlus1h': '+1h',
+  'reservation.quickPlus2h': '+2h',
 
   // ── Unsaved cart ────────────────────────────────────────────────────
   'unsaved.title': 'There are unsent items!',

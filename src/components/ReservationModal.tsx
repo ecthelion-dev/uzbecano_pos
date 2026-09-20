@@ -422,11 +422,11 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
     {showTimePicker && (
       <div
         onClick={() => setShowTimePicker(false)}
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-60 animate-fadeIn"
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-fadeIn"
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-3xl p-5 max-w-sm w-full shadow-2xl flex flex-col gap-4 border border-slate-100"
+          className="bg-white rounded-3xl p-5 max-w-sm w-full shadow-2xl flex flex-col gap-4 border border-slate-100 animate-scaleUp"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">

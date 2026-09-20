@@ -70,7 +70,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
             <Lock className="w-3 h-3" />
           </span>
         )}
-        <span className={`font-bold text-xs sm:text-sm md:text-base tracking-tight truncate whitespace-nowrap ${table.status === 'band' ? 'text-white' : 'text-slate-900'}`}>
+        <span className={`font-bold text-xs sm:text-sm md:text-base tracking-tight truncate whitespace-nowrap ${table.status === 'band' || table.status === 'bron' ? 'text-white' : 'text-slate-900'}`}>
           {table.number}
         </span>
         <div className="flex items-center gap-1.5 shrink-0">

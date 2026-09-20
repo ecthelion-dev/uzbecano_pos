@@ -179,6 +179,7 @@ export const uz = {
   'reservation.quickPlus2h': '+2 soat',
   'reservation.tabActive': 'Faol bronlar',
   'reservation.tabHistory': 'Tarix',
+  'reservation.status': 'Holati',
   'reservation.statusCompleted': 'Ochilgan',
   'reservation.statusCancelled': 'Bekor qilingan',
   'reservation.statusConfirmed': 'Faol',

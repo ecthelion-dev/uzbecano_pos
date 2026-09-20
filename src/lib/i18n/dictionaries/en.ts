@@ -166,6 +166,7 @@ export const en: Record<TranslationKey, string> = {
   'reservation.quickPlus2h': '+2h',
   'reservation.tabActive': 'Active',
   'reservation.tabHistory': 'History',
+  'reservation.status': 'Status',
   'reservation.statusCompleted': 'Completed',
   'reservation.statusCancelled': 'Cancelled',
   'reservation.statusConfirmed': 'Active',

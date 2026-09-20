@@ -166,6 +166,7 @@ export const ru: Record<TranslationKey, string> = {
   'reservation.quickPlus2h': '+2 часа',
   'reservation.tabActive': 'Активные',
   'reservation.tabHistory': 'История',
+  'reservation.status': 'Статус',
   'reservation.statusCompleted': 'Открыт / Завершен',
   'reservation.statusCancelled': 'Отменено',
   'reservation.statusConfirmed': 'Активна',

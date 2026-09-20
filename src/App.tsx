@@ -3089,15 +3089,15 @@ export default function App() {
               <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
                 <Grid className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 shrink-0" /> {t('table.layout')}
               </h2>
-              <div className="flex items-center gap-1.5 sm:gap-3 text-[11px] sm:text-xs font-medium flex-wrap">
-                <span className="flex items-center gap-1.5 bg-emerald-50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span> {t('table.free')}
+              <div className="w-full sm:w-auto flex items-center justify-between gap-1.5 sm:gap-3 text-[11px] sm:text-xs font-medium">
+                <span className="flex-1 sm:flex-initial flex items-center justify-center gap-1 sm:gap-1.5 bg-emerald-50 px-2 sm:px-3 py-1 rounded-lg text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> {t('table.free')}
                 </span>
-                <span className="flex items-center gap-1.5 bg-orange-50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-orange-700 border border-orange-200 whitespace-nowrap">
-                  <span className="w-2 h-2 rounded-full bg-orange-500"></span> {t('table.busy')}
+                <span className="flex-1 sm:flex-initial flex items-center justify-center gap-1 sm:gap-1.5 bg-orange-50 px-2 sm:px-3 py-1 rounded-lg text-orange-700 border border-orange-200 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0"></span> {t('table.busy')}
                 </span>
-                <span className="flex items-center gap-1.5 bg-purple-50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-purple-700 border border-purple-200 whitespace-nowrap">
-                  <span className="w-2 h-2 rounded-full bg-purple-500"></span> {t('table.reserved')}
+                <span className="flex-1 sm:flex-initial flex items-center justify-center gap-1 sm:gap-1.5 bg-purple-50 px-2 sm:px-3 py-1 rounded-lg text-purple-700 border border-purple-200 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span> {t('table.reserved')}
                 </span>
                 <button
                   type="button"
@@ -3105,9 +3105,9 @@ export default function App() {
                     setReservationDefaultTable(undefined);
                     setShowReservationModal(true);
                   }}
-                  className="px-2.5 sm:px-3 py-1 bg-purple-600 hover:bg-purple-700 active:scale-98 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer ml-1"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 bg-purple-600 hover:bg-purple-700 active:scale-98 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
                 >
-                  <Calendar className="w-3.5 h-3.5" />
+                  <Calendar className="w-3.5 h-3.5 shrink-0" />
                   <span>{t('table.reservation')}</span>
                 </button>
               </div>

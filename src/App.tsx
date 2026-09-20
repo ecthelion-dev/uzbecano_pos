@@ -266,6 +266,15 @@ export default function App() {
    */
   const [adminPinTitle, setAdminPinTitle] = useState<TranslationKey>('admin.pinKitchenCancel');
 
+  const requestAdminPin = useCallback((
+    action: (approvalToken?: string) => void,
+    titleKey: TranslationKey = 'admin.pinKitchenCancel',
+  ) => {
+    setAdminPinAction(() => action);
+    setAdminPinTitle(titleKey);
+    setShowAdminPinModal(true);
+  }, []);
+
   const [waiters, setWaiters] = useState<DBWaiter[]>([]);
   const [currentWaiter, setCurrentWaiter] = useState<DBWaiter | null>(
     () => readSession(resolveActiveCafeId())?.waiter ?? null
@@ -524,7 +533,7 @@ export default function App() {
     try {
       const cafeId = getActiveCafeId();
       if (!cafeId) return;
-      const res = await fetchWithTimeout(`${API_BASE_URL}/api/reservations?cafeId=${encodeURIComponent(cafeId)}`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/reservations?cafeId=${encodeURIComponent(cafeId)}&status=all`, {
         cache: 'no-store',
         headers: getAuthHeaders(),
       });
@@ -1717,29 +1726,35 @@ export default function App() {
     }
   }, [getActiveCafeId, getAuthHeaders, t]);
 
-  const handleCancelReservation = useCallback(async (reservationId: string) => {
-    try {
-      const res = await fetchWithTimeout(`${API_BASE_URL}/api/reservations?id=${encodeURIComponent(reservationId)}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) {
-        setReservations(prev => prev.filter(r => r.id !== reservationId));
-        setToastMessage(t('reservation.cancelSuccess'));
-        setTimeout(() => setToastMessage(null), 3000);
-      }
-    } catch {}
-  }, [getAuthHeaders, t]);
+  const handleCancelReservation = useCallback((reservationId: string) => {
+    requestAdminPin(async (approvalToken?: string) => {
+      try {
+        const res = await fetchWithTimeout(`${API_BASE_URL}/api/reservations?id=${encodeURIComponent(reservationId)}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(approvalToken),
+        });
+        if (res.ok) {
+          setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: 'CANCELLED' } : r));
+          setToastMessage(t('reservation.cancelSuccess'));
+          setTimeout(() => setToastMessage(null), 3000);
+        }
+      } catch {}
+    }, 'admin.pinReservationCancel');
+  }, [getAuthHeaders, requestAdminPin, t]);
 
   const handleOpenReservedTable = useCallback((tableNumber: string, reservationId: string) => {
-    fetchWithTimeout(`${API_BASE_URL}/api/reservations`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      body: JSON.stringify({ id: reservationId, status: 'COMPLETED' }),
-    }).catch(() => {});
-    setReservations(prev => prev.filter(r => r.id !== reservationId));
-    handleSelectTable(tableNumber);
-  }, [getAuthHeaders, handleSelectTable]);
+    requestAdminPin(async (approvalToken?: string) => {
+      try {
+        await fetchWithTimeout(`${API_BASE_URL}/api/reservations`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders(approvalToken) },
+          body: JSON.stringify({ id: reservationId, status: 'COMPLETED' }),
+        });
+        setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: 'COMPLETED' } : r));
+        handleSelectTable(tableNumber);
+      } catch {}
+    }, 'admin.pinReservationClose');
+  }, [getAuthHeaders, handleSelectTable, requestAdminPin]);
 
   const handleSelectCategory = useCallback((categoryName: string) => {
     setSelectedCategoryName(categoryName);
@@ -2216,15 +2231,6 @@ export default function App() {
       return [];
     }
   }, [getAuthHeaders]);
-
-  const requestAdminPin = useCallback((
-    action: (approvalToken?: string) => void,
-    titleKey: TranslationKey = 'admin.pinKitchenCancel',
-  ) => {
-    setAdminPinAction(() => action);
-    setAdminPinTitle(titleKey);
-    setShowAdminPinModal(true);
-  }, []);
 
   /**
    * Sinovdan haqiqiy ishga o'tish.

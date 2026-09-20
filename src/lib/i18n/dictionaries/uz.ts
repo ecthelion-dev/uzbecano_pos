@@ -177,6 +177,12 @@ export const uz = {
   'reservation.quickPlus30m': '+30 daq',
   'reservation.quickPlus1h': '+1 soat',
   'reservation.quickPlus2h': '+2 soat',
+  'reservation.tabActive': 'Faol bronlar',
+  'reservation.tabHistory': 'Tarix',
+  'reservation.statusCompleted': 'Ochilgan',
+  'reservation.statusCancelled': 'Bekor qilingan',
+  'reservation.statusConfirmed': 'Faol',
+  'reservation.historyEmpty': 'Bronlar tarixi bo‘sh',
 
   // ── Saqlanmagan savat ───────────────────────────────────────────────
   'unsaved.title': 'Yuborilmagan taomlar bor!',
@@ -343,6 +349,8 @@ export const uz = {
   'admin.pinTitle': "Xavfsizlik tasdig'i",
   'admin.pinDefault': 'Tasdiqlash uchun PIN kodni kiriting',
   'admin.pinKitchenCancel': 'Oshxona buyurtmasi / Taomni bekor qilish uchun PIN kodni kiriting',
+  'admin.pinReservationCancel': 'Bronni bekor qilish uchun admin PIN kodini kiriting',
+  'admin.pinReservationClose': 'Bronni yopish (stolni ochish) uchun admin PIN kodini kiriting',
   'admin.pinPeriodReport': 'Davr hisoboti xarajatlarni ham ko‘rsatadi — rahbar PIN kodini kiriting',
   'admin.pinWrong': "PIN kod noto'g'ri yoki ruxsat darajasi yetarli emas!",
   'admin.pinOffline': "Aloqa yo'q. Faqat shu kassada kirgan rahbar PIN kodi qabul qilinadi",

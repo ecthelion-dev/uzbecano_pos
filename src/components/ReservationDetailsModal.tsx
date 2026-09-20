@@ -8,7 +8,7 @@ interface ReservationDetailsModalProps {
   show: boolean;
   reservation: DBReservation | null;
   onOpenTable: (tableNumber: string, reservationId: string) => void;
-  onCancelReservation: (reservationId: string) => Promise<void>;
+  onCancelReservation: (reservationId: string) => void | Promise<void>;
   onClose: () => void;
 }
 

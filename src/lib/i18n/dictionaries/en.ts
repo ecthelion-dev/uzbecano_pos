@@ -164,6 +164,12 @@ export const en: Record<TranslationKey, string> = {
   'reservation.quickPlus30m': '+30m',
   'reservation.quickPlus1h': '+1h',
   'reservation.quickPlus2h': '+2h',
+  'reservation.tabActive': 'Active',
+  'reservation.tabHistory': 'History',
+  'reservation.statusCompleted': 'Completed',
+  'reservation.statusCancelled': 'Cancelled',
+  'reservation.statusConfirmed': 'Active',
+  'reservation.historyEmpty': 'Reservation history is empty',
 
   // ── Unsaved cart ────────────────────────────────────────────────────
   'unsaved.title': 'There are unsent items!',
@@ -329,6 +335,8 @@ export const en: Record<TranslationKey, string> = {
   'admin.pinTitle': 'Security confirmation',
   'admin.pinDefault': 'Enter the PIN to confirm',
   'admin.pinKitchenCancel': 'Enter the PIN to cancel a kitchen order or a dish',
+  'admin.pinReservationCancel': 'Enter admin PIN to cancel reservation',
+  'admin.pinReservationClose': 'Enter admin PIN to close reservation (open table)',
   'admin.pinPeriodReport': 'The period report shows expenses too — enter the manager PIN',
   'admin.pinWrong': "Wrong PIN, or the access level is not enough!",
   'admin.pinOffline': 'No connection. Only a manager PIN used on this till is accepted',

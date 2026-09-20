@@ -106,7 +106,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
   };
 
   return (
-    <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fadeIn">
+    <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-[110] animate-fadeIn">
       <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-t-3xl sm:rounded-3xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-6 sm:p-6 max-w-xs w-full shadow-2xl flex flex-col items-center gap-4 border border-slate-200 max-h-[92dvh] overflow-y-auto">
         <div className="flex items-center justify-between w-full border-b border-slate-100 pb-2">
           <div className="flex items-center gap-2 text-rose-600">

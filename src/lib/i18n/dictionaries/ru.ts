@@ -164,6 +164,12 @@ export const ru: Record<TranslationKey, string> = {
   'reservation.quickPlus30m': '+30 мин',
   'reservation.quickPlus1h': '+1 час',
   'reservation.quickPlus2h': '+2 часа',
+  'reservation.tabActive': 'Активные',
+  'reservation.tabHistory': 'История',
+  'reservation.statusCompleted': 'Открыт / Завершен',
+  'reservation.statusCancelled': 'Отменено',
+  'reservation.statusConfirmed': 'Активна',
+  'reservation.historyEmpty': 'История броней пуста',
 
   // ── Несохранённая корзина ───────────────────────────────────────────
   'unsaved.title': 'Есть неотправленные блюда!',
@@ -329,6 +335,8 @@ export const ru: Record<TranslationKey, string> = {
   'admin.pinTitle': 'Подтверждение безопасности',
   'admin.pinDefault': 'Введите PIN-код для подтверждения',
   'admin.pinKitchenCancel': 'Введите PIN-код для отмены заказа или блюда',
+  'admin.pinReservationCancel': 'Введите PIN-код админа для отмены брони',
+  'admin.pinReservationClose': 'Введите PIN-код админа для закрытия брони',
   'admin.pinPeriodReport': 'Отчёт за период показывает и расходы — введите PIN-код руководителя',
   'admin.pinWrong': 'Неверный PIN-код или недостаточно прав!',
   'admin.pinOffline': 'Нет связи. Принимается только PIN руководителя, входившего на этой кассе',

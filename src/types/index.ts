@@ -136,3 +136,16 @@ export interface KitchenSlipData {
   /** Kunlik tartib raqami — har kuni birdan boshlanadi. */
   slipNumber?: number;
 }
+
+export interface DBReservation {
+  id: string;
+  tableNumber: string;
+  customerName: string;
+  customerPhone?: string | null;
+  guestCount: number;
+  reservedTime: string;
+  notes?: string | null;
+  status: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  createdAt?: string;
+  updatedAt?: string;
+}

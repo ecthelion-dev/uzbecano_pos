@@ -30,6 +30,7 @@ import {
   Building2,
   Lock,
   ExternalLink,
+  Calendar,
 } from 'lucide-react';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePeriodPrintArea';
@@ -59,7 +60,7 @@ import {
   checkStorageHealth,
 } from './lib/storage';
 import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
-import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant } from './types';
+import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant, DBReservation } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
 import { decideFromStatus, newQueueId, withQueueIds } from './lib/syncQueue';
@@ -84,6 +85,8 @@ import { PrinterSettingsModal } from './components/PrinterSettingsModal';
 import { CategoryCard } from './components/CategoryCard';
 import { ProductCard } from './components/ProductCard';
 import { TableCard } from './components/TableCard';
+import { ReservationModal } from './components/ReservationModal';
+import { ReservationDetailsModal } from './components/ReservationDetailsModal';
 import { CartItemRow } from './components/CartItemRow';
 import { KitchenItemRow } from './components/KitchenItemRow';
 import { POSHeader } from './components/POSHeader';
@@ -246,6 +249,11 @@ export default function App() {
   >([]);
   /** Shu qurilmaning nomi — o'z belgisini boshqalarnikidan ajratish uchun. */
   const deviceId = useMemo(() => getDeviceId(), []);
+  const [reservations, setReservations] = useState<DBReservation[]>([]);
+  const [showReservationModal, setShowReservationModal] = useState<boolean>(false);
+  const [showReservationDetailsModal, setShowReservationDetailsModal] = useState<boolean>(false);
+  const [selectedReservation, setSelectedReservation] = useState<DBReservation | null>(null);
+  const [reservationDefaultTable, setReservationDefaultTable] = useState<string | undefined>(undefined);
   const [showUnsavedCartModal, setShowUnsavedCartModal] = useState<boolean>(false);
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
@@ -512,6 +520,20 @@ export default function App() {
     } catch {}
   }, [getActiveCafeId, getAuthHeaders, applyWaiterCalls]);
 
+  const fetchReservations = useCallback(async () => {
+    try {
+      const cafeId = getActiveCafeId();
+      if (!cafeId) return;
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/reservations?cafeId=${encodeURIComponent(cafeId)}`, {
+        cache: 'no-store',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data)) setReservations(data);
+    } catch {}
+  }, [getActiveCafeId, getAuthHeaders]);
+
   const fetchOrderHistory = useCallback(async () => {
     try {
       const cafeId = getActiveCafeId();
@@ -756,7 +778,7 @@ export default function App() {
 
       // Startup is the one point where both are needed: the archive and shift
       // report must have the 7-day window before the operator can open them.
-      await Promise.all([fetchOrders(), fetchOrderHistory(), fetchTableDefs(), fetchWaiterCalls()]);
+      await Promise.all([fetchOrders(), fetchOrderHistory(), fetchTableDefs(), fetchWaiterCalls(), fetchReservations()]);
       setIsOfflineMode(false);
       ok = true;
     } catch (err: any) {
@@ -773,7 +795,7 @@ export default function App() {
     }
 
     return ok;
-  }, [getActiveCafeId, fetchOrders, fetchOrderHistory, fetchTableDefs, fetchWaiterCalls, applyCafeStatus]);
+  }, [getActiveCafeId, fetchOrders, fetchOrderHistory, fetchTableDefs, fetchWaiterCalls, fetchReservations, applyCafeStatus]);
 
   /**
    * Yangilash tugmasi. Avval bu faqat `fetchOrders` ni chaqirardi: u `loading`
@@ -1305,7 +1327,10 @@ export default function App() {
         // Server hali eski. Eski yo'l joyida turibdi, shuning uchun kassa
         // yangilanish paytida ma'lumotsiz qolmaydi.
         fetchOrders();
-        if (visible) fetchWaiterCalls();
+        if (visible) {
+          fetchWaiterCalls();
+          fetchReservations();
+        }
         if (IS_DESKTOP_APP) void drainPrintJobs(await fetchPrintJobs(getAuthHeaders()));
         return;
       }
@@ -1313,6 +1338,7 @@ export default function App() {
 
       applyActiveOrders(result.data.orders as DBOrder[]);
       setTableHolds(result.data.tableHolds);
+      if (result.data.reservations) setReservations(result.data.reservations);
       // Chaqiruv ovozi ekran oldida turgan odam uchun — yig'ilgan oynada
       // chalinsa, u shunchaki e'tiborsiz qoladi.
       if (visible) applyWaiterCalls(result.data.waiterCalls);
@@ -1339,7 +1365,7 @@ export default function App() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [currentWaiter, fetchOrders, fetchWaiterCalls, hasLiveWork, getAuthHeaders,
+  }, [currentWaiter, fetchOrders, fetchWaiterCalls, fetchReservations, hasLiveWork, getAuthHeaders,
       applyActiveOrders, applyWaiterCalls, drainPrintJobs]);
 
   /*
@@ -1556,6 +1582,7 @@ export default function App() {
         deviceId,
         user: { id: currentWaiter?.id, name: currentWaiter?.name, role: currentWaiter?.role },
         unsyncedIds,
+        reservations,
       });
       const hasCall = waiterCalls.some(wn => (wn || '').trim().toLowerCase() === numStr.trim().toLowerCase());
 
@@ -1563,14 +1590,15 @@ export default function App() {
         id: `table_${i + 1}`,
         number: numStr,
         area: def.area,
-        status: (state.occupied ? 'band' : 'bosh') as 'band' | 'bosh',
+        status: (state.occupied ? 'band' : state.isReserved ? 'bron' : 'bosh') as 'band' | 'bosh' | 'bron',
         total: state.total,
         hasWaiterCall: hasCall,
         heldBy: state.heldBy,
         unsynced: state.unsynced,
+        reservation: state.reservation,
       };
     });
-  }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent, tableHolds, deviceId, currentWaiter, unsyncedIds]);
+  }, [tableDefs, orders, tableCarts, waiterCalls, serviceFeePercent, tableHolds, deviceId, currentWaiter, unsyncedIds, reservations]);
 
   /* Zonalar kafening o'z stollaridan olinadi. Ilgari bu ro'yxat kodda
      qattiq yozilgan edi ("Asosiy Zal", "VIP Kabinalar"...), shuning uchun
@@ -1602,6 +1630,13 @@ export default function App() {
      * Belgi ikki daqiqada eskiradi, ya'ni boshqa qurilma ishni tashlab
      * ketsa, stol o'zi ochiladi.
      */
+    const clickedTable = tables.find((tb) => tb.number === tableNumber);
+    if (clickedTable?.status === 'bron' && clickedTable.reservation) {
+      setSelectedReservation(clickedTable.reservation);
+      setShowReservationDetailsModal(true);
+      return;
+    }
+
     const locked = tables.find((tb) => tb.number === tableNumber)?.heldBy;
     if (locked) {
       setToastMessage(t('table.heldBy', { name: locked }));
@@ -1647,6 +1682,64 @@ export default function App() {
       setWaiterCalls(prev => prev.filter(t => (t || '').trim().toLowerCase() !== tableNumber.trim().toLowerCase()));
     }
   }, [getActiveCafeId, getAuthHeaders, tables, t, tableCarts, tableHolds, deviceId, products]);
+
+  const handleCreateReservation = useCallback(async (data: {
+    tableNumber: string;
+    customerName: string;
+    customerPhone?: string;
+    guestCount: number;
+    reservedTime: string;
+    notes?: string;
+  }): Promise<boolean> => {
+    try {
+      const cafeId = getActiveCafeId();
+      if (!cafeId) return false;
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/reservations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({ cafeId, ...data }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setToastMessage(err.error || t('common.error'));
+        setTimeout(() => setToastMessage(null), 3000);
+        return false;
+      }
+      const created = await res.json();
+      setReservations(prev => [...prev.filter(r => r.id !== created.id), created]);
+      setToastMessage(t('reservation.success'));
+      setTimeout(() => setToastMessage(null), 3000);
+      return true;
+    } catch (err: any) {
+      setToastMessage(err.message || t('common.error'));
+      setTimeout(() => setToastMessage(null), 3000);
+      return false;
+    }
+  }, [getActiveCafeId, getAuthHeaders, t]);
+
+  const handleCancelReservation = useCallback(async (reservationId: string) => {
+    try {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/reservations?id=${encodeURIComponent(reservationId)}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        setReservations(prev => prev.filter(r => r.id !== reservationId));
+        setToastMessage(t('reservation.cancelSuccess'));
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+    } catch {}
+  }, [getAuthHeaders, t]);
+
+  const handleOpenReservedTable = useCallback((tableNumber: string, reservationId: string) => {
+    fetchWithTimeout(`${API_BASE_URL}/api/reservations`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ id: reservationId, status: 'COMPLETED' }),
+    }).catch(() => {});
+    setReservations(prev => prev.filter(r => r.id !== reservationId));
+    handleSelectTable(tableNumber);
+  }, [getAuthHeaders, handleSelectTable]);
 
   const handleSelectCategory = useCallback((categoryName: string) => {
     setSelectedCategoryName(categoryName);
@@ -2992,17 +3085,31 @@ export default function App() {
               bo'lsa, ekranga shuncha kam stol sig'adi. Telefonda ham,
               desktopda ham.
             */}
-            <div className="flex items-center justify-between bg-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="flex items-center justify-between bg-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-slate-200 shadow-xs flex-wrap sm:flex-nowrap gap-2">
               <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
                 <Grid className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 shrink-0" /> {t('table.layout')}
               </h2>
-              <div className="flex items-center gap-1.5 sm:gap-4 text-[11px] sm:text-xs font-medium">
+              <div className="flex items-center gap-1.5 sm:gap-3 text-[11px] sm:text-xs font-medium flex-wrap">
                 <span className="flex items-center gap-1.5 bg-emerald-50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-emerald-700 border border-emerald-200 whitespace-nowrap">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span> {t('table.free')}
                 </span>
                 <span className="flex items-center gap-1.5 bg-orange-50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-orange-700 border border-orange-200 whitespace-nowrap">
                   <span className="w-2 h-2 rounded-full bg-orange-500"></span> {t('table.busy')}
                 </span>
+                <span className="flex items-center gap-1.5 bg-purple-50 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-purple-700 border border-purple-200 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-purple-500"></span> {t('table.reserved')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReservationDefaultTable(undefined);
+                    setShowReservationModal(true);
+                  }}
+                  className="px-2.5 sm:px-3 py-1 bg-purple-600 hover:bg-purple-700 active:scale-98 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer ml-1"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{t('table.reservation')}</span>
+                </button>
               </div>
             </div>
 
@@ -3415,6 +3522,28 @@ export default function App() {
         orders={orders}
         onMoveTable={handleMoveTable}
         onClose={() => setShowTableMoveModal(false)}
+      />
+
+      <ReservationModal
+        show={showReservationModal}
+        tableDefs={tableDefs}
+        reservations={reservations}
+        defaultTableNumber={reservationDefaultTable}
+        onCreateReservation={handleCreateReservation}
+        onCancelReservation={handleCancelReservation}
+        onOpenTable={handleOpenReservedTable}
+        onClose={() => setShowReservationModal(false)}
+      />
+
+      <ReservationDetailsModal
+        show={showReservationDetailsModal}
+        reservation={selectedReservation}
+        onOpenTable={handleOpenReservedTable}
+        onCancelReservation={handleCancelReservation}
+        onClose={() => {
+          setShowReservationDetailsModal(false);
+          setSelectedReservation(null);
+        }}
       />
 
       <PaymentModal

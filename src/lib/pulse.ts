@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '../constants';
 import { fetchWithTimeout } from './net';
 import type { PrintJob } from './printQueue';
+import type { DBReservation } from '../types';
 
 /**
  * Kassa nima bo'lganini bitta so'rov bilan biladi.
@@ -38,6 +39,7 @@ export interface PulseData {
     deviceId: string;
     total?: number;
   }[];
+  reservations?: DBReservation[];
 }
 
 export type PulseResult =

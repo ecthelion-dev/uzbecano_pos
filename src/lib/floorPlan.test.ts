@@ -239,3 +239,38 @@ describe('serverga yetib bormagan chek', () => {
     expect(state({ openOrder: { total: 77000 }, unsyncedIds: new Set(['ord_77']) }).unsynced).toBe(false);
   });
 });
+
+describe('stol bron qilingan holat', () => {
+  const RES = {
+    id: 'res_1',
+    tableNumber: 'Bar 1',
+    customerName: 'Anvar',
+    customerPhone: '+998901234567',
+    guestCount: 2,
+    reservedTime: '2026-09-20T19:30:00.000Z',
+    status: 'CONFIRMED' as const,
+  };
+
+  it('tasdiqlangan bron stolda belgilanadi', () => {
+    const s = state({ reservations: [RES] });
+    expect(s.isReserved).toBe(true);
+    expect(s.reservation?.customerName).toBe('Anvar');
+    expect(s.occupied).toBe(false);
+  });
+
+  it('bekor qilingan yoki tugatilgan bron hisobga olinmaydi', () => {
+    const s = state({
+      reservations: [{ ...RES, status: 'CANCELLED' as const }],
+    });
+    expect(s.isReserved).toBeUndefined();
+    expect(s.reservation).toBeUndefined();
+  });
+
+  it('boshqa stolning broni ta’sir qilmaydi', () => {
+    const s = state({
+      reservations: [{ ...RES, tableNumber: 'Stol 9' }],
+    });
+    expect(s.isReserved).toBeUndefined();
+  });
+});
+

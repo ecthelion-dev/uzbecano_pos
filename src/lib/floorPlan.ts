@@ -21,6 +21,8 @@
  * ya'ni unga qo'shilgan taom yo'qolmaydi va ikkinchi chek yaratilmaydi.
  */
 
+import type { DBReservation } from '../types';
+
 export interface TableHold {
   tableNumber: string;
   holder: string;
@@ -94,6 +96,9 @@ export interface TableState {
    * shuning uchun yagona chora — uni belgilab qo'yish.
    */
   unsynced: boolean;
+  /** Faol bron ma'lumotlari (agar stol bron qilingan bo'lsa). */
+  reservation?: DBReservation | null;
+  isReserved?: boolean;
 }
 
 const sameTable = (a: string, b: string) =>
@@ -114,8 +119,9 @@ export function tableState(input: {
    * rad etilganlar ham. `lib/orderMerge.ts` dagi `unsyncedOrderIds`.
    */
   unsyncedIds?: Set<string>;
+  reservations?: DBReservation[];
 }): TableState {
-  const { tableNumber, openOrder, draftTotal, holds, deviceId, user, unsyncedIds } = input;
+  const { tableNumber, openOrder, draftTotal, holds, deviceId, user, unsyncedIds, reservations } = input;
 
   // Shu qurilmaning o'z belgisi hisobga olinmaydi: savat allaqachon shu
   // yerda va uni ikkinchi marta sanashning ma'nosi yo'q.
@@ -134,6 +140,10 @@ export function tableState(input: {
       // qilinmaydi — savat o'sha qurilmada.
       : Math.max(0, Math.round(Number(elsewhere?.total) || 0));
 
+  const reservation = (reservations || []).find(
+    (r) => r && r.status === 'CONFIRMED' && sameTable(r.tableNumber, tableNumber)
+  ) || null;
+
   return {
     occupied: hasOpenOrder || hasOwnDraft || !!elsewhere,
     total,
@@ -141,6 +151,7 @@ export function tableState(input: {
     // Faqat YUBORILGAN chek uchun. Yig'ilayotgan savat hali serverga
     // yetishi shart emas — uni belgilash belgining ma'nosini yo'qotardi.
     unsynced: !!openOrder?.id && !!unsyncedIds?.has(openOrder.id),
+    ...(reservation ? { reservation, isReserved: true } : {}),
   };
 }
 

@@ -1,12 +1,14 @@
 import React from 'react';
-import { Bell, Lock, CloudOff } from 'lucide-react';
+import { Bell, Lock, CloudOff, Bookmark } from 'lucide-react';
 import { useT } from '../lib/i18n/LanguageProvider';
+import { formatClock } from '../lib/timeFormat';
+import type { DBReservation } from '../types';
 
 export interface TableItemData {
   id: string;
   number: string;
   area: string;
-  status: 'band' | 'bosh';
+  status: 'band' | 'bosh' | 'bron';
   total: number;
   hasWaiterCall?: boolean;
   /**
@@ -25,6 +27,7 @@ export interface TableItemData {
    * bo'lmasdi. Ikkita xodim ikki xil ro'yxatga qarab bir-birini aybladi.
    */
   unsynced?: boolean;
+  reservation?: DBReservation | null;
 }
 
 interface TableCardProps {
@@ -53,6 +56,8 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
             'bg-[#1E2021] border-amber-500 ring-1 ring-amber-500/60 text-white'
           : table.status === 'band'
           ? 'bg-[#1E2021] border-[#2A2D2F] text-white hover:border-orange-500'
+          : table.status === 'bron'
+          ? 'bg-[#1E2021] border-purple-500/80 ring-1 ring-purple-500/50 text-white hover:border-purple-400'
           : 'bg-white border-slate-200 text-slate-800 hover:border-orange-400'
       }`}
     >
@@ -93,10 +98,16 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
             className={`text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap ${
               table.status === 'band'
                 ? 'bg-orange-500 text-white'
+                : table.status === 'bron'
+                ? 'bg-purple-600 text-white'
                 : 'bg-emerald-100 text-emerald-700'
             }`}
           >
-            {table.status === 'band' ? t('table.busy') : t('table.free')}
+            {table.status === 'band'
+              ? t('table.busy')
+              : table.status === 'bron'
+              ? t('table.reserved')
+              : t('table.free')}
           </span>
         </div>
       </div>
@@ -121,6 +132,15 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
               qirqib, "15,000 s..." qilib qo'yardi — ya'ni birlik uchun eng
               kerakli narsa, raqamning o'zi yo'qolardi. */}
           <span className="text-[11px] sm:text-xs text-white font-bold truncate whitespace-nowrap">{table.total.toLocaleString()}</span>
+        </div>
+      ) : table.status === 'bron' && table.reservation ? (
+        <div className="bg-[#2A2D2F] p-1.5 sm:p-2 rounded-xl border border-purple-500/30 flex items-center justify-between gap-1 min-w-0">
+          <span className="text-[9px] sm:text-[10px] font-medium text-purple-300 truncate">
+            {table.reservation.customerName}
+          </span>
+          <span className="text-[10px] sm:text-[11px] text-purple-200 font-bold shrink-0 whitespace-nowrap">
+            {formatClock(table.reservation.reservedTime)}
+          </span>
         </div>
       ) : (
         <div className="py-0.5 min-w-0">

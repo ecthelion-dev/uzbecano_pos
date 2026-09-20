@@ -20,22 +20,20 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
   onClose,
 }) => {
   const t = useT();
-  const [cancelling, setCancelling] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   if (!show || !reservation) return null;
 
-  const handleCancel = async () => {
-    if (cancelling) return;
-    setCancelling(true);
-    try {
-      await onCancelReservation(reservation.id);
-      onClose();
-    } finally {
-      setCancelling(false);
-    }
+  const handleCancel = () => {
+    if (busy) return;
+    setBusy(true);
+    onCancelReservation(reservation.id);
+    onClose();
   };
 
   const handleOpen = () => {
+    if (busy) return;
+    setBusy(true);
     onOpenTable(reservation.tableNumber, reservation.id);
     onClose();
   };
@@ -157,17 +155,20 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
         {isConfirmed ? (
           <div className="flex flex-col sm:flex-row gap-2 pt-1">
             <button
+              type="button"
               onClick={handleOpen}
-              className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              disabled={busy}
+              className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle2 className="w-4 h-4" />
               {t('reservation.openTable')}
             </button>
 
             <button
+              type="button"
               onClick={handleCancel}
-              disabled={cancelling}
-              className="py-3 px-4 bg-rose-50 hover:bg-rose-100 active:scale-98 text-rose-700 font-bold text-sm rounded-xl border border-rose-200 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              disabled={busy}
+              className="py-3 px-4 bg-rose-50 hover:bg-rose-100 active:scale-98 text-rose-700 font-bold text-sm rounded-xl border border-rose-200 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 className="w-4 h-4" />
               {t('reservation.cancel')}

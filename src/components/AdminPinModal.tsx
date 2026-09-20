@@ -30,11 +30,12 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  const isCheckingRef = React.useRef(false);
 
   if (!show) return null;
 
   const handleKey = async (val: string) => {
-    if (checking) return;
+    if (isCheckingRef.current || checking) return;
     setError(null);
     if (val === 'C') {
       setPin('');
@@ -48,10 +49,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
       const nextPin = pin + val;
       setPin(nextPin);
       if (nextPin.length === 4) {
-        // Manager/admin-level PIN is verified live against the server whenever
-        // there is one. Offline the only fallback is a PBKDF2 hash cached on
-        // this till when that manager last signed in here — a regular waiter's
-        // own PIN still cannot self-approve the overrides this modal gates.
+        isCheckingRef.current = true;
         setChecking(true);
         try {
           const res = await fetch(`${API_BASE_URL}/api/auth/pin`, {
@@ -99,6 +97,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
             setTimeout(() => setPin(''), 900);
           }
         } finally {
+          isCheckingRef.current = false;
           setChecking(false);
         }
       }

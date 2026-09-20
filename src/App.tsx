@@ -1627,7 +1627,7 @@ export default function App() {
     return tables.filter(tb => tb.area === activeArea);
   }, [tables, activeArea]);
 
-  const handleSelectTable = useCallback((tableNumber: string) => {
+  const handleSelectTable = useCallback((tableNumber: string, ignoreReservation = false) => {
     /*
      * Buyurtma boshqa qurilmada yig'ilayotgan stolni ochib bo'lmaydi.
      *
@@ -1639,11 +1639,13 @@ export default function App() {
      * Belgi ikki daqiqada eskiradi, ya'ni boshqa qurilma ishni tashlab
      * ketsa, stol o'zi ochiladi.
      */
-    const clickedTable = tables.find((tb) => tb.number === tableNumber);
-    if (clickedTable?.status === 'bron' && clickedTable.reservation) {
-      setSelectedReservation(clickedTable.reservation);
-      setShowReservationDetailsModal(true);
-      return;
+    if (!ignoreReservation) {
+      const clickedTable = tables.find((tb) => tb.number === tableNumber);
+      if (clickedTable?.status === 'bron' && clickedTable.reservation) {
+        setSelectedReservation(clickedTable.reservation);
+        setShowReservationDetailsModal(true);
+        return;
+      }
     }
 
     const locked = tables.find((tb) => tb.number === tableNumber)?.heldBy;
@@ -1735,6 +1737,8 @@ export default function App() {
         });
         if (res.ok) {
           setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: 'CANCELLED' } : r));
+          setShowReservationDetailsModal(false);
+          setSelectedReservation(null);
           setToastMessage(t('reservation.cancelSuccess'));
           setTimeout(() => setToastMessage(null), 3000);
         }
@@ -1751,7 +1755,10 @@ export default function App() {
           body: JSON.stringify({ id: reservationId, status: 'COMPLETED' }),
         });
         setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: 'COMPLETED' } : r));
-        handleSelectTable(tableNumber);
+        setShowReservationDetailsModal(false);
+        setSelectedReservation(null);
+        setShowReservationModal(false);
+        handleSelectTable(tableNumber, true);
       } catch {}
     }, 'admin.pinReservationClose');
   }, [getAuthHeaders, handleSelectTable, requestAdminPin]);
@@ -3513,7 +3520,10 @@ export default function App() {
         cafeId={getActiveCafeId()}
         title={t(adminPinTitle)}
         onConfirm={(approvalToken) => {
-          if (adminPinAction) adminPinAction(approvalToken);
+          const action = adminPinAction;
+          setShowAdminPinModal(false);
+          setAdminPinAction(null);
+          if (action) action(approvalToken);
         }}
         onClose={() => {
           setShowAdminPinModal(false);

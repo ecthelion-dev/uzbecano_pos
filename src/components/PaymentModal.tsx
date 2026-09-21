@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Banknote, Check, CreditCard, Delete, X } from 'lucide-react';
+import { Banknote, Check, CreditCard, Delete, PenLine, X } from 'lucide-react';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { splitPayment } from '../lib/payment';
 import { CashEntry, entryAmount, presetEntry, pressKey } from '../lib/cashInput';
+import { DebtCustomerInfo } from '../types';
 
 interface PaymentModalProps {
   show: boolean;
@@ -10,43 +11,47 @@ interface PaymentModalProps {
   grandTotal: number;
   /** Yopish — `cash` va `card` yig'indisi har doim `grandTotal` ga teng. */
   onConfirm: (cash: number, card: number) => void;
+  onDebt?: (debtInfo: DebtCustomerInfo) => void;
   onClose: () => void;
 }
 
 /**
  * To'lov oynasi.
  *
- * Ilgari to'lov turi savat panelida uchta tugma bilan OLDINDAN tanlanardi:
- * "Naqd", "Karta", "Aralash". Ikkita muammosi bor edi. Birinchisi — tanlov
- * hisob yig'ilayotgan paytda, ya'ni hali pul olinmagan paytda qilinardi va
- * kassir uni yopish oldidan qayta tekshirmasdi. Ikkinchisi — "Aralash"
- * alohida rejim edi: kassir uni tanlab, keyin ikkita maydonni to'ldirardi.
- *
- * Endi tur UMUMAN tanlanmaydi — u SUMMADAN kelib chiqadi. Kassir naqd
- * qancha olganini yozadi, qolgani o'zi kartaga o'tadi:
- *
- *   naqd = jami  → "naqd"
- *   naqd = 0     → "karta"
- *   oraliqda     → "aralash"
- *
- * Shuning uchun "Aralash" tugmasi yo'q: aralash to'lov — alohida rejim
- * emas, shunchaki to'liq bo'lmagan naqd.
+ * To'lov usullari: Naqd, Karta (aralash summa kiritish bilan), yoki Qarzga yopish.
+ * Qarz tanlanganda mijoz ma'lumotlari kiritiladigan forma chiqadi va buyurtma
+ * qarz usuli bilan yopiladi.
  */
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   show,
   tableName,
   grandTotal,
   onConfirm,
+  onDebt,
   onClose,
 }) => {
   const t = useT();
+  const [payMode, setPayMode] = useState<'payment' | 'debt'>('payment');
   /** Naqd maydoni. Terish qoidalari lib/cashInput.ts da. */
   const [entry, setEntry] = useState<CashEntry>(() => presetEntry(grandTotal));
+
+  // Qarz formasi maydonlari
+  const [debtName, setDebtName] = useState('');
+  const [debtPhone, setDebtPhone] = useState('');
+  const [debtDueDate, setDebtDueDate] = useState('');
+  const [debtNote, setDebtNote] = useState('');
 
   // Har ochilishda toza boshlanadi: oldingi stolning summasi qolib ketsa,
   // kassir uni sezmay tasdiqlashi mumkin.
   useEffect(() => {
-    if (show) setEntry(presetEntry(grandTotal));
+    if (show) {
+      setEntry(presetEntry(grandTotal));
+      setPayMode('payment');
+      setDebtName('');
+      setDebtPhone('');
+      setDebtDueDate('');
+      setDebtNote('');
+    }
   }, [show, grandTotal]);
 
   // Kassir TERGAN summa — chekdan katta ham bo'lishi mumkin.
@@ -68,8 +73,30 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const confirm = useCallback(() => onConfirm(cash, card), [cash, card, onConfirm]);
 
+  const confirmDebt = useCallback(() => {
+    const trimmed = debtName.trim();
+    if (!trimmed) return;
+    if (onDebt) {
+      onDebt({
+        name: trimmed,
+        phone: debtPhone.trim() || undefined,
+        amount: grandTotal,
+        dueDate: debtDueDate || undefined,
+        note: debtNote.trim() || undefined,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }, [debtName, debtPhone, debtDueDate, debtNote, grandTotal, onDebt]);
+
   useEffect(() => {
     if (!show) return;
+    if (payMode !== 'payment') {
+      const onEsc = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', onEsc);
+      return () => window.removeEventListener('keydown', onEsc);
+    }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key >= '0' && e.key <= '9') handleKey(e.key);
       else if (e.key === 'Backspace') handleKey('DEL');
@@ -78,7 +105,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [show, handleKey, confirm, onClose]);
+  }, [show, payMode, handleKey, confirm, onClose]);
 
   if (!show) return null;
 
@@ -114,16 +141,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <span className="text-xl font-bold text-slate-900">{money(grandTotal)}</span>
           </div>
 
-          {/*
-            To'liq to'lovning ikki holati — bir bosishda. Bular rejim emas,
-            shunchaki naqd maydonini to'ldirish yo'li: "Karta" naqdni nolga
-            tushiradi, "Naqd" esa jami summaga ko'taradi.
-          */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* To'lov usullari: Naqd, Karta, Qarzga */}
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
             <button
-              onClick={() => setEntry(presetEntry(grandTotal))}
-              className={`py-3 rounded-xl text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                entered === grandTotal
+              type="button"
+              onClick={() => {
+                setPayMode('payment');
+                setEntry(presetEntry(grandTotal));
+              }}
+              className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                payMode === 'payment' && entered === grandTotal
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
@@ -131,74 +158,151 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <Banknote className="w-4 h-4" /> {t('common.cash')}
             </button>
             <button
-              onClick={() => setEntry(presetEntry(0))}
-              className={`py-3 rounded-xl text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                entered === 0
+              type="button"
+              onClick={() => {
+                setPayMode('payment');
+                setEntry(presetEntry(0));
+              }}
+              className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                payMode === 'payment' && entered === 0
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
             >
               <CreditCard className="w-4 h-4" /> {t('common.card')}
             </button>
+            <button
+              type="button"
+              onClick={() => setPayMode('debt')}
+              className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                payMode === 'debt'
+                  ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                  : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+              }`}
+            >
+              <PenLine className="w-4 h-4" /> {t('cart.debtCustomer')}
+            </button>
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                {t('payment.cashTaken')}
-              </span>
-              <span className="text-lg font-bold text-slate-900 tabular-nums">{money(entered)}</span>
+          {payMode === 'payment' ? (
+            <>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    {t('payment.cashTaken')}
+                  </span>
+                  <span className="text-lg font-bold text-slate-900 tabular-nums">{money(entered)}</span>
+                </div>
+
+                {change > 0 ? (
+                  <div className="flex items-center justify-between rounded-xl px-3 py-2 border bg-emerald-50 border-emerald-200 text-emerald-800">
+                    <span className="text-xs font-semibold">{t('payment.change')}</span>
+                    <span className="text-sm font-bold tabular-nums">{money(change)}</span>
+                  </div>
+                ) : (
+                  <div
+                    className={`flex items-center justify-between rounded-xl px-3 py-2 border ${
+                      isMixed
+                        ? 'bg-amber-50 border-amber-200 text-amber-800'
+                        : 'bg-slate-50 border-slate-200 text-slate-500'
+                    }`}
+                  >
+                    <span className="text-xs font-semibold">{t('payment.toCard')}</span>
+                    <span className="text-sm font-bold tabular-nums">{money(card)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5">
+                {['7', '8', '9', '4', '5', '6', '1', '2', '3', '000', '0', 'DEL'].map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => handleKey(k)}
+                    className={`h-12 rounded-xl text-base font-bold border transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
+                      k === 'DEL'
+                        ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                        : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    {k === 'DEL' ? <Delete className="w-4 h-4" /> : k}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2.5 py-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {t('cart.debtCustomerName')} <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={debtName}
+                  onChange={(e) => setDebtName(e.target.value)}
+                  placeholder="Masalan: Alisher aka"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {t('cart.debtCustomerPhone')}
+                </label>
+                <input
+                  type="tel"
+                  value={debtPhone}
+                  onChange={(e) => setDebtPhone(e.target.value)}
+                  placeholder="+998 90 123 45 67"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {t('cart.debtDueDate')}
+                </label>
+                <input
+                  type="date"
+                  value={debtDueDate}
+                  onChange={(e) => setDebtDueDate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {t('cart.debtNote')}
+                </label>
+                <input
+                  type="text"
+                  value={debtNote}
+                  onChange={(e) => setDebtNote(e.target.value)}
+                  placeholder="Qo'shimcha izoh..."
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                />
+              </div>
             </div>
-
-            {/*
-              Qolgan summa har doim ko'rinib turadi — aralash to'lovda ham,
-              to'liq naqdda ham. Kassir "kartaga qancha o'tdi" yoki "qancha
-              qaytim" degan savolga hisoblab emas, qarab javob berishi kerak.
-              Chekdan ortig'i kartaga o'tmaydi — u qaytim.
-            */}
-            {change > 0 ? (
-              <div className="flex items-center justify-between rounded-xl px-3 py-2 border bg-emerald-50 border-emerald-200 text-emerald-800">
-                <span className="text-xs font-semibold">{t('payment.change')}</span>
-                <span className="text-sm font-bold tabular-nums">{money(change)}</span>
-              </div>
-            ) : (
-              <div
-                className={`flex items-center justify-between rounded-xl px-3 py-2 border ${
-                  isMixed
-                    ? 'bg-amber-50 border-amber-200 text-amber-800'
-                    : 'bg-slate-50 border-slate-200 text-slate-500'
-                }`}
-              >
-                <span className="text-xs font-semibold">{t('payment.toCard')}</span>
-                <span className="text-sm font-bold tabular-nums">{money(card)}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-3 gap-1.5">
-            {['7', '8', '9', '4', '5', '6', '1', '2', '3', '000', '0', 'DEL'].map((k) => (
-              <button
-                key={k}
-                onClick={() => handleKey(k)}
-                className={`h-12 rounded-xl text-base font-bold border transition-all cursor-pointer active:scale-95 flex items-center justify-center ${
-                  k === 'DEL'
-                    ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
-                    : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                {k === 'DEL' ? <Delete className="w-4 h-4" /> : k}
-              </button>
-            ))}
-          </div>
+          )}
         </div>
 
         <div className="px-4 pb-4 pt-1">
-          <button
-            onClick={confirm}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
-          >
-            <Check className="w-4 h-4" /> {t('cart.payAndClose')}
-          </button>
+          {payMode === 'payment' ? (
+            <button
+              type="button"
+              onClick={confirm}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Check className="w-4 h-4" /> {t('cart.payAndClose')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={confirmDebt}
+              disabled={!debtName.trim()}
+              className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-2xl text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <PenLine className="w-4 h-4" /> {t('cart.debtClose')}
+            </button>
+          )}
         </div>
       </div>
     </div>

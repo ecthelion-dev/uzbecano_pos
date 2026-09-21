@@ -84,6 +84,7 @@ export const ru: Record<TranslationKey, string> = {
   'cart.debtRemove': 'Удалить долг',
   'cart.debtHint': 'Введите данные клиента',
   'cart.debtRequiredName': 'Имя клиента обязательно',
+  'cart.debtClose': 'Закрыть в долг',
   'cart.sentItems': 'Отправлено на кухню',
   'cart.newItems': 'Новые блюда',
   'cart.kitchenNote': 'Комментарий на кухню (например: без лука, острое...)',

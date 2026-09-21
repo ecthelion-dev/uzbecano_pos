@@ -102,9 +102,13 @@ export interface DBOrder {
   discount?: number;
   /** Qo'llangan promo-kod shartlari — serverdan. Chegirma shundan hisoblanadi. */
   promo?: PromoTerms | null;
-  paymentMethod?: 'naqd' | 'karta' | 'aralash';
+  paymentMethod?: 'naqd' | 'karta' | 'aralash' | 'qarz';
   cashAmount?: number;
   cardAmount?: number;
+  debtCustomerName?: string | null;
+  debtCustomerPhone?: string | null;
+  debtDueDate?: string | null;
+  debtNote?: string | null;
   refunded?: boolean;
   refundReason?: string;
   refundedAt?: string;

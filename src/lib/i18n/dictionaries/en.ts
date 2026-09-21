@@ -84,6 +84,7 @@ export const en: Record<TranslationKey, string> = {
   'cart.debtRemove': 'Remove Debt',
   'cart.debtHint': 'Enter customer details',
   'cart.debtRequiredName': 'Customer name is required',
+  'cart.debtClose': 'Close on Credit',
   'cart.sentItems': 'Sent to the kitchen',
   'cart.newItems': 'Newly added items',
   'cart.kitchenNote': 'Note for the kitchen (e.g. no onion, spicy...)',

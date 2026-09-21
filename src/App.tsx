@@ -78,7 +78,6 @@ import { ArchiveModal } from './components/ArchiveModal';
 import { ShiftReportModal } from './components/ShiftReportModal';
 import { AdminPinModal } from './components/AdminPinModal';
 import { TableMoveModal } from './components/TableMoveModal';
-import { DebtCustomerModal } from './components/DebtCustomerModal';
 import { ProductModifierModal } from './components/ProductModifierModal';
 import { PaymentModal } from './components/PaymentModal';
 import { UnsavedCartModal } from './components/UnsavedCartModal';
@@ -193,18 +192,6 @@ export default function App() {
     writeCafeJson(resolveActiveCafeId(), 'carts', tableCarts);
   }, [tableCarts]);
 
-  const [tableDebtCustomers, setTableDebtCustomers] = useState<Record<string, DebtCustomerInfo>>(() => {
-    try {
-      return readCafeJson<Record<string, DebtCustomerInfo>>(resolveActiveCafeId(), 'debt_customers', {});
-    } catch {
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    writeCafeJson(resolveActiveCafeId(), 'debt_customers', tableDebtCustomers);
-  }, [tableDebtCustomers]);
-
   // Ishga tushishda bir marta: disk yozadimi-o'qiydimi. Birinchi savdogacha
   // ko'rinsin — keyin bilib qolish kech bo'ladi.
   useEffect(() => {
@@ -216,7 +203,6 @@ export default function App() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
   const [showReceiptPreview, setShowReceiptPreview] = useState<boolean>(false);
-  const [showDebtModal, setShowDebtModal] = useState<boolean>(false);
   const [showArchiveModal, setShowArchiveModal] = useState<boolean>(false);
   // Davr hisoboti chop etilayotgan payt. Hisobot `window.print()` bilan
   // sahifadan chiqadi (`#thermal-print-area`), chek esa alohida hujjatda.
@@ -2663,7 +2649,7 @@ export default function App() {
   const handleCloseTable = useCallback(async (
     tableNum?: string,
     skipConfirm = false,
-    payment?: { cash: number; card: number },
+    payment?: { cash: number; card: number; debtCustomer?: DebtCustomerInfo },
   ) => {
     const targetTable = (typeof tableNum === 'string' && tableNum.trim()) ? tableNum.trim() : selectedTable;
     const normTarget = targetTable.trim().toLowerCase();
@@ -2796,25 +2782,42 @@ export default function App() {
          * Oyna ochilmasdan yopilgan holat ham bor (masalan sinxronizatsiya
          * yo'li) — o'shanda hammasi naqd deb hisoblanadi.
          */
+        const isDebt = Boolean(payment?.debtCustomer);
+
         const { cash: finalCash, card: finalCard, method: finalMethod } =
           splitPayment(orderTotal, payment ? payment.cash : orderTotal);
 
-        const paymentPatchBody = {
-          status: 'served',
-          paymentMethod: finalMethod,
-          cashAmount: finalCash,
-          cardAmount: finalCard
-        };
+        const paymentPatchBody: any = isDebt
+          ? {
+              status: 'served',
+              paymentMethod: 'qarz',
+              cashAmount: 0,
+              cardAmount: 0,
+              debtCustomerName: payment!.debtCustomer!.name,
+              debtCustomerPhone: payment!.debtCustomer!.phone || null,
+              debtDueDate: payment!.debtCustomer!.dueDate || null,
+              debtNote: payment!.debtCustomer!.note || null,
+            }
+          : {
+              status: 'served',
+              paymentMethod: finalMethod,
+              cashAmount: finalCash,
+              cardAmount: finalCard,
+            };
 
         closedOrder = {
           ...latestOrder,
           status: 'served',
-          paymentMethod: finalMethod,
-          cashAmount: finalCash,
-          cardAmount: finalCard,
+          paymentMethod: isDebt ? 'qarz' : finalMethod,
+          cashAmount: isDebt ? 0 : finalCash,
+          cardAmount: isDebt ? 0 : finalCard,
+          debtCustomerName: isDebt ? payment!.debtCustomer!.name : (latestOrder.debtCustomerName ?? null),
+          debtCustomerPhone: isDebt ? (payment!.debtCustomer!.phone || null) : (latestOrder.debtCustomerPhone ?? null),
+          debtDueDate: isDebt ? (payment!.debtCustomer!.dueDate || null) : (latestOrder.debtDueDate ?? null),
+          debtNote: isDebt ? (payment!.debtCustomer!.note || null) : (latestOrder.debtNote ?? null),
           closedAt: latestOrder.closedAt || new Date().toISOString(),
           waiterName: latestOrder.waiterName || currentWaiter?.name || 'Xodim',
-          debtCustomer: tableDebtCustomers[targetTable] ?? null,
+          debtCustomer: payment?.debtCustomer ?? null,
         };
 
         const updatedOrders = currentOrders.map(o => o.id === latestOrder.id ? closedOrder : o);
@@ -2866,18 +2869,13 @@ export default function App() {
         }
       }
       setTableCarts(prev => ({ ...prev, [targetTable]: [] }));
-      setTableDebtCustomers(prev => {
-        const next = { ...prev };
-        delete next[targetTable];
-        return next;
-      });
       setToastMessage(`${targetTable} muvaffaqiyatli to'lanib yopildi!`);
       setTimeout(() => setToastMessage(null), 2500);
 
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, tableDebtCustomers, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt]);
+  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {
@@ -3363,8 +3361,6 @@ export default function App() {
                 }}
                 onOpenReceiptPreview={() => setShowReceiptPreview(true)}
                 onOpenTableMove={() => setShowTableMoveModal(true)}
-                debtCustomer={tableDebtCustomers[selectedTable] ?? null}
-                onOpenDebtModal={() => setShowDebtModal(true)}
               />
             </div>
           </>
@@ -3438,7 +3434,7 @@ export default function App() {
         cafeLogo={connectedCafeLogo}
         cafeAddress={connectedCafeAddress}
         cafePhone={connectedCafePhone}
-        debtCustomer={tableDebtCustomers[selectedTable] ?? null}
+        debtCustomer={null}
         onClose={() => setShowReceiptPreview(false)}
         onPrint={() => printReceiptOrFallback({
           id: activeTableOrder?.id || selectedTable,
@@ -3453,7 +3449,7 @@ export default function App() {
           discount: discountAmount,
           serviceFee,
           total: grandTotal,
-          debtCustomer: tableDebtCustomers[selectedTable] ?? null,
+          debtCustomer: null,
         })}
       />
 
@@ -3556,31 +3552,6 @@ export default function App() {
         onClose={() => setShowTableMoveModal(false)}
       />
 
-      <DebtCustomerModal
-        show={showDebtModal}
-        tableName={selectedTable}
-        grandTotal={grandTotal}
-        items={[...activeTableOrderItems, ...cart.map(c => ({
-          name: c.product.name, quantity: c.quantity, price: c.product.price, note: c.note,
-        }))]}
-        currentDebtCustomer={tableDebtCustomers[selectedTable] ?? null}
-        onSave={(customer) => {
-          setTableDebtCustomers(prev => ({ ...prev, [selectedTable]: customer }));
-          setToastMessage(t('toast.debtSaved', { table: selectedTable, name: customer.name }));
-          setTimeout(() => setToastMessage(null), 3000);
-        }}
-        onRemove={() => {
-          setTableDebtCustomers(prev => {
-            const next = { ...prev };
-            delete next[selectedTable];
-            return next;
-          });
-          setToastMessage(t('toast.debtRemoved', { table: selectedTable }));
-          setTimeout(() => setToastMessage(null), 2500);
-        }}
-        onClose={() => setShowDebtModal(false)}
-      />
-
       <ReservationModal
         show={showReservationModal}
         tableDefs={tableDefs}
@@ -3609,13 +3580,11 @@ export default function App() {
         grandTotal={grandTotal}
         onConfirm={(cash, card) => {
           setShowPaymentModal(false);
-          /*
-           * Summalar yopish funksiyasiga TO'G'RIDAN-TO'G'RI uzatiladi.
-           * Holatga yozib, keyin chaqirsak, funksiya hali eski qiymatni
-           * ko'rardi — React holatni darhol yangilamaydi va chek noto'g'ri
-           * summa bilan chiqardi.
-           */
           handleCloseTable(selectedTable, true, { cash, card });
+        }}
+        onDebt={(debtInfo) => {
+          setShowPaymentModal(false);
+          handleCloseTable(selectedTable, true, { cash: 0, card: 0, debtCustomer: debtInfo });
         }}
         onClose={() => setShowPaymentModal(false)}
       />

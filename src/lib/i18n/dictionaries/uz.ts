@@ -97,6 +97,7 @@ export const uz = {
   'cart.debtRemove': 'Qarzni bekor qilish',
   'cart.debtHint': "Mijoz ma'lumotlarini kiriting",
   'cart.debtRequiredName': 'Mijoz ismi kiritilishi shart',
+  'cart.debtClose': 'Qarzga yopish',
   'cart.sentItems': 'Oshxonaga yuborilgan taomlar',
   'cart.newItems': "Yangi qo'shilayotgan taomlar",
   'cart.kitchenNote': 'Oshxonaga izoh (masalan: piyozsiz, achchiq...)',

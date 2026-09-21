@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Plus, ListFilter, User, Phone, Clock, Users, FileText, X, AlertCircle, Trash2, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Plus, ListFilter, User, Phone, Clock, Users, FileText, X, AlertCircle, Trash2, CheckCircle2, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useT, useLocale } from '../lib/i18n/LanguageProvider';
 import { formatClock, formatDateClock, maskTimeText, normalizeTimeText } from '../lib/timeFormat';
 import type { DBReservation } from '../types';
@@ -352,7 +352,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   placeholder={t('reservation.namePlaceholder')}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
@@ -366,14 +366,14 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   placeholder={t('reservation.phonePlaceholder')}
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             </div>
 
             {/* Date, Time & Guest Count */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="flex flex-col gap-1">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="flex flex-col gap-1 sm:col-span-5">
                 <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-slate-400" />
                   {t('reservation.reservedDate')}
@@ -381,17 +381,19 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                 <button
                   type="button"
                   onClick={openDatePicker}
-                  className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 flex items-center justify-between transition-colors cursor-pointer"
+                  className="w-full h-10 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 flex items-center justify-between gap-2 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  <span className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-purple-600" />
-                    <span>{getDisplayDateText(reservedDate)}</span>
-                  </span>
-                  <span className="text-xs text-purple-600 font-semibold">{t('reservation.selectDate')}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Calendar className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span className="truncate font-semibold text-slate-900">
+                      {getDisplayDateText(reservedDate)}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
                 </button>
               </div>
 
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 sm:col-span-4">
                 <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
                   <Clock className="w-3 h-3 text-slate-400" />
                   {t('reservation.reservedTime')}
@@ -399,42 +401,62 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowTimePicker(true)}
-                  className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 flex items-center justify-between transition-colors cursor-pointer"
+                  className="w-full h-10 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 flex items-center justify-between gap-2 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  <span className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-purple-600" />
-                    <span>{reservedTime || '20:00'}</span>
-                  </span>
-                  <span className="text-xs text-purple-600 font-semibold">{t('reservation.selectTime')}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Clock className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span className="font-semibold text-slate-900">
+                      {reservedTime || '20:00'}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
                 </button>
               </div>
 
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 sm:col-span-3">
                 <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
                   <Users className="w-3 h-3 text-slate-400" />
                   {t('reservation.guestCount')}
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={guestCount}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === '') {
-                      setGuestCount('');
-                    } else {
-                      const num = parseInt(val, 10);
-                      if (!isNaN(num)) setGuestCount(num);
-                    }
-                  }}
-                  onBlur={() => {
-                    if (guestCount === '' || Number(guestCount) < 1) {
-                      setGuestCount(1);
-                    }
-                  }}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl h-10 overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent">
+                  <button
+                    type="button"
+                    onClick={() => setGuestCount((c) => Math.max(1, (Number(c) || 1) - 1))}
+                    className="w-8 h-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 font-bold transition-colors cursor-pointer shrink-0"
+                    title="Kamaytirish"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={guestCount}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setGuestCount('');
+                      } else {
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num)) setGuestCount(num);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (guestCount === '' || Number(guestCount) < 1) {
+                        setGuestCount(1);
+                      }
+                    }}
+                    className="w-full text-center bg-transparent text-sm font-bold text-slate-900 focus:outline-none px-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setGuestCount((c) => Math.min(50, (Number(c) || 1) + 1))}
+                    className="w-8 h-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 font-bold transition-colors cursor-pointer shrink-0"
+                    title="Ko'paytirish"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
 

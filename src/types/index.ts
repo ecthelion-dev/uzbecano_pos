@@ -31,6 +31,7 @@ export interface DBProduct {
   variants?: ProductVariant[];
   addons?: ProductAddon[];
   sizes?: any;
+  recipe?: string;
 }
 
 export interface DBCategory {

@@ -35,6 +35,7 @@ export const CAFE_KEYS = [
   'carts',
   'cash_transactions',
   'categories',
+  'debt_customers',
   'is_frozen',
   'kitchen_printed',
   'logo',
@@ -295,6 +296,7 @@ export function removeGlobalKey(key: GlobalKey): void {
 export const OPERATIONAL_KEYS = [
   'carts',
   'cash_transactions',
+  'debt_customers',
   'kitchen_printed',
   'orders',
   'sync_queue',

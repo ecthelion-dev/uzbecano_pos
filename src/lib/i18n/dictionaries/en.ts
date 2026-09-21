@@ -67,6 +67,7 @@ export const en: Record<TranslationKey, string> = {
   'payment.cashTaken': 'Cash taken',
   'payment.toCard': 'To card',
   'payment.change': 'Change',
+  'payment.debt': 'Debt',
   'cart.payAndClose': 'PAY AND CLOSE',
   'cart.paymentType': 'Payment method:',
   'cart.receipt': 'Order receipt',

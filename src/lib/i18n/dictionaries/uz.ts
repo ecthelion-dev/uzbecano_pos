@@ -80,6 +80,7 @@ export const uz = {
   'payment.cashTaken': 'Naqd olindi',
   'payment.toCard': 'Kartaga',
   'payment.change': 'Qaytim',
+  'payment.debt': 'Qarz',
   'cart.payAndClose': "TO'LOV VA YOPISH",
   'cart.paymentType': "To'lov turi:",
   'cart.receipt': 'Buyurtma kvitansiyasi',

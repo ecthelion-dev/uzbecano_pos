@@ -141,21 +141,22 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <span className="text-xl font-bold text-slate-900">{money(grandTotal)}</span>
           </div>
 
-          {/* To'lov usullari: Naqd, Karta, Qarzga */}
-          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+          {/* To'lov usullari: Naqd, Karta, Qarz */}
+          <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => {
                 setPayMode('payment');
                 setEntry(presetEntry(grandTotal));
               }}
-              className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`h-12 rounded-xl text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 payMode === 'payment' && entered === grandTotal
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
             >
-              <Banknote className="w-4 h-4" /> {t('common.cash')}
+              <Banknote className="w-4 h-4 shrink-0" />
+              <span>{t('common.cash')}</span>
             </button>
             <button
               type="button"
@@ -163,24 +164,26 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 setPayMode('payment');
                 setEntry(presetEntry(0));
               }}
-              className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`h-12 rounded-xl text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 payMode === 'payment' && entered === 0
                   ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
             >
-              <CreditCard className="w-4 h-4" /> {t('common.card')}
+              <CreditCard className="w-4 h-4 shrink-0" />
+              <span>{t('common.card')}</span>
             </button>
             <button
               type="button"
               onClick={() => setPayMode('debt')}
-              className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`h-12 rounded-xl text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 payMode === 'debt'
-                  ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                  : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
             >
-              <PenLine className="w-4 h-4" /> {t('cart.debtCustomer')}
+              <PenLine className="w-4 h-4 shrink-0" />
+              <span>{t('payment.debt')}</span>
             </button>
           </div>
 
@@ -298,9 +301,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               type="button"
               onClick={confirmDebt}
               disabled={!debtName.trim()}
-              className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-2xl text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-2xl text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
-              <PenLine className="w-4 h-4" /> {t('cart.debtClose')}
+              <Check className="w-4 h-4" /> {t('cart.debtClose')}
             </button>
           )}
         </div>

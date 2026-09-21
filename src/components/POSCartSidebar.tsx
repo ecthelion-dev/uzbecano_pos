@@ -6,8 +6,9 @@ import {
   CheckCircle2,
   Printer,
   Shuffle,
+  PenLine,
 } from 'lucide-react';
-import { CartItem } from '../types';
+import { CartItem, DebtCustomerInfo } from '../types';
 import { CartItemRow } from './CartItemRow';
 import { KitchenItemRow } from './KitchenItemRow';
 import { useT } from '../lib/i18n/LanguageProvider';
@@ -31,10 +32,12 @@ interface POSCartSidebarProps {
   serviceFeePercent: number;
   serviceFee: number;
   grandTotal: number;
+  debtCustomer?: DebtCustomerInfo | null;
   onSendToKitchen: () => void;
   onCloseTable: () => void;
   onOpenReceiptPreview: () => void;
   onOpenTableMove: () => void;
+  onOpenDebtModal: () => void;
   /* Telefonda savat pastdan chiquvchi panel bo'lib ochiladi — uni yopish uchun. */
   onCloseMobile?: () => void;
 }
@@ -55,10 +58,12 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
   serviceFeePercent,
   serviceFee,
   grandTotal,
+  debtCustomer,
   onSendToKitchen,
   onCloseTable,
   onOpenReceiptPreview,
   onOpenTableMove,
+  onOpenDebtModal,
   onCloseMobile,
 }) => {
   const t = useT();
@@ -177,22 +182,50 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-1">
+          <div className="flex items-center gap-2 pt-1">
             <button
               onClick={onOpenReceiptPreview}
               disabled={activeTableOrderItems.length === 0 && cart.length === 0}
-              className="bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer active:scale-95"
+              className="flex-1 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer active:scale-95"
             >
               <Printer className="w-4 h-4 text-slate-500" /> {t('cart.printReceipt')}
             </button>
             <button
               onClick={onOpenTableMove}
               disabled={activeTableOrderItems.length === 0}
-              className="bg-orange-50 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed text-orange-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer active:scale-95"
+              className="flex-1 bg-orange-50 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed text-orange-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer active:scale-95"
             >
               <Shuffle className="w-4 h-4 text-orange-600" /> {t('cart.moveTable')}
             </button>
+            <button
+              type="button"
+              onClick={onOpenDebtModal}
+              disabled={activeTableOrderItems.length === 0 && cart.length === 0}
+              title={debtCustomer ? `${t('cart.debtCustomer')}: ${debtCustomer.name}` : t('cart.debtCustomer')}
+              className={`p-3 sm:p-2.5 rounded-xl text-xs flex items-center justify-center border transition-all cursor-pointer active:scale-95 shrink-0 ${
+                debtCustomer
+                  ? 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600 shadow-sm'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              <PenLine className="w-4 h-4" />
+            </button>
           </div>
+
+          {debtCustomer && (
+            <div
+              onClick={onOpenDebtModal}
+              className="bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-xl px-3 py-2 text-xs flex items-center justify-between text-amber-900 cursor-pointer transition-colors"
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <PenLine className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span className="font-semibold truncate">{debtCustomer.name}</span>
+              </div>
+              <span className="font-bold tabular-nums shrink-0 ml-2">
+                {debtCustomer.amount.toLocaleString()} {t('common.currency')}
+              </span>
+            </div>
+          )}
 
           <PromoCodeField promo={promo} canApply={canApplyPromo} onApply={onApplyPromo} />
         </div>

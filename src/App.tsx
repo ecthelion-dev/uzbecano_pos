@@ -60,7 +60,7 @@ import {
   checkStorageHealth,
 } from './lib/storage';
 import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
-import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant, DBReservation } from './types';
+import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant, DBReservation, DebtCustomerInfo } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
 import { decideFromStatus, newQueueId, withQueueIds } from './lib/syncQueue';
@@ -78,6 +78,7 @@ import { ArchiveModal } from './components/ArchiveModal';
 import { ShiftReportModal } from './components/ShiftReportModal';
 import { AdminPinModal } from './components/AdminPinModal';
 import { TableMoveModal } from './components/TableMoveModal';
+import { DebtCustomerModal } from './components/DebtCustomerModal';
 import { ProductModifierModal } from './components/ProductModifierModal';
 import { PaymentModal } from './components/PaymentModal';
 import { UnsavedCartModal } from './components/UnsavedCartModal';
@@ -192,6 +193,18 @@ export default function App() {
     writeCafeJson(resolveActiveCafeId(), 'carts', tableCarts);
   }, [tableCarts]);
 
+  const [tableDebtCustomers, setTableDebtCustomers] = useState<Record<string, DebtCustomerInfo>>(() => {
+    try {
+      return readCafeJson<Record<string, DebtCustomerInfo>>(resolveActiveCafeId(), 'debt_customers', {});
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    writeCafeJson(resolveActiveCafeId(), 'debt_customers', tableDebtCustomers);
+  }, [tableDebtCustomers]);
+
   // Ishga tushishda bir marta: disk yozadimi-o'qiydimi. Birinchi savdogacha
   // ko'rinsin — keyin bilib qolish kech bo'ladi.
   useEffect(() => {
@@ -203,6 +216,7 @@ export default function App() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
   const [showReceiptPreview, setShowReceiptPreview] = useState<boolean>(false);
+  const [showDebtModal, setShowDebtModal] = useState<boolean>(false);
   const [showArchiveModal, setShowArchiveModal] = useState<boolean>(false);
   // Davr hisoboti chop etilayotgan payt. Hisobot `window.print()` bilan
   // sahifadan chiqadi (`#thermal-print-area`), chek esa alohida hujjatda.
@@ -2799,7 +2813,8 @@ export default function App() {
           cashAmount: finalCash,
           cardAmount: finalCard,
           closedAt: latestOrder.closedAt || new Date().toISOString(),
-          waiterName: latestOrder.waiterName || currentWaiter?.name || 'Xodim'
+          waiterName: latestOrder.waiterName || currentWaiter?.name || 'Xodim',
+          debtCustomer: tableDebtCustomers[targetTable] ?? null,
         };
 
         const updatedOrders = currentOrders.map(o => o.id === latestOrder.id ? closedOrder : o);
@@ -2851,13 +2866,18 @@ export default function App() {
         }
       }
       setTableCarts(prev => ({ ...prev, [targetTable]: [] }));
+      setTableDebtCustomers(prev => {
+        const next = { ...prev };
+        delete next[targetTable];
+        return next;
+      });
       setToastMessage(`${targetTable} muvaffaqiyatli to'lanib yopildi!`);
       setTimeout(() => setToastMessage(null), 2500);
 
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt]);
+  }, [orders, selectedTable, tableCarts, tableDebtCustomers, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {
@@ -3343,6 +3363,8 @@ export default function App() {
                 }}
                 onOpenReceiptPreview={() => setShowReceiptPreview(true)}
                 onOpenTableMove={() => setShowTableMoveModal(true)}
+                debtCustomer={tableDebtCustomers[selectedTable] ?? null}
+                onOpenDebtModal={() => setShowDebtModal(true)}
               />
             </div>
           </>
@@ -3416,28 +3438,22 @@ export default function App() {
         cafeLogo={connectedCafeLogo}
         cafeAddress={connectedCafeAddress}
         cafePhone={connectedCafePhone}
+        debtCustomer={tableDebtCustomers[selectedTable] ?? null}
         onClose={() => setShowReceiptPreview(false)}
         onPrint={() => printReceiptOrFallback({
           id: activeTableOrder?.id || selectedTable,
           createdAt: new Date().toISOString(),
           tableNumber: selectedTable,
-          // Buyurtmani OLGAN ofitsiant, chekni bosayotgan odam emas.
-          // Ilgari bu yerda har doim hozir kirgan odam turardi va chekka
-          // admin nomi tushardi.
           waiterName: (activeTableOrder as any)?.waiterName || currentWaiter?.name || '',
           items: [...activeTableOrderItems, ...cart.map(c => ({
             name: c.product.name, quantity: c.quantity, price: c.product.price, note: c.note,
-            // Saboy belgisi ham ketadi. Tushib qolsa, hali tasdiqlanmagan
-            // qatorlar chekda oddiy taomdek chiqardi — tasdiqlangani esa
-            // to'g'ri, ya'ni xato faqat ba'zi cheklarda ko'rinardi.
             takeaway: c.takeaway,
           }))],
           subtotal,
           discount: discountAmount,
           serviceFee,
           total: grandTotal,
-          // To'lov turi ATAYLAB berilmayapti: bu stol hali yopilmagan va
-          // mijoz hech narsa to'lamagan. Chek uni bosmaydi.
+          debtCustomer: tableDebtCustomers[selectedTable] ?? null,
         })}
       />
 
@@ -3538,6 +3554,31 @@ export default function App() {
         orders={orders}
         onMoveTable={handleMoveTable}
         onClose={() => setShowTableMoveModal(false)}
+      />
+
+      <DebtCustomerModal
+        show={showDebtModal}
+        tableName={selectedTable}
+        grandTotal={grandTotal}
+        items={[...activeTableOrderItems, ...cart.map(c => ({
+          name: c.product.name, quantity: c.quantity, price: c.product.price, note: c.note,
+        }))]}
+        currentDebtCustomer={tableDebtCustomers[selectedTable] ?? null}
+        onSave={(customer) => {
+          setTableDebtCustomers(prev => ({ ...prev, [selectedTable]: customer }));
+          setToastMessage(t('toast.debtSaved', { table: selectedTable, name: customer.name }));
+          setTimeout(() => setToastMessage(null), 3000);
+        }}
+        onRemove={() => {
+          setTableDebtCustomers(prev => {
+            const next = { ...prev };
+            delete next[selectedTable];
+            return next;
+          });
+          setToastMessage(t('toast.debtRemoved', { table: selectedTable }));
+          setTimeout(() => setToastMessage(null), 2500);
+        }}
+        onClose={() => setShowDebtModal(false)}
       />
 
       <ReservationModal

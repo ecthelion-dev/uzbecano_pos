@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Printer, Banknote, CreditCard, PenLine } from 'lucide-react';
-import { DBWaiter } from '../types';
+import { DBWaiter, DebtCustomerInfo } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { TakeawayTag } from './TakeawayTag';
 import { formatClock } from '../lib/timeFormat';
@@ -24,6 +24,7 @@ interface ReceiptPreviewModalProps {
   cafeAddress?: string;
   cafePhone?: string;
   receiptHeader?: string;
+  debtCustomer?: DebtCustomerInfo | null;
   onClose: () => void;
   onPrint: () => void;
 }
@@ -60,16 +61,18 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   cafeAddress,
   cafePhone,
   receiptHeader,
+  debtCustomer,
   onClose,
   onPrint,
 }) => {
   const t = useT();
   if (!show) return null;
 
-  /* Bazadagi qiymat ("naqd"/"karta"/"aralash") — ekranga o'sha emas, tarjimasi chiqadi. */
+  /* Bazadagi qiymat ("naqd"/"karta"/"aralash"/"qarz") — ekranga o'sha emas, tarjimasi chiqadi. */
   const payLabel =
     paymentMethod === 'karta' ? t('common.card')
     : paymentMethod === 'aralash' ? t('common.mixed')
+    : paymentMethod === 'qarz' ? t('print.debtUpper')
     : paymentMethod ? t('common.cash')
     : '';
 
@@ -202,6 +205,47 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               </div>
             ) : null}
           </div>
+
+          {debtCustomer && (
+            <div className="border-t border-dashed border-slate-400 pt-2 text-xs space-y-1">
+              <div className="bg-amber-100 text-amber-900 font-bold text-center py-1 rounded text-xs tracking-wider uppercase">
+                *** {t('print.debtUpper')} ***
+              </div>
+              <div className="flex justify-between text-slate-700">
+                <span className="font-semibold">{t('print.debtCustomer')}:</span>
+                <span className="font-bold text-slate-900">{debtCustomer.name}</span>
+              </div>
+              {debtCustomer.phone && (
+                <div className="flex justify-between text-slate-700">
+                  <span>{t('print.debtPhone')}:</span>
+                  <span className="font-medium text-slate-800">{debtCustomer.phone}</span>
+                </div>
+              )}
+              {debtCustomer.amount > 0 && (
+                <div className="flex justify-between text-slate-700">
+                  <span className="font-semibold">{t('print.debtAmount')}:</span>
+                  <span className="font-bold text-amber-900">
+                    {debtCustomer.amount.toLocaleString()} {t('common.currency')}
+                  </span>
+                </div>
+              )}
+              {debtCustomer.dueDate && (
+                <div className="flex justify-between text-slate-700">
+                  <span>{t('print.debtDueDate')}:</span>
+                  <span className="font-medium text-slate-800">{debtCustomer.dueDate}</span>
+                </div>
+              )}
+              {debtCustomer.note && (
+                <div className="flex justify-between text-slate-700">
+                  <span>{t('print.note')}:</span>
+                  <span className="font-medium text-slate-800">{debtCustomer.note}</span>
+                </div>
+              )}
+              <div className="pt-2 text-slate-700 font-medium border-t border-dashed border-slate-300">
+                {t('print.signature')}: _________________
+              </div>
+            </div>
+          )}
 
           <div className="text-center pt-2 text-xs text-slate-500 font-sans">
             <p className="font-medium">{t('print.thanksVisit')}</p>

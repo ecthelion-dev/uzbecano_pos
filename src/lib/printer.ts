@@ -849,6 +849,7 @@ function buildReceiptLayout(
     karta: t('print.cardUpper'),
     card: t('print.cardUpper'),
     aralash: t('print.mixedUpper'),
+    qarz: t('print.debtUpper'),
   };
   // To'lov turi FAQAT ma'lum bo'lganda bosiladi.
   //
@@ -861,6 +862,26 @@ function buildReceiptLayout(
   // hech narsa to'lamagan, ya'ni aytadigan gap yo'q.
   const payMethodStr = paymentLabels[String(order.paymentMethod)];
   if (payMethodStr) metaRow(t('print.payMethod'), payMethodStr);
+
+  if (order.debtCustomer) {
+    row('- '.repeat(Math.floor(cols / 2)).trimEnd());
+    lines.push({ kind: 'banner', text: `*** ${t('print.debtUpper')} ***`, bold: true });
+    metaRow(t('print.debtCustomer'), String(order.debtCustomer.name || ''));
+    if (order.debtCustomer.phone) {
+      metaRow(t('print.debtPhone'), String(order.debtCustomer.phone));
+    }
+    if (order.debtCustomer.amount) {
+      metaRow(t('print.debtAmount'), `${fmtPrice(Number(order.debtCustomer.amount))} ${t('common.currency')}`);
+    }
+    if (order.debtCustomer.dueDate) {
+      metaRow(t('print.debtDueDate'), String(order.debtCustomer.dueDate));
+    }
+    if (order.debtCustomer.note) {
+      metaRow(t('print.note'), String(order.debtCustomer.note));
+    }
+    row();
+    row(`${t('print.signature')}: _________________`);
+  }
 
   row('- '.repeat(Math.floor(cols / 2)).trimEnd());
   row();

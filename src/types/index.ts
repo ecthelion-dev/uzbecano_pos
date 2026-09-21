@@ -109,6 +109,16 @@ export interface DBOrder {
   refundReason?: string;
   refundedAt?: string;
   refundedBy?: string;
+  debtCustomer?: DebtCustomerInfo | null;
+}
+
+export interface DebtCustomerInfo {
+  name: string;
+  phone?: string;
+  amount: number;
+  dueDate?: string;
+  note?: string;
+  createdAt?: string;
 }
 
 export interface DBWaiter {

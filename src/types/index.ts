@@ -109,11 +109,21 @@ export interface DBOrder {
   debtCustomerPhone?: string | null;
   debtDueDate?: string | null;
   debtNote?: string | null;
+  debtPayments?: DebtPaymentEntry[];
   refunded?: boolean;
   refundReason?: string;
   refundedAt?: string;
   refundedBy?: string;
   debtCustomer?: DebtCustomerInfo | null;
+}
+
+export interface DebtPaymentEntry {
+  id: string;
+  amount: number;
+  method: 'naqd' | 'karta';
+  paidAt: string;
+  paidBy?: string;
+  note?: string;
 }
 
 export interface DebtCustomerInfo {

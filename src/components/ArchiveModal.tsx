@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Receipt, Search, ArrowLeft, Printer, ChevronRight, Calendar, Clock, RotateCcw, X, Utensils, AlertTriangle, PenLine, User, Banknote, CreditCard, Shuffle } from 'lucide-react';
-import { DBOrder, DBWaiter } from '../types';
+import { DBOrder, DBWaiter, DebtPaymentEntry } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { TakeawayTag } from './TakeawayTag';
 import { formatClock, formatDateClock, maskTimeText, normalizeTimeText } from '../lib/timeFormat';
@@ -19,13 +19,14 @@ interface ArchiveModalProps {
   onSearchChange: (q: string) => void;
   onSelectArchiveOrder: (ord: DBOrder | null) => void;
   onRefundOrder?: (ord: DBOrder, reason: string) => void;
+  onPayDebt?: (ord: DBOrder, amount: number, method: 'naqd' | 'karta', note?: string) => Promise<boolean | void> | void;
   /** Tanlangan davrdagi sotuvlarni bitta hisobot qilib chop etadi. */
   onPrintPeriod?: (orders: DBOrder[], from: Date | null, to: Date | null) => void;
   onClose: () => void;
   onPrint: () => void;
 }
 
-type TimePreset = 'all' | 'today' | 'yesterday' | 'custom';
+type TimePreset = 'all' | 'today' | 'yesterday' | 'debts' | 'custom';
 
 export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   show,
@@ -41,6 +42,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   onSearchChange,
   onSelectArchiveOrder,
   onRefundOrder,
+  onPayDebt,
   onPrintPeriod,
   onClose,
   onPrint,
@@ -48,6 +50,14 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   const t = useT();
   const [showReasonSelect, setShowReasonSelect] = useState(false);
   const [refundReason, setRefundReason] = useState('Mijoz rad etdi');
+
+  // Debt Payment Modal State
+  const [showDebtPayModal, setShowDebtPayModal] = useState(false);
+  const [payAmountInput, setPayAmountInput] = useState('');
+  const [payMethod, setPayMethod] = useState<'naqd' | 'karta'>('naqd');
+  const [payNoteInput, setPayNoteInput] = useState('');
+  const [payError, setPayError] = useState<string | null>(null);
+  const [isSubmittingPay, setIsSubmittingPay] = useState(false);
 
   // Time & Date Filtering States
   const [timePreset, setTimePreset] = useState<TimePreset>('all');
@@ -57,8 +67,14 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   const [endDate, setEndDate] = useState(todayStr);
   const [endTime, setEndTime] = useState('23:59');
 
+  const unpaidDebtsCount = useMemo(() => {
+    return orders.filter(
+      (o: any) => o.status === 'served' && o.paymentMethod === 'qarz' && !o.refunded
+    ).length;
+  }, [orders]);
+
   // Filtered orders list and totals
-  const { filteredOrders, totalSum, cashTotal, cardTotal, refundedTotal, refundedCount } = useMemo(() => {
+  const { filteredOrders, totalSum, cashTotal, cardTotal, refundedTotal, refundedCount, debtTotalPending, debtCollectedInPeriod } = useMemo(() => {
     const served = orders.filter((o: any) => o.status === 'served');
 
     const now = new Date();
@@ -76,10 +92,18 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
         const matchTable = (ord.tableNumber || '').toLowerCase().includes(q);
         const matchId = (ord.id || '').toLowerCase().includes(q);
         const matchWaiter = (ord.closedBy || ord.waiterName || '').toLowerCase().includes(q);
-        if (!matchTable && !matchId && !matchWaiter) return false;
+        const matchCustomer =
+          (ord.debtCustomerName || '').toLowerCase().includes(q) ||
+          (ord.debtCustomerPhone || '').includes(q);
+        if (!matchTable && !matchId && !matchWaiter && !matchCustomer) return false;
       }
 
-      // 2. Date & Time filter
+      // 2. Preset filter
+      if (timePreset === 'debts') {
+        return ord.paymentMethod === 'qarz' && !ord.refunded;
+      }
+
+      // 3. Date & Time filter
       const dateVal = ord.closedAt ? new Date(ord.closedAt) : (ord.createdAt ? new Date(ord.createdAt) : null);
       if (!dateVal || isNaN(dateVal.getTime())) return timePreset === 'all';
 
@@ -105,9 +129,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
     let card = 0;
     let refunded = 0;
     let refundedQty = 0;
+    let debtPending = 0;
+    let debtCollected = 0;
 
-    // Qaytarilgan chek kassada pul qoldirmaydi — uni tushumga qo'shsak,
-    // ekrandagi "Jami" haqiqiy puldan katta bo'lib chiqadi.
+    // 1. Regular orders closed in this period (excluding qarz)
     filtered.forEach((ord: any) => {
       const tot = ord.total || 0;
       if (ord.refunded) {
@@ -115,13 +140,48 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
         refundedQty += 1;
         return;
       }
-      if (ord.paymentMethod === 'aralash') {
-        cash += ord.cashAmount || 0;
-        card += ord.cardAmount || 0;
-      } else if (ord.paymentMethod === 'karta') {
-        card += tot;
-      } else {
-        cash += tot;
+      if (ord.paymentMethod === 'qarz') {
+        const payments = Array.isArray(ord.debtPayments) ? ord.debtPayments : [];
+        const paidSoFar = payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+        debtPending += Math.max(0, tot - paidSoFar);
+      } else if (!Array.isArray(ord.debtPayments) || ord.debtPayments.length === 0) {
+        if (ord.paymentMethod === 'aralash') {
+          cash += ord.cashAmount || 0;
+          card += ord.cardAmount || 0;
+        } else if (ord.paymentMethod === 'karta') {
+          card += tot;
+        } else {
+          cash += tot;
+        }
+      }
+    });
+
+    // 2. Add debt collections that occurred within this selected period
+    // Qarz qachon ochilganidan qat'i nazar, to'lov bugun (yoki tanlangan davrda) bo'lsa o'sha davr tushumiga qo'shiladi!
+    orders.forEach((ord: any) => {
+      if (ord.status === 'served' && !ord.refunded && Array.isArray(ord.debtPayments)) {
+        ord.debtPayments.forEach((p: any) => {
+          const pTime = p?.paidAt ? new Date(p.paidAt).getTime() : 0;
+          let inPeriod = false;
+          if (timePreset === 'today') {
+            inPeriod = pTime >= todayStart.getTime() && pTime <= todayEnd.getTime();
+          } else if (timePreset === 'yesterday') {
+            inPeriod = pTime >= yesterdayStart.getTime() && pTime <= yesterdayEnd.getTime();
+          } else if (timePreset === 'custom') {
+            const s = new Date(`${startDate}T${startTime || '00:00'}:00`).getTime();
+            const e = new Date(`${endDate}T${endTime || '23:59'}:59`).getTime();
+            inPeriod = pTime >= s && pTime <= e;
+          } else if (timePreset === 'all' || timePreset === 'debts') {
+            inPeriod = true;
+          }
+
+          if (inPeriod) {
+            const amt = Math.max(0, Number(p.amount) || 0);
+            if (p.method === 'karta') card += amt;
+            else cash += amt;
+            debtCollected += amt;
+          }
+        });
       }
     });
 
@@ -132,6 +192,8 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       cardTotal: card,
       refundedTotal: refunded,
       refundedCount: refundedQty,
+      debtTotalPending: debtPending,
+      debtCollectedInPeriod: debtCollected,
     };
   }, [orders, archiveSearch, timePreset, startDate, startTime, endDate, endTime]);
 
@@ -160,6 +222,37 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
     return stamps.length ? [stamps[0], stamps[stamps.length - 1]] : [null, null];
   }, [timePreset, startDate, startTime, endDate, endTime, filteredOrders]);
 
+  const handleConfirmDebtPayment = async () => {
+    if (!selectedArchiveOrder || !onPayDebt) return;
+    const amount = Number(payAmountInput);
+    if (!amount || isNaN(amount) || amount <= 0) {
+      setPayError(t('archive.debtPayInvalidAmount'));
+      return;
+    }
+
+    const existingPayments = Array.isArray(selectedArchiveOrder.debtPayments)
+      ? selectedArchiveOrder.debtPayments
+      : [];
+    const paidSoFar = existingPayments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+    const remainingDebt = Math.max(0, (selectedArchiveOrder.total || 0) - paidSoFar);
+
+    if (amount > remainingDebt) {
+      setPayError(t('archive.debtPayAmountExceeds', { max: remainingDebt.toLocaleString(), currency: t('common.currency') }));
+      return;
+    }
+
+    try {
+      setIsSubmittingPay(true);
+      setPayError(null);
+      await onPayDebt(selectedArchiveOrder, amount, payMethod, payNoteInput.trim() || undefined);
+      setShowDebtPayModal(false);
+    } catch (err: any) {
+      setPayError(err?.message || t('archive.debtPayError'));
+    } finally {
+      setIsSubmittingPay(false);
+    }
+  };
+
   if (!show) return null;
 
   return (
@@ -176,24 +269,25 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-base sm:text-xl text-slate-900 tracking-tight">{t('archive.title')}</h3>
-              <p className="text-xs text-slate-500 font-medium hidden sm:block">{t('archive.subtitle')}</p>
+              <h3 className="font-bold text-base sm:text-lg text-slate-900 leading-tight">
+                {t('archive.title')}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium">
+                {t('archive.subtitle')}
+              </p>
             </div>
           </div>
           <button
-            onClick={() => {
-              onClose();
-              onSelectArchiveOrder(null);
-            }}
-            className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-lg transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            ×
           </button>
         </div>
 
         {selectedArchiveOrder ? (
-          /* SINGLE RECEIPT DETAIL VIEW */
-          <div className="space-y-4 overflow-y-auto pr-2 flex-1">
+          /* SINGLE RECEIPT PREVIEW VIEW */
+          <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-1">
             <button
               onClick={() => onSelectArchiveOrder(null)}
               className="flex items-center gap-2 text-sm font-bold text-orange-600 hover:text-orange-700 cursor-pointer bg-orange-50 hover:bg-orange-100 px-4 py-2 rounded-xl border border-orange-200 transition-colors w-fit shadow-2xs"
@@ -201,7 +295,14 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               <ArrowLeft className="w-4 h-4" /> {t('archive.backToList')}
             </button>
 
-            <div id="printable-receipt" className="bg-amber-50/50 p-4 sm:p-6 rounded-3xl border-2 border-amber-200/80 font-mono text-sm text-slate-800 space-y-3.5 shadow-sm max-w-lg mx-auto">
+            <div
+              id="printable-receipt"
+              className={`${
+                selectedArchiveOrder.paymentMethod === 'qarz'
+                  ? 'bg-rose-50/90 border-2 border-rose-300 shadow-md shadow-rose-100 ring-4 ring-rose-100/50'
+                  : 'bg-amber-50/50 border-2 border-amber-200/80 shadow-sm'
+              } p-4 sm:p-6 rounded-3xl font-mono text-sm text-slate-800 space-y-3.5 max-w-lg mx-auto transition-all`}
+            >
               <div className="text-center space-y-1.5 border-b-2 border-dashed border-slate-400 pb-3">
                 <div className="flex flex-col items-center justify-center gap-1">
                   {cafeLogo ? (
@@ -235,14 +336,94 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 </p>
               </div>
 
-              <div className="flex justify-between items-center text-sm font-semibold text-slate-800 border-b-2 border-dashed border-slate-400 pb-2.5">
-                <span className="font-bold text-lg text-slate-900">{selectedArchiveOrder.tableNumber}</span>
-                {selectedArchiveOrder.refunded ? (
-                  <span className="bg-rose-100 text-rose-800 px-3 py-0.5 rounded-xl font-bold text-xs">{t('archive.refunded')}</span>
-                ) : (
-                  <span className="bg-emerald-100 text-emerald-800 px-3 py-0.5 rounded-xl font-bold text-xs">{t('archive.paid')}</span>
-                )}
-              </div>
+              {(() => {
+                const isDebt = selectedArchiveOrder.paymentMethod === 'qarz';
+                const payments = Array.isArray(selectedArchiveOrder.debtPayments)
+                  ? selectedArchiveOrder.debtPayments
+                  : [];
+                const paidSoFar = payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+                const remainingDebt = Math.max(0, (selectedArchiveOrder.total || 0) - paidSoFar);
+
+                return (
+                  <>
+                    <div className="flex justify-between items-center text-sm font-semibold text-slate-800 border-b-2 border-dashed border-slate-400 pb-2.5">
+                      <span className="font-bold text-lg text-slate-900">{selectedArchiveOrder.tableNumber}</span>
+                      {selectedArchiveOrder.refunded ? (
+                        <span className="bg-rose-100 text-rose-800 px-3 py-0.5 rounded-xl font-bold text-xs">{t('archive.refunded')}</span>
+                      ) : isDebt ? (
+                        <span className="bg-rose-100 text-rose-800 border border-rose-300 px-3 py-0.5 rounded-xl font-bold text-xs flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-rose-600" />
+                          <span>{t('payment.debt')}</span>
+                        </span>
+                      ) : (
+                        <span className="bg-emerald-100 text-emerald-800 px-3 py-0.5 rounded-xl font-bold text-xs">{t('archive.paid')}</span>
+                      )}
+                    </div>
+
+                    {/* Qarzdorlik ma'lumotlari kartasi */}
+                    {isDebt && (
+                      <div className="bg-rose-50 border border-rose-200 p-3.5 rounded-2xl text-xs space-y-2 font-sans">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-rose-900 flex items-center gap-1.5 text-sm">
+                            <Clock className="w-4 h-4 text-rose-600" /> {t('archive.debtDetails')}
+                          </span>
+                          <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-300">
+                            {paidSoFar > 0 ? t('archive.debtPartialPaid') : t('archive.debtUnpaid')}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-slate-700">
+                          <div>
+                            <span className="text-slate-400 block text-[10px]">{t('archive.debtCustomer')}</span>
+                            <strong className="text-slate-900 font-bold">{selectedArchiveOrder.debtCustomerName || t('archive.debtCustomerDefault')}</strong>
+                            {selectedArchiveOrder.debtCustomerPhone && (
+                              <p className="text-slate-500 font-medium text-[11px]">{selectedArchiveOrder.debtCustomerPhone}</p>
+                            )}
+                          </div>
+                          {selectedArchiveOrder.debtDueDate && (
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">{t('archive.debtDueDate')}</span>
+                              <strong className="text-slate-900 font-bold">{new Date(selectedArchiveOrder.debtDueDate).toLocaleDateString()}</strong>
+                            </div>
+                          )}
+                        </div>
+                        {selectedArchiveOrder.debtNote && (
+                          <div className="text-slate-600 bg-white/80 p-2 rounded-xl border border-rose-100 italic text-[11px]">
+                            {t('print.note')}: {selectedArchiveOrder.debtNote}
+                          </div>
+                        )}
+                        <div className="border-t border-rose-200/60 pt-2 flex items-center justify-between font-semibold">
+                          <span className="text-slate-600">{t('archive.debtTotalBill')}</span>
+                          <span className="text-slate-900 font-bold">{(selectedArchiveOrder.total || 0).toLocaleString()} {t('common.currency')}</span>
+                        </div>
+                        {paidSoFar > 0 && (
+                          <div className="flex items-center justify-between text-emerald-700 font-semibold">
+                            <span>{t('archive.debtPaidAmount')}</span>
+                            <span className="font-bold">+{paidSoFar.toLocaleString()} {t('common.currency')}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between text-rose-700 font-bold text-sm bg-rose-100/70 p-2 rounded-xl">
+                          <span>{t('archive.debtRemaining')}</span>
+                          <span className="text-base font-extrabold">{remainingDebt.toLocaleString()} {t('common.currency')}</span>
+                        </div>
+
+                        {payments.length > 0 && (
+                          <div className="space-y-1 pt-1">
+                            <span className="text-[10px] font-bold text-slate-500 block">{t('archive.debtPrevPayments')}</span>
+                            {payments.map((p: any, idx: number) => (
+                              <div key={p.id || idx} className="flex items-center justify-between text-[11px] bg-white/90 px-2 py-1 rounded-lg border border-rose-100">
+                                <span className="text-slate-600">
+                                  {idx + 1}. {p.paidAt ? formatDateClock(new Date(p.paidAt)) : ''} ({p.method === 'karta' ? t('common.card') : t('common.cash')})
+                                </span>
+                                <span className="font-bold text-emerald-700">+{p.amount.toLocaleString()} {t('common.currency')}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {selectedArchiveOrder.refunded && selectedArchiveOrder.refundReason && (
                   <div className="bg-rose-50 border border-rose-200 p-2.5 rounded-2xl text-xs text-rose-800 font-bold">
@@ -270,9 +451,6 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                             <TakeawayTag item={item} className="ml-1.5" />
                           </p>
                           <p className="text-[11px] text-slate-600 font-medium">{item.quantity} x {(item.price || 0).toLocaleString()} {t('common.currency')}</p>
-                          {/* Kassa `note`, server esa `notes` deb saqlaydi.
-                              Bittasini o'qib ikkinchisini unutish arxivdagi
-                              chekdan izohni jimgina yo'qotardi. */}
                           {(item.note || item.notes) && (
                             <p className="text-[11px] font-semibold text-amber-900 mt-0.5">
                               <PenLine className="w-3 h-3 inline mr-0.5" />{item.note || item.notes}
@@ -302,6 +480,11 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       <span className="font-semibold">{(selectedArchiveOrder.cardAmount || 0).toLocaleString()} {t('common.currency')}</span>
                     </div>
                   </>
+                ) : selectedArchiveOrder.paymentMethod === 'qarz' ? (
+                  <div className="flex justify-between text-rose-700 text-xs font-bold">
+                    <span>{t('archive.debtStatus')}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {t('archive.debtStatusLabel')}</span>
+                  </div>
                 ) : (
                   <div className="flex justify-between text-slate-700 text-xs">
                     <span>{t('cart.paymentType')}</span>
@@ -355,7 +538,9 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
             <div
               className={`grid ${
-                !selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect
+                selectedArchiveOrder.paymentMethod === 'qarz' && onPayDebt && !selectedArchiveOrder.refunded
+                  ? 'grid-cols-1 sm:grid-cols-2'
+                  : !selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect
                   ? 'grid-cols-2'
                   : 'grid-cols-1'
               } gap-2.5 pt-1 max-w-lg mx-auto w-full`}
@@ -370,6 +555,28 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                   <span className="sm:hidden">{t('common.print')}</span>
                 </span>
               </button>
+
+              {selectedArchiveOrder.paymentMethod === 'qarz' && onPayDebt && !selectedArchiveOrder.refunded && (
+                <button
+                  onClick={() => {
+                    const existingPayments = Array.isArray(selectedArchiveOrder.debtPayments)
+                      ? selectedArchiveOrder.debtPayments
+                      : [];
+                    const paidSoFar = existingPayments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+                    const remainingDebt = Math.max(0, (selectedArchiveOrder.total || 0) - paidSoFar);
+                    setPayAmountInput(String(remainingDebt));
+                    setPayMethod('naqd');
+                    setPayNoteInput('');
+                    setPayError(null);
+                    setShowDebtPayModal(true);
+                  }}
+                  className="h-11 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm inline-flex items-center justify-center gap-2 whitespace-nowrap shadow-sm shadow-emerald-600/25 transition-all cursor-pointer active:scale-98"
+                >
+                  <Banknote className="w-4 h-4 shrink-0" />
+                  <span>{t('archive.payDebt')}</span>
+                </button>
+              )}
+
               {!selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect && (
                 <button
                   onClick={() => setShowReasonSelect(true)}
@@ -407,19 +614,38 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 chiqib ketardi — surilishini esa hech narsa ko'rsatmasdi,
                 ya'ni sana oralig'ini ochadigan tugma yo'qdek edi.
               */}
-              <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200 w-full sm:w-auto sm:shrink-0">
+              <div className="flex flex-wrap sm:grid sm:grid-cols-5 gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200 w-full sm:w-auto sm:shrink-0">
                 {[
                   { id: 'all', label: t('archive.filterAll') },
                   { id: 'today', label: t('archive.filterToday') },
                   { id: 'yesterday', label: t('archive.filterYesterday') },
+                  {
+                    id: 'debts',
+                    label: (
+                      <span className="flex items-center justify-center gap-1">
+                        <span>{t('archive.filterDebts')}</span>
+                        {unpaidDebtsCount > 0 && (
+                          <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                            timePreset === 'debts' ? 'bg-white text-rose-600' : 'bg-rose-500 text-white'
+                          }`}>
+                            {unpaidDebtsCount}
+                          </span>
+                        )}
+                      </span>
+                    ),
+                  },
                   { id: 'custom', label: t('archive.filterCustom') },
                 ].map((preset) => (
                   <button
                     key={preset.id}
                     onClick={() => setTimePreset(preset.id as TimePreset)}
-                    className={`px-1.5 sm:px-3.5 py-1.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all whitespace-nowrap truncate cursor-pointer ${
+                    className={`px-1.5 sm:px-3 py-1.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all whitespace-nowrap truncate cursor-pointer ${
                       timePreset === preset.id
-                        ? 'bg-orange-500 text-white shadow-sm'
+                        ? preset.id === 'debts'
+                          ? 'bg-rose-600 text-white shadow-sm'
+                          : 'bg-orange-500 text-white shadow-sm'
+                        : preset.id === 'debts'
+                        ? 'text-rose-700 hover:bg-rose-50'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                     }`}
                   >
@@ -441,22 +667,6 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       onChange={(e) => setStartDate(e.target.value)}
                       className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
                     />
-                    {/*
-                      Oddiy maydon, `type="time"` emas.
-                      Brauzerning o'z vaqt maydoni AM/PM ni QURILMA tiliga
-                      qarab ko'rsatadi va buni sahifadan boshqarib
-                      bo'lmaydi: ingliz tiliga sozlangan telefonda kassir
-                      "8:00 AM" ni ko'rardi. Yozilganini tartibga solish
-                      lib/timeFormat.ts da.
-
-                      `onChange` endi xom qiymatni emas, `maskTimeText`
-                      natijasini yozadi — shuning uchun "s324242" kabi harf
-                      aralashgan matn ekranda umuman ko'rinmaydi, faqat
-                      raqamlar va ular orasidagi ":" qoladi. Diapazonga
-                      (23:59) qisqartirish esa maydondan chiqilgandagina
-                      (`onBlur`) bo'ladi — hali yozib turgan kassirni
-                      to'sqinlik qilmasin.
-                    */}
                     <input
                       type="text"
                       inputMode="numeric"
@@ -529,6 +739,22 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     </span>
                   </>
                 )}
+                {debtTotalPending > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="text-rose-600">
+                      {t('archive.debtPendingSummary')} <strong className="font-bold">{debtTotalPending.toLocaleString()} {t('common.currency')}</strong>
+                    </span>
+                  </>
+                )}
+                {debtCollectedInPeriod > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      {t('archive.debtCollectedSummary')} <strong>+{debtCollectedInPeriod.toLocaleString()} {t('common.currency')}</strong>
+                    </span>
+                  </>
+                )}
                 <span>•</span>
                 <span className="bg-orange-500 text-white px-3 py-1 rounded-lg font-bold text-xs shadow-xs">
                   {t('common.total')} {totalSum.toLocaleString()} {t('common.currency')}
@@ -563,22 +789,36 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                     if (Array.isArray(parsed)) itemsCount = parsed.length;
                   } catch {}
 
+                  const isDebt = ord.paymentMethod === 'qarz';
+                  const payments: DebtPaymentEntry[] = Array.isArray(ord.debtPayments) ? ord.debtPayments : [];
+                  const paidSoFar = payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+                  const remainingDebt = Math.max(0, (ord.total || 0) - paidSoFar);
+
                   const orderDate = ord.closedAt ? new Date(ord.closedAt) : (ord.createdAt ? new Date(ord.createdAt) : null);
 
                   return (
                     <div
                       key={ord.id}
                       onClick={() => onSelectArchiveOrder(ord)}
-                      className="bg-white hover:bg-orange-50/50 border border-slate-200 hover:border-orange-300 rounded-2xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer transition-all shadow-2xs hover:shadow-xs group active:scale-[0.995]"
+                      className={`${
+                        isDebt
+                          ? 'bg-rose-50/80 hover:bg-rose-100/70 border-2 border-rose-300 hover:border-rose-400'
+                          : 'bg-white hover:bg-orange-50/50 border border-slate-200 hover:border-orange-300'
+                      } rounded-2xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer transition-all shadow-2xs hover:shadow-xs group active:scale-[0.995]`}
                     >
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
-                          <span className="font-bold text-base text-slate-900 group-hover:text-orange-600 transition-colors">
+                          <span className={`font-bold text-base transition-colors ${isDebt ? 'text-rose-950 group-hover:text-rose-700' : 'text-slate-900 group-hover:text-orange-600'}`}>
                             {ord.tableNumber}
                           </span>
                           {ord.refunded ? (
                             <span className="text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
                               {t('archive.refundedShort')}
+                            </span>
+                          ) : isDebt ? (
+                            <span className="text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-rose-600" />
+                              <span>{t('payment.debt')}</span>
                             </span>
                           ) : (
                             <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
@@ -588,34 +828,51 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                           <span className="text-xs font-medium text-slate-400">
                             #{ord.id.slice(-6)}
                           </span>
+                          {isDebt && (ord.debtCustomerName || ord.debtCustomerPhone) && (
+                            <span className="text-xs font-bold text-rose-900 bg-rose-100/70 px-2 py-0.5 rounded-lg border border-rose-200 flex items-center gap-1">
+                              <User className="w-3 h-3 text-rose-600" />
+                              <span>{ord.debtCustomerName || t('archive.debtCustomerDefault')}</span>
+                              {ord.debtCustomerPhone && <span className="text-rose-700 font-normal">({ord.debtCustomerPhone})</span>}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-slate-500 font-medium flex items-center gap-2 sm:gap-2.5 flex-wrap">
                           {(ord.closedBy || ord.waiterName) && <span className="flex items-center gap-0.5"><User className="w-3 h-3" />{ord.closedBy || ord.waiterName}</span>}
                           <span className="flex items-center gap-0.5"><Utensils className="w-3 h-3" />{t('common.dishCount', { n: itemsCount })}</span>
                           <span>•</span>
                           <span className="font-semibold text-slate-700">
-                            {ord.paymentMethod === 'karta'
-                              ? <span className="flex items-center gap-0.5"><CreditCard className="w-3 h-3" /> {t('common.card')}</span>
-                              : ord.paymentMethod === 'aralash'
-                              ? <span className="flex items-center gap-0.5"><Shuffle className="w-3 h-3" /> {t('common.mixed')}</span>
-                              : <span className="flex items-center gap-0.5"><Banknote className="w-3 h-3" /> {t('common.cash')}</span>}
+                            {isDebt ? (
+                              <span className="flex items-center gap-0.5 text-rose-700 font-bold">
+                                <Clock className="w-3 h-3 text-rose-600" /> {t('payment.debt')}
+                              </span>
+                            ) : ord.paymentMethod === 'karta' ? (
+                              <span className="flex items-center gap-0.5"><CreditCard className="w-3 h-3" /> {t('common.card')}</span>
+                            ) : ord.paymentMethod === 'aralash' ? (
+                              <span className="flex items-center gap-0.5"><Shuffle className="w-3 h-3" /> {t('common.mixed')}</span>
+                            ) : (
+                              <span className="flex items-center gap-0.5"><Banknote className="w-3 h-3" /> {t('common.cash')}</span>
+                            )}
                           </span>
                         </p>
                       </div>
 
                       <div className="text-left sm:text-right flex items-center justify-between sm:justify-end gap-3.5 border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0">
                         <div>
-                          <p className="font-bold text-base text-slate-900 group-hover:text-orange-600 transition-colors">
-                            {(ord.total || 0).toLocaleString()} {t('common.currency')}
+                          <p className={`font-bold text-base transition-colors ${isDebt ? 'text-rose-600 group-hover:text-rose-700' : 'text-slate-900 group-hover:text-orange-600'}`}>
+                            {(isDebt ? remainingDebt : (ord.total || 0)).toLocaleString()} {t('common.currency')}
                           </p>
-                          {orderDate && (
+                          {isDebt ? (
+                            <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">
+                              {paidSoFar > 0 ? t('archive.debtPaidBadge', { amount: paidSoFar.toLocaleString() }) : t('archive.debtRemainingBadge')}
+                            </p>
+                          ) : orderDate && (
                             <p className="text-xs font-medium text-slate-400 flex items-center justify-start sm:justify-end gap-1 mt-0.5">
                               <Calendar className="w-3 h-3" />
                               {formatDateClock(orderDate)}
                             </p>
                           )}
                         </div>
-                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-orange-500 transition-colors" />
+                        <ChevronRight className={`w-5 h-5 transition-colors ${isDebt ? 'text-rose-400 group-hover:text-rose-600' : 'text-slate-400 group-hover:text-orange-500'}`} />
                       </div>
                     </div>
                   );
@@ -624,6 +881,151 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* Modal: Qarzni to'lash (qisman yoki to'liq) */}
+        {showDebtPayModal && selectedArchiveOrder && (() => {
+          const payments = Array.isArray(selectedArchiveOrder.debtPayments)
+            ? selectedArchiveOrder.debtPayments
+            : [];
+          const paidSoFar = payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+          const remainingDebt = Math.max(0, (selectedArchiveOrder.total || 0) - paidSoFar);
+
+          return (
+            <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-60 animate-fadeIn">
+              <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="bg-emerald-100 text-emerald-700 p-2.5 rounded-2xl">
+                      <Banknote className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-base">{t('archive.payDebt')}</h4>
+                      <p className="text-xs text-slate-500">
+                        {selectedArchiveOrder.debtCustomerName || t('archive.debtCustomerDefault')} ({selectedArchiveOrder.tableNumber})
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowDebtPayModal(false)}
+                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-lg cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="bg-rose-50 border border-rose-200 p-3.5 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-rose-800 block">{t('archive.debtPendingSummary')}</span>
+                    {paidSoFar > 0 && (
+                      <span className="text-[11px] text-emerald-700 font-medium">{t('archive.debtPaidAmount')} +{paidSoFar.toLocaleString()} {t('common.currency')}</span>
+                    )}
+                  </div>
+                  <span className="text-lg font-black text-rose-700">{remainingDebt.toLocaleString()} {t('common.currency')}</span>
+                </div>
+
+                {/* To'lov summasi kiritish */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-slate-700">{t('archive.debtPayAmountLabel', { currency: t('common.currency') })}</label>
+                    <span className="text-[11px] text-slate-500 font-medium">{t('archive.debtPayAmountHint')}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    max={remainingDebt}
+                    value={payAmountInput}
+                    onChange={(e) => setPayAmountInput(e.target.value)}
+                    className="w-full h-11 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder={t('archive.debtPayEnterAmount')}
+                    autoFocus
+                  />
+                  <div className="flex gap-1.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setPayAmountInput(String(remainingDebt))}
+                      className="flex-1 py-1.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      {t('archive.debtPayFull', { amount: remainingDebt.toLocaleString() })}
+                    </button>
+                    {remainingDebt >= 20000 && (
+                      <button
+                        type="button"
+                        onClick={() => setPayAmountInput(String(Math.round(remainingDebt / 2)))}
+                        className="flex-1 py-1.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        {t('archive.debtPayHalf', { amount: Math.round(remainingDebt / 2).toLocaleString() })}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* To'lov usuli: Naqd yoki Karta */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">{t('archive.debtPayMethod')}</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPayMethod('naqd')}
+                      className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        payMethod === 'naqd'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      <Banknote className="w-4 h-4" /> {t('archive.debtPayCash')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPayMethod('karta')}
+                      className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        payMethod === 'karta'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4" /> {t('archive.debtPayCard')}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Izoh */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700">{t('archive.debtPayNote')}</label>
+                  <input
+                    type="text"
+                    placeholder={t('archive.debtPayNotePlaceholder')}
+                    value={payNoteInput}
+                    onChange={(e) => setPayNoteInput(e.target.value)}
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                {payError && (
+                  <p className="text-xs text-rose-600 font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                    {payError}
+                  </p>
+                )}
+
+                <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-100">
+                  <button
+                    disabled={isSubmittingPay}
+                    onClick={handleConfirmDebtPayment}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-2 rounded-xl text-xs cursor-pointer shadow-md transition-all active:scale-98 disabled:opacity-50"
+                  >
+                    {isSubmittingPay ? t('archive.debtPaySubmitting') : t('archive.debtPayConfirm')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDebtPayModal(false)}
+                    className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2.5 px-2 rounded-xl text-xs cursor-pointer transition-all active:scale-98"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

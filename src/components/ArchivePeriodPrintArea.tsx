@@ -119,15 +119,32 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
 
       serviceFee += Number(ord.serviceFee) || 0;
       discount += Number(ord.discountAmount) || 0;
-      paid += tot;
 
       if (ord.paymentMethod === 'aralash') {
         cash += Number(ord.cashAmount) || 0;
         card += Number(ord.cardAmount) || 0;
+        paid += tot;
       } else if (ord.paymentMethod === 'karta') {
         card += tot;
+        paid += tot;
+      } else if (ord.paymentMethod === 'qarz') {
+        // Qarz buyurtmasi to'liq to'lanmagan: faqat qabul qilingan qarz to'lovlari hisoblanadi
+        if (Array.isArray(ord.debtPayments)) {
+          ord.debtPayments.forEach((p: any) => {
+            const pTime = p?.paidAt ? new Date(p.paidAt).getTime() : 0;
+            const fromTime = data.from ? data.from.getTime() : 0;
+            const toTime = data.to ? data.to.getTime() : Infinity;
+            if (pTime >= fromTime && pTime <= toTime) {
+              const amt = Number(p.amount) || 0;
+              if (p.method === 'karta') card += amt;
+              else cash += amt;
+              paid += amt;
+            }
+          });
+        }
       } else {
         cash += tot;
+        paid += tot;
       }
     });
 

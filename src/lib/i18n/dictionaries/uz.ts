@@ -230,6 +230,8 @@ export const uz = {
   'archive.refundReason': 'Qaytarish sababini tanlang:',
   'archive.confirmAdminPin': 'TASDIQLASH (ADMIN PIN)',
   'archive.printReceipt': 'CHEKNI CHOP ETISH',
+  'archive.printShort': 'Chop etish',
+  'archive.refundAction': 'Qaytarish',
   'archive.closedReceipt': 'Yopilgan chek: #',
   'archive.refundReasonLabel': 'Qaytarish sababi:',
   'archive.receiptCount': '{n} ta chek',

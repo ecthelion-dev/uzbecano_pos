@@ -299,9 +299,9 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               id="printable-receipt"
               className={`${
                 selectedArchiveOrder.paymentMethod === 'qarz'
-                  ? 'bg-rose-50/90 border-2 border-rose-300 shadow-md shadow-rose-100 ring-4 ring-rose-100/50'
+                  ? 'bg-rose-50/90 border-2 border-rose-300 shadow-md shadow-rose-100 ring-2 ring-rose-100/50'
                   : 'bg-amber-50/50 border-2 border-amber-200/80 shadow-sm'
-              } p-4 sm:p-6 rounded-3xl font-mono text-sm text-slate-800 space-y-3.5 max-w-lg mx-auto transition-all`}
+              } p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl font-mono text-xs sm:text-sm text-slate-800 space-y-2.5 sm:space-y-3 max-w-md mx-auto transition-all`}
             >
               <div className="text-center space-y-1.5 border-b-2 border-dashed border-slate-400 pb-3">
                 <div className="flex flex-col items-center justify-center gap-1">
@@ -536,59 +536,54 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
               </div>
             )}
 
-            <div
-              className={`grid ${
-                selectedArchiveOrder.paymentMethod === 'qarz' && onPayDebt && !selectedArchiveOrder.refunded
-                  ? 'grid-cols-1 sm:grid-cols-2'
-                  : !selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect
-                  ? 'grid-cols-2'
-                  : 'grid-cols-1'
-              } gap-2.5 pt-1 max-w-lg mx-auto w-full`}
-            >
-              <button
-                onClick={onPrint}
-                className="h-11 px-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs sm:text-sm inline-flex items-center justify-center gap-2 whitespace-nowrap shadow-sm shadow-orange-500/25 transition-all cursor-pointer active:scale-98"
-              >
-                <Printer className="w-4 h-4 shrink-0" />
-                <span>
-                  <span className="hidden sm:inline">{t('archive.printReceipt')}</span>
-                  <span className="sm:hidden">{t('common.print')}</span>
-                </span>
-              </button>
+            {(() => {
+              const canPayDebt = selectedArchiveOrder.paymentMethod === 'qarz' && !!onPayDebt && !selectedArchiveOrder.refunded;
+              const canRefund = !selectedArchiveOrder.refunded && !!onRefundOrder && !showReasonSelect;
+              const colsClass = canPayDebt && canRefund ? 'grid-cols-3' : (canPayDebt || canRefund ? 'grid-cols-2' : 'grid-cols-1');
 
-              {selectedArchiveOrder.paymentMethod === 'qarz' && onPayDebt && !selectedArchiveOrder.refunded && (
-                <button
-                  onClick={() => {
-                    const existingPayments = Array.isArray(selectedArchiveOrder.debtPayments)
-                      ? selectedArchiveOrder.debtPayments
-                      : [];
-                    const paidSoFar = existingPayments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
-                    const remainingDebt = Math.max(0, (selectedArchiveOrder.total || 0) - paidSoFar);
-                    setPayAmountInput(String(remainingDebt));
-                    setPayMethod('naqd');
-                    setPayNoteInput('');
-                    setPayError(null);
-                    setShowDebtPayModal(true);
-                  }}
-                  className="h-11 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm inline-flex items-center justify-center gap-2 whitespace-nowrap shadow-sm shadow-emerald-600/25 transition-all cursor-pointer active:scale-98"
-                >
-                  <Banknote className="w-4 h-4 shrink-0" />
-                  <span>{t('archive.payDebt')}</span>
-                </button>
-              )}
+              return (
+                <div className={`grid ${colsClass} gap-2 pt-0.5 max-w-md mx-auto w-full`}>
+                  <button
+                    onClick={onPrint}
+                    className="h-9 sm:h-9.5 px-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs shadow-orange-500/20 transition-all cursor-pointer active:scale-98"
+                  >
+                    <Printer className="w-3.5 h-3.5 shrink-0" />
+                    <span>{t('archive.printShort')}</span>
+                  </button>
 
-              {!selectedArchiveOrder.refunded && onRefundOrder && !showReasonSelect && (
-                <button
-                  onClick={() => setShowReasonSelect(true)}
-                  className="h-11 px-4 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold rounded-xl text-xs sm:text-sm inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all cursor-pointer active:scale-98"
-                >
-                  <RotateCcw className="w-4 h-4 shrink-0" />
-                  <span>
-                    {t('archive.refund')}
-                  </span>
-                </button>
-              )}
-            </div>
+                  {canPayDebt && (
+                    <button
+                      onClick={() => {
+                        const existingPayments = Array.isArray(selectedArchiveOrder.debtPayments)
+                          ? selectedArchiveOrder.debtPayments
+                          : [];
+                        const paidSoFar = existingPayments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+                        const remainingDebt = Math.max(0, (selectedArchiveOrder.total || 0) - paidSoFar);
+                        setPayAmountInput(String(remainingDebt));
+                        setPayMethod('naqd');
+                        setPayNoteInput('');
+                        setPayError(null);
+                        setShowDebtPayModal(true);
+                      }}
+                      className="h-9 sm:h-9.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs shadow-emerald-600/20 transition-all cursor-pointer active:scale-98"
+                    >
+                      <Banknote className="w-3.5 h-3.5 shrink-0" />
+                      <span>{t('archive.payDebt')}</span>
+                    </button>
+                  )}
+
+                  {canRefund && (
+                    <button
+                      onClick={() => setShowReasonSelect(true)}
+                      className="h-9 sm:h-9.5 px-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 font-bold rounded-xl text-xs inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-all cursor-pointer active:scale-98"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                      <span>{t('archive.refundAction')}</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         ) : (
           /* ARCHIVE LIST & CONTROLS VIEW */

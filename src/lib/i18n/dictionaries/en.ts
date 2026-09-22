@@ -217,6 +217,8 @@ export const en: Record<TranslationKey, string> = {
   'archive.refundReason': 'Choose a refund reason:',
   'archive.confirmAdminPin': 'CONFIRM (ADMIN PIN)',
   'archive.printReceipt': 'PRINT RECEIPT',
+  'archive.printShort': 'Print',
+  'archive.refundAction': 'Refund',
   'archive.closedReceipt': 'Closed receipt: #',
   'archive.refundReasonLabel': 'Refund reason:',
   'archive.receiptCount': '{n} receipts',

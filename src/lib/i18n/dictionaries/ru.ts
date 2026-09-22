@@ -217,6 +217,8 @@ export const ru: Record<TranslationKey, string> = {
   'archive.refundReason': 'Выберите причину возврата:',
   'archive.confirmAdminPin': 'ПОДТВЕРДИТЬ (PIN АДМИНА)',
   'archive.printReceipt': 'НАПЕЧАТАТЬ ЧЕК',
+  'archive.printShort': 'Печать',
+  'archive.refundAction': 'Возврат',
   'archive.closedReceipt': 'Закрытый чек: #',
   'archive.refundReasonLabel': 'Причина возврата:',
   'archive.receiptCount': 'Чеков: {n}',

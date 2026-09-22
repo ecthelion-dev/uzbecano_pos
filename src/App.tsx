@@ -95,7 +95,7 @@ import { FrozenCafeScreen } from './components/FrozenCafeScreen';
 import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, printReceiptViaBrowser, getLastPrintError, setReceiptLogo } from './lib/printer';
 import { adoptServerId, appendItemsPatch, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
 import { splitPayment } from './lib/payment';
-import { orderTotals, parsePromoTerms } from './lib/promo';
+import { orderTotals, parsePromoTerms, type PromoTerms } from './lib/promo';
 import { getDeviceId } from './lib/deviceId';
 import { tableState } from './lib/floorPlan';
 import { cartToHoldLines, holdLinesToCart, parseHoldItems } from './lib/cartSync';
@@ -191,6 +191,18 @@ export default function App() {
   useEffect(() => {
     writeCafeJson(resolveActiveCafeId(), 'carts', tableCarts);
   }, [tableCarts]);
+
+  const [tableDraftPromos, setTableDraftPromos] = useState<Record<string, PromoTerms | null>>(() => {
+    try {
+      return readCafeJson<Record<string, PromoTerms | null>>(resolveActiveCafeId(), 'draft_promos', {}) || {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    writeCafeJson(resolveActiveCafeId(), 'draft_promos', tableDraftPromos);
+  }, [tableDraftPromos]);
 
   // Ishga tushishda bir marta: disk yozadimi-o'qiydimi. Birinchi savdogacha
   // ko'rinsin — keyin bilib qolish kech bo'ladi.
@@ -398,6 +410,7 @@ export default function App() {
     setCurrentWaiter(null);
     setAuthToken(null);
     setTableCarts({});
+    setTableDraftPromos({});
   }, [getActiveCafeId]);
 
   // Chek logotipini oldindan dekodlab qo'yamiz: chek yig'ilishi sinxron, ya'ni
@@ -1869,7 +1882,12 @@ export default function App() {
    * chegirmagacha bo'lgan summadan — server aynan shunday hisoblaydi. Farq
    * qilsa, to'lovdagi summa serverniki bilan tenglashmay, to'lov rad etiladi.
    */
-  const activePromo = useMemo(() => parsePromoTerms(activeTableOrder?.promo), [activeTableOrder]);
+  const activePromo = useMemo(() => {
+    if (activeTableOrder) {
+      return parsePromoTerms(activeTableOrder.promo);
+    }
+    return tableDraftPromos[selectedTable] || null;
+  }, [activeTableOrder, tableDraftPromos, selectedTable]);
   const { serviceFee, discount: discountAmount, total: grandTotal } = useMemo(
     () => orderTotals(subtotal, serviceFeePercent, activePromo),
     [subtotal, serviceFeePercent, activePromo]
@@ -1877,8 +1895,8 @@ export default function App() {
   const discountPercent = activePromo?.type === 'percent' ? activePromo.value : 0;
 
   /**
-   * Promo-kodni stolning ochiq buyurtmasiga qo'llaydi, bo'sh kod bilan esa
-   * olib tashlaydi.
+   * Promo-kodni stolning ochiq buyurtmasiga yoki tasdiqlanmagan savatiga
+   * qo'llaydi, bo'sh kod bilan esa olib tashlaydi.
    *
    * Faqat onlayn: kodning yaroqliligi va hisoblagichi serverda. Navbatga
    * qo'yilsa, kassir mijozga chegirmali summani aytib bo'lgach server kodni
@@ -1887,7 +1905,38 @@ export default function App() {
    */
   const handleApplyPromo = useCallback(async (code: string): Promise<string | null> => {
     const order = activeTableOrder;
-    if (!order) return t('promo.needOrder');
+    if (!order) {
+      if (!code.trim()) {
+        setTableDraftPromos((prev) => {
+          if (!prev[selectedTable]) return prev;
+          const copy = { ...prev };
+          delete copy[selectedTable];
+          return copy;
+        });
+        return null;
+      }
+      if (isOfflineMode) return t('promo.offline');
+      try {
+        const res = await fetchWithTimeout(`${API_BASE_URL}/api/promos/validate`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ code: code.trim(), subtotal: draftSubtotal }),
+        });
+        const body: any = await res.json().catch(() => null);
+        if (!res.ok) return body?.error || t('promo.failed');
+
+        const promo = parsePromoTerms(body);
+        if (!promo) return t('promo.failed');
+
+        setTableDraftPromos((prev) => ({
+          ...prev,
+          [selectedTable]: promo,
+        }));
+        return null;
+      } catch {
+        return t('promo.offline');
+      }
+    }
     if (isOfflineMode) return t('promo.offline');
     try {
       const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${order.id}`, {
@@ -1910,7 +1959,7 @@ export default function App() {
     } catch {
       return t('promo.offline');
     }
-  }, [activeTableOrder, isOfflineMode, getAuthHeaders, activeSubtotal, serviceFeePercent, persistOrders, t]);
+  }, [activeTableOrder, selectedTable, draftSubtotal, isOfflineMode, getAuthHeaders, activeSubtotal, serviceFeePercent, persistOrders, t]);
   const mobileCartCount = useMemo(
     () => activeTableOrderItems.length + cart.length,
     [activeTableOrderItems, cart]
@@ -2511,9 +2560,9 @@ export default function App() {
             ? { ...o, ...serverOrder }
             : { ...o, items: JSON.stringify(combinedItems), subtotal: combinedSubtotal, serviceFee: combinedFee, discount: combinedDiscount, total: combinedTotal });
       } else {
+        const draftPromo = tableDraftPromos[selectedTable] || null;
         const sub = draftSubtotal;
-        const fee = Math.round((sub * serviceFeePercent) / 100);
-        const tot = sub + fee;
+        const { serviceFee: fee, discount, total: tot } = orderTotals(sub, serviceFeePercent, draftPromo);
         const cafeId = readGlobalText('cafeId') || DEFAULT_CAFE_ID;
         const newOrderObj: {
           id: string;
@@ -2526,6 +2575,8 @@ export default function App() {
           total: number;
           status: string;
           dailyNumber?: number;
+          promo?: any;
+          discount?: number;
         } = {
           id: crypto.randomUUID(),
           cafeId,
@@ -2534,6 +2585,8 @@ export default function App() {
           items: JSON.stringify(newItems),
           subtotal: sub,
           serviceFee: fee,
+          discount,
+          promo: draftPromo ? { code: draftPromo.code, type: draftPromo.type, value: draftPromo.value } : undefined,
           total: tot,
           status: 'sent_to_kitchen'
         };
@@ -2544,7 +2597,7 @@ export default function App() {
             const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
               method: 'POST',
               headers: getAuthHeaders(),
-              body: JSON.stringify({ ...newOrderObj, idempotencyKey: newOrderObj.id })
+              body: JSON.stringify({ ...newOrderObj, promoCode: draftPromo?.code, idempotencyKey: newOrderObj.id })
             });
             // Muzlatilgan kafening buyurtmasi navbatga qo'yilmaydi: server uni
             // hech qachon qabul qilmaydi, kassa esa shu zahoti muzlaydi.
@@ -2555,7 +2608,14 @@ export default function App() {
               // Serverning id si va chek raqami — ikkalasi ham javobdan.
               // Raqam usiz faqat keyingi so'rovda kelardi va tez yopilgan
               // stolning chekiga raqam o'rniga id ning oxiri tushardi.
-              await adoptServerId(res, newOrderObj);
+              const serverCreated = await res.clone().json().catch(() => null);
+              if (serverCreated) {
+                if (serverCreated.id) newOrderObj.id = String(serverCreated.id);
+                if (Number(serverCreated.dailyNumber) > 0) newOrderObj.dailyNumber = Number(serverCreated.dailyNumber);
+                if (serverCreated.promo !== undefined) (newOrderObj as any).promo = serverCreated.promo;
+                if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
+                if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;
+              }
               kitchenOrderId = newOrderObj.id;
               kitchenDailyNumber = Number(newOrderObj.dailyNumber) || 0;
             }
@@ -2566,7 +2626,13 @@ export default function App() {
           queueOrderForSync(newOrderObj);
         }
 
-        updatedOrders.push(newOrderObj);
+        updatedOrders = [newOrderObj as any, ...updatedOrders];
+        setTableDraftPromos((prev) => {
+          if (!prev[selectedTable]) return prev;
+          const copy = { ...prev };
+          delete copy[selectedTable];
+          return copy;
+        });
       }
 
       ordersRef.current = updatedOrders;
@@ -2613,7 +2679,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Ulanish xatosi: ${err.message || err}`);
     }
-  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, serviceFeePercent, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse]);
+  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, serviceFeePercent, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse, tableDraftPromos]);
 
   const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
     const sourceOrder = orders.find(o => o.tableNumber === sourceTable && isActiveOrder(o.status));
@@ -2714,7 +2780,7 @@ export default function App() {
       setToastMessage(`${sourceTable} buyurtmasi ${targetTable}ga ko'chirildi!`);
     }
 
-    // Transfer draft carts
+    // Transfer draft carts and draft promos
     setTableCarts((prev) => {
       const srcCart = prev[sourceTable] || [];
       if (srcCart.length === 0) return prev;
@@ -2724,6 +2790,17 @@ export default function App() {
         next[targetTable] = [...(next[targetTable] || []), ...srcCart];
       } else {
         next[targetTable] = srcCart;
+      }
+      return next;
+    });
+
+    setTableDraftPromos((prev) => {
+      const srcPromo = prev[sourceTable];
+      if (!srcPromo) return prev;
+      const next = { ...prev };
+      delete next[sourceTable];
+      if (!next[targetTable]) {
+        next[targetTable] = srcPromo;
       }
       return next;
     });
@@ -2816,6 +2893,8 @@ export default function App() {
             ? { ...o, ...serverOrder }
             : { ...o, items: JSON.stringify(combinedItems), subtotal: combinedSubtotal, serviceFee: combined.serviceFee, discount: combined.discount, total: combined.total });
       } else {
+        const draftPromo = tableDraftPromos[targetTable] || null;
+        const { serviceFee: fee, discount, total: tot } = orderTotals(sub, serviceFeePercent, draftPromo);
         const newOrderObj = {
           id: crypto.randomUUID(),
           cafeId: getActiveCafeId(),
@@ -2824,6 +2903,8 @@ export default function App() {
           items: JSON.stringify(newItems),
           subtotal: sub,
           serviceFee: fee,
+          discount,
+          promo: draftPromo ? { code: draftPromo.code, type: draftPromo.type, value: draftPromo.value } : undefined,
           total: tot,
           status: 'sent_to_kitchen'
         };
@@ -2833,10 +2914,19 @@ export default function App() {
             const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
               method: 'POST',
               headers: getAuthHeaders(),
-              body: JSON.stringify({ ...newOrderObj, idempotencyKey: newOrderObj.id })
+              body: JSON.stringify({ ...newOrderObj, promoCode: draftPromo?.code, idempotencyKey: newOrderObj.id })
             });
             if (!res.ok) queueOrderForSync(newOrderObj);
-            else await adoptServerId(res, newOrderObj);
+            else {
+              const serverCreated = await res.clone().json().catch(() => null);
+              if (serverCreated) {
+                if (serverCreated.id) (newOrderObj as any).id = String(serverCreated.id);
+                if (Number(serverCreated.dailyNumber) > 0) (newOrderObj as any).dailyNumber = Number(serverCreated.dailyNumber);
+                if (serverCreated.promo !== undefined) (newOrderObj as any).promo = serverCreated.promo;
+                if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
+                if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;
+              }
+            }
           } catch {
             queueOrderForSync(newOrderObj);
           }
@@ -2845,6 +2935,12 @@ export default function App() {
         }
 
         currentOrders.push(newOrderObj);
+        setTableDraftPromos((prev) => {
+          if (!prev[targetTable]) return prev;
+          const copy = { ...prev };
+          delete copy[targetTable];
+          return copy;
+        });
       }
 
       // Savatdan qo'shilgan taomlar shu yerda ro'yxatga yozilishi shart.
@@ -2971,7 +3067,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt]);
+  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt, tableDraftPromos]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {
@@ -3437,7 +3533,7 @@ export default function App() {
                 serviceFee={serviceFee}
                 grandTotal={grandTotal}
                 promo={activePromo}
-                canApplyPromo={Boolean(activeTableOrder)}
+                canApplyPromo={Boolean(selectedTable)}
                 onApplyPromo={handleApplyPromo}
                 onSendToKitchen={() => {
                   handleSendToKitchen();

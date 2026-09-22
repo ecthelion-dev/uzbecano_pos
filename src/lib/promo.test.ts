@@ -31,6 +31,12 @@ describe('chek summasi', () => {
   it('promo yo‘q bo‘lsa oddiy summa', () => {
     expect(orderTotals(70000, 10, null)).toEqual({ serviceFee: 7000, discount: 0, total: 77000 });
   });
+
+  it('tasdiqlanmagan savatga promokod qo‘llanganda to‘g‘ri hisoblaydi', () => {
+    // 13 000 so'm draft savat + 0% xizmat haqi + 10% promo
+    const promo10 = { code: 'CHEGIRMA10', type: 'percent' as const, value: 10, minOrder: 0 };
+    expect(orderTotals(13000, 0, promo10)).toEqual({ serviceFee: 0, discount: 1300, total: 11700 });
+  });
 });
 
 describe('serverdan kelgan shartlar', () => {

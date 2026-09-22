@@ -240,7 +240,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-t-3xl sm:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 max-w-lg w-full shadow-2xl flex flex-col gap-4 border border-slate-200 max-h-[92dvh] overflow-y-auto"
+        className="bg-white rounded-t-3xl sm:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 max-w-xl w-full shadow-2xl flex flex-col gap-4 border border-slate-200 max-h-[92dvh] overflow-y-auto"
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
@@ -372,57 +372,57 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             </div>
 
             {/* Date, Time & Guest Count */}
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-              <div className="flex flex-col gap-1 sm:col-span-5">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-slate-400" />
-                  {t('reservation.reservedDate')}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-2.5">
+              <div className="flex flex-col gap-1 sm:col-span-6">
+                <label className="text-[11px] sm:text-xs font-bold text-slate-700 flex items-center gap-1 whitespace-nowrap">
+                  <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                  <span>{t('reservation.reservedDate')}</span>
                 </label>
                 <button
                   type="button"
                   onClick={openDatePicker}
-                  className="w-full h-10 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 flex items-center justify-between gap-2 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full h-9 px-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 flex items-center justify-between gap-1.5 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Calendar className="w-4 h-4 text-purple-600 shrink-0" />
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Calendar className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                     <span className="truncate font-semibold text-slate-900">
                       {getDisplayDateText(reservedDate)}
                     </span>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
-                </button>
-              </div>
-
-              <div className="flex flex-col gap-1 sm:col-span-4">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-slate-400" />
-                  {t('reservation.reservedTime')}
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowTimePicker(true)}
-                  className="w-full h-10 px-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 flex items-center justify-between gap-2 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Clock className="w-4 h-4 text-purple-600 shrink-0" />
-                    <span className="font-semibold text-slate-900">
-                      {reservedTime || '20:00'}
-                    </span>
-                  </div>
-                  <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </button>
               </div>
 
               <div className="flex flex-col gap-1 sm:col-span-3">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                  <Users className="w-3 h-3 text-slate-400" />
-                  {t('reservation.guestCount')}
+                <label className="text-[11px] sm:text-xs font-bold text-slate-700 flex items-center gap-1 whitespace-nowrap">
+                  <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                  <span>{t('reservation.reservedTime')}</span>
                 </label>
-                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl h-10 overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent">
+                <button
+                  type="button"
+                  onClick={() => setShowTimePicker(true)}
+                  className="w-full h-9 px-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 flex items-center justify-between gap-1 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Clock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                    <span className="font-semibold text-slate-900">
+                      {reservedTime || '20:00'}
+                    </span>
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1 sm:col-span-3">
+                <label className="text-[11px] sm:text-xs font-bold text-slate-700 flex items-center gap-1 whitespace-nowrap">
+                  <Users className="w-3 h-3 text-slate-400 shrink-0" />
+                  <span>{t('reservation.guestCount')}</span>
+                </label>
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl h-9 overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent">
                   <button
                     type="button"
                     onClick={() => setGuestCount((c) => Math.max(1, (Number(c) || 1) - 1))}
-                    className="w-8 h-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 font-bold transition-colors cursor-pointer shrink-0"
+                    className="w-7 h-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 font-bold text-xs transition-colors cursor-pointer shrink-0"
                     title="Kamaytirish"
                   >
                     -
@@ -446,12 +446,12 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                         setGuestCount(1);
                       }
                     }}
-                    className="w-full text-center bg-transparent text-sm font-bold text-slate-900 focus:outline-none px-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-full text-center bg-transparent text-xs sm:text-sm font-bold text-slate-900 focus:outline-none px-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                   <button
                     type="button"
                     onClick={() => setGuestCount((c) => Math.min(50, (Number(c) || 1) + 1))}
-                    className="w-8 h-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 font-bold transition-colors cursor-pointer shrink-0"
+                    className="w-7 h-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 font-bold text-xs transition-colors cursor-pointer shrink-0"
                     title="Ko'paytirish"
                   >
                     +

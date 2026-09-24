@@ -1241,11 +1241,12 @@ export default function App() {
     // Ochilishdayoq bir marta: drenaj o'n soniyadan keyin ishlaydi, kassir
     // esa zalni undan oldin ko'radi.
     refreshUnsynced();
-    const interval = setInterval(syncOfflineOrders, 10000);
-    window.addEventListener('online', syncOfflineOrders);
+    const interval = setInterval(() => { void syncOfflineOrders(); }, 10000);
+    const onOnline = () => { void syncOfflineOrders(); };
+    window.addEventListener('online', onOnline);
     return () => {
       clearInterval(interval);
-      window.removeEventListener('online', syncOfflineOrders);
+      window.removeEventListener('online', onOnline);
     };
   }, [syncOfflineOrders, refreshUnsynced]);
 
@@ -2945,7 +2946,7 @@ export default function App() {
           subtotal: sub,
           serviceFee: fee,
           discount,
-          promo: draftPromo ? { code: draftPromo.code, type: draftPromo.type, value: draftPromo.value } : undefined,
+          promo: draftPromo ? { code: draftPromo.code, type: draftPromo.type, value: draftPromo.value, minOrder: draftPromo.minOrder ?? 0 } : undefined,
           total: tot,
           status: 'sent_to_kitchen'
         };

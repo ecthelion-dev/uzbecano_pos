@@ -3,7 +3,7 @@ import { installMemoryStorage } from './testStorage';
 
 installMemoryStorage();
 
-const { readSession, writeSession, clearSession, purgeLegacySession } = await import('./session');
+const { readSession, writeSession, clearSession, purgeLegacySession, getTokenExpiry, isTokenExpiringSoon } = await import('./session');
 
 const CAFE = 'test-kafe';
 const WAITER = { id: 'w1', name: 'Aziz', role: 'waiter', cafeId: CAFE } as any;
@@ -76,5 +76,21 @@ describe('kassa sessiyasi', () => {
 
     expect(readSession(CAFE)).toBeNull();
     expect(readSession('boshqa-kafe')?.token).toBe('jwt-xyz');
+  });
+
+  it('token exp vaqtini to‘g‘ri ajratib oladi', () => {
+    const payload = Buffer.from(JSON.stringify({ exp: 1999999999 })).toString('base64url');
+    const fakeJwt = `header.${payload}.sig`;
+    expect(getTokenExpiry(fakeJwt)).toBe(1999999999);
+    expect(getTokenExpiry('not-a-jwt')).toBeNull();
+  });
+
+  it('token yaqinda eskirishini aniqlaydi', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const expiringSoon = `header.${Buffer.from(JSON.stringify({ exp: now + 3600 })).toString('base64url')}.sig`;
+    const freshToken = `header.${Buffer.from(JSON.stringify({ exp: now + 24 * 3600 })).toString('base64url')}.sig`;
+
+    expect(isTokenExpiringSoon(expiringSoon)).toBe(true);
+    expect(isTokenExpiringSoon(freshToken)).toBe(false);
   });
 });

@@ -40,6 +40,7 @@ export function initPwaUpdater(): void {
       void registration.update();
     };
 
+    check();
     setInterval(check, CHECK_INTERVAL_MS);
 
     // Fonga ketib, keyin qaytgan sahifa (mobilda eng ko'p uchraydigan holat)

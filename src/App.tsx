@@ -59,7 +59,7 @@ import {
   clearOperationalData,
   checkStorageHealth,
 } from './lib/storage';
-import { readSession, writeSession, clearSession, purgeLegacySession } from './lib/session';
+import { readSession, writeSession, clearSession, purgeLegacySession, isTokenExpiringSoon } from './lib/session';
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant, DBReservation, DebtCustomerInfo, DebtPaymentEntry } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
@@ -477,6 +477,47 @@ export default function App() {
     const savedLogo = readCafeText(cafeId, 'logo');
     setConnectedCafeLogo(savedLogo || '');
   }, [getActiveCafeId]);
+
+  // Faol kassada sessiya tokenini oldindan (8 soat qolganida) jimgina yangilash
+  useEffect(() => {
+    if (!authToken || !currentWaiter) return;
+
+    let refreshing = false;
+    const checkAndRefresh = async () => {
+      if (refreshing) return;
+      const current = authTokenRef.current;
+      if (!current || !isTokenExpiringSoon(current, 8 * 3600)) return;
+
+      refreshing = true;
+      try {
+        const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${current}`,
+          },
+        }, 8000);
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.success && data?.token) {
+            setAuthToken(data.token);
+            authTokenRef.current = data.token;
+            writeSession(getActiveCafeId(), currentWaiter, data.token);
+          }
+        } else if (res.status === 401) {
+          handleSessionExpired();
+        }
+      } catch {
+        // Tarmoq bo'lmasa keyingi intervalda qayta tekshiradi
+      } finally {
+        refreshing = false;
+      }
+    };
+
+    void checkAndRefresh();
+    const interval = setInterval(() => { void checkAndRefresh(); }, 15 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [authToken, currentWaiter, getActiveCafeId, handleSessionExpired]);
 
   const sortOrders = useCallback((list: DBOrder[]) =>
     [...list].sort((a: any, b: any) =>

@@ -50,3 +50,26 @@ export function clearSession(cafeId: string): void {
   removeKey(cafeKey(cafeId, 'session'), 'session');
   purgeLegacySession(cafeId);
 }
+
+/** Token tugash vaqtini (Unix sekundda) oladi. */
+export function getTokenExpiry(token: string): number | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = typeof atob === 'function' ? atob(base64) : Buffer.from(base64, 'base64').toString('utf-8');
+    const payload = JSON.parse(json);
+    return typeof payload.exp === 'number' ? payload.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Token eskirishiga berilgan vaqtdan (standart 8 soat) kam qolganini bildiradi. */
+export function isTokenExpiringSoon(token: string, thresholdSeconds: number = 8 * 3600): boolean {
+  const exp = getTokenExpiry(token);
+  if (!exp) return false;
+  const now = Math.floor(Date.now() / 1000);
+  return exp - now < thresholdSeconds;
+}
+

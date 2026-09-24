@@ -428,6 +428,7 @@ export const ru: Record<TranslationKey, string> = {
   'toast.debtPaidFull': 'Долг полностью погашен: {amount} {currency} ({method})',
   'toast.debtPaidPartial': 'Долг частично оплачен: {amount} {currency}. Остаток: {remaining} {currency}',
   'toast.debtPaymentNotSaved': 'Не удалось сохранить оплату долга',
+  'toast.sessionExpired': 'Срок сессии истёк. Пожалуйста, введите PIN-код заново.',
 
 
   // ── Бумага: чек, кухонный талон, отчёт ──────────────────────────────

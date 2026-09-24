@@ -116,6 +116,11 @@ describe('server eski bo‘lsa', () => {
     expect((await fetchPulse(headers, false)).kind).toBe('unsupported');
   });
 
+  it('401 ni "unauthorized" deb ajratadi', async () => {
+    mockFetch(() => ({ ok: false, status: 401, headers: { get: () => null }, json: async () => ({}) }));
+    expect((await fetchPulse(headers, false)).kind).toBe('unauthorized');
+  });
+
   it('boshqa xatolar oddiy "failed"', async () => {
     mockFetch(() => ({ ok: false, status: 500, headers: { get: () => null }, json: async () => ({}) }));
     expect((await fetchPulse(headers, false)).kind).toBe('failed');

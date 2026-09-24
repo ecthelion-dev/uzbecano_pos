@@ -168,9 +168,10 @@ describe('server rad etganda', () => {
   it('401 ham navbatda qoladi', async () => {
     const store = fakeStore([create('o1', 'q1')]);
 
-    await runSyncCycle(store.ports({ send: async () => fail(401) }), 'token');
+    const outcome = await runSyncCycle(store.ports({ send: async () => fail(401) }), 'token');
 
     expect(store.state.queue.map((i) => i.qid)).toEqual(['q1']);
+    expect(outcome?.unauthorized).toBe(true);
   });
 });
 

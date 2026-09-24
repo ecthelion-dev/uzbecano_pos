@@ -50,6 +50,8 @@ export interface SyncOutcome {
   rejectedLabels: string[];
   /** Diskka yozib bo'lmadi — navbat o'z holicha qoldi. */
   commitFailed: boolean;
+  /** Sessiya eskirgan (401) — qayta PIN kiritilishi kerak. */
+  unauthorized?: boolean;
 }
 
 /**
@@ -110,6 +112,7 @@ export async function runSyncCycle(
   const blockedOrders = new Set<string>();
   const rejectedLabels: string[] = [];
   let anySucceeded = false;
+  let unauthorized = false;
 
   for (const item of queue) {
     const orderId = orderIdOf(item);
@@ -126,6 +129,11 @@ export async function runSyncCycle(
       if (res.ok) {
         anySucceeded = true;
         if (item.qid) processedIds.add(item.qid);
+      } else if (res.status === 401) {
+        // Sessiya eskirgan: qolgan yozuvlarni bu token bilan yuborish befoyda.
+        // Hammasi navbatda qoladi, rad etilganlarga tushmaydi.
+        unauthorized = true;
+        break;
       } else if (await ports.isFrozen(res)) {
         // Kafe muzlatilgan: davom etish befoyda. Shu amaldan boshlab
         // hammasi navbatda qoladi — hech biri "ishlangan" deb
@@ -174,5 +182,5 @@ export async function runSyncCycle(
   // tushmay qolishi mumkin bo'lgan oraliq umuman bo'lmasligi kerak.
   const saved = ports.commit(nextQueue, nextFailed);
 
-  return { anySucceeded, rejectedLabels, commitFailed: !saved };
+  return { anySucceeded, rejectedLabels, commitFailed: !saved, unauthorized };
 }

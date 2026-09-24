@@ -442,6 +442,7 @@ export const uz = {
   'toast.debtPaidFull': 'Qarz to‘liq yopildi: {amount} {currency} ({method})',
   'toast.debtPaidPartial': 'Qarz qisman to‘landi: {amount} {currency}. Qoldiq: {remaining} {currency}',
   'toast.debtPaymentNotSaved': 'Qarz to‘lovini saqlab bo‘lmadi',
+  'toast.sessionExpired': 'Sessiya muddati tugadi. Iltimos, PIN kodni qayta kiriting.',
 
 
   // ── Qog'oz: chek, oshxona kvitansiyasi, hisobot ─────────────────────

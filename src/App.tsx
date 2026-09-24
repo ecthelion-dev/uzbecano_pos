@@ -297,6 +297,8 @@ export default function App() {
   const [authToken, setAuthToken] = useState<string | null>(
     () => readSession(resolveActiveCafeId())?.token ?? null
   );
+  const authTokenRef = useRef<string | null>(readSession(resolveActiveCafeId())?.token ?? null);
+  authTokenRef.current = authToken;
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [isCafeFrozen, setIsCafeFrozen] = useState<boolean>(() => {
@@ -381,9 +383,10 @@ export default function App() {
 
   // Staff-authenticated backend requests (orders create/update/list) require
   // this Bearer token, issued by /api/auth/pin on login.
-  const getAuthHeaders = useCallback((approvalToken?: string): Record<string, string> => {
+  const getAuthHeaders = useCallback((approvalToken?: string, tokenOverride?: string | null): Record<string, string> => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    const effectiveToken = tokenOverride !== undefined ? tokenOverride : (authTokenRef.current ?? authToken);
+    if (effectiveToken) headers['Authorization'] = `Bearer ${effectiveToken}`;
     // Rahbar tasdig'i talab qilinadigan amallar (masalan oshxonaga ketgan
     // taomni o'chirish) uchun ikkinchi dalil. Usiz server bu so'rovni
     // ofitsiantning o'z qaroridan ajrata olmaydi va rad etadi.
@@ -407,11 +410,26 @@ export default function App() {
      * qolib ketardi.
      */
     resetPulse();
+    authTokenRef.current = null;
     setCurrentWaiter(null);
     setAuthToken(null);
     setTableCarts({});
     setTableDraftPromos({});
   }, [getActiveCafeId]);
+
+  // Sessiya muddati (server JWT 24 soat) tugaganda chaqiriladi.
+  // Savat va qoralamalar tozalanmaydi (xodim kiritgan taomlar yo'qolmasin),
+  // faqat token/sessiya tashlanadi va PIN oynasi ochiladi.
+  const handleSessionExpired = useCallback(() => {
+    const cafeId = getActiveCafeId();
+    clearSession(cafeId);
+    resetPulse();
+    authTokenRef.current = null;
+    setAuthToken(null);
+    setCurrentWaiter(null);
+    setToastMessage(t('toast.sessionExpired'));
+    setTimeout(() => setToastMessage(null), 5000);
+  }, [getActiveCafeId, t]);
 
   // Chek logotipini oldindan dekodlab qo'yamiz: chek yig'ilishi sinxron, ya'ni
   // chop etish payti rasm yuklashni kutib turolmaydi. Kafe logotipi bo'lmasa
@@ -636,12 +654,16 @@ export default function App() {
     try {
       const cafeId = getActiveCafeId();
       const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders?cafeId=${encodeURIComponent(cafeId)}&active=1`, { cache: 'no-store', headers: getAuthHeaders() });
+      if (res.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       if (!res.ok) return;
       const data: DBOrder[] = await res.json();
       if (!Array.isArray(data)) return;
       applyActiveOrders(data);
     } catch { }
-  }, [getActiveCafeId, getAuthHeaders, applyActiveOrders]);
+  }, [getActiveCafeId, getAuthHeaders, applyActiveOrders, handleSessionExpired]);
 
   // Fetch static data once (products, categories, waiters, settings)
   /**
@@ -1070,6 +1092,11 @@ export default function App() {
         headers: getAuthHeaders(),
         body: JSON.stringify(body),
       });
+      if (res.status === 401) {
+        queuePatchForSync(orderId, body, 'add_items');
+        handleSessionExpired();
+        return null;
+      }
       if (!res.ok) {
         queuePatchForSync(orderId, body, 'add_items');
         return null;
@@ -1080,7 +1107,7 @@ export default function App() {
       queuePatchForSync(orderId, body, 'add_items');
       return null;
     }
-  }, [isOfflineMode, getAuthHeaders, queuePatchForSync]);
+  }, [isOfflineMode, getAuthHeaders, queuePatchForSync, handleSessionExpired]);
 
   /**
    * Server javobi qaytadan urinishga arziydimi?
@@ -1097,11 +1124,12 @@ export default function App() {
   // browser 'online' event. Processes strictly in FIFO order and stops
   // retrying later items for an order once an earlier item for that same
   // order fails, so a status PATCH is never attempted before its CREATE.
-  const syncOfflineOrders = useCallback(async () => {
+  const syncOfflineOrders = useCallback(async (tokenOverride?: string | null) => {
     if (syncInProgressRef.current) return;
     syncInProgressRef.current = true;
     try {
       const cafeId = getActiveCafeId();
+      const effectiveToken = tokenOverride !== undefined ? tokenOverride : (authTokenRef.current ?? authToken);
 
       /*
        * Siklning o'zi `lib/syncCycle.ts` da. Bu yerda faqat portlar
@@ -1126,27 +1154,27 @@ export default function App() {
           if (item.kind === 'create') {
             return fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
               method: 'POST',
-              headers: getAuthHeaders(),
+              headers: getAuthHeaders(undefined, effectiveToken),
               body: JSON.stringify({ ...item.order, cafeId }),
             });
           }
           if (item.kind === 'patch') {
             return fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
               method: 'PATCH',
-              headers: getAuthHeaders(item.approvalToken),
+              headers: getAuthHeaders(item.approvalToken, effectiveToken),
               body: JSON.stringify(item.body),
             });
           }
           if (item.kind === 'cash') {
             return fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
               method: 'POST',
-              headers: getAuthHeaders(item.approvalToken),
+              headers: getAuthHeaders(item.approvalToken, effectiveToken),
               body: JSON.stringify(item.entry),
             });
           }
           return fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
             method: 'DELETE',
-            headers: getAuthHeaders(),
+            headers: getAuthHeaders(undefined, effectiveToken),
           });
         },
         isFrozen: (res) => applyFrozenFromResponse(res, cafeId),
@@ -1158,13 +1186,18 @@ export default function App() {
                 ? item.label || t('drawer.title')
                 : item.label || item.orderId,
           ),
-      }, authToken);
+      }, effectiveToken);
 
       // Navbat diskda o'zgargan bo'lishi mumkin — zal ko'rinishi undan o'qiydi.
       refreshUnsynced();
 
       // Navbat bo'sh yoki sessiya yo'q — aytadigan gap ham yo'q.
       if (!outcome) return;
+
+      if (outcome.unauthorized) {
+        handleSessionExpired();
+        return;
+      }
 
       if (outcome.commitFailed) {
         // Diskka tushmadi. Navbat o'z holicha qoldi va keyingi urinishda
@@ -1202,7 +1235,7 @@ export default function App() {
     } finally {
       syncInProgressRef.current = false;
     }
-  }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, applyFrozenFromResponse, refreshUnsynced, t]);
+  }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, applyFrozenFromResponse, refreshUnsynced, handleSessionExpired, t]);
 
   useEffect(() => {
     // Ochilishdayoq bir marta: drenaj o'n soniyadan keyin ishlaydi, kassir
@@ -1344,6 +1377,10 @@ export default function App() {
 
       const result = await fetchPulse(getAuthHeaders(), IS_DESKTOP_APP, getActiveCafeId());
       if (result.kind === 'same') return;
+      if (result.kind === 'unauthorized') {
+        handleSessionExpired();
+        return;
+      }
 
       if (result.kind === 'unsupported') {
         // Server hali eski. Eski yo'l joyida turibdi, shuning uchun kassa
@@ -1388,7 +1425,7 @@ export default function App() {
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [currentWaiter, fetchOrders, fetchWaiterCalls, fetchReservations, hasLiveWork, getAuthHeaders,
-      applyActiveOrders, applyWaiterCalls, drainPrintJobs]);
+      applyActiveOrders, applyWaiterCalls, drainPrintJobs, handleSessionExpired]);
 
   /*
    * Kassa qaysi stollarda buyurtma yig'ayotganini serverga aytadi.
@@ -2836,6 +2873,7 @@ export default function App() {
     }
 
     let currentOrders = [...ordersRef.current];
+    let serverConfirmedItems = true;
 
     if (currentCart.length > 0) {
       if (!skipConfirm) {
@@ -2886,6 +2924,9 @@ export default function App() {
          * ham undan KEYIN navbatga yoziladi — navbat tartib bilan ishlaydi.
          */
         const serverOrder = await sendAppendItems(latestActive.id, newItems);
+        if (!serverOrder) {
+          serverConfirmedItems = false;
+        }
 
         currentOrders = currentOrders.map(o => o.id !== latestActive.id
           ? o
@@ -2909,6 +2950,7 @@ export default function App() {
           status: 'sent_to_kitchen'
         };
 
+        let serverCreatedOrder = false;
         if (!isOfflineMode) {
           try {
             const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
@@ -2916,10 +2958,15 @@ export default function App() {
               headers: getAuthHeaders(),
               body: JSON.stringify({ ...newOrderObj, promoCode: draftPromo?.code, idempotencyKey: newOrderObj.id })
             });
-            if (!res.ok) queueOrderForSync(newOrderObj);
-            else {
+            if (res.status === 401) {
+              queueOrderForSync(newOrderObj);
+              handleSessionExpired();
+            } else if (!res.ok) {
+              queueOrderForSync(newOrderObj);
+            } else {
               const serverCreated = await res.clone().json().catch(() => null);
               if (serverCreated) {
+                serverCreatedOrder = true;
                 if (serverCreated.id) (newOrderObj as any).id = String(serverCreated.id);
                 if (Number(serverCreated.dailyNumber) > 0) (newOrderObj as any).dailyNumber = Number(serverCreated.dailyNumber);
                 if (serverCreated.promo !== undefined) (newOrderObj as any).promo = serverCreated.promo;
@@ -2932,6 +2979,9 @@ export default function App() {
           }
         } else {
           queueOrderForSync(newOrderObj);
+        }
+        if (!serverCreatedOrder) {
+          serverConfirmedItems = false;
         }
 
         currentOrders.push(newOrderObj);
@@ -3041,14 +3091,24 @@ export default function App() {
          */
         printClosedReceipt(closedOrder);
 
-        if (!isOfflineMode) {
+        // Agar yangi taomlar yoki yangi buyurtma server tomonidan tasdiqlanmagan
+        // bo'lsa (sendAppendItems yoki create navbatga tushgan), to'lov PATCH'ini
+        // to'g'ridan-to'g'ri serverga yuborib bo'lmaydi: serverda taomlar yo'q
+        // yoki chek yo'q, va summa tenglashmagani uchun 400 xato beradi.
+        // Shuning uchun to'lov ham navbatga yoziladi — tartib bilan ketadi.
+        const canSendOnline = !isOfflineMode && serverConfirmedItems;
+
+        if (canSendOnline) {
           try {
             const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${latestOrder.id}`, {
               method: 'PATCH',
               headers: getAuthHeaders(),
               body: JSON.stringify(paymentPatchBody)
             });
-            if (!res.ok) {
+            if (res.status === 401) {
+              queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
+              handleSessionExpired();
+            } else if (!res.ok) {
               setApiError(t('toast.paymentNotSaved'));
               queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
             }
@@ -3067,7 +3127,7 @@ export default function App() {
     } catch (err: any) {
       setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
     }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt, tableDraftPromos]);
+  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt, tableDraftPromos, handleSessionExpired]);
 
   // Filtered Products
   const displayedProducts = useMemo(() => {
@@ -3150,6 +3210,7 @@ export default function App() {
             };
             setCurrentWaiter(loggedWaiter);
             setAuthToken(data.token ?? null);
+            authTokenRef.current = data.token ?? null;
             writeSession(matchedCafeId, loggedWaiter, data.token ?? null);
             // Aloqa uzilganda shu qurilmadan qayta kirish uchun. PIN emas,
             // uning PBKDF2 hashi saqlanadi.
@@ -3166,6 +3227,7 @@ export default function App() {
             setIsCafeFrozen(false);
             fetchData();
             fetchOrders();
+            void syncOfflineOrders(data.token ?? null);
           } else {
             if (data.isFrozen) {
               setIsCafeFrozen(true);
@@ -3207,6 +3269,7 @@ export default function App() {
             setCurrentWaiter(offlineWaiter);
             // Navbatdagi buyurtmalar aloqa tiklanganda shu token bilan ketadi.
             setAuthToken(result.token ?? null);
+            authTokenRef.current = result.token ?? null;
             writeSession(cid, offlineWaiter, result.token ?? null);
             if (cached.cafeName) setConnectedCafeName(cached.cafeName);
             if (cached.cafeLogo) setConnectedCafeLogo(cached.cafeLogo);
@@ -3232,7 +3295,7 @@ export default function App() {
         }
       }
     }
-  }, [pinInput, fetchData, fetchOrders, getActiveCafeId]);
+  }, [pinInput, fetchData, fetchOrders, getActiveCafeId, syncOfflineOrders]);
 
   const handleChangeCafeId = useCallback((newCafeId: string) => {
     const clean = newCafeId.trim().toLowerCase();

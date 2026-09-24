@@ -428,6 +428,7 @@ export const en: Record<TranslationKey, string> = {
   'toast.debtPaidFull': 'Debt fully settled: {amount} {currency} ({method})',
   'toast.debtPaidPartial': 'Debt partially paid: {amount} {currency}. Remaining: {remaining} {currency}',
   'toast.debtPaymentNotSaved': 'Failed to save debt payment',
+  'toast.sessionExpired': 'Session expired. Please enter PIN again.',
 
 
   // ── Paper: receipt, kitchen slip, report ────────────────────────────

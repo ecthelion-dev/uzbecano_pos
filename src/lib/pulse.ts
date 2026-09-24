@@ -49,6 +49,8 @@ export type PulseResult =
   | { kind: 'same' }
   /** Serverga yetib bo'lmadi yoki u xato qaytardi. */
   | { kind: 'failed' }
+  /** Sessiya muddati tugagan (401) — PIN qayta kiritilishi kerak. */
+  | { kind: 'unauthorized' }
   /**
    * Serverda bunday manzil yo'q — u hali eskisi.
    *
@@ -103,6 +105,7 @@ export async function fetchPulse(
     );
 
     if (res.status === 304) return { kind: 'same' };
+    if (res.status === 401) return { kind: 'unauthorized' };
     if (res.status === 404) return { kind: 'unsupported' };
     if (!res.ok) return { kind: 'failed' };
 

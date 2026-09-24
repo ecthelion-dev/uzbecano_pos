@@ -32,7 +32,6 @@ import {
   ExternalLink,
   Calendar,
 } from 'lucide-react';
-import { AdminDashboard } from './components/AdminDashboard';
 import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePeriodPrintArea';
 import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib/offlineAuth';
 import { nextQrSlip } from './lib/qrKitchenQueue';

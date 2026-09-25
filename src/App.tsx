@@ -59,6 +59,7 @@ import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, Pr
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
 import { mergeActiveOrders, mergeOrderHistory, unsyncedOrderIds } from './lib/orderMerge';
+import { filterOrdersForPeriod } from './lib/reportPeriod';
 import { failedActionToCartItems, tableNumberOfAction, type FailedAction } from './lib/failedActions';
 import { useT } from './lib/i18n/LanguageProvider';
 import type { TranslationKey } from './lib/i18n/dictionaries/uz';
@@ -1904,7 +1905,7 @@ export default function App() {
         setToastMessage(t('toast.periodTooBig'));
         setTimeout(() => setToastMessage(null), 6000);
       }
-      return data as DBOrder[];
+      return filterOrdersForPeriod(data as DBOrder[], from, to);
     } catch {
       return fallback;
     }

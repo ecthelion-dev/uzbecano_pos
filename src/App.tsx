@@ -100,6 +100,8 @@ import { tableState } from './lib/floorPlan';
 import { cartToHoldLines, holdLinesToCart, parseHoldItems } from './lib/cartSync';
 import { buildVariants } from './lib/productVariants';
 import { formatClock } from './lib/timeFormat';
+import { useTableCarts, useTableDraftPromos } from './hooks/useTableCarts';
+import { useAdminPin } from './hooks/useAdminPin';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -170,38 +172,8 @@ export default function App() {
    * kiritishga majbur. Endi savat qayta ishga tushgandan keyin ham joyida
    * turadi, ya'ni ilovaning yopilishi buyurtmani o'chirmaydi.
    */
-  const [tableCarts, setTableCarts] = useState<Record<string, CartItem[]>>(() => {
-    try {
-      const saved = readCafeJson<Record<string, CartItem[]>>(resolveActiveCafeId(), 'carts', {});
-      // Bu yangilikdan oldin saqlangan savatlarda `lineId` yo'q. Usiz
-      // miqdor tugmalari qaysi qatorga tegishini bilmaydi, shuning uchun
-      // o'qishda bir marta to'ldiriladi.
-      for (const table of Object.keys(saved)) {
-        saved[table] = (saved[table] || []).map((item, idx) => (
-          item?.lineId ? item : { ...item, lineId: `${item?.product?.id || 'line'}-${idx}` }
-        ));
-      }
-      return saved;
-    } catch {
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    writeCafeJson(resolveActiveCafeId(), 'carts', tableCarts);
-  }, [tableCarts]);
-
-  const [tableDraftPromos, setTableDraftPromos] = useState<Record<string, PromoTerms | null>>(() => {
-    try {
-      return readCafeJson<Record<string, PromoTerms | null>>(resolveActiveCafeId(), 'draft_promos', {}) || {};
-    } catch {
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    writeCafeJson(resolveActiveCafeId(), 'draft_promos', tableDraftPromos);
-  }, [tableDraftPromos]);
+  const [tableCarts, setTableCarts] = useTableCarts();
+  const [tableDraftPromos, setTableDraftPromos] = useTableDraftPromos();
 
   // Ishga tushishda bir marta: disk yozadimi-o'qiydimi. Birinchi savdogacha
   // ko'rinsin — keyin bilib qolish kech bo'ladi.
@@ -268,23 +240,14 @@ export default function App() {
   const [showUnsavedCartModal, setShowUnsavedCartModal] = useState<boolean>(false);
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
-  const [showAdminPinModal, setShowAdminPinModal] = useState<boolean>(false);
-  const [adminPinAction, setAdminPinAction] = useState<((approvalToken?: string) => void) | null>(null);
-  /*
-   * PIN oynasining sarlavhasi. Ilgari u qat'iy edi va har doim "oshxona
-   * buyurtmasini bekor qilish" derdi — rahbar esa nimani tasdiqlayotganini
-   * bilishi kerak, aks holda PIN so'rashning ma'nosi qolmaydi.
-   */
-  const [adminPinTitle, setAdminPinTitle] = useState<TranslationKey>('admin.pinKitchenCancel');
-
-  const requestAdminPin = useCallback((
-    action: (approvalToken?: string) => void,
-    titleKey: TranslationKey = 'admin.pinKitchenCancel',
-  ) => {
-    setAdminPinAction(() => action);
-    setAdminPinTitle(titleKey);
-    setShowAdminPinModal(true);
-  }, []);
+  const {
+    showAdminPinModal,
+    setShowAdminPinModal,
+    adminPinAction,
+    setAdminPinAction,
+    adminPinTitle,
+    requestAdminPin,
+  } = useAdminPin();
 
   const [waiters, setWaiters] = useState<DBWaiter[]>([]);
   const [currentWaiter, setCurrentWaiter] = useState<DBWaiter | null>(

@@ -21,18 +21,30 @@ import { hydrateStorage } from './lib/storage';
  *
  * `hydrateStorage` hech qachon rad etmaydi va o'z vaqt chegarasi bor.
  */
-hydrateStorage().then(() => {
-  ReactDOM.createRoot(document.getElementById('root')!).render(
+import { ErrorBoundary } from './components/ErrorBoundary';
+
+function renderApp() {
+  const rootEl = document.getElementById('root');
+  if (!rootEl) return;
+  ReactDOM.createRoot(rootEl).render(
     <React.StrictMode>
-      <LanguageProvider>
-        <App />
-        {/* Provider ICHIDA: banner ham `useT` ishlatadi, tashqarida u otadi
-            va butun ilova oq ekranga aylanadi. */}
-        <UpdateBanner />
-      </LanguageProvider>
+      <ErrorBoundary>
+        <LanguageProvider>
+          <App />
+          {/* Provider ICHIDA: banner ham `useT` ishlatadi, tashqarida u otadi
+              va butun ilova oq ekranga aylanadi. */}
+          <UpdateBanner />
+        </LanguageProvider>
+      </ErrorBoundary>
     </React.StrictMode>
   );
-});
+}
+
+hydrateStorage()
+  .catch((err) => {
+    console.warn('[storage] hydrateStorage xatosi, kassa zaxirada ochiladi:', err);
+  })
+  .finally(renderApp);
 
 /**
  * Service worker faqat brauzerdagi PWA uchun.

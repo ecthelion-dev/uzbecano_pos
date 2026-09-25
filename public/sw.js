@@ -11,8 +11,8 @@
  *   /assets/* (hashed)    — cache first; the filename changes when the build does
  *   navigations           — network first, cache as the offline fallback
  */
-const SHELL_CACHE = 'orderplus-pos-shell-v1';
-const ASSET_CACHE = 'orderplus-pos-assets-v1';
+const SHELL_CACHE = 'orderplus-pos-shell-v2';
+const ASSET_CACHE = 'orderplus-pos-assets-v2';
 const KNOWN_CACHES = [SHELL_CACHE, ASSET_CACHE];
 
 self.addEventListener('install', (event) => {

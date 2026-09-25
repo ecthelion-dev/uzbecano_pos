@@ -39,9 +39,6 @@ import { newWaiterCalls, playCallChime } from './lib/waiterCallAlert';
 import {
   enqueuePrintJob,
   fetchPrintJobs,
-  claimPrintJob,
-  closePrintJob,
-  isInFlight,
   type PrintJob,
 } from './lib/printQueue';
 import { fetchPulse, resetPulse } from './lib/pulse';
@@ -102,6 +99,8 @@ import { buildVariants } from './lib/productVariants';
 import { formatClock } from './lib/timeFormat';
 import { useTableCarts, useTableDraftPromos } from './hooks/useTableCarts';
 import { useAdminPin } from './hooks/useAdminPin';
+import { useReservations } from './hooks/useReservations';
+import { usePrintQueueWorker } from './hooks/usePrintQueueWorker';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -232,11 +231,7 @@ export default function App() {
   >([]);
   /** Shu qurilmaning nomi — o'z belgisini boshqalarnikidan ajratish uchun. */
   const deviceId = useMemo(() => getDeviceId(), []);
-  const [reservations, setReservations] = useState<DBReservation[]>([]);
-  const [showReservationModal, setShowReservationModal] = useState<boolean>(false);
-  const [showReservationDetailsModal, setShowReservationDetailsModal] = useState<boolean>(false);
-  const [selectedReservation, setSelectedReservation] = useState<DBReservation | null>(null);
-  const [reservationDefaultTable, setReservationDefaultTable] = useState<string | undefined>(undefined);
+
   const [showUnsavedCartModal, setShowUnsavedCartModal] = useState<boolean>(false);
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
@@ -355,6 +350,30 @@ export default function App() {
     if (approvalToken) headers['X-Approval-Token'] = approvalToken;
     return headers;
   }, [authToken]);
+
+  const handleSelectTableRef = useRef<(tableNumber: string, ignoreReservation?: boolean) => void>(() => {});
+  const {
+    reservations,
+    setReservations,
+    showReservationModal,
+    setShowReservationModal,
+    showReservationDetailsModal,
+    setShowReservationDetailsModal,
+    selectedReservation,
+    setSelectedReservation,
+    reservationDefaultTable,
+    setReservationDefaultTable,
+    handleCreateReservation,
+    handleCancelReservation,
+    handleOpenReservedTable,
+  } = useReservations({
+    getActiveCafeId,
+    getAuthHeaders,
+    requestAdminPin,
+    handleSelectTable: (tb, ignore) => handleSelectTableRef.current(tb, ignore),
+    setToastMessage,
+    t,
+  });
 
   // Logs the operator out and sanitizes renderer state (cart, discount,
   // payment entry) so the next person at the terminal never sees the
@@ -1299,59 +1318,12 @@ export default function App() {
    * ya'ni topshiriqni olib, bosa olmay, navbatdan chiqarib tashlagan bo'lardi
    * — chek esa hech qayerda chiqmasdi.
    */
-  const drainPrintJobs = useCallback(async (incoming: PrintJob[]) => {
-      if (!IS_DESKTOP_APP) return;
-      // Oyna yig'ilgan bo'lsa ham bo'shatiladi: qog'oz chiqishi kassirning
-      // ekranga qarab turishiga bog'liq bo'lmasligi kerak.
-      const headers = getAuthHeaders();
-      // Ayni damda bosilayotgan topshiriq ikkinchi marta olinmasin: bitta
-      // buyurtmaga ikkita qog'oz chiqishi oshpazni taomni qaytadan
-      // qilishga majbur qiladi.
-      const jobs = incoming.filter((j) => !isInFlight(j.id));
-
-      for (const job of jobs) {
-        // Band qilish chop etishdan OLDIN: aks holda keyingi so'rov o'sha
-        // topshiriqni yana olib, ikkinchi qog'ozni chiqarardi.
-        if (!claimPrintJob(job.id)) continue;
-
-        let ok = false;
-        let why: string | null = null;
-        try {
-          if (job.kind === 'receipt' && job.order) {
-            ok = await printReceiptDirect(job.order, connectedCafeName || 'OrderPlus');
-            if (!ok) why = getLastPrintError() || t('toast.printFailed');
-          } else if (job.kind === 'kitchen') {
-            const extra = job.payload ? JSON.parse(job.payload) : null;
-            const data = {
-              tableNumber: extra?.tableNumber || job.order?.tableNumber || 'Zal',
-              waiterName: extra?.waiterName || job.order?.waiterName || 'Offitsiant',
-              // Tarkib topshiriqdan olinadi: buyurtmadagi to'liq ro'yxatdan
-              // chop etilsa, oshpaz allaqachon tayyorlagan taomni qaytadan
-              // qilardi.
-              items: extra?.items ?? job.order?.items,
-              time: extra?.time,
-              slipNumber: extra?.slipNumber,
-            };
-            ok = await printKitchenSlipDirect(data, connectedCafeName || 'OrderPlus');
-            if (!ok) why = getLastPrintError() || t('toast.printFailed');
-          } else {
-            why = t('toast.orderNotFound');
-          }
-        } catch (e: unknown) {
-          why = e instanceof Error ? e.message : String(e);
-        }
-
-        await closePrintJob(headers, job.id, ok, why);
-        if (ok) {
-          setToastMessage(
-            job.kind === 'kitchen'
-              ? t('toast.kitchenSlipPrinted')
-              : t('toast.receiptPrinted'),
-          );
-          window.setTimeout(() => setToastMessage(null), 3000);
-        }
-      }
-  }, [getAuthHeaders, connectedCafeName]);
+  const { drainPrintJobs } = usePrintQueueWorker({
+    connectedCafeName,
+    getAuthHeaders,
+    setToastMessage,
+    t,
+  });
 
   useEffect(() => {
     if (!currentWaiter) return;
@@ -1747,75 +1719,7 @@ export default function App() {
       setWaiterCalls(prev => prev.filter(t => (t || '').trim().toLowerCase() !== tableNumber.trim().toLowerCase()));
     }
   }, [getActiveCafeId, getAuthHeaders, tables, t, tableCarts, tableHolds, deviceId, products]);
-
-  const handleCreateReservation = useCallback(async (data: {
-    tableNumber: string;
-    customerName: string;
-    customerPhone?: string;
-    guestCount: number;
-    reservedTime: string;
-    notes?: string;
-  }): Promise<boolean> => {
-    try {
-      const cafeId = getActiveCafeId();
-      if (!cafeId) return false;
-      const res = await fetchWithTimeout(`${API_BASE_URL}/api/reservations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-        body: JSON.stringify({ cafeId, ...data }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setToastMessage(err.error || t('reservation.error'));
-        setTimeout(() => setToastMessage(null), 3000);
-        return false;
-      }
-      const created = await res.json();
-      setReservations(prev => [...prev.filter(r => r.id !== created.id), created]);
-      setToastMessage(t('reservation.success'));
-      setTimeout(() => setToastMessage(null), 3000);
-      return true;
-    } catch (err: any) {
-      setToastMessage(err.message || t('reservation.error'));
-      setTimeout(() => setToastMessage(null), 3000);
-      return false;
-    }
-  }, [getActiveCafeId, getAuthHeaders, t]);
-
-  const handleCancelReservation = useCallback((reservationId: string) => {
-    requestAdminPin(async (approvalToken?: string) => {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE_URL}/api/reservations?id=${encodeURIComponent(reservationId)}`, {
-          method: 'DELETE',
-          headers: getAuthHeaders(approvalToken),
-        });
-        if (res.ok) {
-          setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: 'CANCELLED' } : r));
-          setShowReservationDetailsModal(false);
-          setSelectedReservation(null);
-          setToastMessage(t('reservation.cancelSuccess'));
-          setTimeout(() => setToastMessage(null), 3000);
-        }
-      } catch {}
-    }, 'admin.pinReservationCancel');
-  }, [getAuthHeaders, requestAdminPin, t]);
-
-  const handleOpenReservedTable = useCallback((tableNumber: string, reservationId: string) => {
-    requestAdminPin(async (approvalToken?: string) => {
-      try {
-        await fetchWithTimeout(`${API_BASE_URL}/api/reservations`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', ...getAuthHeaders(approvalToken) },
-          body: JSON.stringify({ id: reservationId, status: 'COMPLETED' }),
-        });
-        setReservations(prev => prev.map(r => r.id === reservationId ? { ...r, status: 'COMPLETED' } : r));
-        setShowReservationDetailsModal(false);
-        setSelectedReservation(null);
-        setShowReservationModal(false);
-        handleSelectTable(tableNumber, true);
-      } catch {}
-    }, 'admin.pinReservationClose');
-  }, [getAuthHeaders, handleSelectTable, requestAdminPin]);
+  handleSelectTableRef.current = handleSelectTable;
 
   const handleSelectCategory = useCallback((categoryName: string) => {
     setSelectedCategoryName(categoryName);

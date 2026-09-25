@@ -100,6 +100,8 @@ import { useTableCarts, useTableDraftPromos } from './hooks/useTableCarts';
 import { useAdminPin } from './hooks/useAdminPin';
 import { useReservations } from './hooks/useReservations';
 import { usePrintQueueWorker } from './hooks/usePrintQueueWorker';
+import { useKitchenDispatch } from './hooks/useKitchenDispatch';
+import { useCheckout } from './hooks/useCheckout';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -2255,59 +2257,6 @@ export default function App() {
     });
   }, [requestAdminPin, getActiveCafeId]);
 
-  const handleRemoveKitchenItem = useCallback((itemIndex: number) => {
-    requestAdminPin(async (approvalToken?: string) => {
-      if (!activeTableOrder) return;
-      const updatedItems = [...activeTableOrderItems];
-      updatedItems.splice(itemIndex, 1);
-      const sub = updatedItems.reduce((s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
-      const fee = Math.round((sub * serviceFeePercent) / 100);
-      const tot = sub + fee;
-
-      const patchBody = { items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot };
-      if (!isOfflineMode) {
-        try {
-          const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
-            method: 'PATCH',
-            headers: getAuthHeaders(approvalToken),
-            body: JSON.stringify(patchBody)
-          });
-          if (!res.ok) {
-            if (decideFromStatus(res.status) !== 'retry') {
-              // Server printsipial rad etdi — masalan rahbar tasdig'i
-              // yaroqsiz. Mahalliy holatga tegmaymiz: ilgari taom ekrandan
-              // yo'qolar, keyingi so'rov uni qaytarib kelar va kassir nega
-              // qaytganini bilmasdi. Sababni aytamiz, taom joyida qoladi.
-              const why = await res.json().catch(() => null);
-              setToastMessage(why?.error || "Taomni o'chirib bo'lmadi");
-              setTimeout(() => setToastMessage(null), 5000);
-              return;
-            }
-            queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
-          }
-        } catch {
-          queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
-        }
-      } else {
-        queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
-      }
-
-      // Oxirgi taom olib tashlandi — server buyurtmani bekor qiladi va stol
-      // bo'shaydi. Shuni mahalliy holatga ham yozamiz: aks holda stol keyingi
-      // so'rovgacha (5-20 soniya) BAND bo'lib turardi.
-      const emptied = updatedItems.length === 0;
-      const updatedOrders = orders.map(o => o.id === activeTableOrder.id
-        ? { ...o, items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot, ...(emptied ? { status: 'cancelled' } : {}) }
-        : o);
-      setOrders(updatedOrders);
-      writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
-      setToastMessage(emptied
-        ? t('toast.tableFreed')
-        : t('toast.dishCancelled'));
-      setTimeout(() => setToastMessage(null), 2500);
-    });
-  }, [activeTableOrder, activeTableOrderItems, orders, isOfflineMode, requestAdminPin, getActiveCafeId, getAuthHeaders, queuePatchForSync]);
-
   const handleRefundOrder = useCallback((targetOrder: DBOrder, reason: string) => {
     requestAdminPin(async (approvalToken?: string) => {
       const refundBody = { action: 'refund', refundReason: reason };
@@ -2458,172 +2407,34 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3000);
   }, [currentWaiter, isOfflineMode, getActiveCafeId, getAuthHeaders, queuePatchForSync, t]);
 
-  const handleSendToKitchen = useCallback(async () => {
-    if (cart.length === 0) return;
-    setApiError(null);
-    try {
-      // Narxni va o'lchamni server hal qiladi — qoidalar lib/orderItems.ts da.
-      const newItems = cart.map(cartLineToOrderItem);
-      // Read through the ref, not the value captured when this handler
-      // started: an await sits between here and the write, and the six-second
-      // poll can land inside it. Writing the stale copy back would undo
-      // whatever the poll had just learned from the server.
-      let updatedOrders = [...ordersRef.current];
-
-      // Kvitansiya qaysi buyurtmaga tegishli. Telefonda chop etib bo'lmaydi,
-      // ya'ni u chop etish navbatiga yoziladi va navbat havola bilan ishlaydi.
-      let kitchenOrderId = '';
-      // Serverning kunlik raqami. Oflayn buyurtmada u hali yo'q — o'shanda
-      // kvitansiyaga id ning oxiri bosiladi: raqamsiz qog'oz bo'lishi
-      // mumkin, ikkita bir xil raqamli qog'oz esa yo'q.
-      let kitchenDailyNumber = 0;
-
-      if (activeTableOrder) {
-        kitchenOrderId = String(activeTableOrder.id || '');
-        kitchenDailyNumber = Number((activeTableOrder as any).dailyNumber) || 0;
-        const itemMap = new Map<string, OutgoingOrderItem>();
-        activeTableOrderItems.forEach((i: any, idx: number) => {
-          itemMap.set(`${i.name}_${i.note || ''}_${idx}`, sentItemToOrderItem(i));
-        });
-        newItems.forEach((i, idx) => {
-          itemMap.set(`${i.name}_${i.note || ''}_new_${idx}`, i);
-        });
-        const combinedItems = Array.from(itemMap.values());
-        const combinedSubtotal = combinedItems.reduce((s: number, i: any) => s + i.price * i.quantity, 0);
-        const { serviceFee: combinedFee, discount: combinedDiscount, total: combinedTotal } =
-          orderTotals(combinedSubtotal, serviceFeePercent, parsePromoTerms(activeTableOrder.promo));
-
-        // Serverga faqat YANGI taomlar ketadi. Ekranda esa darhol birlashgan
-        // ro'yxat ko'rinadi; server javob bersa, uning nusxasi ustun turadi —
-        // unda boshqa qurilmalar qo'shgan taomlar ham bor.
-        const serverOrder = await sendAppendItems(activeTableOrder.id, newItems);
-
-        updatedOrders = updatedOrders.map(o => o.id !== activeTableOrder.id
-          ? o
-          : serverOrder
-            ? { ...o, ...serverOrder }
-            : { ...o, items: JSON.stringify(combinedItems), subtotal: combinedSubtotal, serviceFee: combinedFee, discount: combinedDiscount, total: combinedTotal });
-      } else {
-        const draftPromo = tableDraftPromos[selectedTable] || null;
-        const sub = draftSubtotal;
-        const { serviceFee: fee, discount, total: tot } = orderTotals(sub, serviceFeePercent, draftPromo);
-        const cafeId = readGlobalText('cafeId') || DEFAULT_CAFE_ID;
-        const newOrderObj: {
-          id: string;
-          cafeId: string;
-          tableNumber: string;
-          waiterName: string;
-          items: string;
-          subtotal: number;
-          serviceFee: number;
-          total: number;
-          status: string;
-          dailyNumber?: number;
-          promo?: any;
-          discount?: number;
-        } = {
-          id: crypto.randomUUID(),
-          cafeId,
-          tableNumber: selectedTable,
-          waiterName: currentWaiter?.name || '',
-          items: JSON.stringify(newItems),
-          subtotal: sub,
-          serviceFee: fee,
-          discount,
-          promo: draftPromo ? { code: draftPromo.code, type: draftPromo.type, value: draftPromo.value } : undefined,
-          total: tot,
-          status: 'sent_to_kitchen'
-        };
-        kitchenOrderId = newOrderObj.id;
-
-        if (!isOfflineMode) {
-          try {
-            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
-              method: 'POST',
-              headers: getAuthHeaders(),
-              body: JSON.stringify({ ...newOrderObj, promoCode: draftPromo?.code, idempotencyKey: newOrderObj.id })
-            });
-            // Muzlatilgan kafening buyurtmasi navbatga qo'yilmaydi: server uni
-            // hech qachon qabul qilmaydi, kassa esa shu zahoti muzlaydi.
-            if (await applyFrozenFromResponse(res, getActiveCafeId())) return;
-            if (!res.ok) {
-              queueOrderForSync(newOrderObj);
-            } else {
-              // Serverning id si va chek raqami — ikkalasi ham javobdan.
-              // Raqam usiz faqat keyingi so'rovda kelardi va tez yopilgan
-              // stolning chekiga raqam o'rniga id ning oxiri tushardi.
-              const serverCreated = await res.clone().json().catch(() => null);
-              if (serverCreated) {
-                if (serverCreated.id) newOrderObj.id = String(serverCreated.id);
-                if (Number(serverCreated.dailyNumber) > 0) newOrderObj.dailyNumber = Number(serverCreated.dailyNumber);
-                if (serverCreated.promo !== undefined) (newOrderObj as any).promo = serverCreated.promo;
-                if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
-                if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;
-              }
-              kitchenOrderId = newOrderObj.id;
-              kitchenDailyNumber = Number(newOrderObj.dailyNumber) || 0;
-            }
-          } catch {
-            queueOrderForSync(newOrderObj);
-          }
-        } else {
-          queueOrderForSync(newOrderObj);
-        }
-
-        updatedOrders = [newOrderObj as any, ...updatedOrders];
-        setTableDraftPromos((prev) => {
-          if (!prev[selectedTable]) return prev;
-          const copy = { ...prev };
-          delete copy[selectedTable];
-          return copy;
-        });
-      }
-
-      ordersRef.current = updatedOrders;
-      setOrders(updatedOrders);
-      // Yozib bo'lmasa oshxona kvitansiyasi ham, "yuborildi" degan xabar
-      // ham chiqmaydi — kassir hali hech narsa yo'qotmagan, faqat qaytadan
-      // urinishi kerak.
-      if (!writeCafeJson(getActiveCafeId(), 'orders', updatedOrders)) {
-        setStorageBlockingError(t('storage.writeFailed'));
-        return;
-      }
-      setTableCarts(prev => ({ ...prev, [selectedTable]: [] }));
-
-      const kitchenPayload: KitchenSlipData = {
-        orderId: kitchenOrderId,
-        tableNumber: selectedTable,
-        waiterName: currentWaiter?.name || 'Offitsiant',
-        items: newItems,
-        time: formatClock(new Date()),
-        timestamp: new Date().toISOString(),
-        /*
-         * Raqam SERVERDAN — buyurtmaning kunlik tartib raqami.
-         *
-         * Ilgari uni kassa o'zi hisoblardi. Bitta kassa bilan bu ishlardi,
-         * ikkinchisi qo'shilganda esa har biri o'z hisobini yuritib, bir
-         * kunda ikkita "No 7" paydo bo'lardi — va yangi qurilmada hisob
-         * yana birdan boshlanardi. Oshpaz bilan ofitsiant esa bir-birini
-         * aynan shu raqam bilan tushunadi.
-         *
-         * Server raqami chekdagi raqam bilan bir xil, ya'ni oshxonadagi
-         * qog'oz, kassadagi ekran va mijozning cheki bitta narsani aytadi.
-         */
-        slipNumber: kitchenDailyNumber,
-      };
-      // Oshxona kvitansiyasi buyurtma tasdiqlanishi bilan o'zi chiqadi.
-      // Oraliqdagi "Chop etish" modali olib tashlandi: band kafeda u har bir
-      // buyurtmaga qo'shimcha bosish qo'shar, kassir esa baribir doim chop
-      // etardi. Chop etishning o'zi quyidagi effektda — chek DOM ga
-      // chiqqanidan keyin.
-      setKitchenSlipData(kitchenPayload);
-
-      setToastMessage(t('toast.sentToKitchen'));
-      setTimeout(() => setToastMessage(null), 2500);
-    } catch (err: any) {
-      setApiError(`Ulanish xatosi: ${err.message || err}`);
-    }
-  }, [selectedTable, cart, activeTableOrder, activeTableOrderItems, draftSubtotal, orders, isOfflineMode, currentWaiter, connectedCafeName, serviceFeePercent, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, applyFrozenFromResponse, tableDraftPromos]);
+  const { handleSendToKitchen, handleRemoveKitchenItem } = useKitchenDispatch({
+    cart,
+    selectedTable,
+    activeTableOrder,
+    activeTableOrderItems,
+    draftSubtotal,
+    orders,
+    ordersRef,
+    isOfflineMode,
+    currentWaiter,
+    serviceFeePercent,
+    tableDraftPromos,
+    getActiveCafeId,
+    getAuthHeaders,
+    sendAppendItems,
+    queueOrderForSync,
+    queuePatchForSync,
+    applyFrozenFromResponse,
+    requestAdminPin,
+    setOrders,
+    setTableDraftPromos,
+    setTableCarts,
+    setKitchenSlipData,
+    setToastMessage,
+    setApiError,
+    setStorageBlockingError,
+    t,
+  });
 
   const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
     const sourceOrder = orders.find(o => o.tableNumber === sourceTable && isActiveOrder(o.status));
@@ -2755,286 +2566,33 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 2500);
   }, [orders, tableCarts, isOfflineMode, serviceFeePercent, getActiveCafeId, getAuthHeaders, queuePatchForSync, queueDeleteForSync]);
 
-  /**
-   * Stolni yopish.
-   *
-   * `payment` — to'lov oynasi bergan summalar. U ATAYLAB argument sifatida
-   * keladi, holatdan o'qilmaydi: oyna tasdiqlangan zahoti bu funksiya
-   * chaqiriladi, React holati esa hali yangilanmagan bo'ladi. Holatdan
-   * o'qilsa chek oldingi stolning summasi bilan chiqardi.
-   */
-  const handleCloseTable = useCallback(async (
-    tableNum?: string,
-    skipConfirm = false,
-    payment?: { cash: number; card: number; debtCustomer?: DebtCustomerInfo },
-  ) => {
-    const targetTable = (typeof tableNum === 'string' && tableNum.trim()) ? tableNum.trim() : selectedTable;
-    const normTarget = targetTable.trim().toLowerCase();
-    const currentCart = tableCarts[targetTable] || [];
-    const activeOrder = orders.find(o => (o.tableNumber || '').trim().toLowerCase() === normTarget && isActiveOrder(o.status));
-
-    if (!activeOrder && currentCart.length === 0) {
-      setToastMessage(t('toast.noOrderOnTable'));
-      setTimeout(() => setToastMessage(null), 2500);
-      return;
-    }
-
-    let currentOrders = [...ordersRef.current];
-    let serverConfirmedItems = true;
-
-    if (currentCart.length > 0) {
-      if (!skipConfirm) {
-        setShowUnsavedCartModal(true);
-        return;
-      }
-
-      /*
-       * Tasdiqlashsiz to'g'ridan-to'g'ri yopish yo'li.
-       *
-       * Bu yerda taomlar `selectedVariant` deb yuborilardi — bu KASSANING
-       * ichki nomi, server esa faqat `selectedSize` ni o'qiydi. Natijada
-       * o'lcham jimgina tushib qolar va taom asosiy narxda yozilardi.
-       *
-       * Aynan shuning uchun "Tasdiqlash" bosilganda hammasi to'g'ri, uni
-       * bosmasdan yopilganda esa noto'g'ri edi: tasdiqlash boshqa yo'ldan
-       * ketadi va o'sha yo'l o'lchamni to'g'ri yuboradi.
-       */
-      const newItems = currentCart.map((c) => ({
-        id: c.product.id,
-        ...cartLineToOrderItem(c),
-        selectedAddons: c.selectedAddons,
-      }));
-
-      const sub = draftSubtotal;
-      const fee = Math.round((sub * serviceFeePercent) / 100);
-      const tot = sub + fee;
-
-      const latestActive = currentOrders.find(o => (o.tableNumber || '').trim().toLowerCase() === normTarget && isActiveOrder(o.status));
-      if (latestActive) {
-        let existingItems: any[] = [];
-        try { existingItems = typeof latestActive.items === 'string' ? JSON.parse(latestActive.items) : (latestActive.items || []); } catch { }
-        const combinedItems = [...existingItems, ...newItems];
-        const combinedSubtotal = combinedItems.reduce((s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
-        // Promo bor bo'lsa chegirma yangi summadan — to'lov server summasiga teng chiqsin.
-        const combined = orderTotals(combinedSubtotal, serviceFeePercent, parsePromoTerms(latestActive.promo));
-
-        /*
-         * Yangi taomlar SERVERGA ham yuboriladi.
-         *
-         * Ilgari ular faqat shu kassada chekka qo'shilardi: server ularni
-         * hech qachon ko'rmasdi, to'lov esa yangi summa bilan ketardi va
-         * "yig'indi chek summasiga teng emas" deb rad etilardi — stol
-         * kassada yopilgan, serverda ochiq qolardi.
-         *
-         * To'lovdan OLDIN kutiladi: server qabul qilsa, to'lov uning
-         * summasiga qilinadi. Qabul qilmasa taom navbatga tushadi va to'lov
-         * ham undan KEYIN navbatga yoziladi — navbat tartib bilan ishlaydi.
-         */
-        const serverOrder = await sendAppendItems(latestActive.id, newItems);
-        if (!serverOrder) {
-          serverConfirmedItems = false;
-        }
-
-        currentOrders = currentOrders.map(o => o.id !== latestActive.id
-          ? o
-          : serverOrder
-            ? { ...o, ...serverOrder }
-            : { ...o, items: JSON.stringify(combinedItems), subtotal: combinedSubtotal, serviceFee: combined.serviceFee, discount: combined.discount, total: combined.total });
-      } else {
-        const draftPromo = tableDraftPromos[targetTable] || null;
-        const { serviceFee: fee, discount, total: tot } = orderTotals(sub, serviceFeePercent, draftPromo);
-        const newOrderObj = {
-          id: crypto.randomUUID(),
-          cafeId: getActiveCafeId(),
-          tableNumber: targetTable,
-          waiterName: currentWaiter?.name || '',
-          items: JSON.stringify(newItems),
-          subtotal: sub,
-          serviceFee: fee,
-          discount,
-          promo: draftPromo ? { code: draftPromo.code, type: draftPromo.type, value: draftPromo.value, minOrder: draftPromo.minOrder ?? 0 } : undefined,
-          total: tot,
-          status: 'sent_to_kitchen'
-        };
-
-        let serverCreatedOrder = false;
-        if (!isOfflineMode) {
-          try {
-            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
-              method: 'POST',
-              headers: getAuthHeaders(),
-              body: JSON.stringify({ ...newOrderObj, promoCode: draftPromo?.code, idempotencyKey: newOrderObj.id })
-            });
-            if (res.status === 401) {
-              queueOrderForSync(newOrderObj);
-              handleSessionExpired();
-            } else if (!res.ok) {
-              queueOrderForSync(newOrderObj);
-            } else {
-              const serverCreated = await res.clone().json().catch(() => null);
-              if (serverCreated) {
-                serverCreatedOrder = true;
-                if (serverCreated.id) (newOrderObj as any).id = String(serverCreated.id);
-                if (Number(serverCreated.dailyNumber) > 0) (newOrderObj as any).dailyNumber = Number(serverCreated.dailyNumber);
-                if (serverCreated.promo !== undefined) (newOrderObj as any).promo = serverCreated.promo;
-                if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
-                if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;
-              }
-            }
-          } catch {
-            queueOrderForSync(newOrderObj);
-          }
-        } else {
-          queueOrderForSync(newOrderObj);
-        }
-        if (!serverCreatedOrder) {
-          serverConfirmedItems = false;
-        }
-
-        currentOrders.push(newOrderObj);
-        setTableDraftPromos((prev) => {
-          if (!prev[targetTable]) return prev;
-          const copy = { ...prev };
-          delete copy[targetTable];
-          return copy;
-        });
-      }
-
-      // Savatdan qo'shilgan taomlar shu yerda ro'yxatga yozilishi shart.
-      // Ilgari `currentOrders` faqat mahalliy o'zgaruvchi bo'lib qolar,
-      // pastdagi to'lov bloki esa `ordersRef.current` ni qaytadan o'qirdi:
-      // yangi ochilgan buyurtma unda yo'q edi, ya'ni "To'lov va yopish"
-      // bosilganda hech nima yopilmas, chek ham chiqmasdi.
-      ordersRef.current = currentOrders;
-      setOrders(currentOrders);
-      // Savatdagi taomlar ro'yxatga yozilmasa, pastdagi to'lov-yopish bloki
-      // ularsiz ishlaydi — chek noto'liq chiqadi. Shu yerda to'xtatamiz.
-      if (!writeCafeJson(getActiveCafeId(), 'orders', currentOrders)) {
-        setStorageBlockingError(t('storage.writeFailed'));
-        return;
-      }
-    }
-
-    setApiError(null);
-    try {
-      const latestOrder = currentOrders.find(o => (o.tableNumber || '').trim().toLowerCase() === normTarget && isActiveOrder(o.status));
-      let closedOrder: any = null;
-
-      if (latestOrder) {
-        const orderTotal = latestOrder.total || 0;
-
-        /*
-         * Naqd — to'lov oynasidan. Qolgani o'zi kartaga tushadi, chunki
-         * ikkalasining yig'indisi chek summasiga TENG BO'LISHI SHART:
-         * server buni tekshiradi va tenglashmasa to'lovni rad etadi.
-         *
-         * Oyna ochilmasdan yopilgan holat ham bor (masalan sinxronizatsiya
-         * yo'li) — o'shanda hammasi naqd deb hisoblanadi.
-         */
-        const isDebt = Boolean(payment?.debtCustomer);
-
-        const { cash: finalCash, card: finalCard, method: finalMethod } =
-          splitPayment(orderTotal, payment ? payment.cash : orderTotal);
-
-        const paymentPatchBody: any = isDebt
-          ? {
-              status: 'served',
-              paymentMethod: 'qarz',
-              cashAmount: 0,
-              cardAmount: 0,
-              debtCustomerName: payment!.debtCustomer!.name,
-              debtCustomerPhone: payment!.debtCustomer!.phone || null,
-              debtDueDate: payment!.debtCustomer!.dueDate || null,
-              debtNote: payment!.debtCustomer!.note || null,
-            }
-          : {
-              status: 'served',
-              paymentMethod: finalMethod,
-              cashAmount: finalCash,
-              cardAmount: finalCard,
-            };
-
-        closedOrder = {
-          ...latestOrder,
-          status: 'served',
-          paymentMethod: isDebt ? 'qarz' : finalMethod,
-          cashAmount: isDebt ? 0 : finalCash,
-          cardAmount: isDebt ? 0 : finalCard,
-          debtCustomerName: isDebt ? payment!.debtCustomer!.name : (latestOrder.debtCustomerName ?? null),
-          debtCustomerPhone: isDebt ? (payment!.debtCustomer!.phone || null) : (latestOrder.debtCustomerPhone ?? null),
-          debtDueDate: isDebt ? (payment!.debtCustomer!.dueDate || null) : (latestOrder.debtDueDate ?? null),
-          debtNote: isDebt ? (payment!.debtCustomer!.note || null) : (latestOrder.debtNote ?? null),
-          closedAt: latestOrder.closedAt || new Date().toISOString(),
-          waiterName: latestOrder.waiterName || currentWaiter?.name || 'Xodim',
-          debtCustomer: payment?.debtCustomer ?? null,
-        };
-
-        const updatedOrders = currentOrders.map(o => o.id === latestOrder.id ? closedOrder : o);
-
-        ordersRef.current = updatedOrders;
-        setOrders(updatedOrders);
-        // Yozib bo'lmasa stol "yopilgan" hisoblanmaydi: chek chiqmaydi,
-        // "muvaffaqiyatli yopildi" degan xabar ham chiqmaydi. Kassir buni
-        // ko'rib qaytadan urinishi kerak — aks holda pul olingan, lekin
-        // hech qanday yozuv qolmagan bo'lardi.
-        if (!writeCafeJson(getActiveCafeId(), 'orders', updatedOrders)) {
-          setStorageBlockingError(t('storage.writeFailed'));
-          return;
-        }
-        setSelectedArchiveOrder(closedOrder);
-
-        /*
-         * Chek to'lov so'rovidan OLDIN.
-         *
-         * Chekdagi hamma narsa — taomlar, summa, to'lov turi — shu yerda,
-         * kassaning o'zida ma'lum: serverning javobidan hech nima olinmaydi.
-         * Shunga qaramay chek so'rovdan keyin bosilardi, ya'ni qog'oz
-         * tarmoqqa bog'lanib qolgan edi: internet uzilganda so'rov osilib
-         * turar, chek esa o'sha kutish tugagunicha chiqmasdi.
-         *
-         * Endi qog'oz birinchi, sinxronizatsiya keyin. To'lov baribir
-         * yo'qolmaydi: pastdagi so'rov yiqilsa, amal navbatga yoziladi va
-         * aloqa tiklanganda o'zi ketadi.
-         */
-        printClosedReceipt(closedOrder);
-
-        // Agar yangi taomlar yoki yangi buyurtma server tomonidan tasdiqlanmagan
-        // bo'lsa (sendAppendItems yoki create navbatga tushgan), to'lov PATCH'ini
-        // to'g'ridan-to'g'ri serverga yuborib bo'lmaydi: serverda taomlar yo'q
-        // yoki chek yo'q, va summa tenglashmagani uchun 400 xato beradi.
-        // Shuning uchun to'lov ham navbatga yoziladi — tartib bilan ketadi.
-        const canSendOnline = !isOfflineMode && serverConfirmedItems;
-
-        if (canSendOnline) {
-          try {
-            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${latestOrder.id}`, {
-              method: 'PATCH',
-              headers: getAuthHeaders(),
-              body: JSON.stringify(paymentPatchBody)
-            });
-            if (res.status === 401) {
-              queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
-              handleSessionExpired();
-            } else if (!res.ok) {
-              setApiError(t('toast.paymentNotSaved'));
-              queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
-            }
-          } catch {
-            setApiError(t('toast.paymentQueued'));
-            queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
-          }
-        } else {
-          queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
-        }
-      }
-      setTableCarts(prev => ({ ...prev, [targetTable]: [] }));
-      setToastMessage(`${targetTable} muvaffaqiyatli to'lanib yopildi!`);
-      setTimeout(() => setToastMessage(null), 2500);
-
-    } catch (err: any) {
-      setApiError(`Stolni yopishda xatolik: ${err.message || err}`);
-    }
-  }, [orders, selectedTable, tableCarts, isOfflineMode, handleSendToKitchen, currentWaiter, getActiveCafeId, getAuthHeaders, sendAppendItems, queueOrderForSync, queuePatchForSync, serviceFeePercent, draftSubtotal, printClosedReceipt, tableDraftPromos, handleSessionExpired]);
+  const { handleCloseTable } = useCheckout({
+    orders,
+    ordersRef,
+    selectedTable,
+    tableCarts,
+    isOfflineMode,
+    currentWaiter,
+    serviceFeePercent,
+    draftSubtotal,
+    tableDraftPromos,
+    getActiveCafeId,
+    getAuthHeaders,
+    sendAppendItems,
+    queueOrderForSync,
+    queuePatchForSync,
+    printClosedReceipt,
+    handleSessionExpired,
+    setOrders,
+    setTableDraftPromos,
+    setTableCarts,
+    setSelectedArchiveOrder,
+    setShowUnsavedCartModal,
+    setToastMessage,
+    setApiError,
+    setStorageBlockingError,
+    t,
+  });
 
   // Filtered Products
   const displayedProducts = useMemo(() => {

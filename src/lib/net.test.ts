@@ -84,11 +84,12 @@ describe('cheklangan kutish bilan so‘rov', () => {
  * bosilardi va shu bilan tarmoqqa bog'lanib qolgan edi.
  */
 describe('stol yopilganda chek', () => {
-  const src = readFileSync(fileURLToPath(new URL('../App.tsx', import.meta.url)), 'utf-8');
+  const appSrc = readFileSync(fileURLToPath(new URL('../App.tsx', import.meta.url)), 'utf-8');
+  const checkoutSrc = readFileSync(fileURLToPath(new URL('../hooks/useCheckout.ts', import.meta.url)), 'utf-8');
 
   it('to‘lov so‘rovidan oldin bosiladi', () => {
-    const print = src.indexOf('printClosedReceipt(closedOrder)');
-    const patch = src.indexOf("'finalize_payment'", print > 0 ? print : 0);
+    const print = checkoutSrc.indexOf('printClosedReceipt(closedOrder)');
+    const patch = checkoutSrc.indexOf("'finalize_payment'", print > 0 ? print : 0);
     expect(print, "chek chop etish chaqiruvi topilmadi").toBeGreaterThan(0);
     expect(patch, "to'lovni saqlash topilmadi").toBeGreaterThan(print);
   });
@@ -96,7 +97,8 @@ describe('stol yopilganda chek', () => {
   it('kassadagi har bir so‘rov cheklangan kutish bilan ketadi', () => {
     // Bittasi ham oddiy `fetch(` bo'lib qolsa, o'sha joy yana osilib
     // qolishi mumkin — va bu safar buni hech kim sezmaydi.
-    const bare = src.match(/await fetch\(/g) ?? [];
-    expect(bare).toEqual([]);
+    const bareApp = appSrc.match(/await fetch\(/g) ?? [];
+    const bareCheckout = checkoutSrc.match(/await fetch\(/g) ?? [];
+    expect([...bareApp, ...bareCheckout]).toEqual([]);
   });
 });

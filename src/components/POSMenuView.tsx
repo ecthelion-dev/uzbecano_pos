@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { CategoryCard } from './CategoryCard';
 import { ProductCard } from './ProductCard';
-import type { Category, Product } from '../types';
+import type { DBCategory, DBProduct } from '../types';
 
 export interface POSMenuViewProps {
   t: (key: any, options?: any) => string;
@@ -10,16 +10,16 @@ export interface POSMenuViewProps {
   searchQuery: string;
   showMobileSearch: boolean;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
-  allCategories: Category[];
+  allCategories: DBCategory[];
   categoryCounts: Record<string, number>;
-  displayedProducts: Product[];
+  displayedProducts: DBProduct[];
   onBackToCategories: () => void;
   onBackToTables: () => void;
   onSearchChange: (query: string) => void;
   onCloseSearch: () => void;
   onOpenMobileSearch: () => void;
-  onSelectCategory: (category: Category) => void;
-  onAddToCart: (product: Product) => void;
+  onSelectCategory: (categoryName: string) => void;
+  onAddToCart: (product: DBProduct) => void;
 }
 
 export const POSMenuView: React.FC<POSMenuViewProps> = ({

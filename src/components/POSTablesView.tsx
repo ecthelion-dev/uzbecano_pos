@@ -1,17 +1,16 @@
 import React from 'react';
 import { Grid, Calendar } from 'lucide-react';
-import { TableCard } from './TableCard';
-import type { Table } from '../types';
+import { TableCard, type TableItemData } from './TableCard';
 
 export interface POSTablesViewProps {
   t: (key: any, options?: any) => string;
-  tables: Table[];
-  filteredTables: Table[];
+  tables: TableItemData[];
+  filteredTables: TableItemData[];
   areas: string[];
   activeArea: string;
   allAreasLabel?: string;
   onSelectArea: (area: string) => void;
-  onSelectTable: (table: Table) => void;
+  onSelectTable: (tableNumber: string) => void;
   onOpenReservationModal: () => void;
 }
 

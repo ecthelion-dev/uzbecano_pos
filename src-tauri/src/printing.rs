@@ -108,10 +108,10 @@ pub fn print_raw(printer: Option<String>, data: Vec<u8>) -> Result<(), String> {
 #[cfg(windows)]
 fn print_raw_windows(printer_name: &str, data: &[u8]) -> Result<(), String> {
     use windows::core::PCWSTR;
-    use windows::Win32::Foundation::HANDLE;
     use windows::Win32::Graphics::Printing::{
         ClosePrinter, EndDocPrinter, EndPagePrinter, OpenPrinterW, StartDocPrinterW,
         StartPagePrinter, WritePrinter, DOC_INFO_1W, PRINTER_ACCESS_USE, PRINTER_DEFAULTSW,
+        PRINTER_HANDLE,
     };
 
     // Printer nomini UTF-16 + null-terminator ga o'tkazamiz.
@@ -122,7 +122,7 @@ fn print_raw_windows(printer_name: &str, data: &[u8]) -> Result<(), String> {
         ..Default::default()
     };
 
-    let mut handle = HANDLE::default();
+    let mut handle = PRINTER_HANDLE::default();
 
     // Printerni ochamiz. Offline bo'lsa bu qadam ham xato qaytarishi mumkin.
     unsafe {
@@ -173,7 +173,9 @@ fn print_raw_windows(printer_name: &str, data: &[u8]) -> Result<(), String> {
             data.len() as u32,
             &mut written,
         )
-    };
+    }
+    .ok()
+    .map_err(|e| format!("WritePrinter muvaffaqiyatsiz: {e}"));
 
     // Har qanday holatda cleanup.
     unsafe {
@@ -182,7 +184,7 @@ fn print_raw_windows(printer_name: &str, data: &[u8]) -> Result<(), String> {
         ClosePrinter(handle).ok();
     }
 
-    write_result.map_err(|e| format!("WritePrinter muvaffaqiyatsiz: {e}"))?;
+    write_result?;
 
     if written as usize != data.len() {
         return Err(format!(

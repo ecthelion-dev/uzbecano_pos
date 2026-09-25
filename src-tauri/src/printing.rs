@@ -9,6 +9,11 @@
 //! Bu modul ESC/POS baytlarini tizim navbatiga xom holda uzatadi: hech qanday
 //! dialog yo'q, hech qanday sahifa formatlash yo'q — printer baytlarni
 //! o'zi tushunadi.
+//!
+//! Windows da spooler muammosi: printer o'chiq bo'lsa Windows jobni spooler da
+//! saqlab qoladi va printer qayta yoqilganda barcha eski joblar ketma-ket
+//! bosiladi. Bu modulda WinAPI to'g'ridan-to'g'ri chaqiriladi — printer offline
+//! bo'lsa `StartDocPrinter` darhol xato qaytaradi.
 
 use printers::common::base::printer::Printer;
 use printers::common::base::job::PrinterJobOptions;
@@ -44,36 +49,148 @@ pub fn list_printers() -> Vec<PrinterInfo> {
 ///
 /// `printer` bo'sh bo'lsa tizimning standart printeri ishlatiladi — kafeda
 /// bitta chek printeri bo'lsa sozlashning hojati qolmaydi.
+///
+/// Windows da WinAPI orqali to'g'ridan-to'g'ri yuboriladi: printer offline
+/// bo'lsa darhol xato qaytaradi va spooler da eski joblar to'planmaydi.
 #[tauri::command]
 pub fn print_raw(printer: Option<String>, data: Vec<u8>) -> Result<(), String> {
     if data.is_empty() {
         return Err("Chop etish uchun ma'lumot bo'sh".into());
     }
 
-    let target = match printer.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-        Some(name) => printers::get_printer_by_name(name)
-            .ok_or_else(|| format!("'{name}' nomli printer topilmadi"))?,
-        None => printers::get_default_printer()
-            .ok_or_else(|| "Tizimda standart printer tanlanmagan".to_string())?,
+    // Printer nomini aniqlaymiz (Windows va Unix uchun).
+    let resolved_name: String = match printer.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        Some(name) => {
+            printers::get_printer_by_name(name)
+                .ok_or_else(|| format!("'{name}' nomli printer topilmadi"))?;
+            name.to_string()
+        }
+        None => {
+            let default = printers::get_default_printer()
+                .ok_or_else(|| "Tizimda standart printer tanlanmagan".to_string())?;
+            default.system_name.clone()
+        }
     };
 
-    // CUPS hujjatni tanib, o'zgartirib yuborishi mumkin. `cups-raw` unga
-    // baytlarga tegmaslikni aytadi. Windows'da winspool baribir RAW rejimida
-    // ishlaydi, shuning uchun u yerda qo'shimcha xossa kerak emas.
-    #[cfg(unix)]
-    let raw_properties: &[(&str, &str)] = &[("document-format", "application/vnd.cups-raw")];
-    #[cfg(not(unix))]
-    let raw_properties: &[(&str, &str)] = &[];
+    #[cfg(windows)]
+    {
+        return print_raw_windows(&resolved_name, &data);
+    }
 
-    let options = PrinterJobOptions {
-        name: Some("OrderPlus chek"),
-        raw_properties,
-        converter: Converter::None,
-    };
+    #[cfg(not(windows))]
+    {
+        let target = printers::get_printer_by_name(&resolved_name)
+            .ok_or_else(|| format!("'{resolved_name}' nomli printer topilmadi"))?;
 
-    target
-        .print(&data, options)
-        .map(|_| ())
-        .map_err(|e| format!("Printerga yuborib bo'lmadi: {e:?}"))
+        // CUPS hujjatni tanib, o'zgartirib yuborishi mumkin. `cups-raw` unga
+        // baytlarga tegmaslikni aytadi.
+        let raw_properties: &[(&str, &str)] = &[("document-format", "application/vnd.cups-raw")];
+
+        let options = PrinterJobOptions {
+            name: Some("OrderPlus chek"),
+            raw_properties,
+            converter: Converter::None,
+        };
+
+        target
+            .print(&data, options)
+            .map(|_| ())
+            .map_err(|e| format!("Printerga yuborib bo'lmadi: {e:?}"))
+    }
 }
 
+/// Windows da WinAPI orqali to'g'ridan-to'g'ri RAW chop etish.
+///
+/// Printer offline bo'lsa `StartDocPrinterW` darhol xato qaytaradi — joblar
+/// spooler da to'planmaydi. Bu "kassadan boshlab barcha cheklarni bosib
+/// chiqarish" muammosini hal qiladi: printer yoqilganda eski joblar
+/// avtomatik bosilmaydi.
+#[cfg(windows)]
+fn print_raw_windows(printer_name: &str, data: &[u8]) -> Result<(), String> {
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::HANDLE;
+    use windows::Win32::Graphics::Printing::{
+        ClosePrinter, EndDocPrinter, EndPagePrinter, OpenPrinterW, StartDocPrinterW,
+        StartPagePrinter, WritePrinter, DOC_INFO_1W, PRINTER_ACCESS_USE, PRINTER_DEFAULTSW,
+    };
+
+    // Printer nomini UTF-16 + null-terminator ga o'tkazamiz.
+    let name_wide: Vec<u16> = printer_name.encode_utf16().chain(std::iter::once(0)).collect();
+
+    let defaults = PRINTER_DEFAULTSW {
+        DesiredAccess: PRINTER_ACCESS_USE,
+        ..Default::default()
+    };
+
+    let mut handle = HANDLE::default();
+
+    // Printerni ochamiz. Offline bo'lsa bu qadam ham xato qaytarishi mumkin.
+    unsafe {
+        OpenPrinterW(
+            PCWSTR(name_wide.as_ptr()),
+            &mut handle,
+            Some(&defaults),
+        )
+        .map_err(|e| format!("Printerni ochib bo'lmadi (offline?): {e}"))?;
+    }
+
+    // DOC_INFO_1W — RAW ma'lumot turi.
+    let doc_name: Vec<u16> = "OrderPlus chek\0".encode_utf16().collect();
+    let data_type: Vec<u16> = "RAW\0".encode_utf16().collect();
+
+    let doc_info = DOC_INFO_1W {
+        pDocName: PCWSTR(doc_name.as_ptr()),
+        pOutputFile: PCWSTR::null(),
+        pDatatype: PCWSTR(data_type.as_ptr()),
+    };
+
+    // StartDocPrinterW — printer tayyor bo'lmasa bu yerda xato qaytaradi.
+    let job_id =
+        unsafe { StartDocPrinterW(handle, 1, &doc_info as *const DOC_INFO_1W as *const _) };
+
+    if job_id == 0 {
+        unsafe {
+            ClosePrinter(handle).ok();
+        }
+        return Err("Printer tayyor emas yoki offline (StartDocPrinter muvaffaqiyatsiz)".into());
+    }
+
+    // StartPagePrinter — sahifani boshlaymiz.
+    if let Err(e) = unsafe { StartPagePrinter(handle) } {
+        unsafe {
+            EndDocPrinter(handle).ok();
+            ClosePrinter(handle).ok();
+        }
+        return Err(format!("StartPagePrinter muvaffaqiyatsiz: {e}"));
+    }
+
+    // Baytlarni printerga yuboramiz.
+    let mut written: u32 = 0;
+    let write_result = unsafe {
+        WritePrinter(
+            handle,
+            data.as_ptr() as *const _,
+            data.len() as u32,
+            &mut written,
+        )
+    };
+
+    // Har qanday holatda cleanup.
+    unsafe {
+        EndPagePrinter(handle).ok();
+        EndDocPrinter(handle).ok();
+        ClosePrinter(handle).ok();
+    }
+
+    write_result.map_err(|e| format!("WritePrinter muvaffaqiyatsiz: {e}"))?;
+
+    if written as usize != data.len() {
+        return Err(format!(
+            "Chala yozildi: {} / {} bayt",
+            written,
+            data.len()
+        ));
+    }
+
+    Ok(())
+}

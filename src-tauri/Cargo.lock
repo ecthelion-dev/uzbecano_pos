@@ -2546,7 +2546,7 @@ dependencies = [
 
 [[package]]
 name = "orderplus-pos"
-version = "1.0.0"
+version = "0.0.0"
 dependencies = [
  "log",
  "printers",
@@ -2558,6 +2558,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-process",
  "tauri-plugin-updater",
+ "windows",
 ]
 
 [[package]]

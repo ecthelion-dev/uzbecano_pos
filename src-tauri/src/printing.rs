@@ -16,7 +16,9 @@
 //! bo'lsa `StartDocPrinter` darhol xato qaytaradi.
 
 use printers::common::base::printer::Printer;
+#[cfg(not(windows))]
 use printers::common::base::job::PrinterJobOptions;
+#[cfg(not(windows))]
 use printers::common::converters::Converter;
 use serde::Serialize;
 
@@ -107,7 +109,7 @@ pub fn print_raw(printer: Option<String>, data: Vec<u8>) -> Result<(), String> {
 /// avtomatik bosilmaydi.
 #[cfg(windows)]
 fn print_raw_windows(printer_name: &str, data: &[u8]) -> Result<(), String> {
-    use windows::core::PCWSTR;
+    use windows::core::{PCWSTR, PWSTR};
     use windows::Win32::Graphics::Printing::{
         ClosePrinter, EndDocPrinter, EndPagePrinter, OpenPrinterW, StartDocPrinterW,
         StartPagePrinter, WritePrinter, DOC_INFO_1W, PRINTER_ACCESS_USE, PRINTER_DEFAULTSW,
@@ -135,13 +137,13 @@ fn print_raw_windows(printer_name: &str, data: &[u8]) -> Result<(), String> {
     }
 
     // DOC_INFO_1W — RAW ma'lumot turi.
-    let doc_name: Vec<u16> = "OrderPlus chek\0".encode_utf16().collect();
-    let data_type: Vec<u16> = "RAW\0".encode_utf16().collect();
+    let mut doc_name: Vec<u16> = "OrderPlus chek\0".encode_utf16().collect();
+    let mut data_type: Vec<u16> = "RAW\0".encode_utf16().collect();
 
     let doc_info = DOC_INFO_1W {
-        pDocName: PCWSTR(doc_name.as_ptr()),
-        pOutputFile: PCWSTR::null(),
-        pDatatype: PCWSTR(data_type.as_ptr()),
+        pDocName: PWSTR(doc_name.as_mut_ptr()),
+        pOutputFile: PWSTR::null(),
+        pDatatype: PWSTR(data_type.as_mut_ptr()),
     };
 
     // StartDocPrinterW — printer tayyor bo'lmasa bu yerda xato qaytaradi.
@@ -156,7 +158,7 @@ fn print_raw_windows(printer_name: &str, data: &[u8]) -> Result<(), String> {
     }
 
     // StartPagePrinter — sahifani boshlaymiz.
-    if let Err(e) = unsafe { StartPagePrinter(handle) } {
+    if let Err(e) = unsafe { StartPagePrinter(handle) }.ok() {
         unsafe {
             EndDocPrinter(handle).ok();
             ClosePrinter(handle).ok();

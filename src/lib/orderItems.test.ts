@@ -165,7 +165,10 @@ describe('server id si', () => {
 describe('yuborish yo‘llari', () => {
   it('App.tsx taom obyektini o‘zi yasamaydi', async () => {
     const { readFileSync } = await import('node:fs');
-    const src = readFileSync(new URL('../App.tsx', import.meta.url), 'utf-8');
+    const appSrc = readFileSync(new URL('../App.tsx', import.meta.url), 'utf-8');
+    const dispatchSrc = readFileSync(new URL('../hooks/useKitchenDispatch.ts', import.meta.url), 'utf-8');
+    const checkoutSrc = readFileSync(new URL('../hooks/useCheckout.ts', import.meta.url), 'utf-8');
+    const src = `${appSrc}\n${dispatchSrc}\n${checkoutSrc}`;
 
     // `productId` — faqat serverga ketadigan qatorda bo'ladi.
     expect(src.includes('productId:')).toBe(false);

@@ -99,6 +99,8 @@ describe('stol yopilganda chek', () => {
     // qolishi mumkin — va bu safar buni hech kim sezmaydi.
     const bareApp = appSrc.match(/await fetch\(/g) ?? [];
     const bareCheckout = checkoutSrc.match(/await fetch\(/g) ?? [];
-    expect([...bareApp, ...bareCheckout]).toEqual([]);
+    const syncSrc = readFileSync(fileURLToPath(new URL('../hooks/useOfflineSync.ts', import.meta.url)), 'utf-8');
+    const bareSync = syncSrc.match(/await fetch\(/g) ?? [];
+    expect([...bareApp, ...bareCheckout, ...bareSync]).toEqual([]);
   });
 });

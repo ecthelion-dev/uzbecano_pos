@@ -3,7 +3,7 @@ import type { CartItem, DBOrder, DBWaiter, DebtCustomerInfo } from '../types';
 import type { PromoTerms } from '../lib/promo';
 import { orderTotals, parsePromoTerms } from '../lib/promo';
 import { splitPayment } from '../lib/payment';
-import { cartLineToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
+import { adoptServerId, cartLineToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { writeCafeJson } from '../lib/storage';
 import { fetchWithTimeout } from '../lib/net';
 import { API_BASE_URL, isActiveOrder } from '../constants';
@@ -176,12 +176,10 @@ export function useCheckout(params: UseCheckoutParams) {
               } else if (!res.ok) {
                 queueOrderForSync(newOrderObj);
               } else {
+                serverCreatedOrder = true;
+                await adoptServerId(res, newOrderObj);
                 const serverCreated = await res.clone().json().catch(() => null);
                 if (serverCreated) {
-                  serverCreatedOrder = true;
-                  if (serverCreated.id) (newOrderObj as any).id = String(serverCreated.id);
-                  if (Number(serverCreated.dailyNumber) > 0)
-                    (newOrderObj as any).dailyNumber = Number(serverCreated.dailyNumber);
                   if (serverCreated.promo !== undefined) (newOrderObj as any).promo = serverCreated.promo;
                   if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
                   if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;

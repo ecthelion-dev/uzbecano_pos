@@ -32,7 +32,7 @@ import {
   ExternalLink,
   Calendar,
 } from 'lucide-react';
-import { ArchivePeriodPrintArea, PeriodPrintData } from './components/ArchivePeriodPrintArea';
+import type { PeriodPrintData } from './components/ArchivePeriodPrintArea';
 import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib/offlineAuth';
 import { nextQrSlip } from './lib/qrKitchenQueue';
 import { newWaiterCalls, playCallChime } from './lib/waiterCallAlert';
@@ -47,7 +47,6 @@ import {
   writeCafeText,
   readCafeJson,
   writeCafeJson,
-  writeCafeJsonMany,
   removeCafeKey,
   readGlobalText,
   writeGlobalText,
@@ -59,36 +58,21 @@ import { readSession, writeSession, clearSession, purgeLegacySession, isTokenExp
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant, DBReservation, DebtCustomerInfo, DebtPaymentEntry } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
-import { decideFromStatus, newQueueId, withQueueIds } from './lib/syncQueue';
-import { runSyncCycle, type QueuedItem } from './lib/syncCycle';
 import { mergeActiveOrders, mergeOrderHistory, unsyncedOrderIds } from './lib/orderMerge';
-import { oldestQueuedAt, summariseBacklog } from './lib/syncHealth';
 import { failedActionToCartItems, tableNumberOfAction, type FailedAction } from './lib/failedActions';
 import { useT } from './lib/i18n/LanguageProvider';
 import type { TranslationKey } from './lib/i18n/dictionaries/uz';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
-import { KitchenPrintArea } from './components/KitchenPrintArea';
-import { ReceiptPreviewModal } from './components/ReceiptPreviewModal';
-import { ArchiveModal } from './components/ArchiveModal';
-import { ShiftReportModal } from './components/ShiftReportModal';
-import { AdminPinModal } from './components/AdminPinModal';
-import { TableMoveModal } from './components/TableMoveModal';
-import { ProductModifierModal } from './components/ProductModifierModal';
-import { PaymentModal } from './components/PaymentModal';
-import { UnsavedCartModal } from './components/UnsavedCartModal';
-import { PrinterSettingsModal } from './components/PrinterSettingsModal';
+import { POSModals } from './components/POSModals';
 import { POSMenuView } from './components/POSMenuView';
 import { POSTablesView } from './components/POSTablesView';
-import { ReservationModal } from './components/ReservationModal';
-import { ReservationDetailsModal } from './components/ReservationDetailsModal';
 import { CartItemRow } from './components/CartItemRow';
 import { KitchenItemRow } from './components/KitchenItemRow';
 import { POSHeader } from './components/POSHeader';
 import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
 import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, printReceiptViaBrowser, getLastPrintError, setReceiptLogo } from './lib/printer';
-import { adoptServerId, appendItemsPatch, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from './lib/orderItems';
 import { splitPayment } from './lib/payment';
 import { orderTotals, parsePromoTerms, type PromoTerms } from './lib/promo';
 import { getDeviceId } from './lib/deviceId';
@@ -104,6 +88,7 @@ import { useKitchenDispatch } from './hooks/useKitchenDispatch';
 import { useCheckout } from './hooks/useCheckout';
 import { useArchiveOperations } from './hooks/useArchiveOperations';
 import { useTableMove } from './hooks/useTableMove';
+import { useOfflineSync } from './hooks/useOfflineSync';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -154,17 +139,6 @@ export default function App() {
   // Mirrors `orders` so the poll can merge against the current list without
   // reading state that may have moved on since the request went out.
   const ordersRef = React.useRef<DBOrder[]>([]);
-  /**
-   * `syncOfflineOrders` uchun qulf.
-   *
-   * Funksiya 10 soniyalik intervalda HAM, `online` hodisasida HAM
-   * chaqiriladi va o'zi `await` bilan to'la — navbat katta bo'lsa 10
-   * soniyadan uzoqroq ishlashi mumkin. Qulfsiz ikkinchi chaqiruv birinchisi
-   * hali `writeSyncQueue` qilmagan paytda boshlanib, ikkalasi ham bir xil
-   * eskirgan navbatni o'qir, bittasi muvaffaqiyatli yuborgan yozuvni
-   * ikkinchisi yana yuborib yuborardi.
-   */
-  const syncInProgressRef = React.useRef(false);
   /**
    * Yozilayotgan savatlar — diskda.
    *
@@ -982,298 +956,28 @@ export default function App() {
    * Ixtiyoriy, chunki eski versiyalardan qolgan yozuvlar nomsiz keladi —
    * ularga nom `readSyncQueue` da qo'yiladi.
    */
-  type SyncQueueItem = QueuedItem;
-
-  /**
-   * Chetga qo'yilgan amallarni navbatga qaytarish.
-   *
-   * Ular server rad etgani uchun chiqib qolgan (masalan taom o'chirilgan
-   * edi). Sabab tuzatilgach ular o'zi ketmaydi — kimdir qaytadan
-   * urinishi kerak, va buni qo'lda qilish to'g'ri: avtomatik qaytarish
-   * xuddi o'sha xatoni cheksiz aylantirardi.
-   */
-  const retryFailedSync = useCallback(() => {
-    const cafeId = getActiveCafeId();
-    const failed = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
-    if (!Array.isArray(failed) || failed.length === 0) return;
-    const queue = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_queue', []);
-    const queuedOk = writeCafeJson(cafeId, 'sync_queue', [...(Array.isArray(queue) ? queue : []), ...failed]);
-    // `sync_failed` faqat itemlar navbatga QAYTA YOZILGANI tasdiqlangach
-    // tozalanadi. Aks holda yozib bo'lmasa-yu shu yerda tozalab yuborilsa,
-    // o'sha yozuvlar na navbatda, na "rad etilganlar"da qoladi.
-    if (queuedOk) writeCafeJson(cafeId, 'sync_failed', []);
-  }, [getActiveCafeId]);
-
-  /** Smena hisoboti ochilganda navbatning holati. */
-  const shiftBacklog = useMemo(() => {
-    const empty = { total: 0, incomplete: false, stuck: false, waitingMinutes: 0 };
-    if (!showShiftReport) return empty;
-    const cafeId = getActiveCafeId();
-    const raw = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_queue', []);
-    const rawFailed = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
-    const queue = Array.isArray(raw) ? raw : [];
-    const failed = Array.isArray(rawFailed) ? rawFailed : [];
-    return summariseBacklog(
-      { pending: queue.length, failed: failed.length, oldestQueuedAt: oldestQueuedAt(queue) },
-      Date.now(),
-    );
-  }, [showShiftReport, getActiveCafeId]);
-
-  /*
-   * Navbatni o'qiydi va har bir yozuvda nom borligiga kafolat beradi.
-   *
-   * Nom diskka DARHOL qaytariladi: drenaj yakunda ishlangan yozuvlarni
-   * nomi bo'yicha olib tashlaydi, ya'ni diskdagi nusxada ham o'sha nom
-   * turishi shart. Yozib bo'lmasa (disk to'la, yashirin oyna) drenaj
-   * baribir ishlaydi — yozuv ikkinchi marta yuborilishi mumkin, lekin
-   * `idempotencyKey` uni zararsiz qiladi. Yo'qotishdan afzal.
-   */
-  const readSyncQueue = useCallback((cafeId: string): SyncQueueItem[] => {
-    const { queue, changed } = withQueueIds<SyncQueueItem>(
-      readCafeJson<unknown>(cafeId, 'sync_queue', []),
-    );
-    if (changed) writeCafeJson(cafeId, 'sync_queue', queue);
-    return queue;
-  }, []);
-
-  const writeSyncQueue = useCallback((cafeId: string, queue: SyncQueueItem[]) => {
-    writeCafeJson(cafeId, 'sync_queue', queue);
-  }, []);
-
-  // Queues an order that failed to reach the server (offline, timeout, 5xx) so
-  // it is retried instead of silently lost. Each entry carries a stable
-  // idempotencyKey so a later successful retry can never create a duplicate
-  // order even if an earlier attempt actually reached the server.
-  /*
-   * Amalni kim navbatga qo'shdi.
-   *
-   * Sessiyadan o'qiladi, holatdan emas: bu funksiyalar barqaror bo'lishi
-   * kerak, va sessiya baribir shu paytdagi haqiqatni biladi. Server rad
-   * etsa, "kim qildi" degan savolga javob faqat shu yerdan qoladi.
-   */
-  const actorName = useCallback((cafeId: string): string | undefined => {
-    return readSession(cafeId)?.waiter?.name || undefined;
-  }, []);
-
-  const queueOrderForSync = useCallback((order: any) => {
-    const cafeId = getActiveCafeId();
-    const queue = readSyncQueue(cafeId);
-    queue.push({ kind: 'create', qid: newQueueId(), queuedAt: Date.now(), actor: actorName(cafeId), order: { ...order, idempotencyKey: order.idempotencyKey || order.id } });
-    writeSyncQueue(cafeId, queue);
-    refreshUnsynced();
-  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
-
-  // Queues a PATCH (status/payment/items/refund) against an existing order
-  // that failed to reach the server, so it is retried automatically instead
-  // of being silently lost once the operator moves on.
-  const queuePatchForSync = useCallback((orderId: string, body: any, label?: string, approvalToken?: string) => {
-    const cafeId = getActiveCafeId();
-    const queue = readSyncQueue(cafeId);
-    // approvalToken navbat bilan birga diskka tushadi. Bu ongli kelishuv:
-    // aloqa tiklanganda server tasdiqni tekshira olishi uchun boshqa dalil
-    // yo'q. Shuning uchun u qisqa muddatli qilib beriladi va navbat
-    // bo'shashi bilan yo'qoladi.
-    queue.push({ kind: 'patch', qid: newQueueId(), queuedAt: Date.now(), actor: actorName(cafeId), orderId, body, label, approvalToken });
-    writeSyncQueue(cafeId, queue);
-    refreshUnsynced();
-  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
-
-  // Queues a DELETE (e.g. removing a source order after merging its items
-  // into another table) that failed to reach the server.
-
-  const queueDeleteForSync = useCallback((orderId: string, label?: string) => {
-    const cafeId = getActiveCafeId();
-    const queue = readSyncQueue(cafeId);
-    queue.push({ kind: 'delete', qid: newQueueId(), queuedAt: Date.now(), actor: actorName(cafeId), orderId, label });
-    writeSyncQueue(cafeId, queue);
-    refreshUnsynced();
-  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
-
-  /*
-   * Ochiq chekka taom QO'SHADI — butun ro'yxatni almashtirmaydi.
-   *
-   * Ilgari chekning butun ro'yxati yuborilardi va server uni joriy ro'yxat
-   * o'rniga yozardi: boshqa qurilma shu orada qo'shgan taom ham, puli ham
-   * jimgina yo'qolardi. Qoidalar `lib/orderItems.ts` da (`appendItemsPatch`).
-   *
-   * Muvaffaqiyatli bo'lsa serverning chekini qaytaradi — unda boshqa
-   * qurilmalar qo'shgan taomlar va server hisoblagan summa bor, ya'ni
-   * to'lov aynan shu summaga qilinishi kerak. Yetib bormasa amal navbatga
-   * tushadi va `null` qaytadi: kalit navbatda ham o'sha, shuning uchun
-   * qayta yuborish taomni ikki marta qo'shmaydi.
-   */
-  const sendAppendItems = useCallback(async (
-    orderId: string,
-    items: OutgoingOrderItem[],
-  ): Promise<DBOrder | null> => {
-    const body = appendItemsPatch(items, newQueueId());
-    if (isOfflineMode) {
-      queuePatchForSync(orderId, body, 'add_items');
-      return null;
-    }
-    try {
-      const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(body),
-      });
-      if (res.status === 401) {
-        queuePatchForSync(orderId, body, 'add_items');
-        handleSessionExpired();
-        return null;
-      }
-      if (!res.ok) {
-        queuePatchForSync(orderId, body, 'add_items');
-        return null;
-      }
-      const serverOrder = await res.json().catch(() => null);
-      return serverOrder && serverOrder.id === orderId ? (serverOrder as DBOrder) : null;
-    } catch {
-      queuePatchForSync(orderId, body, 'add_items');
-      return null;
-    }
-  }, [isOfflineMode, getAuthHeaders, queuePatchForSync, handleSessionExpired]);
-
-  /**
-   * Server javobi qaytadan urinishga arziydimi?
-   *
-   * Tarmoq uzilishi, 5xx, 429 va 408 — vaqtinchalik, keyinroq o'tadi.
-   * Qolgan 4xx esa doimiy: so'rov noto'g'ri, uni yuz marta yuborsak ham
-   * server qabul qilmaydi. Ilgari bunday element navbatda abadiy qolib,
-   * har 10 soniyada qayta yuborilardi — kassa serverni bezovta qilaverar,
-   * navbat esa hech qachon bo'shamasdi.
-   */
-
-  // Offline Sync Queue Handler — retries queued creates/patches that
-  // previously failed to reach the server. Runs on an interval and on the
-  // browser 'online' event. Processes strictly in FIFO order and stops
-  // retrying later items for an order once an earlier item for that same
-  // order fails, so a status PATCH is never attempted before its CREATE.
-  const syncOfflineOrders = useCallback(async (tokenOverride?: string | null) => {
-    if (syncInProgressRef.current) return;
-    syncInProgressRef.current = true;
-    try {
-      const cafeId = getActiveCafeId();
-      const effectiveToken = tokenOverride !== undefined ? tokenOverride : (authTokenRef.current ?? authToken);
-
-      /*
-       * Siklning o'zi `lib/syncCycle.ts` da. Bu yerda faqat portlar
-       * yig'iladi: tarmoq, disk va kassirga ko'rinadigan nomlar.
-       *
-       * Ajratilishining sababi tarixiy: qoidalar shu komponent ichida
-       * turganda ularga test yetib bormasdi, va 2026-09-16 dagi uchala
-       * pul yo'qotadigan xato ham aynan shu yerdan chiqqan edi.
-       */
-      const outcome = await runSyncCycle({
-        readQueue: () => readSyncQueue(cafeId),
-        readFailed: () => {
-          const raw = readCafeJson<SyncQueueItem[]>(cafeId, 'sync_failed', []);
-          return Array.isArray(raw) ? raw : [];
-        },
-        commit: (queue, failed) =>
-          writeCafeJsonMany(cafeId, [
-            { key: 'sync_queue', value: queue },
-            ...(failed ? [{ key: 'sync_failed' as const, value: failed }] : []),
-          ]),
-        send: (item) => {
-          if (item.kind === 'create') {
-            return fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
-              method: 'POST',
-              headers: getAuthHeaders(undefined, effectiveToken),
-              body: JSON.stringify({ ...item.order, cafeId }),
-            });
-          }
-          if (item.kind === 'patch') {
-            return fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
-              method: 'PATCH',
-              headers: getAuthHeaders(item.approvalToken, effectiveToken),
-              body: JSON.stringify(item.body),
-            });
-          }
-          if (item.kind === 'cash') {
-            return fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
-              method: 'POST',
-              headers: getAuthHeaders(item.approvalToken, effectiveToken),
-              body: JSON.stringify(item.entry),
-            });
-          }
-          return fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders(undefined, effectiveToken),
-          });
-        },
-        isFrozen: (res) => applyFrozenFromResponse(res, cafeId),
-        label: (item) =>
-          String(
-            item.kind === 'create'
-              ? item.order?.tableNumber || t('common.order')
-              : item.kind === 'cash'
-                ? item.label || t('drawer.title')
-                : item.label || item.orderId,
-          ),
-      }, effectiveToken);
-
-      // Navbat diskda o'zgargan bo'lishi mumkin — zal ko'rinishi undan o'qiydi.
-      refreshUnsynced();
-
-      // Navbat bo'sh yoki sessiya yo'q — aytadigan gap ham yo'q.
-      if (!outcome) return;
-
-      if (outcome.unauthorized) {
-        handleSessionExpired();
-        return;
-      }
-
-      if (outcome.commitFailed) {
-        // Diskka tushmadi. Navbat o'z holicha qoldi va keyingi urinishda
-        // hammasi qaytadan yuboriladi — `idempotencyKey` buni zararsiz
-        // qiladi. Yo'qotishdan afzal.
-        console.error("[sync] navbat holatini saqlab bo'lmadi");
-      }
-
-      if (outcome.rejectedLabels.length > 0) {
-        /*
-         * Ro'yxatni O'ZI ochamiz.
-         *
-         * Olti soniyalik xabar yetarli emasligi 2026-09-16 da ko'rindi:
-         * rad etish zal ish paytida sodir bo'ladi, xabar esa hech kim
-         * ekranga qaramagan paytda chiqib o'tib ketadi. Keyin faqat
-         * kichkina belgi qoladi va hech kim bosmaydi.
-         */
-        window.dispatchEvent(new Event('sync-rejected'));
-        setToastMessage(
-          t('toast.syncRejected', {
-            list:
-              outcome.rejectedLabels.slice(0, 3).join(', ') +
-              (outcome.rejectedLabels.length > 3
-                ? ' ' + t('toast.andMore', { n: outcome.rejectedLabels.length - 3 })
-                : ''),
-          })
-        );
-        setTimeout(() => setToastMessage(null), 6000);
-      } else if (outcome.anySucceeded) {
-        setToastMessage("Oflayn amallar serverga sinxronlandi!");
-        setTimeout(() => setToastMessage(null), 2500);
-      }
-
-      if (outcome.anySucceeded) fetchOrders();
-    } finally {
-      syncInProgressRef.current = false;
-    }
-  }, [authToken, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, applyFrozenFromResponse, refreshUnsynced, handleSessionExpired, t]);
-
-  useEffect(() => {
-    // Ochilishdayoq bir marta: drenaj o'n soniyadan keyin ishlaydi, kassir
-    // esa zalni undan oldin ko'radi.
-    refreshUnsynced();
-    const interval = setInterval(() => { void syncOfflineOrders(); }, 10000);
-    const onOnline = () => { void syncOfflineOrders(); };
-    window.addEventListener('online', onOnline);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('online', onOnline);
-    };
-  }, [syncOfflineOrders, refreshUnsynced]);
+  const {
+    queueOrderForSync,
+    queuePatchForSync,
+    queueDeleteForSync,
+    sendAppendItems,
+    syncOfflineOrders,
+    retryFailedSync,
+    shiftBacklog,
+  } = useOfflineSync({
+    getActiveCafeId,
+    authToken,
+    authTokenRef,
+    getAuthHeaders,
+    isOfflineMode,
+    applyFrozenFromResponse,
+    refreshUnsynced,
+    handleSessionExpired,
+    fetchOrders,
+    setToastMessage,
+    showShiftReport,
+    t,
+  });
 
   useEffect(() => {
     const handleRestoreFailed = (e: Event) => {
@@ -2729,8 +2433,28 @@ export default function App() {
         </div>
       </div>
 
-      <ReceiptPreviewModal
-        show={showReceiptPreview}
+      <POSModals
+        showReceiptPreview={showReceiptPreview}
+        onCloseReceiptPreview={() => setShowReceiptPreview(false)}
+        onPrintReceiptPreview={() => printReceiptOrFallback({
+          id: activeTableOrder?.id || selectedTable,
+          createdAt: new Date().toISOString(),
+          tableNumber: selectedTable,
+          waiterName: (activeTableOrder as any)?.waiterName || currentWaiter?.name || '',
+          items: [...activeTableOrderItems, ...cart.map(c => ({
+            name: c.product.name, quantity: c.quantity, price: c.product.price, note: c.note,
+            takeaway: c.takeaway,
+          }))],
+          subtotal,
+          discountPercent,
+          discountAmount,
+          serviceFee,
+          grandTotal,
+          cafeName: connectedCafeName,
+          cafeLogo: connectedCafeLogo,
+          cafeAddress: connectedCafeAddress,
+          cafePhone: connectedCafePhone,
+        })}
         selectedTable={selectedTable}
         currentWaiter={currentWaiter}
         activeTableOrderItems={activeTableOrderItems}
@@ -2744,49 +2468,17 @@ export default function App() {
         cafeLogo={connectedCafeLogo}
         cafeAddress={connectedCafeAddress}
         cafePhone={connectedCafePhone}
-        debtCustomer={null}
-        onClose={() => setShowReceiptPreview(false)}
-        onPrint={() => printReceiptOrFallback({
-          id: activeTableOrder?.id || selectedTable,
-          createdAt: new Date().toISOString(),
-          tableNumber: selectedTable,
-          waiterName: (activeTableOrder as any)?.waiterName || currentWaiter?.name || '',
-          items: [...activeTableOrderItems, ...cart.map(c => ({
-            name: c.product.name, quantity: c.quantity, price: c.product.price, note: c.note,
-            takeaway: c.takeaway,
-          }))],
-          subtotal,
-          discount: discountAmount,
-          serviceFee,
-          total: grandTotal,
-          debtCustomer: null,
-        })}
-      />
 
-      <ArchiveModal
-        show={showArchiveModal}
+        showArchiveModal={showArchiveModal}
+        onCloseArchiveModal={() => setShowArchiveModal(false)}
         orders={orders}
         archiveSearch={archiveSearch}
-        selectedArchiveOrder={selectedArchiveOrder}
-        currentWaiter={currentWaiter}
-        cafeName={connectedCafeName}
-        cafeLogo={connectedCafeLogo}
-        cafeAddress={connectedCafeAddress}
-        cafePhone={connectedCafePhone}
         onSearchChange={setArchiveSearch}
+        selectedArchiveOrder={selectedArchiveOrder}
         onSelectArchiveOrder={setSelectedArchiveOrder}
         onRefundOrder={handleRefundOrder}
         onPayDebt={handlePayDebt}
         onPrintPeriod={(periodOrders, from, to) => {
-          /*
-           * Hisobot RAHBAR hujjati: unda kassadan olingan pul ham bor, u esa
-           * ofitsiantga yopiq.
-           *
-           * Shuning uchun PIN shu yerda so'raladi. Ilgari hisobot PINsiz
-           * chiqarilar, xarajat so'rovi esa serverda 403 olib qaytardi va
-           * blok jimgina yo'qolardi — qog'ozda hech qanday belgi qolmasdi
-           * va hisobot to'g'ridek ko'rinardi.
-           */
           requestAdminPin(async (approvalToken?: string) => {
             const full = await fetchOrdersForPeriod(from, to, periodOrders);
             const spent = await fetchCashForPeriod(from, to, approvalToken);
@@ -2799,157 +2491,89 @@ export default function App() {
             });
           }, 'admin.pinPeriodReport');
         }}
-        onClose={() => setShowArchiveModal(false)}
-        onPrint={() => printReceiptOrFallback(selectedArchiveOrder)}
-      />
+        onPrintArchiveOrder={() => printReceiptOrFallback(selectedArchiveOrder)}
 
-      <KitchenPrintArea data={kitchenSlipData} />
+        kitchenSlipData={kitchenSlipData}
 
-      <ShiftReportModal
-        show={showShiftReport}
-        orders={orders}
-        /*
-         * Smena hisoboti — pul sanaladigan payt. Serverga yetib bormagan
-         * amal bo'lsa, raqam to'liq emas va buni AYNAN SHU YERDA aytish
-         * kerak: kassir hisobotni yozib qo'ygandan keyin aytish kech.
-         */
-        backlog={shiftBacklog}
-        onRetryFailed={retryFailedSync}
-        onClose={() => setShowShiftReport(false)}
-        onPrint={() => window.print()}
-      />
+        showShiftReport={showShiftReport}
+        onCloseShiftReport={() => setShowShiftReport(false)}
+        shiftBacklog={shiftBacklog}
+        onRetryFailedSync={retryFailedSync}
+        onPrintShiftReport={() => window.print()}
 
-      <ProductModifierModal
-        product={selectedModifierProduct}
-        onAddToCart={(modProd, note, variant, takeaway) => {
+        selectedModifierProduct={selectedModifierProduct}
+        onCloseModifier={() => setSelectedModifierProduct(null)}
+        onAddToCartFromModifier={(modProd, note, variant, takeaway) => {
           handleAddToCart(modProd, note, variant, takeaway);
           setSelectedModifierProduct(null);
         }}
-        onClose={() => setSelectedModifierProduct(null)}
-      />
 
-      {apiError && (
-        <div className="bg-rose-600 text-white px-5 py-2.5 text-xs font-semibold flex items-center justify-between shadow-xl">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            <span>{apiError}</span>
-          </div>
-          <button onClick={() => setApiError(null)} className="underline text-[11px] opacity-80 hover:opacity-100">{t('common.close')}</button>
-        </div>
-      )}
+        apiError={apiError}
+        onDismissApiError={() => setApiError(null)}
 
-      <AdminPinModal
-        show={showAdminPinModal}
-        cafeId={getActiveCafeId()}
-        title={t(adminPinTitle)}
-        onConfirm={(approvalToken) => {
+        showAdminPinModal={showAdminPinModal}
+        adminPinCafeId={getActiveCafeId()}
+        adminPinTitle={t(adminPinTitle)}
+        onConfirmAdminPin={(approvalToken) => {
           const action = adminPinAction;
           setShowAdminPinModal(false);
           setAdminPinAction(null);
           if (action) action(approvalToken);
         }}
-        onClose={() => {
+        onCloseAdminPin={() => {
           setShowAdminPinModal(false);
           setAdminPinAction(null);
         }}
-      />
 
-      <TableMoveModal
-        show={showTableMoveModal}
-        currentTable={selectedTable}
+        showTableMoveModal={showTableMoveModal}
+        onCloseTableMove={() => setShowTableMoveModal(false)}
         tableDefs={tableDefs}
-        orders={orders}
         onMoveTable={handleMoveTable}
-        onClose={() => setShowTableMoveModal(false)}
-      />
 
-      <ReservationModal
-        show={showReservationModal}
-        tableDefs={tableDefs}
+        showReservationModal={showReservationModal}
+        onCloseReservationModal={() => setShowReservationModal(false)}
         reservations={reservations}
-        defaultTableNumber={reservationDefaultTable}
+        reservationDefaultTable={reservationDefaultTable}
         onCreateReservation={handleCreateReservation}
         onCancelReservation={handleCancelReservation}
-        onOpenTable={handleOpenReservedTable}
-        onClose={() => setShowReservationModal(false)}
-      />
+        onOpenReservedTable={handleOpenReservedTable}
 
-      <ReservationDetailsModal
-        show={showReservationDetailsModal}
-        reservation={selectedReservation}
-        onOpenTable={handleOpenReservedTable}
-        onCancelReservation={handleCancelReservation}
-        onClose={() => {
+        showReservationDetailsModal={showReservationDetailsModal}
+        onCloseReservationDetailsModal={() => {
           setShowReservationDetailsModal(false);
           setSelectedReservation(null);
         }}
-      />
+        selectedReservation={selectedReservation}
 
-      <PaymentModal
-        show={showPaymentModal}
-        tableName={selectedTable}
-        grandTotal={grandTotal}
-        onConfirm={(cash, card) => {
+        showPaymentModal={showPaymentModal}
+        onClosePaymentModal={() => setShowPaymentModal(false)}
+        onConfirmPayment={(cash, card) => {
           setShowPaymentModal(false);
           handleCloseTable(selectedTable, true, { cash, card });
         }}
-        onDebt={(debtInfo) => {
+        onDebtPayment={(debtInfo) => {
           setShowPaymentModal(false);
           handleCloseTable(selectedTable, true, { cash: 0, card: 0, debtCustomer: debtInfo });
         }}
-        onClose={() => setShowPaymentModal(false)}
-      />
 
-      <UnsavedCartModal
-        show={showUnsavedCartModal}
-        tableNumber={selectedTable}
-        cart={cart}
-        subtotal={draftSubtotal}
-        onConfirm={() => {
+        showUnsavedCartModal={showUnsavedCartModal}
+        onCloseUnsavedCartModal={() => setShowUnsavedCartModal(false)}
+        onConfirmUnsavedCart={() => {
           setShowUnsavedCartModal(false);
           setShowPaymentModal(true);
         }}
-        onClose={() => setShowUnsavedCartModal(false)}
-      />
+        draftSubtotal={draftSubtotal}
 
-      <ToastNotification message={toastMessage} />
+        toastMessage={toastMessage}
 
-      <ArchivePeriodPrintArea
-        data={periodPrint}
-        cafeName={connectedCafeName || 'ORDERPLUS'}
-        cafeLogo={connectedCafeLogo}
-        cafeAddress={connectedCafeAddress}
-        cafePhone={connectedCafePhone}
-      />
+        periodPrint={periodPrint}
 
-      {/*
-        Diskka yozib bo'lmagani uchun to'sib turadi: chek chiqmagan, stol
-        yopilmagan, "muvaffaqiyatli" degan xabar chiqmagan — kassir buni
-        ko'rmasdan davom etsa, savdo hech qayerda qolmagan bo'lib chiqadi.
-      */}
-      {storageBlockingError && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-rose-200 space-y-4 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center">
-              <AlertCircle className="w-7 h-7" />
-            </div>
-            <p className="font-bold text-slate-900">{storageBlockingError}</p>
-            <button
-              onClick={() => setStorageBlockingError(null)}
-              className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl cursor-pointer transition-colors"
-            >
-              {t('common.close')}
-            </button>
-          </div>
-        </div>
-      )}
+        storageBlockingError={storageBlockingError}
+        onDismissStorageBlockingError={() => setStorageBlockingError(null)}
 
-      {/* Thermal Printer Settings Modal */}
-      <PrinterSettingsModal
-        isOpen={showPrinterModal}
-        onClose={() => setShowPrinterModal(false)}
-        cafeName={connectedCafeName}
-        onToast={(msg) => {
+        showPrinterModal={showPrinterModal}
+        onClosePrinterModal={() => setShowPrinterModal(false)}
+        onPrinterToast={(msg) => {
           setToastMessage(msg);
           setTimeout(() => setToastMessage(null), 2500);
         }}

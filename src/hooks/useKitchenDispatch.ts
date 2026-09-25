@@ -2,7 +2,7 @@ import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction 
 import type { CartItem, DBOrder, DBWaiter, KitchenSlipData } from '../types';
 import type { PromoTerms } from '../lib/promo';
 import { orderTotals, parsePromoTerms } from '../lib/promo';
-import { cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
+import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { fetchWithTimeout } from '../lib/net';
 import { decideFromStatus } from '../lib/syncQueue';
 import { writeCafeJson, readGlobalText } from '../lib/storage';
@@ -228,10 +228,9 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
             if (!res.ok) {
               queueOrderForSync(newOrderObj);
             } else {
+              await adoptServerId(res, newOrderObj);
               const serverCreated = await res.clone().json().catch(() => null);
               if (serverCreated) {
-                if (serverCreated.id) newOrderObj.id = String(serverCreated.id);
-                if (Number(serverCreated.dailyNumber) > 0) newOrderObj.dailyNumber = Number(serverCreated.dailyNumber);
                 if (serverCreated.promo !== undefined) (newOrderObj as any).promo = serverCreated.promo;
                 if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
                 if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;

@@ -102,6 +102,8 @@ import { useReservations } from './hooks/useReservations';
 import { usePrintQueueWorker } from './hooks/usePrintQueueWorker';
 import { useKitchenDispatch } from './hooks/useKitchenDispatch';
 import { useCheckout } from './hooks/useCheckout';
+import { useArchiveOperations } from './hooks/useArchiveOperations';
+import { useTableMove } from './hooks/useTableMove';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -2257,155 +2259,21 @@ export default function App() {
     });
   }, [requestAdminPin, getActiveCafeId]);
 
-  const handleRefundOrder = useCallback((targetOrder: DBOrder, reason: string) => {
-    requestAdminPin(async (approvalToken?: string) => {
-      const refundBody = { action: 'refund', refundReason: reason };
-      if (!isOfflineMode) {
-        try {
-          const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
-            method: 'PATCH',
-            headers: getAuthHeaders(approvalToken),
-            body: JSON.stringify(refundBody)
-          });
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            if (decideFromStatus(res.status) !== 'retry') {
-              // Server printsipial rad etdi — masalan rahbar tasdig'i
-              // yaroqsiz yoki chek allaqachon vozvrat qilingan. Mahalliy
-              // holatga TEGMAYMIZ: ilgari chek arxivda "vozvrat qilingan"
-              // bo'lib turar, serverda esa qilinmagan bo'lardi — kassir
-              // pulni qaytarib yuborishi mumkin bo'lgan holat. Navbatga
-              // yozish ham foydasiz: bu so'rov hech qachon o'tmaydi.
-              setApiError(data.error || t('toast.refundNotSaved'));
-              return;
-            }
-            setApiError(data.error || t('toast.refundNotSaved'));
-            queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
-          }
-        } catch {
-          setApiError(t('toast.refundQueued'));
-          queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
-        }
-      } else {
-        queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
-      }
-
-      const updatedOrders = orders.map(o => o.id === targetOrder.id ? {
-        ...o,
-        refunded: true,
-        refundReason: reason,
-        refundedAt: new Date().toISOString(),
-        refundedBy: currentWaiter?.name || ''
-      } : o);
-
-      setOrders(updatedOrders);
-      writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
-      setSelectedArchiveOrder(prev => prev && prev.id === targetOrder.id ? {
-        ...prev,
-        refunded: true,
-        refundReason: reason
-      } : prev);
-
-      setToastMessage(t('toast.refundDone', { id: targetOrder.id.slice(-6) }));
-      setTimeout(() => setToastMessage(null), 2500);
-    });
-  }, [orders, currentWaiter, isOfflineMode, requestAdminPin, getActiveCafeId, getAuthHeaders, queuePatchForSync]);
-
-  const handlePayDebt = useCallback(async (
-    targetOrder: DBOrder,
-    amount: number,
-    method: 'naqd' | 'karta',
-    note?: string
-  ) => {
-    if (amount <= 0) return;
-    const debtPayment = {
-      amount,
-      method,
-      note: note || undefined,
-    };
-    const patchBody = { debtPayment };
-
-    let serverUpdatedOrder: DBOrder | null = null;
-
-    if (!isOfflineMode) {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
-          method: 'PATCH',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(patchBody),
-        });
-        if (res.ok) {
-          const data = await res.json().catch(() => ({}));
-          if (data.order) {
-            serverUpdatedOrder = data.order;
-          }
-        } else {
-          const data = await res.json().catch(() => ({}));
-          if (decideFromStatus(res.status) !== 'retry') {
-            setApiError(data.error || t('toast.debtPaymentNotSaved'));
-            return;
-          }
-          queuePatchForSync(targetOrder.id, patchBody, 'debtPayment');
-        }
-      } catch {
-        queuePatchForSync(targetOrder.id, patchBody, 'debtPayment');
-      }
-    } else {
-      queuePatchForSync(targetOrder.id, patchBody, 'debtPayment');
-    }
-
-    const paymentEntry: DebtPaymentEntry = {
-      id: crypto.randomUUID(),
-      amount,
-      method,
-      paidAt: new Date().toISOString(),
-      paidBy: currentWaiter?.name || '',
-      note: note || undefined,
-    };
-
-    const existingPayments = Array.isArray(targetOrder.debtPayments) ? targetOrder.debtPayments : [];
-    const updatedPayments = [...existingPayments, paymentEntry];
-    const totalPaid = updatedPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-    const orderTotal = Number(targetOrder.total) || 0;
-    const isFullyPaid = totalPaid >= orderTotal;
-
-    const updatedOrder: DBOrder = serverUpdatedOrder || {
-      ...targetOrder,
-      debtPayments: updatedPayments,
-      cashAmount: method === 'naqd' ? (Number(targetOrder.cashAmount) || 0) + amount : targetOrder.cashAmount,
-      cardAmount: method === 'karta' ? (Number(targetOrder.cardAmount) || 0) + amount : targetOrder.cardAmount,
-      paymentMethod: isFullyPaid ? method : 'qarz',
-      closedAt: isFullyPaid ? new Date().toISOString() : targetOrder.closedAt,
-      closedBy: isFullyPaid ? (currentWaiter?.name || '') : targetOrder.closedBy,
-    };
-
-    const updatedOrders = ordersRef.current.map(o => o.id === targetOrder.id ? updatedOrder : o);
-    ordersRef.current = updatedOrders;
-    setOrders(updatedOrders);
-    writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
-    setSelectedArchiveOrder(prev => prev && prev.id === targetOrder.id ? updatedOrder : prev);
-
-    const formattedAmount = amount.toLocaleString();
-    if (isFullyPaid) {
-      setToastMessage(
-        t('toast.debtPaidFull', {
-          amount: formattedAmount,
-          currency: t('common.currency'),
-          method: method === 'naqd' ? t('common.cash') : t('common.card'),
-        })
-      );
-    } else {
-      const remaining = Math.max(0, orderTotal - totalPaid);
-      setToastMessage(
-        t('toast.debtPaidPartial', {
-          amount: formattedAmount,
-          remaining: remaining.toLocaleString(),
-          currency: t('common.currency'),
-        })
-      );
-    }
-    setTimeout(() => setToastMessage(null), 3000);
-  }, [currentWaiter, isOfflineMode, getActiveCafeId, getAuthHeaders, queuePatchForSync, t]);
+  const { handleRefundOrder, handlePayDebt } = useArchiveOperations({
+    orders,
+    ordersRef,
+    currentWaiter,
+    isOfflineMode,
+    requestAdminPin,
+    getActiveCafeId,
+    getAuthHeaders,
+    queuePatchForSync,
+    setOrders,
+    setSelectedArchiveOrder,
+    setToastMessage,
+    setApiError,
+    t,
+  });
 
   const { handleSendToKitchen, handleRemoveKitchenItem } = useKitchenDispatch({
     cart,
@@ -2436,135 +2304,22 @@ export default function App() {
     t,
   });
 
-  const handleMoveTable = useCallback(async (sourceTable: string, targetTable: string, isMerge: boolean) => {
-    const sourceOrder = orders.find(o => o.tableNumber === sourceTable && isActiveOrder(o.status));
-    const sourceCart = tableCarts[sourceTable] || [];
-
-    if (!sourceOrder && sourceCart.length === 0) return;
-
-    let updatedOrders = [...ordersRef.current];
-
-    if (isMerge) {
-      const targetOrder = orders.find(o => o.tableNumber === targetTable && isActiveOrder(o.status));
-
-      if (sourceOrder && targetOrder) {
-        let srcItems: any[] = [];
-        let tgtItems: any[] = [];
-        try { srcItems = typeof sourceOrder.items === 'string' ? JSON.parse(sourceOrder.items) : (sourceOrder.items || []); } catch { }
-        try { tgtItems = typeof targetOrder.items === 'string' ? JSON.parse(targetOrder.items) : (targetOrder.items || []); } catch { }
-
-        const mergedItems = [...tgtItems, ...srcItems];
-        const sub = mergedItems.reduce((sum: number, i: any) => sum + (Number(i.price) || 0) * (Number(i.quantity) || 1), 0);
-        const fee = Math.round((sub * serviceFeePercent) / 100);
-        const tot = sub + fee;
-
-        const mergeTablePatchBody = {
-          tableNumber: targetTable,
-          items: JSON.stringify(mergedItems),
-          subtotal: sub,
-          serviceFee: fee,
-          total: tot
-        };
-        if (!isOfflineMode) {
-          try {
-            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
-              method: 'PATCH',
-              headers: getAuthHeaders(),
-              body: JSON.stringify(mergeTablePatchBody)
-            });
-            if (!res.ok) queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table');
-          } catch {
-            queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table');
-          }
-
-          try {
-            const delRes = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-              method: 'DELETE',
-              headers: getAuthHeaders(),
-            });
-            if (!delRes.ok) queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup');
-          } catch {
-            queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup');
-          }
-        } else {
-          queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table');
-          queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup');
-        }
-
-        updatedOrders = updatedOrders
-          .filter(o => o.id !== sourceOrder.id)
-          .map(o => o.id === targetOrder.id ? { ...o, tableNumber: targetTable, items: JSON.stringify(mergedItems), subtotal: sub, serviceFee: fee, total: tot } : o);
-      } else if (sourceOrder && !targetOrder) {
-        if (!isOfflineMode) {
-          try {
-            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-              method: 'PATCH',
-              headers: getAuthHeaders(),
-              body: JSON.stringify({ tableNumber: targetTable })
-            });
-            if (!res.ok) queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-          } catch {
-            queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-          }
-        } else {
-          queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-        }
-        updatedOrders = updatedOrders.map(o => o.id === sourceOrder.id ? { ...o, tableNumber: targetTable } : o);
-      }
-
-      setToastMessage(`${sourceTable} va ${targetTable} muvaffaqiyatli birlashtirildi!`);
-    } else {
-      if (sourceOrder) {
-        if (!isOfflineMode) {
-          try {
-            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-              method: 'PATCH',
-              headers: getAuthHeaders(),
-              body: JSON.stringify({ tableNumber: targetTable })
-            });
-            if (!res.ok) queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-          } catch {
-            queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-          }
-        } else {
-          queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-        }
-
-        updatedOrders = updatedOrders.map(o => o.id === sourceOrder.id ? { ...o, tableNumber: targetTable } : o);
-      }
-      setToastMessage(`${sourceTable} buyurtmasi ${targetTable}ga ko'chirildi!`);
-    }
-
-    // Transfer draft carts and draft promos
-    setTableCarts((prev) => {
-      const srcCart = prev[sourceTable] || [];
-      if (srcCart.length === 0) return prev;
-      const next = { ...prev };
-      delete next[sourceTable];
-      if (isMerge) {
-        next[targetTable] = [...(next[targetTable] || []), ...srcCart];
-      } else {
-        next[targetTable] = srcCart;
-      }
-      return next;
-    });
-
-    setTableDraftPromos((prev) => {
-      const srcPromo = prev[sourceTable];
-      if (!srcPromo) return prev;
-      const next = { ...prev };
-      delete next[sourceTable];
-      if (!next[targetTable]) {
-        next[targetTable] = srcPromo;
-      }
-      return next;
-    });
-
-    setOrders(updatedOrders);
-    writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
-    setSelectedTable(targetTable);
-    setTimeout(() => setToastMessage(null), 2500);
-  }, [orders, tableCarts, isOfflineMode, serviceFeePercent, getActiveCafeId, getAuthHeaders, queuePatchForSync, queueDeleteForSync]);
+  const { handleMoveTable } = useTableMove({
+    orders,
+    ordersRef,
+    tableCarts,
+    isOfflineMode,
+    serviceFeePercent,
+    getActiveCafeId,
+    getAuthHeaders,
+    queuePatchForSync,
+    queueDeleteForSync,
+    setOrders,
+    setTableCarts,
+    setTableDraftPromos,
+    setSelectedTable,
+    setToastMessage,
+  });
 
   const { handleCloseTable } = useCheckout({
     orders,

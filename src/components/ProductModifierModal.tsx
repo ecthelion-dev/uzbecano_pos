@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layers, Check, X, Package, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { DBProduct, ProductVariant, ProductAddon } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
@@ -22,8 +22,8 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
   const t = useT();
   if (!product) return null;
 
-  const hasVariants = product.variants && product.variants.length > 0;
-  const hasAddons = product.addons && product.addons.length > 0;
+  const hasVariants = Boolean(product.variants && product.variants.length > 0);
+  const hasAddons = Boolean(product.addons && product.addons.length > 0);
 
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     hasVariants ? product.variants![0] : null
@@ -38,6 +38,16 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
    * kerak, ofitsiantning og'zaki aytganidan emas.
    */
   const [takeaway, setTakeaway] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      const vars = product.variants && product.variants.length > 0 ? product.variants : null;
+      setSelectedVariant(vars ? vars[0] : null);
+      setSelectedAddons([]);
+      setItemNote('');
+      setTakeaway(false);
+    }
+  }, [product]);
 
   const toggleAddon = (addon: ProductAddon) => {
     if (selectedAddons.some(a => a.name === addon.name)) {

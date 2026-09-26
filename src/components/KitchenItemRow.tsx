@@ -25,6 +25,11 @@ export const KitchenItemRow: React.FC<KitchenItemRowProps> = React.memo(({
         <div className="flex-1 pr-2">
           <p className="font-bold text-xs text-slate-900">
             {item.name}
+            {item.selectedSize?.label && !item.name?.toLowerCase().includes(item.selectedSize.label.toLowerCase()) && (
+              <span className="text-orange-700 font-semibold ml-1">
+                ({item.selectedSize.label})
+              </span>
+            )}
             <TakeawayTag item={item} className="ml-1.5" />
           </p>
           <p className="text-[10px] text-slate-500 font-medium">

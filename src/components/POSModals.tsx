@@ -285,6 +285,7 @@ export const POSModals: React.FC<POSModalsProps> = ({
       />
 
       <ProductModifierModal
+        key={selectedModifierProduct?.id}
         product={selectedModifierProduct}
         onAddToCart={onAddToCartFromModifier}
         onClose={onCloseModifier}

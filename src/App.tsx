@@ -1905,7 +1905,8 @@ export default function App() {
         setToastMessage(t('toast.periodTooBig'));
         setTimeout(() => setToastMessage(null), 6000);
       }
-      return filterOrdersForPeriod(data as DBOrder[], from, to);
+      const servedOnly = (data as DBOrder[]).filter((o) => o.status === 'served');
+      return filterOrdersForPeriod(servedOnly, from, to);
     } catch {
       return fallback;
     }

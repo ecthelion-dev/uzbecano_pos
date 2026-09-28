@@ -97,6 +97,11 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
     let waiters = new Set<string>();
 
     (data?.orders || []).forEach((ord: any) => {
+      // Faqat yopilgan (served) buyurtmalar sotuv hisobotiga kiradi.
+      // Ochiq (sent_to_kitchen, new) yoki bekor qilingan (cancelled) buyurtmalar
+      // sotuv emas va tushumga kirmaydi.
+      if (ord.status && ord.status !== 'served') return;
+
       const tot = Number(ord.total) || 0;
 
       if (ord.refunded) {

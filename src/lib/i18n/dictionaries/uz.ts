@@ -201,10 +201,10 @@ export const uz = {
 
   // ── Saqlanmagan savat ───────────────────────────────────────────────
   'unsaved.title': 'Yuborilmagan taomlar bor!',
-  'unsaved.question': "Savatchada oshxonaga yuborilmagan taomlar mavjud. Ular avtomatik tarzda oshxonaga yuborilib, to'lov qilinadi va stol yopilsinmi?",
+  'unsaved.question': "Savatchada oshxonaga yuborilmagan taomlar mavjud. Ularni oshxonaga yuborishni tasdiqlaysizmi? To'lovni keyinroq alohida qilasiz.",
   'unsaved.cartTotal': 'Savat summasi:',
   'unsaved.table': 'Stol:',
-  'unsaved.confirmClose': 'Tasdiqlash va Yopish',
+  'unsaved.confirmClose': 'Oshxonaga yuborish',
 
   // ── Arxiv ───────────────────────────────────────────────────────────
   'archive.title': 'Arxiv cheklar',

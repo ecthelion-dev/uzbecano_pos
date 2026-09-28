@@ -188,10 +188,10 @@ export const en: Record<TranslationKey, string> = {
 
   // ── Unsaved cart ────────────────────────────────────────────────────
   'unsaved.title': 'There are unsent items!',
-  'unsaved.question': 'The cart has dishes that never went to the kitchen. Send them, take the payment and close the table?',
+  'unsaved.question': 'The cart has dishes that never went to the kitchen. Send them to the kitchen? You can take payment separately afterwards.',
   'unsaved.cartTotal': 'Cart total:',
   'unsaved.table': 'Table:',
-  'unsaved.confirmClose': 'Confirm and close',
+  'unsaved.confirmClose': 'Send to kitchen',
 
   // ── Archive ─────────────────────────────────────────────────────────
   'archive.title': 'Receipt archive',

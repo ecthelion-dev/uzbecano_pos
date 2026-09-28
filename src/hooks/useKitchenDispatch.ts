@@ -1,12 +1,12 @@
 import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
-import type { CartItem, DBOrder, DBWaiter, KitchenSlipData } from '../types';
+import type { CartItem, DBOrder, DBWaiter } from '../types';
 import type { PromoTerms } from '../lib/promo';
 import { orderTotals, parsePromoTerms } from '../lib/promo';
 import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { fetchWithTimeout } from '../lib/net';
 import { decideFromStatus } from '../lib/syncQueue';
 import { writeCafeJson, readGlobalText } from '../lib/storage';
-import { formatClock } from '../lib/timeFormat';
+
 import { API_BASE_URL, DEFAULT_CAFE_ID } from '../constants';
 
 export interface UseKitchenDispatchParams {
@@ -31,7 +31,7 @@ export interface UseKitchenDispatchParams {
   setOrders: (orders: DBOrder[]) => void;
   setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms>>>;
   setTableCarts: Dispatch<SetStateAction<Record<string, CartItem[]>>>;
-  setKitchenSlipData: (slip: KitchenSlipData | null) => void;
+
   setToastMessage: (msg: string | null) => void;
   setApiError: (msg: string | null) => void;
   setStorageBlockingError: (msg: string | null) => void;
@@ -61,7 +61,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
     setOrders,
     setTableDraftPromos,
     setTableCarts,
-    setKitchenSlipData,
+
     setToastMessage,
     setApiError,
     setStorageBlockingError,
@@ -262,16 +262,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
       }
       setTableCarts((prev) => ({ ...prev, [selectedTable]: [] }));
 
-      const kitchenPayload: KitchenSlipData = {
-        orderId: kitchenOrderId,
-        tableNumber: selectedTable,
-        waiterName: currentWaiter?.name || 'Offitsiant',
-        items: newItems,
-        time: formatClock(new Date()),
-        timestamp: new Date().toISOString(),
-        slipNumber: kitchenDailyNumber,
-      };
-      setKitchenSlipData(kitchenPayload);
+
 
       setToastMessage(t('toast.sentToKitchen'));
       setTimeout(() => setToastMessage(null), 2500);
@@ -298,7 +289,6 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
     setStorageBlockingError,
     t,
     setTableCarts,
-    setKitchenSlipData,
     setToastMessage,
     setApiError,
     setTableDraftPromos,

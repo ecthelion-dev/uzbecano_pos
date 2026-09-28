@@ -2363,15 +2363,8 @@ export default function App() {
                   setShowMobileCart(false);
                 }}
                 onCloseTable={() => {
-                  /*
-                   * Yopish endi ikki qadam: avval yuborilmagan taomlar
-                   * haqida ogohlantirish (agar bo'lsa), keyin to'lov
-                   * oynasi. Ogohlantirish birinchi — u savatdagi taom
-                   * oshxonaga ketmasligi haqida, ya'ni pul gapidan oldin
-                   * hal qilinishi kerak.
-                   */
-                  if (cart.length > 0) setShowUnsavedCartModal(true);
-                  else setShowPaymentModal(true);
+                  if (cart.length > 0) handleSendToKitchen();
+                  setShowPaymentModal(true);
                   setShowMobileCart(false);
                 }}
                 onOpenReceiptPreview={() => setShowReceiptPreview(true)}

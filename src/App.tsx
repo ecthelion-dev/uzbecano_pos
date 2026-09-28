@@ -2562,6 +2562,7 @@ export default function App() {
         onConfirmUnsavedCart={() => {
           setShowUnsavedCartModal(false);
           handleSendToKitchen();
+          setShowPaymentModal(true);
         }}
         draftSubtotal={draftSubtotal}
 

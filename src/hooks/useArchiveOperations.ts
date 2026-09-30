@@ -113,7 +113,19 @@ export function useArchiveOperations(params: UseArchiveOperationsParams) {
   const handlePayDebt = useCallback(
     async (targetOrder: DBOrder, amount: number, method: 'naqd' | 'karta', note?: string) => {
       if (amount <= 0) return;
+      /*
+       * To'lov identifikatori SHU YERDA yaratiladi va ham so'rovga, ham
+       * mahalliy yozuvga qo'yiladi.
+       *
+       * Sabab: offline navbatdagi to'lov javob yo'qolganda qayta yuboriladi
+       * (useOfflineSync navbatni aynan o'sha tana bilan qaytaradi). Server
+       * yozuvni allaqachon qabul qilgan bo'lsa, ikkinchi so'rov ikkinchi
+       * yozuv qo'shib, mijoz ikki marta to'lagandek ko'rinardi. Server
+       * `debtPayment.id` ni ko'rib, takroriy so'rovni jimgina qaytaradi.
+       */
+      const paymentId = crypto.randomUUID();
       const debtPayment = {
+        id: paymentId,
         amount,
         method,
         note: note || undefined,
@@ -130,9 +142,16 @@ export function useArchiveOperations(params: UseArchiveOperationsParams) {
             body: JSON.stringify(patchBody),
           });
           if (res.ok) {
+            /*
+             * Server YALANG'OCH chekni qaytaradi (`{ order }` konverti yo'q) —
+             * `useOfflineSync.sendAppendItems` ham xuddi shunday o'qiydi.
+             * Ilgari bu yerda `data.order` tekshirilar edi, ya'ni shart hech
+             * qachon bajarilmasdi va kassa mahalliy (taxminiy) hisobda
+             * qolaverardi: serverda saqlangan haqiqiy holat emas.
+             */
             const data = await res.json().catch(() => ({}));
-            if (data.order) {
-              serverUpdatedOrder = data.order;
+            if (data?.id === targetOrder.id) {
+              serverUpdatedOrder = data as DBOrder;
             }
           } else {
             const data = await res.json().catch(() => ({}));
@@ -150,7 +169,7 @@ export function useArchiveOperations(params: UseArchiveOperationsParams) {
       }
 
       const paymentEntry: DebtPaymentEntry = {
-        id: crypto.randomUUID(),
+        id: paymentId,
         amount,
         method,
         paidAt: new Date().toISOString(),

@@ -73,7 +73,9 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
               onClick={onCloseMobile}
               className="lg:hidden w-9 h-9 -ml-1 shrink-0 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 active:scale-95 transition-transform"
               title={t('common.close')}
-            >
+            
+
+              aria-label={t('common.close')}>
               <X className="w-5 h-5" />
             </button>
           )}

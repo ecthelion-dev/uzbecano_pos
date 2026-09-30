@@ -86,7 +86,9 @@ export const POSMenuView: React.FC<POSMenuViewProps> = ({
             onClick={onCloseSearch}
             title={t('menu.closeSearch')}
             className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-white text-slate-600 border border-slate-200 shadow-2xs active:scale-95 transition-transform"
-          >
+          
+
+            aria-label={t('menu.closeSearch')}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -97,7 +99,9 @@ export const POSMenuView: React.FC<POSMenuViewProps> = ({
             onClick={onOpenMobileSearch}
             title={t('common.search')}
             className="sm:hidden w-11 h-11 shrink-0 flex items-center justify-center rounded-xl bg-white text-slate-600 border border-slate-200 shadow-2xs active:scale-95 transition-transform"
-          >
+          
+
+            aria-label={t('common.search')}>
             <Search className="w-5 h-5" />
           </button>
         )}

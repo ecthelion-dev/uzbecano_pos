@@ -32,6 +32,28 @@ a,
   touch-action: manipulation;
 }
 
+/*
+ * Klaviatura fokusi ko'rinadigan bo'lishi shart.
+ *
+ * Ilova bo'ylab maydonlar `focus:outline-none` bilan bosilgan holatni
+ * chizadi, lekin bu faqat sichqoncha/tegish uchun yetarli: klaviatura bilan
+ * yurgan odam qayerda turganini umuman ko'rmasdi. `:focus-visible` faqat
+ * klaviatura fokusi uchun chiziladi — ya'ni kassir sichqoncha bilan
+ * ishlaganda hech narsa o'zgarmaydi.
+ */
+:focus-visible {
+  outline: 2px solid #053f5c;
+  outline-offset: 2px;
+}
+
+/* Terminal va kiosk ekranlari uchun: kontrast yetarli bo'lmagan fon ustida
+   ham ko'rinsin. */
+@media (prefers-contrast: more) {
+  :focus-visible {
+    outline-width: 3px;
+  }
+}
+
 /* iOS Safari 16px dan kichik inputga fokus tushganda ekranni zoom qiladi va
    kassir qo'lda qaytarishga majbur bo'ladi. Telefonda inputlarni 16px qilamiz. */
 @media (max-width: 1023px) {

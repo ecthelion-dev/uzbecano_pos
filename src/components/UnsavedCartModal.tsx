@@ -50,7 +50,9 @@ export const UnsavedCartModal: React.FC<UnsavedCartModalProps> = ({
           <button
             onClick={onClose}
             className="w-9 h-9 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
-          >
+          
+
+            aria-label={t('common.close')}>
             <X className="w-5 h-5" />
           </button>
         </div>

@@ -134,7 +134,9 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           onClick={onOpenArchive}
           className="lg:hidden w-10 h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 shadow-2xs flex items-center justify-center text-slate-700 transition-all active:scale-95 cursor-pointer shrink-0"
           title={t('header.archiveTitle')}
-        >
+        
+
+          aria-label={t('header.archiveTitle')}>
           <Receipt className="w-4 h-4 text-brand-500" />
         </button>
 
@@ -163,7 +165,9 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
               onClick={onLogout}
               className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
               title={t('common.logout')}
-            >
+            
+
+              aria-label={t('common.logout')}>
               <LogOut className="w-4 h-4" />
             </button>
           </div>

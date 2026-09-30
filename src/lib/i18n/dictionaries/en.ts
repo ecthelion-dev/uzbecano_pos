@@ -183,6 +183,8 @@ export const en: Record<TranslationKey, string> = {
   'reservation.reservedDate': 'Reservation date',
   'reservation.selectDate': 'Select date',
   'reservation.today': 'Today',
+  'reservation.prevMonth': 'Previous month',
+  'reservation.nextMonth': 'Next month',
   'reservation.tomorrow': 'Tomorrow',
   'reservation.hour': 'Hour',
   'reservation.minute': 'Minute',

@@ -271,6 +271,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label={t('common.close')}
             className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -641,6 +642,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               type="button"
               onClick={() => setShowTimePicker(false)}
               className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label={t('common.close')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -781,6 +783,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               type="button"
               onClick={() => setShowDatePicker(false)}
               className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label={t('common.close')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -832,6 +835,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               type="button"
               disabled={isPrevMonthDisabled}
               onClick={handlePrevMonth}
+              aria-label={t('reservation.prevMonth')}
               className={`p-2 rounded-xl border border-slate-200 transition-colors ${
                 isPrevMonthDisabled
                   ? 'text-slate-300 opacity-30 cursor-not-allowed bg-slate-50'
@@ -846,6 +850,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             <button
               type="button"
               onClick={handleNextMonth}
+              aria-label={t('reservation.nextMonth')}
               className="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 cursor-pointer active:scale-95 transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
@@ -938,6 +943,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               type="button"
               onClick={() => setSelectedDetailReservation(null)}
               className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+              aria-label={t('common.close')}
             >
               <X className="w-4 h-4" />
             </button>

@@ -183,6 +183,8 @@ export const ru: Record<TranslationKey, string> = {
   'reservation.reservedDate': 'Дата брони',
   'reservation.selectDate': 'Выберите дату',
   'reservation.today': 'Сегодня',
+  'reservation.prevMonth': 'Предыдущий месяц',
+  'reservation.nextMonth': 'Следующий месяц',
   'reservation.tomorrow': 'Завтра',
   'reservation.hour': 'Час',
   'reservation.minute': 'Минута',

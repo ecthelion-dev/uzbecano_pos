@@ -22,9 +22,10 @@ export const CategoryCard: React.FC<CategoryCardProps> = React.memo(({
   const showImage = Boolean(category.image) && !imageFailed;
 
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onSelect(category.name)}
-      className="relative overflow-hidden aspect-[4/3] rounded-2xl border border-slate-200 bg-white shadow-xs transition-all duration-200 cursor-pointer group active:scale-98 hover:-translate-y-0.5 hover:shadow-lg hover:border-brand-300"
+      className="text-left w-full relative overflow-hidden aspect-[4/3] rounded-2xl border border-slate-200 bg-white shadow-xs transition-all duration-200 cursor-pointer group active:scale-98 hover:-translate-y-0.5 hover:shadow-lg hover:border-brand-300"
     >
       {showImage ? (
         <>
@@ -64,6 +65,6 @@ export const CategoryCard: React.FC<CategoryCardProps> = React.memo(({
           </span>
         </div>
       )}
-    </div>
+    </button>
   );
 });

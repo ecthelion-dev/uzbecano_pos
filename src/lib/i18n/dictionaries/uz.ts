@@ -196,6 +196,8 @@ export const uz = {
   'reservation.reservedDate': 'Bron sanasi',
   'reservation.selectDate': 'Sanani tanlang',
   'reservation.today': 'Bugun',
+  'reservation.prevMonth': 'Oldingi oy',
+  'reservation.nextMonth': 'Keyingi oy',
   'reservation.tomorrow': 'Ertaga',
   'reservation.hour': 'Soat',
   'reservation.minute': 'Daqiqa',

@@ -128,7 +128,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <button
             onClick={onClose}
             className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors cursor-pointer shrink-0"
-          >
+          
+
+            aria-label={t('common.close')}>
             <X className="w-4 h-4" />
           </button>
         </div>

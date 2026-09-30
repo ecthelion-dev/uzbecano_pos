@@ -93,9 +93,10 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
     : 'text-slate-500';
 
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onSelect(table.number)}
-      className={`p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 flex flex-col justify-between h-[96px] sm:h-[108px] shadow-xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer group active:scale-98 relative ${shell}`}
+      className={`text-left w-full p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 flex flex-col justify-between h-[96px] sm:h-[108px] shadow-xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer group active:scale-98 relative ${shell}`}
     >
       <div className="flex justify-between items-start gap-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -187,6 +188,6 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
           <ChevronRight className={`w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-all ${chevronTone}`} />
         </div>
       )}
-    </div>
+    </button>
   );
 });

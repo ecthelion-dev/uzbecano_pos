@@ -85,7 +85,9 @@ export const NetworkIndicator: React.FC = () => {
           onClick={triggerSync}
           className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
           title={t('net.startSync')}
-        >
+        
+
+          aria-label={t('net.startSync')}>
           <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
         </button>
       )}

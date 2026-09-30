@@ -15,9 +15,10 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
   const t = useT();
 
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onAddToCart(product)}
-      className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-lg hover:-translate-y-0.5 hover:border-brand-300 transition-all duration-200 cursor-pointer flex flex-col group active:scale-98"
+      className="text-left w-full bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-lg hover:-translate-y-0.5 hover:border-brand-300 transition-all duration-200 cursor-pointer flex flex-col group active:scale-98"
     >
       <div className="aspect-[4/3] bg-slate-100 overflow-hidden relative">
         {product.image ? (
@@ -57,6 +58,6 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({
           </span>
         </div>
       </div>
-    </div>
+    </button>
   );
 });

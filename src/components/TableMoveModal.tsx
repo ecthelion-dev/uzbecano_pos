@@ -66,7 +66,9 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
           <button
             onClick={onClose}
             className="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
-          >
+          
+
+            aria-label={t('common.close')}>
             <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>

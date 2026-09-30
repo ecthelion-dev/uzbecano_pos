@@ -141,7 +141,6 @@ export const ru: Record<TranslationKey, string> = {
   'table.allAreas': 'Все',
   'table.none': 'Столы не заданы',
   'table.occupiedCount': 'Занятых столов: {n}',
-  'table.filterAll': 'Все',
   'table.statTotal': 'Всего столов',
   'table.statFree': 'Свободные',
   'table.statBusy': 'Занятые',

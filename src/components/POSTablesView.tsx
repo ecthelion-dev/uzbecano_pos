@@ -14,7 +14,7 @@ export interface POSTablesViewProps {
   onOpenReservationModal: () => void;
 }
 
-type StatusFilter = 'all' | 'bosh' | 'band' | 'bron';
+type TableStatus = 'bosh' | 'band' | 'bron';
 
 export const POSTablesView: React.FC<POSTablesViewProps> = ({
   t,
@@ -27,34 +27,18 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
   onSelectTable,
   onOpenReservationModal,
 }) => {
-  /*
-    Holat filtri maydonni ham kamaytiradi: kassa soragida "band stol
-    qayerda?" — o'sha savolga javob bir bosishda topiladi. Filtr zone
-    bilan qo'shiladi, ya'ni har ikkalasi ham bir vaqtda qo'llaniladi.
-  */
-  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all');
-
   const statusCounts = React.useMemo(() => {
-    const counts = { all: 0, bosh: 0, band: 0, bron: 0 };
-    for (const tb of filteredTables) {
-      counts.all += 1;
-      counts[tb.status] += 1;
-    }
+    const counts: Record<TableStatus, number> = { bosh: 0, band: 0, bron: 0 };
+    for (const tb of filteredTables) counts[tb.status] += 1;
     return counts;
   }, [filteredTables]);
 
-  const visibleTables = React.useMemo(
-    () => (statusFilter === 'all' ? filteredTables : filteredTables.filter(tb => tb.status === statusFilter)),
-    [filteredTables, statusFilter]
-  );
-
   /*
-    Rasmdagi dizaynda holatlar bitta qatorga yig'ilgan " legenda "
-    ko'rinishida turadi. Bu saf ko'rsatkich ham, bosiladigan filtr ham:
-    kassa "band stol qayerda?" savoliga bir bosishda javob olishi kerak.
+    Bu qator endi filtr emas, faqat ko'rsatkich: kassa zalga bir qarashda
+    qancha stol bo'sh, qancha band ekanini biladi. Filtrlash zonalar
+    paneli orqali bo'ladi (kassir stolni ko'zi bilan izlagani tezroq).
   */
-  const LEGEND: { id: StatusFilter; label: string; dot: string }[] = [
-    { id: 'all', label: t('table.filterAll'), dot: 'bg-slate-400' },
+  const LEGEND: { id: TableStatus; label: string; dot: string }[] = [
     { id: 'bosh', label: t('table.statFree'), dot: 'bg-emerald-500' },
     { id: 'band', label: t('table.statBusy'), dot: 'bg-brand-500' },
     { id: 'bron', label: t('table.statReserved'), dot: 'bg-violet-500' },
@@ -76,14 +60,14 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
 
   const groupedByArea = React.useMemo(() => {
     const map = new Map<string, TableItemData[]>();
-    for (const tb of visibleTables) {
+    for (const tb of filteredTables) {
       const key = tb.area || '';
       const list = map.get(key);
       if (list) list.push(tb);
       else map.set(key, [tb]);
     }
     return Array.from(map.entries()).map(([area, list]) => ({ area, list }));
-  }, [visibleTables]);
+  }, [filteredTables]);
 
   return (
     <div className="flex-1 flex flex-col gap-3 sm:gap-4 overflow-y-auto pr-1 min-h-0 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-2">
@@ -98,29 +82,19 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
           </h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          {/*
-            Holat filtri maydonni ham kamaytiradi: kassa soragida "band stol
-            qayerda?" — o'sha savolga javob bir bosishda topiladi.
-          */}
-          <div className="flex items-center gap-1 sm:gap-2 bg-white border border-slate-200 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 shadow-xs">
+          {/* Holat ko'rsatkichlari — bosilmaydi, faqat ma'lumot. */}
+          <div className="flex items-center gap-2 sm:gap-3 bg-white border border-slate-200 rounded-xl px-3 sm:px-4 py-2 shadow-xs">
             {LEGEND.map((f) => (
-              <button
+              <span
                 key={f.id}
-                type="button"
-                onClick={() => setStatusFilter(f.id)}
-                aria-pressed={statusFilter === f.id}
-                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                  statusFilter === f.id
-                    ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-200'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
+                className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 whitespace-nowrap"
               >
                 <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${f.dot}`} />
                 {f.label}
                 <span className="text-[11px] font-bold tabular-nums text-slate-400">
                   {statusCounts[f.id]}
                 </span>
-              </button>
+              </span>
             ))}
           </div>
 
@@ -177,7 +151,7 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
             qo&apos;shing. Kassa ekrani va QR kodlar shu ro&apos;yxatdan oladi.
           </p>
         </div>
-      ) : visibleTables.length === 0 ? (
+      ) : filteredTables.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
           <p className="text-sm font-semibold text-slate-500">{t('table.none')}</p>
         </div>

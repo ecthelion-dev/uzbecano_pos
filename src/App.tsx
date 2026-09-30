@@ -2416,7 +2416,7 @@ export default function App() {
                   setShowMobileSearch(false);
                 }}
                 className={`flex flex-col items-center justify-center gap-1 py-2.5 transition-colors ${
-                  isActive ? 'text-orange-600' : 'text-slate-400 active:text-slate-600'
+                  isActive ? 'text-brand-600' : 'text-slate-400 active:text-slate-600'
                 }`}
               >
                 <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />

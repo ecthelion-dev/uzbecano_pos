@@ -8,6 +8,20 @@ module.exports = {
     extend: {
       colors: {
         background: '#f1f5f9',
+        // Brend rangi (OrderPlus to'q ko'k). Kassa sarlavhadagi asosiy
+        // tugmalar shu rangda bo'lib turadi.
+        brand: {
+          50: '#eff6f9',
+          100: '#dcecf2',
+          200: '#b8d9e5',
+          300: '#86b8ca',
+          400: '#0a688f',
+          500: '#053f5c',
+          600: '#04354d',
+          700: '#032c40',
+          800: '#022536',
+          900: '#011d2b',
+        },
       },
       // Kod bo'ylab ishlatilgan, lekin Tailwind 3 da mavjud bo'lmagan o'lchovlar.
       // Ularsiz telefonda bosish animatsiyasi va soyalar umuman ishlamayapti edi.

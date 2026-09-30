@@ -85,7 +85,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           onClick={() => onTabChange('stollar')}
           className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
             activeTab === 'stollar'
-              ? 'bg-orange-500 text-white shadow-md'
+              ? 'bg-brand-500 text-white shadow-md'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white'
           }`}
         >
@@ -98,7 +98,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           onClick={() => onTabChange('menyu')}
           className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
             activeTab === 'menyu'
-              ? 'bg-orange-500 text-white shadow-md'
+              ? 'bg-brand-500 text-white shadow-md'
               : 'text-slate-600 hover:text-slate-900 hover:bg-white'
           }`}
         >

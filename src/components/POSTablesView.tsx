@@ -85,8 +85,14 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
         </button>
       </div>
 
-      {/* Holat filtri — pill ko'rinishi */}
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
+      {/*
+        Ikki filtr (holat va zona) alohida qatorlarda turganida ular
+        chalkashdi: ikkalasida ham bir xil "Barchasi" va bir xil hisob
+        ko'rinardi, kassa esa bitta "Barchasi" qaysi filtrga tegishli
+        bo'lganini ajratolmaydi. Shu sabab bitta qatorga birlashtirildi
+        va ajratuvchi chiziq qo'yildi.
+      */}
+      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 no-scrollbar">
         {FILTERS.map((f) => (
           <button
             key={f.id}
@@ -106,10 +112,9 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
             </span>
           </button>
         ))}
-      </div>
 
-      {/* Area Zone Filters */}
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <span className="w-px h-6 bg-slate-200 shrink-0" aria-hidden="true" />
+
         {areas.map((area) => {
           const areaCount = tables.filter((tb) => area === allAreasLabel || tb.area === area).length;
           const occupiedCount = tables.filter(
@@ -119,10 +124,10 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
             <button
               key={area}
               onClick={() => onSelectArea(area)}
-              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 sm:gap-2 border whitespace-nowrap shadow-2xs cursor-pointer ${
+              className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full font-semibold text-xs transition-all flex items-center gap-1.5 sm:gap-2 border whitespace-nowrap cursor-pointer ${
                 activeArea === area
-                  ? 'bg-brand-500 text-white border-brand-500 shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-brand-300 hover:text-brand-700'
+                  ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
+                  : 'bg-transparent text-slate-500 border-slate-200 hover:border-brand-300 hover:text-brand-700'
               }`}
             >
               <span>{area === allAreasLabel ? t('table.allAreas') : area}</span>

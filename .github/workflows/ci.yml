@@ -13,7 +13,12 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # VPS'dagi Node — 20. CI aynan o'sha versiyada yursin: aks holda
+          # dev-bog'liqlik serverda ishlamaydigan versiyada o'tib ketadi.
+          # 2026-09-30 da shunday bo'ldi: jsdom@30 Node >=22 talab qilardi,
+          # CI (Node 22) yashil edi, server esa deploy paytida testni
+          # yig'ib, PWA ni yangilamay qo'ydi.
+          node-version: 20
           cache: npm
 
       - run: npm ci

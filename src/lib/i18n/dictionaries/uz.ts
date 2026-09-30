@@ -154,7 +154,6 @@ export const uz = {
   'table.allAreas': 'Barchasi',
   'table.none': 'Stollar belgilanmagan',
   'table.occupiedCount': '{n} ta band stol',
-  'table.subtitle': 'Stol holatini boshqarish va yangi buyurtma ochish',
   'table.filterAll': 'Barchasi',
   'table.statTotal': 'Jami stol',
   'table.statFree': 'Bo‘sh',

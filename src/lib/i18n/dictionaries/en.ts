@@ -141,7 +141,6 @@ export const en: Record<TranslationKey, string> = {
   'table.allAreas': 'All',
   'table.none': 'No tables set up',
   'table.occupiedCount': '{n} occupied tables',
-  'table.subtitle': 'Manage table status and open a new order',
   'table.filterAll': 'All',
   'table.statTotal': 'Total tables',
   'table.statFree': 'Empty',

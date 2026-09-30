@@ -96,7 +96,6 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
             </span>
             {t('table.layout')}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1.5 sm:ml-[2.75rem]">{t('table.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/*

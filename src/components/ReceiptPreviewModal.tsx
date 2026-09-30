@@ -66,7 +66,6 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   onPrint,
 }) => {
   const t = useT();
-  if (!show) return null;
 
   /* Bazadagi qiymat ("naqd"/"karta"/"aralash"/"qarz") — ekranga o'sha emas, tarjimasi chiqadi. */
   const payLabel =
@@ -86,6 +85,10 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       note: c.note, takeaway: c.takeaway,
     }))
   ], [activeTableOrderItems, cart]);
+
+  // Erta chiqish — hookdan KEYIN: aks holda ochiq/yopiq holat almashganda
+  // hooklar soni o'zgarib, React yiqilardi.
+  if (!show) return null;
 
   return (
     <div onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fadeIn">

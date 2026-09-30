@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { localeFromNavigator, isLocale, LOCALES } from './locales';
 import { uz } from './dictionaries/uz';
 import { ru } from './dictionaries/ru';

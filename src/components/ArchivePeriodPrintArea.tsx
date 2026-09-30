@@ -20,8 +20,6 @@ interface ArchivePeriodPrintAreaProps {
   data: PeriodPrintData | null;
   cafeName: string;
   cafeLogo: string;
-  cafeAddress: string;
-  cafePhone: string;
 }
 
 /**
@@ -77,8 +75,6 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
   data,
   cafeName,
   cafeLogo,
-  cafeAddress,
-  cafePhone,
 }) => {
   const t = useT();
   const { locale } = useLocale();
@@ -94,7 +90,7 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
     let card = 0;
     let refunded = 0;
     let refundedCount = 0;
-    let waiters = new Set<string>();
+    const waiters = new Set<string>();
 
     // Davr chegaralari `data` dan bir marta olinadi.
     //

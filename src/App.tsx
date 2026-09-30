@@ -1,37 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import {
-  UtensilsCrossed,
-  ShoppingBag,
-  Search,
-  Plus,
-  Minus,
-  Printer,
-  RotateCw,
-  ArrowLeft,
-  Grid,
-  ChevronRight,
-  ChevronUp,
-  X,
-  AlertCircle,
-  Receipt,
-  Sparkles,
-  Loader2,
-  CheckCircle2,
-  Send,
-  LogOut,
-  Trash2,
-  Shuffle,
-  BarChart2,
-  Banknote,
-  CreditCard,
-  ChefHat,
-  PenLine,
-  User,
-  Building2,
-  Lock,
-  ExternalLink,
-  Calendar,
-} from 'lucide-react';
+import { ShoppingBag, Grid, ChevronUp, AlertCircle } from 'lucide-react';
 import type { PeriodPrintData } from './components/ArchivePeriodPrintArea';
 import { rememberCredential, verifyCachedPin, hasCachedCredentials } from './lib/offlineAuth';
 import { nextQrSlip } from './lib/qrKitchenQueue';
@@ -39,7 +7,6 @@ import { newWaiterCalls, playCallChime } from './lib/waiterCallAlert';
 import {
   enqueuePrintJob,
   fetchPrintJobs,
-  type PrintJob,
 } from './lib/printQueue';
 import { fetchPulse, resetPulse } from './lib/pulse';
 import {
@@ -55,27 +22,23 @@ import {
   checkStorageHealth,
 } from './lib/storage';
 import { readSession, writeSession, clearSession, purgeLegacySession, isTokenExpiringSoon } from './lib/session';
-import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant, DBReservation, DebtCustomerInfo, DebtPaymentEntry } from './types';
+import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
 import { mergeActiveOrders, mergeOrderHistory, unsyncedOrderIds } from './lib/orderMerge';
 import { filterOrdersForPeriod } from './lib/reportPeriod';
 import { failedActionToCartItems, tableNumberOfAction, type FailedAction } from './lib/failedActions';
 import { useT } from './lib/i18n/LanguageProvider';
-import type { TranslationKey } from './lib/i18n/dictionaries/uz';
 import { PinLoginScreen } from './components/PinLoginScreen';
 import { ToastNotification } from './components/ToastNotification';
 import { POSModals } from './components/POSModals';
 import { POSMenuView } from './components/POSMenuView';
 import { POSTablesView } from './components/POSTablesView';
-import { CartItemRow } from './components/CartItemRow';
-import { KitchenItemRow } from './components/KitchenItemRow';
 import { POSHeader } from './components/POSHeader';
 import { POSCartSidebar } from './components/POSCartSidebar';
 import { FrozenCafeScreen } from './components/FrozenCafeScreen';
 import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitchenSlipDirect, printReceiptViaBrowser, getLastPrintError, setReceiptLogo } from './lib/printer';
-import { splitPayment } from './lib/payment';
-import { orderTotals, parsePromoTerms, type PromoTerms } from './lib/promo';
+import { orderTotals, parsePromoTerms } from './lib/promo';
 import { getDeviceId } from './lib/deviceId';
 import { tableState } from './lib/floorPlan';
 import { cartToHoldLines, holdLinesToCart, parseHoldItems } from './lib/cartSync';
@@ -152,18 +115,16 @@ export default function App() {
   const [tableCarts, setTableCarts] = useTableCarts();
   const [tableDraftPromos, setTableDraftPromos] = useTableDraftPromos();
 
-  // Ishga tushishda bir marta: disk yozadimi-o'qiydimi. Birinchi savdogacha
-  // ko'rinsin — keyin bilib qolish kech bo'ladi.
-  useEffect(() => {
-    if (!checkStorageHealth()) setStorageHealthWarning(true);
-  }, []);
-
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [apiError, setApiError] = useState<string | null>(null);
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
   const [showReceiptPreview, setShowReceiptPreview] = useState<boolean>(false);
   const [showArchiveModal, setShowArchiveModal] = useState<boolean>(false);
+  // Telefonda kvitansiya yon panel sifatida sig'maydi — pastdan chiquvchi panel.
+  const [showMobileCart, setShowMobileCart] = useState<boolean>(false);
+  // Telefonda qidiruv maydoni ikonka ortida turadi va bosilganda ochiladi.
+  const [showMobileSearch, setShowMobileSearch] = useState<boolean>(false);
   // Davr hisoboti chop etilayotgan payt. Hisobot `window.print()` bilan
   // sahifadan chiqadi (`#thermal-print-area`), chek esa alohida hujjatda.
   const [periodPrint, setPeriodPrint] = useState<PeriodPrintData | null>(null);
@@ -187,6 +148,17 @@ export default function App() {
   const [storageBlockingError, setStorageBlockingError] = useState<string | null>(null);
   /** Ishga tushishda diskka yozib-o'qib bo'lmasa — kassir savdo boshlashdan oldin ko'rishi kerak. */
   const [storageHealthWarning, setStorageHealthWarning] = useState(false);
+
+  /*
+   * Ishga tushishda bir marta: disk yozadimi-o'qiydimi. Birinchi savdogacha
+   * ko'rinsin — keyin bilib qolish kech bo'ladi.
+   *
+   * Effekt `setStorageHealthWarning` e'lon qilinganidan KEYIN turadi: ilgari
+   * u yuqorida edi, ya'ni o'zgaruvchi ishlatilishidan oldin o'qilardi.
+   */
+  useEffect(() => {
+    if (!checkStorageHealth()) setStorageHealthWarning(true);
+  }, []);
 
   const [showTableMoveModal, setShowTableMoveModal] = useState<boolean>(false);
   /**
@@ -222,7 +194,13 @@ export default function App() {
     requestAdminPin,
   } = useAdminPin();
 
-  const [waiters, setWaiters] = useState<DBWaiter[]>([]);
+  /*
+   * `waiters` ro'yxati ekranga chiqmaydi: ofitsiant tanlash QR menyuda.
+   * Lekin javob kafening oflayn zaxirasiga yoziladi (`writeCafeJson`), ya'ni
+   * so'rov kerak — shuning uchun faqat setter olinadi, qiymat olinmaydi.
+   * Aks holda ishlatilmagan holat har yangilanishda ortiqcha render qilardi.
+   */
+  const [, setWaiters] = useState<DBWaiter[]>([]);
   const [currentWaiter, setCurrentWaiter] = useState<DBWaiter | null>(
     () => readSession(resolveActiveCafeId())?.waiter ?? null
   );
@@ -233,7 +211,17 @@ export default function App() {
     () => readSession(resolveActiveCafeId())?.token ?? null
   );
   const authTokenRef = useRef<string | null>(readSession(resolveActiveCafeId())?.token ?? null);
-  authTokenRef.current = authToken;
+  /*
+   * Ref render paytida emas, effektda yangilanadi.
+   *
+   * Render paytida ref yozish React qoidalariga zid: render toza bo'lishi
+   * kerak, ya'ni uni ikki marta chaqirish natijani o'zgartirmasligi shart.
+   * Effekt commitdan keyin darhol ishlaydi, ya'ni `getAuthHeaders()` uni
+   * baribir yangi qiymat bilan ko'radi.
+   */
+  useEffect(() => {
+    authTokenRef.current = authToken;
+  }, [authToken]);
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [isCafeFrozen, setIsCafeFrozen] = useState<boolean>(() => {
@@ -1275,26 +1263,11 @@ export default function App() {
   }, [categoriesData, products]);
 
   // Product counts per category
-  const categoryProductCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    products.forEach(p => {
-      if (p.category) {
-        const key = normalizeCategoryName(p.category);
-        counts[key] = (counts[key] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [products]);
-
   useEffect(() => { ordersRef.current = orders; }, [orders]);
 
   const cart = useMemo(() => tableCarts[selectedTable] || [], [tableCarts, selectedTable]);
 
   const [selectedArea, setSelectedArea] = useState<string>(ALL_AREAS);
-  // Telefonda kvitansiya yon panel sifatida sig'maydi — pastdan chiquvchi panel.
-  const [showMobileCart, setShowMobileCart] = useState<boolean>(false);
-  // Telefonda qidiruv maydoni ikonka ortida turadi va bosilganda ochiladi.
-  const [showMobileSearch, setShowMobileSearch] = useState<boolean>(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Tables status & totals (combines DB orders and active draft carts)
@@ -1427,7 +1400,16 @@ export default function App() {
       setWaiterCalls(prev => prev.filter(t => (t || '').trim().toLowerCase() !== tableNumber.trim().toLowerCase()));
     }
   }, [getActiveCafeId, getAuthHeaders, tables, t, tableCarts, tableHolds, deviceId, products]);
-  handleSelectTableRef.current = handleSelectTable;
+
+  /*
+   * `handleSelectTableRef` effektda yangilanadi.
+   *
+   * Ref klaviatura va bosish hodisalarida o'qiladi (hodisa esa commitdan
+   * keyin keladi), shuning uchun render paytida yozish shart emas.
+   */
+  useEffect(() => {
+    handleSelectTableRef.current = handleSelectTable;
+  }, [handleSelectTable]);
 
   const handleSelectCategory = useCallback((categoryName: string) => {
     setSelectedCategoryName(categoryName);

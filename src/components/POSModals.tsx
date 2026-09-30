@@ -259,7 +259,6 @@ export const POSModals: React.FC<POSModalsProps> = ({
         orders={orders}
         archiveSearch={archiveSearch}
         selectedArchiveOrder={selectedArchiveOrder}
-        currentWaiter={currentWaiter}
         cafeName={cafeName}
         cafeLogo={cafeLogo}
         cafeAddress={cafeAddress}
@@ -366,8 +365,6 @@ export const POSModals: React.FC<POSModalsProps> = ({
         data={periodPrint}
         cafeName={cafeName || 'ORDERPLUS'}
         cafeLogo={cafeLogo}
-        cafeAddress={cafeAddress}
-        cafePhone={cafePhone}
       />
 
       {storageBlockingError && (

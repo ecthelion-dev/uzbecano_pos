@@ -3,7 +3,6 @@ import { AlertCircle, X, RefreshCw, ShoppingCart } from 'lucide-react';
 import {
   actorOf,
   extractActionItems,
-  tableNumberOfAction,
   type FailedAction,
 } from '../lib/failedActions';
 import { useT } from '../lib/i18n/LanguageProvider';

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, ListFilter, User, Phone, Clock, Users, FileText, X, AlertCircle, Trash2, CheckCircle2, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useT, useLocale } from '../lib/i18n/LanguageProvider';
-import { formatClock, formatDateClock, maskTimeText, normalizeTimeText } from '../lib/timeFormat';
+import { formatClock, formatDateClock } from '../lib/timeFormat';
 import type { DBReservation } from '../types';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-const MINUTES = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
 
 const MONTH_NAMES: Record<string, string[]> = {
   uz: ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr'],
@@ -171,7 +170,6 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const tomorrowDate = new Date(now);
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
   const tomorrowStr = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
-  const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
   const openDatePicker = () => {
     if (reservedDate) {

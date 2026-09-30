@@ -7,7 +7,6 @@ import {
   AlertCircle,
   Receipt,
   UtensilsCrossed,
-  Sliders,
   X,
   FileText,
   DollarSign,

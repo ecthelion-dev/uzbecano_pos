@@ -20,13 +20,19 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
   onClose,
 }) => {
   const t = useT();
-  if (!product) return null;
 
-  const hasVariants = Boolean(product.variants && product.variants.length > 0);
-  const hasAddons = Boolean(product.addons && product.addons.length > 0);
+  /*
+   * `product` bo'lmasa ham hooklar bir xil tartibda chaqirilishi shart.
+   *
+   * Ilgari bu yerda `if (!product) return null;` turardi, ya'ni mahsulot
+   * keyinroq kelganda hooklar soni o'zgarardi — React buni "Rendered more
+   * hooks than during the previous render" deb yiqitardi.
+   */
+  const hasVariants = Boolean(product?.variants && product.variants.length > 0);
+  const hasAddons = Boolean(product?.addons && product.addons.length > 0);
 
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    hasVariants ? product.variants![0] : null
+    () => (product?.variants && product.variants.length > 0 ? product.variants[0] : null)
   );
   const [selectedAddons, setSelectedAddons] = useState<ProductAddon[]>([]);
   const [itemNote, setItemNote] = useState<string>('');
@@ -48,6 +54,9 @@ export const ProductModifierModal: React.FC<ProductModifierModalProps> = ({
       setTakeaway(false);
     }
   }, [product]);
+
+  // Erta chiqish — barcha hooklardan KEYIN.
+  if (!product) return null;
 
   const toggleAddon = (addon: ProductAddon) => {
     if (selectedAddons.some(a => a.name === addon.name)) {

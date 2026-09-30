@@ -1,7 +1,6 @@
 import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
 import type { CartItem, DBOrder, DBWaiter, DebtCustomerInfo } from '../types';
-import type { PromoTerms } from '../lib/promo';
-import { orderTotals, parsePromoTerms } from '../lib/promo';
+import { orderTotals, parsePromoTerms, type PromoTerms } from '../lib/promo';
 import { splitPayment } from '../lib/payment';
 import { adoptServerId, cartLineToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { writeCafeJson } from '../lib/storage';
@@ -100,8 +99,6 @@ export function useCheckout(params: UseCheckoutParams) {
         }));
 
         const sub = draftSubtotal;
-        const fee = Math.round((sub * serviceFeePercent) / 100);
-        const tot = sub + fee;
 
         const latestActive = currentOrders.find(
           (o) => (o.tableNumber || '').trim().toLowerCase() === normTarget && isActiveOrder(o.status)

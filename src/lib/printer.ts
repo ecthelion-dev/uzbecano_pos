@@ -66,6 +66,12 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
 const LEGACY_DEFAULT_TEXTS = new Set(['Xush kelibsiz!', 'Tashrifingiz uchun rahmat!']);
 
 // Bluetooth device instance cache
+//
+// `activeBluetoothDevice` ataylab saqlanadi: u o'qilmasa ham, ulanish ochiq
+// turishi shu havolaga bog'liq — ya'ni obyektni yig'ib yuborilsa, printer
+// aloqasi uzilishi mumkin. Shu sababli lint bu qatorni ishlatilmagan deb
+// hisoblamasin.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let activeBluetoothDevice: any = null;
 let activeBluetoothCharacteristic: any = null;
 let activeSerialPort: any = null;
@@ -1469,7 +1475,6 @@ export async function executePrintTest(
   /** Termal printerga chiqmadi — sabab bilan. */
   onProblem?: (why: string) => void,
 ) {
-  const settings = getPrinterSettings();
   const testOrder = {
     id: 'test-123456',
     createdAt: new Date().toISOString(),

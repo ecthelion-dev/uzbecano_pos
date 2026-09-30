@@ -4,22 +4,21 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { TrendingUp, ShoppingBag, Wallet, Users, Clock, BarChart2 } from 'lucide-react';
-import { DBOrder, DBProduct } from '../types';
+import { DBOrder } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 
 interface Props {
   orders: DBOrder[];
-  products: DBProduct[];
 }
 
-const COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+const COLORS = ['#053f5c', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
 
 /** Valyuta argument bo'lib keladi: modul darajasidagi funksiya hook chaqira olmaydi. */
 function fmtSom(v: number, currency: string) {
   return `${v.toLocaleString()} ${currency}`;
 }
 
-export function AdminDashboard({ orders, products }: Props) {
+export function AdminDashboard({ orders }: Props) {
   const t = useT();
   const servedOrders = useMemo(() => orders.filter(o => o.status === 'served' && !o.refunded), [orders]);
 

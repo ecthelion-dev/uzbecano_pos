@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, User, Phone, Users, Clock, FileText, X, CheckCircle2, Trash2 } from 'lucide-react';
 import { useT } from '../lib/i18n/LanguageProvider';
-import { formatClock, formatDateClock } from '../lib/timeFormat';
+import { formatDateClock } from '../lib/timeFormat';
 import type { DBReservation } from '../types';
 
 interface ReservationDetailsModalProps {

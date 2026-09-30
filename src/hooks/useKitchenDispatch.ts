@@ -1,7 +1,6 @@
 import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
 import type { CartItem, DBOrder, DBWaiter } from '../types';
-import type { PromoTerms } from '../lib/promo';
-import { orderTotals, parsePromoTerms } from '../lib/promo';
+import { orderTotals, parsePromoTerms, type PromoTerms } from '../lib/promo';
 import { adoptServerId, cartLineToOrderItem, removeItemPatch, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { fetchWithTimeout } from '../lib/net';
 import { decideFromStatus } from '../lib/syncQueue';
@@ -150,12 +149,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
       const newItems = cart.map(cartLineToOrderItem);
       let updatedOrders = [...ordersRef.current];
 
-      let kitchenOrderId = '';
-      let kitchenDailyNumber = 0;
-
       if (activeTableOrder) {
-        kitchenOrderId = String(activeTableOrder.id || '');
-        kitchenDailyNumber = Number((activeTableOrder as any).dailyNumber) || 0;
         const itemMap = new Map<string, OutgoingOrderItem>();
         activeTableOrderItems.forEach((i: any, idx: number) => {
           itemMap.set(`${i.name}_${i.note || ''}_${idx}`, sentItemToOrderItem(i));
@@ -218,7 +212,6 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
           total: tot,
           status: 'sent_to_kitchen',
         };
-        kitchenOrderId = newOrderObj.id;
 
         if (!isOfflineMode) {
           try {
@@ -238,8 +231,6 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
                 if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
                 if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;
               }
-              kitchenOrderId = newOrderObj.id;
-              kitchenDailyNumber = Number(newOrderObj.dailyNumber) || 0;
             }
           } catch {
             queueOrderForSync(newOrderObj);

@@ -1,16 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Receipt, Search, ArrowLeft, Printer, ChevronRight, Calendar, Clock, RotateCcw, X, Utensils, AlertTriangle, PenLine, User, Banknote, CreditCard, Shuffle } from 'lucide-react';
-import { DBOrder, DBWaiter, DebtPaymentEntry } from '../types';
+import { Receipt, Search, ArrowLeft, Printer, ChevronRight, Calendar, Clock, RotateCcw, Utensils, AlertTriangle, PenLine, User, Banknote, CreditCard, Shuffle } from 'lucide-react';
+import { DBOrder, DebtPaymentEntry } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { TakeawayTag } from './TakeawayTag';
-import { formatClock, formatDateClock, maskTimeText, normalizeTimeText } from '../lib/timeFormat';
+import { formatDateClock, maskTimeText, normalizeTimeText } from '../lib/timeFormat';
 
 interface ArchiveModalProps {
   show: boolean;
   orders: DBOrder[];
   archiveSearch: string;
   selectedArchiveOrder: DBOrder | null;
-  currentWaiter?: DBWaiter | null;
   cafeName?: string;
   cafeLogo?: string;
   cafeAddress?: string;
@@ -33,7 +32,6 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   orders,
   archiveSearch,
   selectedArchiveOrder,
-  currentWaiter,
   cafeName,
   cafeLogo,
   cafeAddress,

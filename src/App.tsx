@@ -2254,7 +2254,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 antialiased selection:bg-orange-500 selection:text-white">
+    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
       <POSHeader
         connectedCafeName={connectedCafeName}
         connectedCafeLogo={connectedCafeLogo}

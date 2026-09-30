@@ -79,7 +79,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
           )}
           <h2 className="font-bold text-sm text-slate-900 truncate">{t('cart.receipt')}</h2>
         </div>
-        <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-sm shrink-0">
+        <span className="bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-xl shadow-xs shrink-0 tabular-nums">
           {selectedTable}
         </span>
       </div>
@@ -98,7 +98,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
             {activeTableOrderItems.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-bold text-orange-600 tracking-wider uppercase">
+                  <p className="text-[10px] font-bold text-brand-600 tracking-wider uppercase">
                     {t('cart.sentItems')}
                   </p>
                 </div>
@@ -137,31 +137,39 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
 
       {/* Calculations & Discounts */}
       <div className="pt-3 border-t border-slate-200 space-y-2 shrink-0">
-        <div className="flex justify-between text-xs text-slate-500 font-medium pt-1">
-          <span>{t('cart.itemsTotal')}</span>
-          <span className="text-slate-900 font-medium">{subtotal.toLocaleString()} {t('common.currency')}</span>
-        </div>
-        {discountAmount > 0 && (
-          <div className="flex justify-between text-xs text-emerald-600 font-semibold">
-            <span>{t('cart.discount', { code: promo?.code ?? `${discountPercent}%` })}</span>
-            <span>-{discountAmount.toLocaleString()} {t('common.currency')}</span>
+        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-3 space-y-1.5">
+          <div className="flex justify-between text-xs text-slate-500 font-medium">
+            <span>{t('cart.itemsTotal')}</span>
+            <span className="text-slate-900 font-semibold tabular-nums">{subtotal.toLocaleString()} {t('common.currency')}</span>
           </div>
-        )}
-        <div className="flex justify-between text-xs text-slate-500 font-medium">
-          <span>{t('cart.serviceFee', { p: serviceFeePercent })}</span>
-          <span className="text-slate-900 font-medium">{serviceFee.toLocaleString()} {t('common.currency')}</span>
-        </div>
-        <div className="flex justify-between text-base font-bold text-slate-900 pt-1.5 border-t border-slate-200">
-          <span>{t('common.totalUpper')}</span>
-          <span className="text-[#0F172A] text-lg">{grandTotal.toLocaleString()} {t('common.currency')}</span>
+          {discountAmount > 0 && (
+            <div className="flex justify-between text-xs text-emerald-600 font-semibold">
+              <span>{t('cart.discount', { code: promo?.code ?? `${discountPercent}%` })}</span>
+              <span className="tabular-nums">-{discountAmount.toLocaleString()} {t('common.currency')}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-xs text-slate-500 font-medium">
+            <span>{t('cart.serviceFee', { p: serviceFeePercent })}</span>
+            <span className="text-slate-900 font-semibold tabular-nums">{serviceFee.toLocaleString()} {t('common.currency')}</span>
+          </div>
         </div>
 
-        <div className="space-y-2 pt-2">
+        <div className="flex items-end justify-between gap-2 px-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 pb-1">
+            {t('common.totalUpper')}
+          </span>
+          <span className="text-xl sm:text-2xl font-extrabold tabular-nums tracking-tight text-slate-900">
+            {grandTotal.toLocaleString()}
+            <span className="text-xs font-bold text-slate-400 ml-1">{t('common.currency')}</span>
+          </span>
+        </div>
+
+        <div className="space-y-2 pt-1">
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => onSendToKitchen()}
               disabled={cart.length === 0}
-              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16 sm:h-16"
+              className="bg-brand-500 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-2xl text-[11px] uppercase tracking-wide transition-all shadow-xs active:scale-95 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer h-13"
             >
               <Send className="w-4 h-4" />
               <span>{t('cart.sendToKitchen')}</span>
@@ -170,27 +178,27 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
             <button
               onClick={() => onCloseTable()}
               disabled={activeTableOrderItems.length === 0 && cart.length === 0}
-              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold p-2 rounded-2xl text-[10px] uppercase tracking-wider transition-all shadow-md active:scale-95 flex flex-col items-center justify-center text-center gap-1 cursor-pointer h-16 sm:h-16"
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-2xl text-[11px] uppercase tracking-wide transition-all shadow-xs active:scale-95 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer h-13"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{t('cart.payAndClose')}</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2">
             <button
               onClick={onOpenReceiptPreview}
               disabled={activeTableOrderItems.length === 0 && cart.length === 0}
-              className="flex-1 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer active:scale-95"
+              className="flex-1 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer active:scale-95"
             >
               <Printer className="w-4 h-4 text-slate-500" /> {t('cart.printReceipt')}
             </button>
             <button
               onClick={onOpenTableMove}
               disabled={activeTableOrderItems.length === 0}
-              className="flex-1 bg-orange-50 hover:bg-orange-100 disabled:opacity-40 disabled:cursor-not-allowed text-orange-700 font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-orange-200 transition-colors cursor-pointer active:scale-95"
+              className="flex-1 bg-white hover:bg-slate-50 hover:border-brand-300 hover:text-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-200 transition-colors cursor-pointer active:scale-95"
             >
-              <Shuffle className="w-4 h-4 text-orange-600" /> {t('cart.moveTable')}
+              <Shuffle className="w-4 h-4 text-slate-500" /> {t('cart.moveTable')}
             </button>
           </div>
 

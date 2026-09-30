@@ -66,8 +66,8 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-contain bg-white border border-slate-200 shrink-0"
           />
         ) : (
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0">
-            <Building2 className="w-5 h-5 text-orange-500" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5 text-brand-500" />
           </div>
         )}
         <div className="min-w-0">
@@ -111,7 +111,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           onClick={onOpenArchive}
           className="flex px-4 py-2 rounded-lg font-semibold text-xs transition-all items-center gap-1.5 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer whitespace-nowrap"
         >
-          <Receipt className="w-3.5 h-3.5 text-orange-500" />
+          <Receipt className="w-3.5 h-3.5 text-brand-500" />
           <span>{t('header.archive')}</span>
           <span className="hidden md:inline text-[10px] opacity-80">(F3)</span>
         </button>
@@ -135,7 +135,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           className="lg:hidden w-10 h-10 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 shadow-2xs flex items-center justify-center text-slate-700 transition-all active:scale-95 cursor-pointer shrink-0"
           title={t('header.archiveTitle')}
         >
-          <Receipt className="w-4 h-4 text-orange-500" />
+          <Receipt className="w-4 h-4 text-brand-500" />
         </button>
 
         <button
@@ -143,12 +143,12 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           className="hidden lg:flex w-10 h-10 items-center justify-center bg-white hover:bg-slate-50 active:scale-98 border border-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer shadow-2xs shrink-0"
           title={t('common.reload')}
         >
-          <RotateCw className={`w-4 h-4 text-slate-500 ${isLoading ? 'animate-spin text-orange-500' : ''}`} />
+          <RotateCw className={`w-4 h-4 text-slate-500 ${isLoading ? 'animate-spin text-brand-500' : ''}`} />
         </button>
 
         {currentWaiter && (
           <div className="hidden lg:flex items-center gap-1.5 sm:gap-2 bg-slate-50/80 px-1.5 sm:px-2.5 h-10 rounded-xl border border-slate-200 shadow-2xs shrink-0">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
               <ChefHat className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="text-left pr-1 hidden sm:block">
@@ -244,7 +244,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                         setLangExpanded(false);
                       }}
                       className={`w-full pl-6 pr-3.5 py-2.5 flex items-center justify-between gap-3 text-xs transition-colors cursor-pointer ${
-                        active ? 'text-orange-600 font-semibold' : 'text-slate-600 hover:bg-slate-100 font-semibold'
+                        active ? 'text-brand-600 font-semibold' : 'text-slate-600 hover:bg-slate-100 font-semibold'
                       }`}
                     >
                       <span>{LOCALE_LABELS[code]}</span>
@@ -266,7 +266,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
             {[
               {
                 label: t('header.printerSettings'),
-                icon: <Printer className="w-4 h-4 text-orange-500" />,
+                icon: <Printer className="w-4 h-4 text-brand-500" />,
                 onClick: onOpenPrinterSettings,
               },
             ].map((item) => (
@@ -299,7 +299,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           <div className="lg:hidden absolute right-2 top-full mt-1.5 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden animate-fadeIn">
             {currentWaiter && (
               <div className="flex items-center gap-2.5 px-3.5 py-3 bg-slate-50 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center shrink-0">
                   <ChefHat className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
@@ -336,7 +336,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                         setMobileLangExpanded(false);
                       }}
                       className={`w-full pl-6 pr-3.5 py-3 flex items-center justify-between gap-3 text-xs transition-colors cursor-pointer ${
-                        active ? 'text-orange-600 font-semibold' : 'text-slate-600 hover:bg-slate-100 font-semibold'
+                        active ? 'text-brand-600 font-semibold' : 'text-slate-600 hover:bg-slate-100 font-semibold'
                       }`}
                     >
                       <span>{LOCALE_LABELS[code]}</span>
@@ -356,12 +356,12 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
             {[
               {
                 label: t('header.printerSettings'),
-                icon: <Printer className="w-4 h-4 text-orange-500" />,
+                icon: <Printer className="w-4 h-4 text-brand-500" />,
                 onClick: onOpenPrinterSettings,
               },
               {
                 label: isLoading ? 'Yangilanmoqda...' : 'Qayta yuklash',
-                icon: <RotateCw className={`w-4 h-4 text-slate-500 ${isLoading ? 'animate-spin text-orange-500' : ''}`} />,
+                icon: <RotateCw className={`w-4 h-4 text-slate-500 ${isLoading ? 'animate-spin text-brand-500' : ''}`} />,
                 onClick: onRefreshOrders,
               },
             ].map((item) => (

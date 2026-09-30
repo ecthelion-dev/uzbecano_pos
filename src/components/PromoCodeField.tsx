@@ -77,18 +77,21 @@ export const PromoCodeField: React.FC<PromoCodeFieldProps> = ({ promo, canApply,
           if (code.trim()) apply(code.trim());
         }}
       >
-        <input
-          id="pos-promo-code"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder={canApply ? t('promo.placeholder') : t('promo.needOrder')}
-          aria-label={t('promo.placeholder')}
-          disabled={isDisabled}
-          maxLength={64}
-          autoComplete="off"
-          spellCheck={false}
-          className="h-10 flex-1 min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold tracking-wider text-slate-900 placeholder:font-medium placeholder:tracking-normal placeholder:text-slate-400 focus:outline-none focus:border-orange-500 disabled:opacity-60"
-        />
+        <div className="relative flex-1 min-w-0">
+          <Ticket className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input
+            id="pos-promo-code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder={canApply ? t('promo.placeholder') : t('promo.needOrder')}
+            aria-label={t('promo.placeholder')}
+            disabled={isDisabled}
+            maxLength={64}
+            autoComplete="off"
+            spellCheck={false}
+            className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs font-bold tracking-wider text-slate-900 placeholder:font-medium placeholder:tracking-normal placeholder:text-slate-400 focus:outline-none focus:border-brand-400 focus:bg-white disabled:opacity-60 transition-colors"
+          />
+        </div>
         <button
           type="button"
           onClick={() => setIsScanning(true)}
@@ -102,7 +105,7 @@ export const PromoCodeField: React.FC<PromoCodeFieldProps> = ({ promo, canApply,
         <button
           type="submit"
           disabled={isDisabled || !code.trim()}
-          className="h-10 shrink-0 flex items-center justify-center rounded-xl bg-slate-900 px-3.5 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-colors cursor-pointer"
+          className="h-10 shrink-0 flex items-center justify-center rounded-xl bg-brand-500 hover:bg-brand-600 px-3.5 text-xs font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-colors cursor-pointer"
         >
           {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : t('promo.apply')}
         </button>

@@ -49,7 +49,7 @@ export const POSMenuView: React.FC<POSMenuViewProps> = ({
             title={t('menu.backToCategoriesTitle')}
             className={`${
               showMobileSearch ? 'hidden sm:flex' : 'flex'
-            } items-center gap-2 text-xs font-bold text-slate-700 bg-white sm:bg-slate-100 hover:bg-slate-200 h-11 sm:h-auto w-11 sm:w-auto justify-center sm:justify-start sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0 active:scale-95`}
+            } items-center gap-2 text-xs font-bold text-slate-700 bg-white sm:bg-slate-100 hover:bg-slate-200 h-11 sm:h-9 w-11 sm:w-auto justify-center sm:justify-start sm:px-3.5 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0 active:scale-95`}
           >
             <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4 text-slate-600" />
             <span className="hidden sm:inline">{t('menu.backToCategories')}</span>
@@ -60,9 +60,9 @@ export const POSMenuView: React.FC<POSMenuViewProps> = ({
             title={t('menu.backToTablesTitle')}
             className={`${
               showMobileSearch ? 'hidden sm:flex' : 'flex'
-            } items-center gap-2 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 h-11 sm:h-auto w-11 sm:w-auto justify-center sm:justify-start sm:px-3.5 sm:py-2 rounded-xl border border-orange-200 transition-all cursor-pointer shrink-0 active:scale-95`}
+            } items-center gap-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 hover:border-brand-300 hover:text-brand-700 h-11 sm:h-9 w-11 sm:w-auto justify-center sm:justify-start sm:px-3.5 rounded-xl border border-slate-200 transition-all cursor-pointer shrink-0 active:scale-95`}
           >
-            <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4 text-orange-500" />
+            <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4 text-slate-500" />
             <span className="hidden sm:inline">{t('menu.backToTables')}</span>
           </button>
         )}
@@ -79,7 +79,7 @@ export const POSMenuView: React.FC<POSMenuViewProps> = ({
               placeholder={t('menu.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full bg-white sm:bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 h-11 sm:h-auto sm:py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all"
+              className="w-full bg-white sm:bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 h-11 sm:h-9 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:bg-white transition-all"
             />
           </div>
           <button
@@ -112,7 +112,7 @@ export const POSMenuView: React.FC<POSMenuViewProps> = ({
               <p className="text-slate-400 text-sm font-medium">{t('toast.noMenu')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
               {allCategories.map((cat) => (
                 <CategoryCard
                   key={cat.id || cat.name}
@@ -128,10 +128,16 @@ export const POSMenuView: React.FC<POSMenuViewProps> = ({
         /* STEP 2: Products View */
         <div className="flex-1 overflow-y-auto pr-1 pb-[calc(9.5rem+env(safe-area-inset-bottom))] lg:pb-0 min-h-0">
           {selectedCategoryName && (
-            <div className="flex items-center justify-between mb-3 px-1">
-              <h3 className="text-sm font-semibold text-slate-800">
-                {selectedCategoryName} ({displayedProducts.length})
+            /* Zona sarlavhasi (STOLLAR sahifasi) bilan bir xil til: nom,
+               son va o'ngga cho'zilgan ingichka chiziq. */
+            <div className="flex items-center gap-2.5 mb-3 px-1">
+              <h3 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 truncate">
+                {selectedCategoryName}
               </h3>
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-400 tabular-nums shrink-0">
+                {displayedProducts.length}
+              </span>
+              <span className="flex-1 h-px bg-slate-200/80" aria-hidden="true" />
             </div>
           )}
 
@@ -140,7 +146,7 @@ export const POSMenuView: React.FC<POSMenuViewProps> = ({
               <p className="text-slate-400 text-sm font-medium">{t('menu.noProducts')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5 sm:gap-3.5">
               {displayedProducts.map((p) => (
                 <ProductCard
                   key={p.id}

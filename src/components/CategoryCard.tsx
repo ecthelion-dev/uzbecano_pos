@@ -24,36 +24,46 @@ export const CategoryCard: React.FC<CategoryCardProps> = React.memo(({
   return (
     <div
       onClick={() => onSelect(category.name)}
-      className={`bg-white border-2 border-slate-200/80 hover:border-orange-500 rounded-2xl shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col items-center text-center sm:aspect-square group active:scale-95 hover:scale-[1.02] ${
-        // A photo earns the whole top of the card, so it has to reach the
-        // edges: padding here would frame it into the same small tile the icon
-        // sits in, which is what made an uploaded picture look shrunken.
-        showImage ? 'overflow-hidden justify-start' : 'p-2.5 sm:p-5 justify-center'
-      }`}
+      className="relative overflow-hidden aspect-[4/3] rounded-2xl border border-slate-200 bg-white shadow-xs transition-all duration-200 cursor-pointer group active:scale-98 hover:-translate-y-0.5 hover:shadow-lg hover:border-brand-300"
     >
       {showImage ? (
-        <div className="w-full aspect-square sm:aspect-auto sm:flex-1 sm:min-h-0 bg-slate-50">
+        <>
+          {/*
+            Rasm butun kartani egallaydi: nom o'sha rasm ustida turadi,
+            shuning uchun pastdan qoraytiriladigan qatlam qo'yiladi — aks
+            holda oq matn yorug' suratda o'qilmay qoladi.
+          */}
           <img
             src={category.image}
             alt=""
-            className="w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             onError={() => setImageFailed(true)}
           />
-        </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/15 to-transparent" />
+
+          <span className="absolute top-2 right-2 text-[10px] font-bold tabular-nums text-slate-700 bg-white/90 backdrop-blur-xs px-2 py-0.5 rounded-full shadow-xs">
+            {t('common.dishCount', { n: count })}
+          </span>
+
+          <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3">
+            <h3 className="font-bold text-white text-xs sm:text-sm truncate drop-shadow-sm">
+              {category.name}
+            </h3>
+          </div>
+        </>
       ) : (
-        <div className="w-9 h-9 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-orange-50 text-orange-600 group-hover:bg-orange-500 group-hover:text-white flex items-center justify-center transition-all mb-1.5 sm:mb-3 shadow-xs shrink-0">
-          <Icon className="w-5 h-5 sm:w-7 sm:h-7" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 bg-gradient-to-br from-brand-50 via-white to-slate-50">
+          <span className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white text-brand-500 border border-brand-100 shadow-xs flex items-center justify-center group-hover:bg-brand-500 group-hover:border-brand-500 group-hover:text-white transition-colors shrink-0">
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+          </span>
+          <h3 className="font-bold text-xs sm:text-sm text-slate-900 truncate max-w-full text-center group-hover:text-brand-600 transition-colors">
+            {category.name}
+          </h3>
+          <span className="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full tabular-nums transition-colors group-hover:border-brand-200 group-hover:text-brand-600">
+            {t('common.dishCount', { n: count })}
+          </span>
         </div>
       )}
-
-      <div className={`w-full shrink-0 ${showImage ? 'px-2 pt-1.5 pb-2 sm:px-3 sm:pt-2 sm:pb-3' : ''}`}>
-        <h3 className="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-orange-600 transition-colors line-clamp-1">
-          {category.name}
-        </h3>
-        <p className="inline-block text-[10px] sm:text-[11px] font-semibold text-slate-400 mt-1 bg-slate-100 group-hover:bg-orange-50 group-hover:text-orange-600 px-2 sm:px-2.5 py-0.5 rounded-full transition-colors">
-          {t('common.dishCount', { n: count })}
-        </p>
-      </div>
     </div>
   );
 });

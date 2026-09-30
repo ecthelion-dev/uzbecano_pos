@@ -20,24 +20,24 @@ export const KitchenItemRow: React.FC<KitchenItemRowProps> = React.memo(({
   const total = price * qty;
 
   return (
-    <div className="bg-orange-50/60 p-2.5 rounded-xl border border-orange-200/70 space-y-1">
+    <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-200 space-y-1">
       <div className="flex justify-between items-start">
         <div className="flex-1 pr-2">
           <p className="font-bold text-xs text-slate-900">
             {item.name}
             {item.selectedSize?.label && !item.name?.toLowerCase().includes(item.selectedSize.label.toLowerCase()) && (
-              <span className="text-orange-700 font-semibold ml-1">
+              <span className="text-brand-600 font-semibold ml-1">
                 ({item.selectedSize.label})
               </span>
             )}
             <TakeawayTag item={item} className="ml-1.5" />
           </p>
-          <p className="text-[10px] text-slate-500 font-medium">
+          <p className="text-[10px] text-slate-500 font-medium tabular-nums">
             {qty} ta x {price.toLocaleString()} {t('common.currency')}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-900">
+          <span className="text-xs font-bold text-slate-900 tabular-nums">
             {total.toLocaleString()} {t('common.currency')}
           </span>
           <button

@@ -18,6 +18,20 @@ const WEEKDAY_NAMES: Record<string, string[]> = {
   ru: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
   en: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
 };
+/**
+ * Tarix ro'yxatini tartiblash uchun vaqt belgisi.
+ *
+ * `reservedTime` ham, `createdAt` ham bo'sh bo'lishi mumkin (eski yozuvlar).
+ * `new Date(undefined)` esa Invalid Date beradi, ya'ni ayirish NaN bo'lib,
+ * ro'yxat tasodifiy tartibda chiqardi. Vaqti noma'lum yozuv oxiriga tushadi.
+ */
+function sortTime(res: DBReservation): number {
+  const raw = res.reservedTime || res.createdAt;
+  const t = raw ? new Date(raw).getTime() : NaN;
+  return Number.isFinite(t) ? t : 0;
+}
+
+
 
 interface ReservationModalProps {
   show: boolean;
@@ -150,7 +164,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
   const activeReservations = reservations.filter((r) => r.status === 'CONFIRMED');
   const historyReservations = reservations
     .filter((r) => r.status !== 'CONFIRMED')
-    .sort((a, b) => new Date(b.reservedTime || b.createdAt).getTime() - new Date(a.reservedTime || a.createdAt).getTime());
+    .sort((a, b) => sortTime(b) - sortTime(a));
 
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -245,7 +259,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="bg-purple-100 p-2.5 rounded-2xl text-purple-600 shadow-sm shrink-0">
+            <div className="bg-violet-100 p-2.5 rounded-2xl text-violet-600 border border-violet-200/70 shrink-0">
               <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
@@ -259,7 +273,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -272,7 +286,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             onClick={() => setActiveTab('create')}
             className={`flex-1 py-1.5 px-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'create'
-                ? 'bg-white text-slate-900 shadow-xs'
+                ? 'bg-white text-violet-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -284,13 +298,13 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             onClick={() => setActiveTab('list')}
             className={`flex-1 py-1.5 px-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'list'
-                ? 'bg-white text-slate-900 shadow-xs'
+                ? 'bg-white text-violet-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <ListFilter className="w-3.5 h-3.5" />
             <span>{t('reservation.tabActive')}</span>
-            <span className="ml-0.5 px-1.5 py-0.2 bg-purple-100 text-purple-700 text-[10px] rounded-full font-bold">
+            <span className="ml-0.5 px-1.5 py-0.5 bg-violet-100 text-violet-700 text-[10px] rounded-full font-bold">
               {activeReservations.length}
             </span>
           </button>
@@ -299,21 +313,21 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             onClick={() => setActiveTab('history')}
             className={`flex-1 py-1.5 px-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'history'
-                ? 'bg-white text-slate-900 shadow-xs'
+                ? 'bg-white text-violet-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
             <span>{t('reservation.tabHistory')}</span>
-            <span className="ml-0.5 px-1.5 py-0.2 bg-slate-200 text-slate-700 text-[10px] rounded-full font-bold">
+            <span className="ml-0.5 px-1.5 py-0.5 bg-slate-200 text-slate-700 text-[10px] rounded-full font-bold">
               {historyReservations.length}
             </span>
           </button>
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 text-red-700 rounded-xl text-xs flex items-center gap-2 border border-red-200">
-            <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+          <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs flex items-center gap-2 border border-rose-200">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
             <span>{error}</span>
           </div>
         )}
@@ -323,13 +337,13 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {/* Table Select */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-slate-700">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 {t('table.moveTarget')}
               </label>
               <select
                 value={selectedTable}
                 onChange={(e) => setSelectedTable(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 transition-colors focus:outline-none focus:bg-white focus:ring-2 focus:ring-violet-500/25 focus:border-violet-400"
               >
                 {tableDefs.map((td) => (
                   <option key={td.number} value={td.number}>
@@ -342,8 +356,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             {/* Customer name & Phone */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                  <User className="w-3 h-3 text-slate-400" />
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                  <User className="w-3 h-3 text-violet-400" />
                   {t('reservation.customerName')}
                 </label>
                 <input
@@ -352,13 +366,13 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   placeholder={t('reservation.namePlaceholder')}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full h-10 px-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl text-sm text-slate-900 transition-colors focus:outline-none focus:bg-white focus:ring-2 focus:ring-violet-500/25 focus:border-violet-400"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                  <Phone className="w-3 h-3 text-slate-400" />
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-violet-400" />
                   {t('reservation.customerPhone')}
                 </label>
                 <input
@@ -366,7 +380,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   placeholder={t('reservation.phonePlaceholder')}
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full h-10 px-3 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl text-sm text-slate-900 transition-colors focus:outline-none focus:bg-white focus:ring-2 focus:ring-violet-500/25 focus:border-violet-400"
                 />
               </div>
             </div>
@@ -374,17 +388,17 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             {/* Date, Time & Guest Count */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-2.5">
               <div className="flex flex-col gap-1 sm:col-span-6">
-                <label className="text-[11px] sm:text-xs font-bold text-slate-700 flex items-center gap-1 whitespace-nowrap">
-                  <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1 whitespace-nowrap">
+                  <Calendar className="w-3 h-3 text-violet-400 shrink-0" />
                   <span>{t('reservation.reservedDate')}</span>
                 </label>
                 <button
                   type="button"
                   onClick={openDatePicker}
-                  className="w-full h-9 px-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 flex items-center justify-between gap-1.5 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full h-9 px-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 flex items-center justify-between gap-1.5 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-500/25 focus:border-violet-400"
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <Calendar className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                    <Calendar className="w-3.5 h-3.5 text-violet-600 shrink-0" />
                     <span className="truncate font-semibold text-slate-900">
                       {getDisplayDateText(reservedDate)}
                     </span>
@@ -394,17 +408,17 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               </div>
 
               <div className="flex flex-col gap-1 sm:col-span-3">
-                <label className="text-[11px] sm:text-xs font-bold text-slate-700 flex items-center gap-1 whitespace-nowrap">
-                  <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1 whitespace-nowrap">
+                  <Clock className="w-3 h-3 text-violet-400 shrink-0" />
                   <span>{t('reservation.reservedTime')}</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowTimePicker(true)}
-                  className="w-full h-9 px-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 flex items-center justify-between gap-1 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full h-9 px-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 flex items-center justify-between gap-1 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-500/25 focus:border-violet-400"
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <Clock className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                    <Clock className="w-3.5 h-3.5 text-violet-600 shrink-0" />
                     <span className="font-semibold text-slate-900">
                       {reservedTime || '20:00'}
                     </span>
@@ -414,11 +428,11 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               </div>
 
               <div className="flex flex-col gap-1 sm:col-span-3">
-                <label className="text-[11px] sm:text-xs font-bold text-slate-700 flex items-center gap-1 whitespace-nowrap">
-                  <Users className="w-3 h-3 text-slate-400 shrink-0" />
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1 whitespace-nowrap">
+                  <Users className="w-3 h-3 text-violet-400 shrink-0" />
                   <span>{t('reservation.guestCount')}</span>
                 </label>
-                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl h-9 overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent">
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl h-9 overflow-hidden transition-colors focus-within:ring-2 focus-within:ring-violet-500/25 focus-within:border-violet-400">
                   <button
                     type="button"
                     onClick={() => setGuestCount((c) => Math.max(1, (Number(c) || 1) - 1))}
@@ -462,15 +476,15 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
             {/* Notes */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                <FileText className="w-3 h-3 text-slate-400" />
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <FileText className="w-3 h-3 text-violet-400" />
                 {t('reservation.notes')}
               </label>
               <textarea
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                className="w-full px-3 py-2 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl text-sm text-slate-900 transition-colors focus:outline-none focus:bg-white focus:ring-2 focus:ring-violet-500/25 focus:border-violet-400 resize-none"
               />
             </div>
 
@@ -478,7 +492,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-purple-600 hover:bg-purple-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md mt-1 cursor-pointer disabled:opacity-50"
+              className="w-full py-3 bg-violet-600 hover:bg-violet-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-xs shadow-violet-600/20 mt-1 cursor-pointer disabled:opacity-50"
             >
               {t('reservation.create')}
             </button>
@@ -496,7 +510,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               activeReservations.map((res) => (
                 <div
                   key={res.id}
-                  className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 transition-colors"
+                  className="p-3 bg-white hover:bg-violet-50/60 hover:border-violet-200 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 transition-colors"
                 >
                   <div
                     onClick={() => setSelectedDetailReservation(res)}
@@ -506,7 +520,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                       <span className="font-bold text-sm text-slate-900">
                         {res.tableNumber}
                       </span>
-                      <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full">
+                      <span className="px-2 py-0.5 bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full">
                         {formatClock(res.reservedTime)}
                       </span>
                     </div>
@@ -563,7 +577,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                   <div
                     key={res.id}
                     onClick={() => setSelectedDetailReservation(res)}
-                    className="p-3 bg-slate-50/80 hover:bg-purple-50/60 active:scale-98 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3 transition-all cursor-pointer"
+                    className="p-3 bg-slate-50/80 hover:bg-violet-50/60 active:scale-98 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-3 transition-all cursor-pointer"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -579,7 +593,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                               ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                               : isCancelled
                               ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                              : 'bg-purple-100 text-purple-700'
+                              : 'bg-violet-100 text-violet-700'
                           }`}
                         >
                           {isCompleted
@@ -620,7 +634,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-purple-100 text-purple-600">
+              <div className="p-2 rounded-xl bg-violet-100 text-violet-600">
                 <Clock className="w-5 h-5" />
               </div>
               <span className="font-bold text-slate-900 text-base">{t('reservation.selectTime')}</span>
@@ -628,21 +642,21 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             <button
               type="button"
               onClick={() => setShowTimePicker(false)}
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Large Center Display */}
-          <div className="flex flex-col items-center justify-center py-3.5 bg-purple-50/80 rounded-2xl border border-purple-100">
-            <span className="text-xs font-semibold text-purple-600 mb-1">{t('reservation.reservedTime')}</span>
+          <div className="flex flex-col items-center justify-center py-3.5 bg-violet-50/80 rounded-2xl border border-violet-100">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-violet-600 mb-1">{t('reservation.reservedTime')}</span>
             <div className="flex items-center gap-2 text-4xl font-extrabold text-slate-900">
-              <span className="bg-white px-3.5 py-1.5 rounded-xl shadow-xs border border-purple-200/80 text-purple-700 min-w-[72px] text-center">
+              <span className="bg-white px-3.5 py-1.5 rounded-xl shadow-xs border border-violet-200/80 text-violet-700 min-w-[72px] text-center">
                 {selectedHour}
               </span>
-              <span className="text-purple-400 animate-pulse">:</span>
-              <span className="bg-white px-3.5 py-1.5 rounded-xl shadow-xs border border-purple-200/80 text-purple-700 min-w-[72px] text-center">
+              <span className="text-violet-400 animate-pulse">:</span>
+              <span className="bg-white px-3.5 py-1.5 rounded-xl shadow-xs border border-violet-200/80 text-violet-700 min-w-[72px] text-center">
                 {selectedMinute}
               </span>
             </div>
@@ -652,21 +666,21 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               <button
                 type="button"
                 onClick={() => applyQuickOffsetMinutes(30)}
-                className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs"
+                className="px-2.5 py-1 bg-white hover:bg-violet-100 text-violet-700 border border-violet-200 font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs"
               >
                 {t('reservation.quickPlus30m')}
               </button>
               <button
                 type="button"
                 onClick={() => applyQuickOffsetMinutes(60)}
-                className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs"
+                className="px-2.5 py-1 bg-white hover:bg-violet-100 text-violet-700 border border-violet-200 font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs"
               >
                 {t('reservation.quickPlus1h')}
               </button>
               <button
                 type="button"
                 onClick={() => applyQuickOffsetMinutes(120)}
-                className="px-2.5 py-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs"
+                className="px-2.5 py-1 bg-white hover:bg-violet-100 text-violet-700 border border-violet-200 font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs"
               >
                 {t('reservation.quickPlus2h')}
               </button>
@@ -675,9 +689,9 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
           {/* Soat tanlash (Hours) */}
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
               <span>{t('reservation.hour')}</span>
-              <span className="text-[11px] text-slate-400 font-normal">00:00 - 23:00</span>
+              <span className="text-[11px] text-slate-400 font-normal normal-case tracking-normal">00:00 - 23:00</span>
             </div>
             <div className="grid grid-cols-6 gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-slate-50 rounded-2xl border border-slate-200/70">
               {HOURS.map((h) => {
@@ -691,10 +705,10 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                     onClick={() => setReservedTime(`${h}:${selectedMinute || '00'}`)}
                     className={`py-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
                       isSelected
-                        ? 'bg-purple-600 text-white shadow-sm scale-105 ring-2 ring-purple-400'
+                        ? 'bg-violet-600 text-white shadow-xs ring-2 ring-violet-300'
                         : isPast
                         ? 'text-slate-300 opacity-30 cursor-not-allowed'
-                        : 'bg-white text-slate-700 hover:bg-purple-100 hover:text-purple-700 border border-slate-200/50'
+                        : 'bg-white text-slate-700 hover:bg-violet-100 hover:text-violet-700 border border-slate-200/50'
                     }`}
                   >
                     {h}
@@ -706,7 +720,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
           {/* Daqiqa tanlash (Minutes) */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-bold text-slate-700">{t('reservation.minute')}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t('reservation.minute')}</span>
             <div className="grid grid-cols-4 gap-2">
               {['00', '15', '30', '45'].map((m) => {
                 const isPast =
@@ -722,10 +736,10 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                     onClick={() => setReservedTime(`${selectedHour || '20'}:${m}`)}
                     className={`py-2.5 rounded-xl text-sm font-bold transition-all text-center cursor-pointer ${
                       isSelected
-                        ? 'bg-purple-600 text-white shadow-sm scale-102 ring-2 ring-purple-400'
+                        ? 'bg-violet-600 text-white shadow-xs ring-2 ring-violet-300'
                         : isPast
                         ? 'text-slate-300 opacity-30 cursor-not-allowed bg-slate-100'
-                        : 'bg-slate-50 text-slate-700 hover:bg-purple-100 hover:text-purple-700 border border-slate-200'
+                        : 'bg-slate-50 text-slate-700 hover:bg-violet-100 hover:text-violet-700 border border-slate-200'
                     }`}
                   >
                     :{m}
@@ -739,7 +753,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           <button
             type="button"
             onClick={() => setShowTimePicker(false)}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer mt-1"
+            className="w-full py-3 bg-violet-600 hover:bg-violet-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-xs shadow-violet-600/20 cursor-pointer mt-1"
           >
             {t('common.confirm')}
           </button>
@@ -760,7 +774,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-purple-100 text-purple-600">
+              <div className="p-2 rounded-xl bg-violet-100 text-violet-600">
                 <Calendar className="w-5 h-5" />
               </div>
               <span className="font-bold text-slate-900 text-base">{t('reservation.selectDate')}</span>
@@ -768,7 +782,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             <button
               type="button"
               onClick={() => setShowDatePicker(false)}
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -781,8 +795,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               onClick={() => applyQuickDateOffset(0)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                 reservedDate === todayStr
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                  : 'bg-white hover:bg-purple-50 text-slate-700 border-slate-200 shadow-2xs'
+                  ? 'bg-violet-600 text-white border-violet-600 shadow-xs'
+                  : 'bg-white hover:bg-violet-50 text-slate-700 border-slate-200 shadow-2xs'
               }`}
             >
               {t('reservation.today')}
@@ -792,8 +806,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
               onClick={() => applyQuickDateOffset(1)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                 reservedDate === tomorrowStr
-                  ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                  : 'bg-white hover:bg-purple-50 text-slate-700 border-slate-200 shadow-2xs'
+                  ? 'bg-violet-600 text-white border-violet-600 shadow-xs'
+                  : 'bg-white hover:bg-violet-50 text-slate-700 border-slate-200 shadow-2xs'
               }`}
             >
               {t('reservation.tomorrow')}
@@ -801,14 +815,14 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             <button
               type="button"
               onClick={() => applyQuickDateOffset(2)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer bg-white hover:bg-purple-50 text-slate-700 border-slate-200 shadow-2xs"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer bg-white hover:bg-violet-50 text-slate-700 border-slate-200 shadow-2xs"
             >
               +2 kun
             </button>
             <button
               type="button"
               onClick={() => applyQuickDateOffset(3)}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer bg-white hover:bg-purple-50 text-slate-700 border-slate-200 shadow-2xs"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer bg-white hover:bg-violet-50 text-slate-700 border-slate-200 shadow-2xs"
             >
               +3 kun
             </button>
@@ -870,12 +884,12 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                     onClick={() => setReservedDate(dayStr)}
                     className={`w-9 h-9 mx-auto rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer ${
                       isSelected
-                        ? 'bg-purple-600 text-white shadow-sm scale-105 ring-2 ring-purple-400'
+                        ? 'bg-violet-600 text-white shadow-xs ring-2 ring-violet-300'
                         : isPast
                         ? 'text-slate-300 opacity-30 cursor-not-allowed'
                         : isToday
-                        ? 'bg-purple-50 text-purple-700 border border-purple-300 font-extrabold hover:bg-purple-100'
-                        : 'text-slate-700 hover:bg-purple-100 hover:text-purple-700'
+                        ? 'bg-violet-50 text-violet-700 border border-violet-300 font-extrabold hover:bg-violet-100'
+                        : 'text-slate-700 hover:bg-violet-100 hover:text-violet-700'
                     }`}
                   >
                     {day}
@@ -889,7 +903,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           <button
             type="button"
             onClick={() => setShowDatePicker(false)}
-            className="w-full py-3 bg-purple-600 hover:bg-purple-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer mt-1"
+            className="w-full py-3 bg-violet-600 hover:bg-violet-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-xs shadow-violet-600/20 cursor-pointer mt-1"
           >
             {t('common.confirm')}
           </button>
@@ -910,14 +924,14 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="p-2.5 rounded-2xl bg-purple-100 text-purple-600 shadow-xs shrink-0">
+              <div className="p-2.5 rounded-2xl bg-violet-100 text-violet-600 shadow-xs shrink-0">
                 <Calendar className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <h3 className="font-bold text-base text-slate-900 truncate">
                   {t('reservation.details')}
                 </h3>
-                <p className="text-xs text-purple-600 font-bold">
+                <p className="text-xs text-violet-600 font-bold">
                   {selectedDetailReservation.tableNumber}
                 </p>
               </div>
@@ -925,7 +939,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             <button
               type="button"
               onClick={() => setSelectedDetailReservation(null)}
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -934,8 +948,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
           {/* Details list */}
           <div className="flex flex-col gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-sm">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-                <User className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-violet-400" />
                 {t('reservation.customerName')}
               </span>
               <span className="font-bold text-slate-900 text-right truncate">
@@ -945,8 +959,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
             {selectedDetailReservation.customerPhone && (
               <div className="flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
-                <span className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-                  <Phone className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-violet-400" />
                   {t('reservation.customerPhone')}
                 </span>
                 <span className="font-medium text-slate-800 text-right">
@@ -956,18 +970,18 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             )}
 
             <div className="flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
-              <span className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-violet-400" />
                 {t('reservation.reservedTime')}
               </span>
-              <span className="font-bold text-purple-700 text-right">
+              <span className="font-bold text-violet-700 text-right">
                 {formatDateClock(selectedDetailReservation.reservedTime)}
               </span>
             </div>
 
             <div className="flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
-              <span className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-                <Users className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-violet-400" />
                 {t('reservation.guestCount')}
               </span>
               <span className="font-semibold text-slate-800 text-right">
@@ -976,8 +990,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             </div>
 
             <div className="flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
-              <span className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-                <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" />
                 {t('reservation.status')}
               </span>
               <span
@@ -986,7 +1000,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                     ? 'bg-emerald-100 text-emerald-700'
                     : selectedDetailReservation.status === 'CANCELLED'
                     ? 'bg-rose-100 text-rose-700'
-                    : 'bg-purple-100 text-purple-700'
+                    : 'bg-violet-100 text-violet-700'
                 }`}
               >
                 {selectedDetailReservation.status === 'COMPLETED'
@@ -999,8 +1013,8 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
 
             {selectedDetailReservation.notes && (
               <div className="flex flex-col gap-1 border-t border-slate-200/60 pt-2">
-                <span className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-                  <FileText className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-violet-400" />
                   {t('reservation.notes')}
                 </span>
                 <p className="text-xs text-slate-700 italic bg-white p-2 rounded-xl border border-slate-200">
@@ -1041,7 +1055,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             <button
               type="button"
               onClick={() => setSelectedDetailReservation(null)}
-              className="w-full py-3 bg-purple-600 hover:bg-purple-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer mt-1"
+              className="w-full py-3 bg-violet-600 hover:bg-violet-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-xs shadow-violet-600/20 cursor-pointer mt-1"
             >
               {t('common.close')}
             </button>

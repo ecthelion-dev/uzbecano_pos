@@ -1,4 +1,5 @@
 import type { CartItem } from '../types';
+import { orderTotals, type PromoTerms } from './promo';
 
 /**
  * Serverga yuboriladigan buyurtma qatori.
@@ -106,6 +107,37 @@ export function appendItemsPatch(
   appendKey: string,
 ): AppendItemsPatch {
   return { addItems: [...items], appendKey, status: 'sent_to_kitchen' };
+}
+
+export interface RemoveItemPatch {
+  items: string;
+  subtotal: number;
+  serviceFee: number;
+  discount: number;
+  total: number;
+}
+
+/**
+ * Ochiq chekdan taom O'CHIRISH so'rovining tanasi va yangi summalar.
+ *
+ * Bu hisob `orderTotals` orqali olib boriladi — server tartibi. Qo'lda
+ * `subtotal + serviceFee` yig'ish chegirmani butunlab tushirib qoldirardi:
+ * promo qo'llangan chekda bir taom chiqarilganda kassa mijozga serverdan
+ * KATTAQ summani ko'rsatardi va u to'lashga urinib qolardi. Chegirma
+ * serverda ham, bu yerda ham nolga tushishi mumkin (masalan minimal summadan
+ * pastga tushilganda) — shuning uchun `discount` har doim yuboriladi.
+ */
+export function removeItemPatch(
+  items: readonly any[],
+  serviceFeePercent: number,
+  promo: PromoTerms | null,
+): RemoveItemPatch {
+  const subtotal = items.reduce(
+    (sum: number, item: any) => sum + (Number(item?.price) || 0) * (Number(item?.quantity) || 1),
+    0,
+  );
+  const { serviceFee, discount, total } = orderTotals(subtotal, serviceFeePercent, promo);
+  return { items: JSON.stringify(items), subtotal, serviceFee, discount, total };
 }
 
 /**

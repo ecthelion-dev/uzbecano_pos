@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { adoptServerId, appendItemsPatch, cartLineToOrderItem, sentItemToOrderItem, outgoingSize, type OutgoingOrderItem } from './orderItems';
+import { adoptServerId, appendItemsPatch, cartLineToOrderItem, removeItemPatch, sentItemToOrderItem, outgoingSize, type OutgoingOrderItem } from './orderItems';
 import type { CartItem } from '../types';
 
 /**
@@ -212,5 +212,52 @@ describe('ochiq chekka taom qo‘shish so‘rovi', () => {
     const items = Object.freeze([CHOY]);
     const body = appendItemsPatch(items, 'q_1');
     expect(body.addItems).not.toBe(items);
+  });
+});
+
+/**
+ * O'chirilgandan keyingi summa.
+ *
+ * Bu yerda chegirmani tushirib qoldirmak — kassada to'lov paytida xato
+ * summaga urinish degani. Chegirma faqat ekranda emas, yuborilayotgan
+ * tanada ham bo'lishi shart: server ham shu qiymatni qabul qiladi.
+ */
+describe('taom o‘chirishdan keyingi hisob', () => {
+  const OSH = { name: 'Osh', price: 35000, quantity: 2 };
+  const CHAI = { name: 'Choy', price: 5000, quantity: 1 };
+  const OSH20 = { code: 'OSH20', type: 'percent', value: 20, minOrder: 50000 };
+
+  it('promosiz: xizmat haqi va jami', () => {
+    const p = removeItemPatch([OSH], 10, null);
+    expect(p.subtotal).toBe(70000);
+    expect(p.serviceFee).toBe(7000);
+    expect(p.discount).toBe(0);
+    expect(p.total).toBe(77000);
+  });
+
+  it('promo bilan: chegirma ham qayta hisoblanadi', () => {
+    const p = removeItemPatch([OSH, CHAI], 10, OSH20);
+    expect(p.subtotal).toBe(75000);
+    expect(p.discount).toBe(15000);
+    expect(p.serviceFee).toBe(7500);
+    expect(p.total).toBe(67500);
+  });
+
+  it('minimal summadan pastga tushilganda chegirma nolga tushadi', () => {
+    // 5 000 < minOrder 50 000 — server ham shunda nolga tushiradi.
+    const p = removeItemPatch([CHAI], 10, OSH20);
+    expect(p.discount).toBe(0);
+    expect(p.total).toBe(5500);
+  });
+
+  it('oxirgi qator chiqsa bo‘sh chek summasi nol', () => {
+    const p = removeItemPatch([], 10, OSH20);
+    expect(p).toMatchObject({ subtotal: 0, serviceFee: 0, discount: 0, total: 0 });
+    expect(JSON.parse(p.items)).toEqual([]);
+  });
+
+  it('ro‘yxat serverga tayyor matn ko‘rinishida yuboriladi', () => {
+    const p = removeItemPatch([OSH, CHAI], 10, null);
+    expect(JSON.parse(p.items)).toEqual([OSH, CHAI]);
   });
 });

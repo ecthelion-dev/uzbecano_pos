@@ -2,7 +2,7 @@ import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction 
 import type { CartItem, DBOrder, DBWaiter } from '../types';
 import type { PromoTerms } from '../lib/promo';
 import { orderTotals, parsePromoTerms } from '../lib/promo';
-import { adoptServerId, cartLineToOrderItem, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
+import { adoptServerId, cartLineToOrderItem, removeItemPatch, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { fetchWithTimeout } from '../lib/net';
 import { decideFromStatus } from '../lib/syncQueue';
 import { writeCafeJson, readGlobalText } from '../lib/storage';
@@ -74,14 +74,16 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
         if (!activeTableOrder) return;
         const updatedItems = [...activeTableOrderItems];
         updatedItems.splice(itemIndex, 1);
-        const sub = updatedItems.reduce(
-          (s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1),
-          0
+        // Hisob `removeItemPatch` ichida, server tartibi bo'yicha: chegirmani
+        // ham qayta hisoblaydi. Qo'lda `sub + fee` yig'ish chegirmani
+        // butunlab tushirib qoldirardi — kassa mijozga serverdan katta summa
+        // ko'rsatardi.
+        const patchBody = removeItemPatch(
+          updatedItems,
+          serviceFeePercent,
+          parsePromoTerms(activeTableOrder.promo)
         );
-        const fee = Math.round((sub * serviceFeePercent) / 100);
-        const tot = sub + fee;
-
-        const patchBody = { items: JSON.stringify(updatedItems), subtotal: sub, serviceFee: fee, total: tot };
+        const { subtotal: sub, serviceFee: fee, discount, total: tot } = patchBody;
         if (!isOfflineMode) {
           try {
             const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
@@ -113,6 +115,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
                 items: JSON.stringify(updatedItems),
                 subtotal: sub,
                 serviceFee: fee,
+                discount,
                 total: tot,
                 ...(emptied ? { status: 'cancelled' } : {}),
               }

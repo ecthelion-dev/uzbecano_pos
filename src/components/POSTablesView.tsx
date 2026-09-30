@@ -192,15 +192,18 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
             return (
               <section key={area || 'no-area'} className="space-y-3">
                 <div className="flex items-center gap-2.5">
-                  <Icon className="w-5 h-5 text-brand-500 shrink-0" />
+                  <span className="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-xs text-brand-500 flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4" />
+                  </span>
                   <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">
                     {area || t('table.allAreas')}
                   </h2>
-                  <span className="text-[11px] sm:text-xs font-semibold text-slate-500 bg-slate-100 rounded-md px-2 py-0.5 shrink-0 tabular-nums">
+                  <span className="text-[11px] sm:text-xs font-semibold text-slate-400 tabular-nums shrink-0">
                     {t('table.sectionCount', { n: list.length })}
                   </span>
+                  <span className="flex-1 h-px bg-slate-200/80" aria-hidden="true" />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-2.5 sm:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-2.5 sm:gap-3">
                   {list.map((tbl) => (
                     <TableCard key={tbl.id} table={tbl} onSelect={onSelectTable} />
                   ))}

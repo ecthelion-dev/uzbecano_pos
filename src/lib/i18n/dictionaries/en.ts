@@ -148,6 +148,7 @@ export const en: Record<TranslationKey, string> = {
   'table.statReserved': 'Reserved',
   'table.sectionCount': '{n} tables',
   'table.guests': '{n} guests',
+  'table.open': 'Open',
   'table.moveTarget': 'Move to which table?',
   'table.mergeNeedsBusy': '{table} has no active order — a table must be occupied to merge.',
   'table.pickTarget': 'Pick the table to move to!',

@@ -161,6 +161,7 @@ export const uz = {
   'table.statReserved': 'Bron',
   'table.sectionCount': '{n} ta stol',
   'table.guests': '{n} kishi',
+  'table.open': 'Ochish',
   'table.moveTarget': "Qaysi stolga o'tkazilsin?",
   'table.mergeNeedsBusy': '{table}da faol buyurtma yo‘q! Birlashtirish uchun stol band bo‘lishi kerak.',
   'table.pickTarget': "Mo'ljallangan stolni tanlang!",

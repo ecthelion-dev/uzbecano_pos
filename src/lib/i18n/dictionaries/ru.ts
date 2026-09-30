@@ -148,6 +148,7 @@ export const ru: Record<TranslationKey, string> = {
   'table.statReserved': 'Брони',
   'table.sectionCount': '{n} столов',
   'table.guests': '{n} гостей',
+  'table.open': 'Открыть',
   'table.moveTarget': 'На какой стол перенести?',
   'table.mergeNeedsBusy': 'На столе {table} нет активного заказа! Для объединения стол должен быть занят.',
   'table.pickTarget': 'Выберите стол назначения!',

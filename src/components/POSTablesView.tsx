@@ -200,7 +200,7 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
                     {t('table.sectionCount', { n: list.length })}
                   </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2.5 sm:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-2.5 sm:gap-3">
                   {list.map((tbl) => (
                     <TableCard key={tbl.id} table={tbl} onSelect={onSelectTable} />
                   ))}

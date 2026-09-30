@@ -67,7 +67,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
   return (
     <div
       onClick={() => onSelect(table.number)}
-      className={`p-3 sm:p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between min-h-[88px] h-full shadow-xs hover:shadow-md cursor-pointer group active:scale-98 relative ${shell}`}
+      className={`p-3 sm:p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between aspect-square w-full max-w-[240px] shadow-xs hover:shadow-md cursor-pointer group active:scale-98 relative ${shell}`}
     >
       <div className="flex justify-between items-start gap-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">

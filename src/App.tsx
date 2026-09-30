@@ -41,7 +41,8 @@ import { executePrintReceipt, getPrinterSettings, printReceiptDirect, printKitch
 import { orderTotals, parsePromoTerms } from './lib/promo';
 import { getDeviceId } from './lib/deviceId';
 import { tableState } from './lib/floorPlan';
-import { cartToHoldLines, holdLinesToCart, parseHoldItems } from './lib/cartSync';
+import { holdLinesToCart, parseHoldItems } from './lib/cartSync';
+import { pollIntervalMs, shouldPollWhileHidden } from './lib/pollPolicy';
 import { buildVariants } from './lib/productVariants';
 import { formatClock } from './lib/timeFormat';
 import { useTableCarts, useTableDraftPromos } from './hooks/useTableCarts';
@@ -51,7 +52,9 @@ import { usePrintQueueWorker } from './hooks/usePrintQueueWorker';
 import { useKitchenDispatch } from './hooks/useKitchenDispatch';
 import { useCheckout } from './hooks/useCheckout';
 import { useArchiveOperations } from './hooks/useArchiveOperations';
+import { useTableHolds } from './hooks/useTableHolds';
 import { useTableMove } from './hooks/useTableMove';
+import { usePosShortcuts } from './hooks/usePosShortcuts';
 import { useOfflineSync } from './hooks/useOfflineSync';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
@@ -1036,16 +1039,13 @@ export default function App() {
      */
     const poll = async () => {
       const visible = document.visibilityState === 'visible';
-      // Oyna ko'rinmayotganda odatda hech narsa so'ralmaydi: ekranga hech kim
-      // qaramayotgan bo'lsa yangilashning ma'nosi yo'q.
-      //
-      // QR buyurtma bundan mustasno. Uni kassir kiritmaydi, ya'ni "kvitansiya
-      // o'zi chiqadi" degani faqat shu holda ma'noga ega: ilova yig'ib
-      // qo'yilgan bo'lsa ham buyurtma oshxonaga yetib borishi kerak.
-      //
-      // Chop etish navbati ham shunday: telefondan so'ralgan chek kassirning
-      // ekranga qarab turishini kutmasligi kerak.
-      if (!visible && !(IS_DESKTOP_APP || getPrinterSettings().autoPrintQrKitchenSlip)) return;
+      /*
+       * Qoidalar `lib/pollPolicy.ts` da — u yerda test bilan qulflangan.
+       * Oyna ko'rinmaganda odatda hech narsa so'ralmaydi, ikki istisno bor:
+       * QR buyurtma (uni mehmon kiritadi) va desktop kassa (telefondan
+       * so'ralgan chek shu yerda bosiladi).
+       */
+      if (!visible && !shouldPollWhileHidden({ isDesktopApp: IS_DESKTOP_APP, watchingQr: getPrinterSettings().autoPrintQrKitchenSlip })) return;
 
       const result = await fetchPulse(getAuthHeaders(), IS_DESKTOP_APP, getActiveCafeId());
       if (result.kind === 'same') return;
@@ -1076,17 +1076,14 @@ export default function App() {
       if (result.data.printJobs.length > 0) void drainPrintJobs(result.data.printJobs);
     };
 
-    // Bo'sh zalda ritm sekinlashadi — server yukini kamaytirish uchun. Lekin
-    // QR buyurtma aynan o'sha paytda keladi: zal bo'sh, kassir band emas,
-    // hech kim ekranga qaramaydi. 20 soniya kutish oshxonani shuncha
-    // kechiktiradi, shuning uchun QR kuzatuvi yoqilgan bo'lsa ritm doim tez.
-    // Bitta kassa uchun bu daqiqasiga 12 ta so'rov — sezilarli yuk emas.
     const watchingQr = getPrinterSettings().autoPrintQrKitchenSlip;
-    // Desktop kassa ritmini sekinlashtirmaydi: telefondan so'ralgan chek shu
-    // yerda bosiladi va uni 20 soniya kutdirish mumkin emas.
+    /*
+     * Ritm ham `pollPolicy` da: bo'sh zalda sekin, ish bo'lganda tez. Desktop
+     * kassa ritmini sekinlashtirmaydi (chek kutib turmasin).
+     */
     const interval = setInterval(
       () => { void poll(); },
-      IS_DESKTOP_APP || hasLiveWork || watchingQr ? 5000 : 20000,
+      pollIntervalMs({ isDesktopApp: IS_DESKTOP_APP, hasLiveWork, watchingQr }),
     );
     // Tabga qaytilganda kutmasdan darhol yangilanadi — shuning uchun sekin
     // ritm ekranga qarab turgan kassirga sezilmaydi.
@@ -1100,125 +1097,39 @@ export default function App() {
       applyActiveOrders, applyWaiterCalls, drainPrintJobs, handleSessionExpired]);
 
   /*
-   * Kassa qaysi stollarda buyurtma yig'ayotganini serverga aytadi.
+   * Stollarning "kimdir yig'yapti" belgilarini yozish va boshqa
+   * qurilmaning belgisini qabul qilish — `hooks/useTableHolds.ts` da.
    *
-   * So'rov TO'LIQ ro'yxat yuboradi, o'zgarishni emas: shuning uchun stol
-   * savatdan chiqqanda darhol bo'shaydi va "bo'shatishni unutish" degan
-   * xato imkoni yo'q.
-   *
-   * Belgi serverda ikki daqiqada eskiradi, shuning uchun savat turgan
-   * ekan, muntazam takrorlanadi — ilova yopilib qolsa stol o'zi bo'shaydi.
+   * Ilgari ikkalasi ham shu faylda, turli joyda ~90 qator bo'lib yotardi.
    */
-  useEffect(() => {
-    if (!currentWaiter || isOfflineMode) return;
-
-    const open = Object.entries(tableCarts).filter(([, items]) => (items?.length ?? 0) > 0);
-    const busy = open.map(([table]) => table);
-
-    // Summani savat turgan qurilmaning O'ZI hisoblaydi: boshqa tomonda uni
-    // taxmin qilib bo'lmaydi va "Jami: 0" bo'sh stoldek ko'rinardi.
-    const totals: Record<string, number> = {};
-    // Savatning o'zi ham ketadi: buyurtmani boshlagan xodim uni boshqa
-    // qurilmadan ochib davom ettira olishi uchun.
-    const items: Record<string, unknown[]> = {};
-    for (const [table, cartItems] of open) {
-      const sub = cartItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-      totals[table] = sub + Math.round((sub * serviceFeePercent) / 100);
-      items[table] = cartToHoldLines(cartItems);
-    }
-
-    let cancelled = false;
-
-    const report = async () => {
-      try {
-        await fetchWithTimeout(`${API_BASE_URL}/api/table-holds`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ deviceId, tables: busy, totals, items }),
-        });
-      } catch {
-        // Yetib bormadi — belgi eskiradi va stol bo'shaydi. Bu savatning
-        // o'ziga ta'sir qilmaydi: u shu qurilmada joyida turaveradi.
-      }
-    };
-
-    void report();
-
-    // Savat bo'sh bo'lsa takrorlashning hojati yo'q: bir marta yuborilgan
-    // bo'sh ro'yxat serverdagi belgilarni allaqachon o'chirgan.
-    if (busy.length === 0) return;
-
-    const interval = setInterval(() => { if (!cancelled) void report(); }, 45000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [tableCarts, currentWaiter, isOfflineMode, deviceId, getAuthHeaders, serviceFeePercent]);
-
-  /*
-   * Savat boshqa qurilmaga o'tgan bo'lsa, shu yerdagi nusxa tashlanadi.
-   *
-   * Stolni oxirgi ochgan qurilma egasi bo'ladi. Eski nusxa qolib ketsa
-   * ikkita zarar bor: u har 45 soniyada serverga qaytadan yozilib,
-   * ikkinchi qurilmada qo'shilgan taomni o'chirib yuborardi, va ikkalasidan
-   * ham yuborilsa stolda ikkita ochiq chek paydo bo'lardi.
-   *
-   * Faqat serverdagi belgida SAVAT BOR bo'lsa tashlanadi: bo'sh belgi
-   * uchun mahalliy savatni o'chirish uni yo'q qilish bo'lardi.
-   */
-  useEffect(() => {
-    if (tableHolds.length === 0) return;
-
-    setTableCarts((prev) => {
-      let changed = false;
-      const next = { ...prev };
-
-      for (const hold of tableHolds) {
-        if (hold.deviceId === deviceId) continue;
-        if (parseHoldItems(hold.items).length === 0) continue;
-
-        const name = Object.keys(next).find(
-          (table) => table.trim().toLowerCase() === (hold.tableNumber || '').trim().toLowerCase(),
-        );
-        if (!name || (next[name]?.length ?? 0) === 0) continue;
-
-        delete next[name];
-        changed = true;
-      }
-
-      return changed ? next : prev;
-    });
-  }, [tableHolds, deviceId]);
+  useTableHolds({
+    deviceId,
+    tableCarts,
+    setTableCarts,
+    tableHolds,
+    currentWaiter,
+    isOfflineMode,
+    serviceFeePercent,
+    getAuthHeaders,
+  });
 
   // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, ESC: Close)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeEl = document.activeElement;
-      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-        return;
-      }
-      if (e.key === 'F1') {
-        e.preventDefault();
-        setActiveTab('stollar');
-      } else if (e.key === 'F2') {
-        e.preventDefault();
-        setActiveTab('menyu');
-      } else if (e.key === 'F3') {
-        e.preventDefault();
-        setShowArchiveModal(prev => !prev);
-      } else if (e.key === 'F4') {
-        e.preventDefault();
-        setShowShiftReport(prev => !prev);
-      } else if (e.key === 'Escape') {
-        setShowMobileCart(false);
-        setShowMobileSearch(false);
-        setShowReceiptPreview(false);
-        setShowArchiveModal(false);
-        setShowShiftReport(false);
-        setShowTableMoveModal(false);
-        setShowUnsavedCartModal(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  // Mantiq `hooks/usePosShortcuts.ts` da: u yerda test bilan qulflangan.
+  usePosShortcuts({
+    onTables: () => setActiveTab('stollar'),
+    onMenu: () => setActiveTab('menyu'),
+    toggleArchive: () => setShowArchiveModal(prev => !prev),
+    toggleShiftReport: () => setShowShiftReport(prev => !prev),
+    onEscape: () => {
+      setShowMobileCart(false);
+      setShowMobileSearch(false);
+      setShowReceiptPreview(false);
+      setShowArchiveModal(false);
+      setShowShiftReport(false);
+      setShowTableMoveModal(false);
+      setShowUnsavedCartModal(false);
+    },
+  });
 
   /**
    * Stollarga o'tilganda menyu boshiga qaytariladi.

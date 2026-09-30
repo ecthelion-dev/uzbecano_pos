@@ -30,6 +30,14 @@ export interface TableHold {
   holderId?: string;
   deviceId: string;
   total?: number;
+  /**
+   * Savatning qatorlari, JSON matn.
+   *
+   * Serverdan kelgan belgida bo'ladi; `cartToHoldLines` yasagan to'liq
+   * ro'yxat ham shu maydonda ketadi. Eski kassa yozgan belgida bo'lmasligi
+   * mumkin, shuning uchun ixtiyoriy.
+   */
+  items?: string;
 }
 
 export interface CurrentUser {

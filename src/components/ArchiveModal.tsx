@@ -265,7 +265,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
         {/* Header Bar */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="bg-orange-100 p-2 sm:p-2.5 rounded-2xl text-orange-600 shadow-sm shrink-0">
+            <div className="bg-brand-50 p-2 sm:p-2.5 rounded-2xl text-brand-500 border border-brand-100 shrink-0">
               <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
@@ -290,7 +290,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
           <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-1">
             <button
               onClick={() => onSelectArchiveOrder(null)}
-              className="flex items-center gap-2 text-sm font-bold text-orange-600 hover:text-orange-700 cursor-pointer bg-orange-50 hover:bg-orange-100 px-4 py-2 rounded-xl border border-orange-200 transition-colors w-fit shadow-2xs"
+              className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-brand-700 cursor-pointer bg-white hover:bg-brand-50 px-4 py-2 rounded-xl border border-slate-200 hover:border-brand-200 transition-colors w-fit shadow-2xs"
             >
               <ArrowLeft className="w-4 h-4" /> {t('archive.backToList')}
             </button>
@@ -313,7 +313,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                   <h4 className="font-bold text-2xl text-slate-900 tracking-wider uppercase">{cafeName || 'ORDERPLUS RESTORAN'}</h4>
                 </div>
                 {receiptHeader && (
-                  <p className="text-xs text-orange-600 font-bold">{receiptHeader}</p>
+                  <p className="text-xs text-brand-700 font-bold">{receiptHeader}</p>
                 )}
                 {cafeAddress && (
                   <p className="text-xs text-slate-600 font-medium">{cafeAddress}</p>
@@ -545,7 +545,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 <div className={`grid ${colsClass} gap-2 pt-0.5 max-w-md mx-auto w-full`}>
                   <button
                     onClick={onPrint}
-                    className="h-9 sm:h-9.5 px-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs shadow-orange-500/20 transition-all cursor-pointer active:scale-98"
+                    className="h-9 sm:h-9.5 px-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs inline-flex items-center justify-center gap-1.5 whitespace-nowrap shadow-xs transition-all cursor-pointer active:scale-98"
                   >
                     <Printer className="w-3.5 h-3.5 shrink-0" />
                     <span>{t('archive.printShort')}</span>
@@ -598,7 +598,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                   placeholder={t('archive.searchPlaceholder')}
                   value={archiveSearch}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-slate-200/80 rounded-2xl pl-10 pr-4 py-2 text-sm font-medium text-slate-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all shadow-2xs"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-sm font-medium text-slate-900 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:bg-white transition-all shadow-2xs"
                 />
               </div>
 
@@ -609,7 +609,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 chiqib ketardi — surilishini esa hech narsa ko'rsatmasdi,
                 ya'ni sana oralig'ini ochadigan tugma yo'qdek edi.
               */}
-              <div className="flex flex-wrap sm:grid sm:grid-cols-5 gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200 w-full sm:w-auto sm:shrink-0">
+              <div className="flex flex-wrap sm:grid sm:grid-cols-5 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto sm:shrink-0">
                 {[
                   { id: 'all', label: t('archive.filterAll') },
                   { id: 'today', label: t('archive.filterToday') },
@@ -638,7 +638,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       timePreset === preset.id
                         ? preset.id === 'debts'
                           ? 'bg-rose-600 text-white shadow-sm'
-                          : 'bg-orange-500 text-white shadow-sm'
+                          : 'bg-brand-500 text-white shadow-xs'
                         : preset.id === 'debts'
                         ? 'text-rose-700 hover:bg-rose-50'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-white'
@@ -660,7 +660,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 shadow-2xs min-w-0 flex-1"
                     />
                     <input
                       type="text"
@@ -670,7 +670,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       onBlur={(e) => setStartTime(normalizeTimeText(e.target.value, '00:00'))}
                       placeholder="00:00"
                       maxLength={5}
-                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-28 text-center shrink-0"
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 shadow-2xs min-w-0 w-28 text-center shrink-0 tabular-nums"
                     />
                   </div>
                 </div>
@@ -682,7 +682,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 flex-1"
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 shadow-2xs min-w-0 flex-1"
                     />
                     <input
                       type="text"
@@ -692,7 +692,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       onBlur={(e) => setEndTime(normalizeTimeText(e.target.value, '23:59'))}
                       placeholder="23:59"
                       maxLength={5}
-                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-orange-500 shadow-2xs min-w-0 w-28 text-center shrink-0"
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 shadow-2xs min-w-0 w-28 text-center shrink-0 tabular-nums"
                     />
                   </div>
                 </div>
@@ -714,65 +714,63 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             )}
 
             {/* Quick Summary Bar */}
-            <div className="bg-slate-50 border border-slate-200/90 px-3 sm:px-4 py-2 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs font-medium shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-slate-600">{t('archive.found')}</span>
-                <span className="bg-white px-2.5 py-0.5 rounded-lg border border-slate-200 font-bold text-slate-900 text-xs shadow-2xs">
-                  {t('archive.receiptCount', { n: filteredOrders.length })}
+            <div className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium">
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-2.5 py-1 shadow-2xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('archive.found')}</span>
+                  <span className="font-bold text-slate-900 tabular-nums">{t('archive.receiptCount', { n: filteredOrders.length })}</span>
                 </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-600 text-xs">
-                <span>{t('common.cashLabel')} <strong className="text-slate-900 font-semibold">{cashTotal.toLocaleString()} {t('common.currency')}</strong></span>
-                <span>•</span>
-                <span>{t('common.cardLabel')} <strong className="text-slate-900 font-semibold">{cardTotal.toLocaleString()} {t('common.currency')}</strong></span>
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-2.5 py-1 shadow-2xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('common.cashLabel')}</span>
+                  <span className="font-bold text-slate-900 tabular-nums">{cashTotal.toLocaleString()} {t('common.currency')}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-2.5 py-1 shadow-2xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('common.cardLabel')}</span>
+                  <span className="font-bold text-slate-900 tabular-nums">{cardTotal.toLocaleString()} {t('common.currency')}</span>
+                </span>
                 {refundedCount > 0 && (
-                  <>
-                    <span>•</span>
-                    <span className="text-rose-600">
-                      Qaytarilgan ({refundedCount} ta):{' '}
-                      <strong className="font-semibold">−{refundedTotal.toLocaleString()} {t('common.currency')}</strong>
+                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500">
+                      Qaytarilgan ({refundedCount} ta)
                     </span>
-                  </>
+                    <span className="font-bold text-rose-600 tabular-nums">−{refundedTotal.toLocaleString()} {t('common.currency')}</span>
+                  </span>
                 )}
                 {debtTotalPending > 0 && (
-                  <>
-                    <span>•</span>
-                    <span className="text-rose-600">
-                      {t('archive.debtPendingSummary')} <strong className="font-bold">{debtTotalPending.toLocaleString()} {t('common.currency')}</strong>
-                    </span>
-                  </>
+                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500">{t('archive.debtPendingSummary')}</span>
+                    <span className="font-bold text-rose-600 tabular-nums">{debtTotalPending.toLocaleString()} {t('common.currency')}</span>
+                  </span>
                 )}
                 {debtCollectedInPeriod > 0 && (
-                  <>
-                    <span>•</span>
-                    <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      {t('archive.debtCollectedSummary')} <strong>+{debtCollectedInPeriod.toLocaleString()} {t('common.currency')}</strong>
-                    </span>
-                  </>
+                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-2.5 py-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">{t('archive.debtCollectedSummary')}</span>
+                    <span className="font-bold text-emerald-700 tabular-nums">+{debtCollectedInPeriod.toLocaleString()} {t('common.currency')}</span>
+                  </span>
                 )}
-                <span>•</span>
-                <span className="bg-orange-500 text-white px-3 py-1 rounded-lg font-bold text-xs shadow-xs">
-                  {t('common.total')} {totalSum.toLocaleString()} {t('common.currency')}
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 text-white px-3 py-1 shadow-xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">{t('common.total')}</span>
+                  <span className="font-bold tabular-nums">{totalSum.toLocaleString()} {t('common.currency')}</span>
                 </span>
-                {onPrintPeriod && (
-                  <button
-                    onClick={() => onPrintPeriod(filteredOrders, periodFrom, periodTo)}
-                    disabled={filteredOrders.length === 0}
-                    title={t('archive.printReportHint')}
-                    className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 border border-slate-200 font-bold text-xs shadow-2xs cursor-pointer active:scale-95 transition-transform"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-orange-500" />
-                    <span>{t('archive.printReport')}</span>
-                  </button>
-                )}
               </div>
+              {onPrintPeriod && (
+                <button
+                  onClick={() => onPrintPeriod(filteredOrders, periodFrom, periodTo)}
+                  disabled={filteredOrders.length === 0}
+                  title={t('archive.printReportHint')}
+                  className="h-8 px-3 inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 border border-slate-200 font-bold text-xs shadow-2xs cursor-pointer active:scale-95 transition-transform shrink-0"
+                >
+                  <Printer className="w-3.5 h-3.5 text-brand-500" />
+                  <span>{t('archive.printReport')}</span>
+                </button>
+              )}
             </div>
 
             {/* Expanded Orders Scroll Area (Takes All Remaining Height) */}
             <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-1.5">
               {filteredOrders.length === 0 ? (
                 <div className="text-center py-16 text-slate-400 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
-                  <Receipt className="w-12 h-12 mx-auto mb-2 opacity-30 text-orange-500" />
+                  <Receipt className="w-12 h-12 mx-auto mb-2 opacity-40 text-slate-300" />
                   <p className="font-semibold text-sm text-slate-700">{t('archive.nothingInPeriod')}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{t('archive.tryAnotherPeriod')}</p>
                 </div>
@@ -798,12 +796,12 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                       className={`${
                         isDebt
                           ? 'bg-rose-50/80 hover:bg-rose-100/70 border-2 border-rose-300 hover:border-rose-400'
-                          : 'bg-white hover:bg-orange-50/50 border border-slate-200 hover:border-orange-300'
-                      } rounded-2xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer transition-all shadow-2xs hover:shadow-xs group active:scale-[0.995]`}
+                          : 'bg-white hover:bg-brand-50/60 border border-slate-200 hover:border-brand-300'
+                      } rounded-2xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer transition-all shadow-2xs hover:shadow-md group active:scale-[0.995]`}
                     >
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
-                          <span className={`font-bold text-base transition-colors ${isDebt ? 'text-rose-950 group-hover:text-rose-700' : 'text-slate-900 group-hover:text-orange-600'}`}>
+                          <span className={`font-bold text-base transition-colors ${isDebt ? 'text-rose-950 group-hover:text-rose-700' : 'text-slate-900 group-hover:text-brand-700'}`}>
                             {ord.tableNumber}
                           </span>
                           {ord.refunded ? (
@@ -820,7 +818,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                               {t('archive.closed')}
                             </span>
                           )}
-                          <span className="text-xs font-medium text-slate-400">
+                          <span className="text-[11px] font-mono font-medium text-slate-500 bg-slate-100/80 border border-slate-200/70 px-1.5 py-0.5 rounded-md tabular-nums">
                             #{ord.id.slice(-6)}
                           </span>
                           {isDebt && (ord.debtCustomerName || ord.debtCustomerPhone) && (
@@ -853,7 +851,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
                       <div className="text-left sm:text-right flex items-center justify-between sm:justify-end gap-3.5 border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0">
                         <div>
-                          <p className={`font-bold text-base transition-colors ${isDebt ? 'text-rose-600 group-hover:text-rose-700' : 'text-slate-900 group-hover:text-orange-600'}`}>
+                          <p className={`font-bold text-base transition-colors ${isDebt ? 'text-rose-600 group-hover:text-rose-700' : 'text-slate-900 group-hover:text-brand-700'}`}>
                             {(isDebt ? remainingDebt : (ord.total || 0)).toLocaleString()} {t('common.currency')}
                           </p>
                           {isDebt ? (
@@ -867,7 +865,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                             </p>
                           )}
                         </div>
-                        <ChevronRight className={`w-5 h-5 transition-colors ${isDebt ? 'text-rose-400 group-hover:text-rose-600' : 'text-slate-400 group-hover:text-orange-500'}`} />
+                        <ChevronRight className={`w-5 h-5 transition-colors ${isDebt ? 'text-rose-400 group-hover:text-rose-600' : 'text-slate-300 group-hover:text-brand-500'}`} />
                       </div>
                     </div>
                   );

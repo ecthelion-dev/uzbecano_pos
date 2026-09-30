@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
+/* Inter — interfeys shrifti. Outfit faqat termal chek va davr hisobotida
+   qoladi: printer harflarini nuqta-po'yin chizadi, Inter o'sha kengashgan
+   harflar tarmog'ni buzadi. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -12,7 +15,7 @@ body,
 
 body {
   background-color: #f1f5f9;
-  font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
   padding: 0;
   /* Xodim o'z telefonida ishlaydi: sahifa "rubber band" bo'lib sakramasin va

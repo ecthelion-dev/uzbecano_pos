@@ -43,6 +43,7 @@ import { getDeviceId } from './lib/deviceId';
 import { tableState } from './lib/floorPlan';
 import { holdLinesToCart, parseHoldItems } from './lib/cartSync';
 import { pollIntervalMs, shouldPollWhileHidden } from './lib/pollPolicy';
+import { asCafeSettings, asCategoryArray, asProductArray } from './lib/apiShapes';
 import { buildVariants } from './lib/productVariants';
 import { formatClock } from './lib/timeFormat';
 import { useTableCarts, useTableDraftPromos } from './hooks/useTableCarts';
@@ -733,14 +734,17 @@ export default function App() {
 
     if (localProds) {
       try {
-        const p = JSON.parse(localProds);
-        if (p.length > 0) setProducts(mapDBProductModifiers(p));
+        // Diskdagi nusxa ham tekshiriladi: u ham buzilgan bo'lishi mumkin
+        // (yarim yozilgan, eski format). Tekshiruvsiz `product.price`
+        // `undefined` bo'lib chekka tushardi.
+        const localProducts = asProductArray(JSON.parse(localProds));
+        if (localProducts && localProducts.length > 0) setProducts(mapDBProductModifiers(localProducts));
       } catch { }
     }
     if (localCats) {
       try {
-        const c = JSON.parse(localCats);
-        if (c.length > 0) setCategoriesData(c);
+        const localCategories = asCategoryArray(JSON.parse(localCats));
+        if (localCategories && localCategories.length > 0) setCategoriesData(localCategories);
       } catch { }
     }
     if (localWaiters) {
@@ -765,15 +769,17 @@ export default function App() {
       ]);
 
       if (prodRes && prodRes.ok) {
-        const rawProds = await prodRes.json();
-        if (Array.isArray(rawProds)) {
+        const rawProds = asProductArray(await prodRes.json());
+        // `null` — javob ro'yxat emas: eski menyu qoladi, bo'sh ekran
+        // ko'rsatishdan yaxshiroq.
+        if (rawProds) {
           setProducts(mapDBProductModifiers(rawProds));
           writeCafeJson(cafeId, 'products', rawProds);
         }
       }
       if (catRes && catRes.ok) {
-        const cats = await catRes.json();
-        if (Array.isArray(cats)) {
+        const cats = asCategoryArray(await catRes.json());
+        if (cats) {
           setCategoriesData(cats);
           writeCafeJson(cafeId, 'categories', cats);
         }
@@ -786,16 +792,16 @@ export default function App() {
         }
       }
       if (settRes && settRes.ok) {
-        const setts = await settRes.json();
-        if (typeof setts.serviceFeePercent === 'number') {
+        const setts = asCafeSettings(await settRes.json()) ?? {};
+        if (setts?.serviceFeePercent !== undefined) {
           setServiceFeePercent(setts.serviceFeePercent);
           writeGlobalText('serviceFeePercent', String(setts.serviceFeePercent));
         }
-        if (setts.name) {
+        if (setts?.name) {
           setConnectedCafeName(setts.name);
           writeCafeText(cafeId, 'name', setts.name);
         }
-        if (setts.logo !== undefined) {
+        if (setts?.logo !== undefined) {
           setConnectedCafeLogo(setts.logo || '');
           writeCafeText(cafeId, 'logo', setts.logo || '');
         }
@@ -873,22 +879,22 @@ export default function App() {
       ]);
 
       if (prodRes && prodRes.ok) {
-        const rawProds = await prodRes.json();
-        if (Array.isArray(rawProds)) {
+        const rawProds = asProductArray(await prodRes.json());
+        if (rawProds) {
           setProducts(mapDBProductModifiers(rawProds));
           writeCafeJson(cafeId, 'products', rawProds);
         }
       }
       if (catRes && catRes.ok) {
-        const cats = await catRes.json();
-        if (Array.isArray(cats)) {
+        const cats = asCategoryArray(await catRes.json());
+        if (cats) {
           setCategoriesData(cats);
           writeCafeJson(cafeId, 'categories', cats);
         }
       }
       if (settRes && settRes.ok) {
-        const setts = await settRes.json();
-        if (typeof setts.serviceFeePercent === 'number') {
+        const setts = asCafeSettings(await settRes.json()) ?? {};
+        if (setts?.serviceFeePercent !== undefined) {
           setServiceFeePercent(setts.serviceFeePercent);
           writeGlobalText('serviceFeePercent', String(setts.serviceFeePercent));
         }

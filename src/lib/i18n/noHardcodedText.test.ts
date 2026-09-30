@@ -98,6 +98,15 @@ function textFiles(dir: string): string[] {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name);
     if (statSync(full).isDirectory()) out.push(...textFiles(full));
+    /*
+     * Testlar skanerdan tashqarida.
+     *
+     * Test faylidagi matn — fixture yoki kutilma, ekranga chiqadigan yozuv
+     * emas: `expect(name).toBe('Bekor Mijoz')`. Ular lug'atdan kelishi shart
+     * emas, aksincha testda tarjimaga bog'liq bo'lmagan qat'iy qiymat
+     * bo'lishi kerak.
+     */
+    else if (name.endsWith('.test.tsx')) continue;
     else if (name.endsWith('.tsx') || SCANNED_TS.has(name)) out.push(full);
   }
   return out;

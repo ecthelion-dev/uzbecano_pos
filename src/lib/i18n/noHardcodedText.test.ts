@@ -62,7 +62,7 @@ const ALLOWED = [
  * "Naqd: 0" deb turganini test sezmadi.
  */
 const UZ_WORDS =
-  /\b(uchun|kerak|yoki|bilan|mumkin|shart|tanlang|kiriting|qilish|qilib|stol|stollar|taom|taomlar|chek|buyurtma|buyurtmalar|kassa|kassir|ofitsiant|tushum|savat|yopilgan|ochiq|barcha|hozir|bo'sh|yo'q|haqi|summa|sababi|nomi|soni|naqd|karta|aralash|pul|miqdori|jami|to'lov|qaytarish|smena|hisobot|printer(i|ga|dan)|oshxona|zal|mijoz|xarajat|kirim|chiqim)\b/i;
+  /\b(uchun|kerak|yoki|bilan|mumkin|shart|tanlang|kiriting|qilish|qilib|stol|stollar|taom|taomlar|chek|buyurtma|buyurtmalar|kassa|kassir|ofitsiant|tushum|savat|yopilgan|ochiq|barcha|hozir|bo'sh|yo'q|haqi|summa|sababi|nomi|soni|naqd|karta|aralash|pul|miqdori|jami|to'lov|qaytarish|smena|hisobot|printer(i|ga|dan)|oshxona|zal|mijoz|xarajat|kirim|chiqim|masalan|qo'shimcha|izoh|kamaytirish|ko'paytirish|tahrirlash|saqlash|yopish|qo'shish|o'chirish|bugun|ertaga|sharif|telefon|raqami|vaqti|sanasi|kiritilishi|muddati|nusxa|chop|etish|tanlash|aylanish)\b/i;
 
 /** Kod bo'lagining belgilari — ekrandagi yozuvda bunday narsalar bo'lmaydi. */
 const LOOKS_LIKE_CODE =
@@ -90,7 +90,18 @@ const SCANNED_TS = new Set(['printer.ts']);
  * qo'yilsa, o'sha jumla komponentga qaytib yozilganda qo'riqchi jim qolardi.
  */
 const ALLOWED_IN: Record<string, RegExp[]> = {
-  'printer.ts': [/^Xush kelibsiz!$/, /^Tashrifingiz uchun rahmat!$/],
+  'printer.ts': [
+    /^Xush kelibsiz!$/,
+    /^Tashrifingiz uchun rahmat!$/,
+    /*
+     * Sinov chekining namunaviy ma'lumotlari.
+     *
+     * Bular yozuv emas, qiymat: qog'ozda "shunday ko'rinadi" deb ko'rsatish
+     * uchun o'ylab topilgan taom va izoh. Tarjima qilinsa, sinov cheki
+     * kassirning tiliga qarab boshqa taomni ko'rsatardi.
+     */
+    /^Qo'shimcha sarimsoq$/,
+  ],
 };
 
 function textFiles(dir: string): string[] {

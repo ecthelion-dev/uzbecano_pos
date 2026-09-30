@@ -299,7 +299,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
                 onClick={copyKioskCommand}
                 className="shrink-0 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold cursor-pointer"
               >
-                {copiedKiosk ? 'Nusxa olindi' : 'Nusxa'}
+                {copiedKiosk ? t('printer.copied') : t('printer.copy')}
               </button>
             </div>
           </div>

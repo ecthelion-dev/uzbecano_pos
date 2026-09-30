@@ -435,7 +435,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                     type="button"
                     onClick={() => setGuestCount((c) => Math.max(1, (Number(c) || 1) - 1))}
                     className="w-7 h-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 font-bold text-xs transition-colors cursor-pointer shrink-0"
-                    title="Kamaytirish"
+                    title={t('reservation.guestDecrease')}
                   >
                     -
                   </button>
@@ -464,7 +464,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
                     type="button"
                     onClick={() => setGuestCount((c) => Math.min(50, (Number(c) || 1) + 1))}
                     className="w-7 h-full flex items-center justify-center text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 font-bold text-xs transition-colors cursor-pointer shrink-0"
-                    title="Ko'paytirish"
+                    title={t('reservation.guestIncrease')}
                   >
                     +
                   </button>

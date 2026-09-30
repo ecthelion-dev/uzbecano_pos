@@ -243,7 +243,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   type="text"
                   value={debtName}
                   onChange={(e) => setDebtName(e.target.value)}
-                  placeholder="Masalan: Alisher aka"
+                  placeholder={t('cart.debtCustomerPlaceholder')}
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
                   autoFocus
                 />
@@ -279,7 +279,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   type="text"
                   value={debtNote}
                   onChange={(e) => setDebtNote(e.target.value)}
-                  placeholder="Qo'shimcha izoh..."
+                  placeholder={t('cart.debtNotePlaceholder')}
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
                 />
               </div>

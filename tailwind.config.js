@@ -23,6 +23,14 @@ module.exports = {
           900: '#011d2b',
         },
       },
+      // Tailwind'ning standart shriftlari Google'dan yuklanadigan shriftlar
+      // bilan mos emas edi: `font-mono` chek va oshxona slipida tizim
+      // shriftiga tushib qolardi, `font-sans` esa tanlangan shriftni
+      // chaqirmasdi. Ikkalasi shu yerda aniq ko'rsatilgan.
+      fontFamily: {
+        sans: ['Onest', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+      },
       // Kod bo'ylab ishlatilgan, lekin Tailwind 3 da mavjud bo'lmagan o'lchovlar.
       // Ularsiz telefonda bosish animatsiyasi va soyalar umuman ishlamayapti edi.
       scale: {

@@ -182,7 +182,7 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
   // (termoprinterda u baribir dog' bo'lib chiqadi), manzil va telefon ham yo'q —
   // bu ichki hisobot, mijozga berilmaydi.
   return createPortal(
-    <div id="thermal-print-area" className="period-report hidden print:block text-slate-900 print-receipt-container font-['Outfit']">
+    <div id="thermal-print-area" className="period-report hidden print:block text-slate-900 print-receipt-container font-mono">
       <div className="w-full bg-white text-slate-900 space-y-2">
         {/* Sarlavha */}
         <div className="text-center pt-1 space-y-1">

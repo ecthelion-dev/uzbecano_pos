@@ -1,7 +1,9 @@
-/* Inter — interfeys shrifti. Outfit faqat termal chek va davr hisobotida
-   qoladi: printer harflarini nuqta-po'yin chizadi, Inter o'sha kengashgan
-   harflar tarmog'ni buzadi. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+/* Onest — interfeys shrifti, IBM Plex Mono — chek, oshxona slipi va davr
+   hisoboti. Ikkalasi ham kirillchani to'liq qoplaydi: ilgari bosma joyda
+   Outfit turardi, unda kirillcha umuman yo'q edi va rus tilidagi hisobot
+   tizim shriftiga tushib, ustunlar joyidan siljib ketardi. Mono esa
+   chekdagi ustunlarni bo'shliq bilan tekislash uchun shart. */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Onest:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -15,7 +17,7 @@ body,
 
 body {
   background-color: #f1f5f9;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Onest', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   margin: 0;
   padding: 0;
   /* Xodim o'z telefonida ishlaydi: sahifa "rubber band" bo'lib sakramasin va
@@ -96,7 +98,7 @@ a,
     box-sizing: border-box !important;
     background: #ffffff !important;
     color: #000000 !important;
-    font-family: 'Outfit', sans-serif !important;
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
   }
 
   /* Davr hisoboti uzun, shuning uchun u absolute emas, oddiy oqimda chop

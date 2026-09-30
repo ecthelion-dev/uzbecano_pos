@@ -56,7 +56,7 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
   const LEGEND: { id: StatusFilter; label: string; dot: string }[] = [
     { id: 'all', label: t('table.filterAll'), dot: 'bg-slate-400' },
     { id: 'bosh', label: t('table.statFree'), dot: 'bg-emerald-500' },
-    { id: 'band', label: t('table.statBusy'), dot: 'bg-orange-500' },
+    { id: 'band', label: t('table.statBusy'), dot: 'bg-brand-500' },
     { id: 'bron', label: t('table.statReserved'), dot: 'bg-violet-500' },
   ];
 
@@ -203,7 +203,7 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
                   </span>
                   <span className="flex-1 h-px bg-slate-200/80" aria-hidden="true" />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-2.5 sm:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
                   {list.map((tbl) => (
                     <TableCard key={tbl.id} table={tbl} onSelect={onSelectTable} />
                   ))}

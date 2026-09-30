@@ -40,10 +40,18 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
 }) => {
   const t = useT();
   /*
-    Holat bir soniyada o'qilishi kerak. Shu uchun karta yengil, yorug' va
-    yorliq bir xil o'lchamda: kassir rangni o'zidan emas, yorliqdan
-    taniydi. To'q kartalar jam bo'lganda zaal bir xil rasmga aylanardi.
+    Holat bir soniyada o'qilishi kerak. Band stol — kun bo'yi eng ko'p
+    qaraladigan karta, shuning uchun u brend rangida to'liq to'ldiriladi:
+    zal ichida ko'zdan kechirganda band stol darhol ajralib turadi. Bo'sh
+    va bron kartalar yorug' qoladi — hamma karta qoraysa, farq yo'qoladi.
+
+    Diqqat: chaqiruv va yuborilmagan chek holatlari sariq hoshiyali OQ
+    kartada ko'rsatiladi, shuning uchun matn rangi kartaning o'zidan
+    (`dark`) kelib chiqadi, faqat holatdan emas.
   */
+  const isAlert = Boolean(table.hasWaiterCall || table.unsynced);
+  const dark = table.status === 'band' && !isAlert;
+
   const shell = table.hasWaiterCall
     ? 'bg-white border-amber-400 ring-2 ring-amber-300/60 shadow-lg shadow-amber-500/15 animate-pulse'
     : table.unsynced
@@ -53,18 +61,36 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
       // qoladi va xodimlar bir-birini ayblaydi.
       'bg-white border-amber-400 ring-1 ring-amber-400/40'
     : table.status === 'band'
-    ? 'bg-gradient-to-br from-orange-50 to-amber-50/50 border-orange-200 hover:border-orange-300'
+    ? 'bg-brand-500 border-brand-600 hover:border-brand-400 shadow-brand-900/20'
     : table.status === 'bron'
     ? 'bg-gradient-to-br from-violet-50 to-fuchsia-50/50 border-violet-200 hover:border-violet-300'
     : 'bg-white border-slate-200 hover:border-brand-300';
 
-  const badge = table.status === 'band'
+  const badge = dark
+    ? 'bg-white/15 text-white'
+    : table.status === 'band'
     ? 'bg-orange-500 text-white'
     : table.status === 'bron'
     ? 'bg-violet-500 text-white'
     : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200';
 
-  const badgeDot = table.status === 'bosh' ? 'bg-emerald-500' : 'bg-white/80';
+  const badgeDot = dark
+    ? 'bg-white'
+    : table.status === 'bosh'
+    ? 'bg-emerald-500'
+    : 'bg-white/80';
+
+  const titleTone = dark ? 'text-white' : 'text-slate-900';
+  const chevronTone = dark
+    ? 'text-white/50 group-hover:text-white'
+    : 'text-slate-300 group-hover:text-brand-500';
+  const chipTone = dark ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-200';
+  const amountTone = dark ? 'text-white' : 'text-slate-900';
+  const labelTone = dark
+    ? 'text-white/70'
+    : table.unsynced
+    ? 'text-amber-600 font-bold'
+    : 'text-slate-500';
 
   return (
     <div
@@ -75,7 +101,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
         <div className="flex items-center gap-1.5 min-w-0">
           {table.heldBy && (
             <span
-              className="w-5 h-5 rounded-full bg-slate-700 text-slate-200 flex items-center justify-center shrink-0"
+              className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${chipTone}`}
               title={t('table.heldBy', { name: table.heldBy })}
             >
               <Lock className="w-3 h-3" />
@@ -94,7 +120,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
               <Bell className="w-3 h-3 fill-white" />
             </span>
           )}
-          <span className="font-bold text-sm sm:text-base tracking-tight text-slate-900 truncate whitespace-nowrap">
+          <span className={`font-bold text-sm sm:text-base tracking-tight truncate whitespace-nowrap ${titleTone}`}>
             {table.number}
           </span>
         </div>
@@ -119,9 +145,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
               egallaydi — summaning o'zi joyida qoladi.
             */}
             <span
-              className={`text-[10px] font-semibold truncate min-w-0 ${
-                table.unsynced ? 'text-amber-600 font-bold' : 'text-slate-500'
-              }`}
+              className={`text-[10px] font-semibold truncate min-w-0 ${labelTone}`}
             >
               {table.unsynced
                 ? t('table.unsyncedShort')
@@ -130,11 +154,11 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
             {/* Valyuta nomi ataylab yozilmaydi: kartochka tor va "so'm" summani
                 qirqib, "15,000 s..." qilib qo'yardi — ya'ni birlik uchun eng
                 kerakli narsa, raqamning o'zi yo'qolardi. */}
-            <span className="text-base sm:text-lg font-extrabold tabular-nums tracking-tight text-slate-900 shrink-0 whitespace-nowrap">
+            <span className={`text-base sm:text-lg font-extrabold tabular-nums tracking-tight shrink-0 whitespace-nowrap ${amountTone}`}>
               {table.total.toLocaleString()}
             </span>
           </div>
-          <ChevronRight className="w-4 h-4 shrink-0 text-slate-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all" />
+          <ChevronRight className={`w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-all ${chevronTone}`} />
         </div>
       ) : table.status === 'bron' && table.reservation ? (
         /* Bron kartasi faqat mehmonlar sonini ko'rsatadi: mijoz ismi va soat
@@ -147,7 +171,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
               {t('table.guests', { n: table.reservation.guestCount })}
             </span>
           </span>
-          <ChevronRight className="w-4 h-4 shrink-0 text-slate-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all" />
+          <ChevronRight className={`w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-all ${chevronTone}`} />
         </div>
       ) : (
         /* Bo'sh stol o'zi haqida aytadigan ma'lumot yo'q (zona nomi yuqoridagi
@@ -160,7 +184,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
             </span>
             <span className="text-[11px] font-semibold truncate">{t('table.open')}</span>
           </span>
-          <ChevronRight className="w-4 h-4 shrink-0 text-slate-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all" />
+          <ChevronRight className={`w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-all ${chevronTone}`} />
         </div>
       )}
     </div>

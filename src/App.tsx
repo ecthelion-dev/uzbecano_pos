@@ -2386,7 +2386,7 @@ export default function App() {
               <span className="relative shrink-0">
                 <ShoppingBag className="w-6 h-6" />
                 {mobileCartCount > 0 && (
-                  <span className="absolute -top-2 -right-2.5 bg-orange-500 text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-900">
+                  <span className="absolute -top-2 -right-2.5 bg-brand-400 text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-900">
                     {mobileCartCount}
                   </span>
                 )}

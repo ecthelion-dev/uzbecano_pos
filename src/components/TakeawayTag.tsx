@@ -23,7 +23,7 @@ export const TakeawayTag: React.FC<{ item: unknown; className?: string }> = ({ i
   if (!isTakeawayItem(item)) return null;
   return (
     <span
-      className={`inline-flex items-center gap-1 text-[9px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded uppercase tracking-wide align-middle ${className}`}
+      className={`inline-flex items-center gap-1 text-[9px] font-bold bg-brand-50 text-brand-700 ring-1 ring-brand-200 px-1.5 py-0.5 rounded uppercase tracking-wide align-middle ${className}`}
     >
       <Package className="w-2.5 h-2.5" />
       {t('cart.takeaway')}

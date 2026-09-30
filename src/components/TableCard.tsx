@@ -69,7 +69,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
   const badge = dark
     ? 'bg-white/15 text-white'
     : table.status === 'band'
-    ? 'bg-orange-500 text-white'
+    ? 'bg-brand-500 text-white'
     : table.status === 'bron'
     ? 'bg-violet-500 text-white'
     : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200';

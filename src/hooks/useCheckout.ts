@@ -17,7 +17,7 @@ export interface UseCheckoutParams {
   currentWaiter: DBWaiter | null;
   serviceFeePercent: number;
   draftSubtotal: number;
-  tableDraftPromos: Record<string, PromoTerms>;
+  tableDraftPromos: Record<string, PromoTerms | null>;
   getActiveCafeId: () => string;
   getAuthHeaders: (approvalToken?: string, tokenOverride?: string | null) => Record<string, string>;
   sendAppendItems: (orderId: string, items: OutgoingOrderItem[]) => Promise<DBOrder | null>;
@@ -26,7 +26,7 @@ export interface UseCheckoutParams {
   printClosedReceipt: (closedOrder: any) => void;
   handleSessionExpired: () => void;
   setOrders: (orders: DBOrder[]) => void;
-  setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms>>>;
+  setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms | null>>>;
   setTableCarts: Dispatch<SetStateAction<Record<string, CartItem[]>>>;
   setSelectedArchiveOrder: (order: DBOrder | null) => void;
   setShowUnsavedCartModal: (show: boolean) => void;

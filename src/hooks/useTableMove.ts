@@ -17,7 +17,7 @@ export interface UseTableMoveParams {
   queueDeleteForSync: (orderId: string, label?: string) => void;
   setOrders: (orders: DBOrder[]) => void;
   setTableCarts: Dispatch<SetStateAction<Record<string, CartItem[]>>>;
-  setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms>>>;
+  setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms | null>>>;
   setSelectedTable: (table: string) => void;
   setToastMessage: (msg: string | null) => void;
 }

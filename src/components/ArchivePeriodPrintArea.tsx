@@ -96,6 +96,15 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
     let refundedCount = 0;
     let waiters = new Set<string>();
 
+    // Davr chegaralari `data` dan bir marta olinadi.
+    //
+    // `forEach` ichida `data.from` deb yozilsa, TypeScript `data` ni
+    // callback ichida toraytira olmaydi — closure'da tekshiruv yo'qoladi.
+    // Hisob esa shu yerda bir marta olinadi, ya'ni har bir qarz to'lovi
+    // uchun qayta o'qilmaydi ham.
+    const periodFrom = data?.from ? data.from.getTime() : 0;
+    const periodTo = data?.to ? data.to.getTime() : Infinity;
+
     (data?.orders || []).forEach((ord: any) => {
       // Faqat yopilgan (served) buyurtmalar sotuv hisobotiga kiradi.
       // Ochiq (sent_to_kitchen, new) yoki bekor qilingan (cancelled) buyurtmalar
@@ -137,9 +146,7 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
         if (Array.isArray(ord.debtPayments)) {
           ord.debtPayments.forEach((p: any) => {
             const pTime = p?.paidAt ? new Date(p.paidAt).getTime() : 0;
-            const fromTime = data.from ? data.from.getTime() : 0;
-            const toTime = data.to ? data.to.getTime() : Infinity;
-            if (pTime >= fromTime && pTime <= toTime) {
+            if (pTime >= periodFrom && pTime <= periodTo) {
               const amt = Number(p.amount) || 0;
               if (p.method === 'karta') card += amt;
               else cash += amt;

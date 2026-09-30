@@ -9,7 +9,7 @@ export interface POSMenuViewProps {
   selectedCategoryName: string | null;
   searchQuery: string;
   showMobileSearch: boolean;
-  searchInputRef: React.RefObject<HTMLInputElement | null>;
+  searchInputRef: React.RefObject<HTMLInputElement>;
   allCategories: DBCategory[];
   categoryCounts: Record<string, number>;
   displayedProducts: DBProduct[];

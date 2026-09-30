@@ -1513,7 +1513,7 @@ export default function App() {
   }, [selectedTable]);
 
   const activeTableOrder = useMemo(() => {
-    return orders.find(o => o.tableNumber === selectedTable && isActiveOrder(o.status));
+    return orders.find(o => o.tableNumber === selectedTable && isActiveOrder(o.status)) ?? null;
   }, [orders, selectedTable]);
 
   const activeTableOrderItems = useMemo(() => {

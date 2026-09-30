@@ -20,7 +20,7 @@ export interface UseKitchenDispatchParams {
   isOfflineMode: boolean;
   currentWaiter: DBWaiter | null;
   serviceFeePercent: number;
-  tableDraftPromos: Record<string, PromoTerms>;
+  tableDraftPromos: Record<string, PromoTerms | null>;
   getActiveCafeId: () => string;
   getAuthHeaders: (approvalToken?: string, tokenOverride?: string | null) => Record<string, string>;
   sendAppendItems: (orderId: string, items: OutgoingOrderItem[]) => Promise<DBOrder | null>;
@@ -29,7 +29,7 @@ export interface UseKitchenDispatchParams {
   applyFrozenFromResponse: (res: Response, cafeId: string) => Promise<boolean>;
   requestAdminPin: (callback: (approvalToken?: string) => void | Promise<void>) => void;
   setOrders: (orders: DBOrder[]) => void;
-  setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms>>>;
+  setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms | null>>>;
   setTableCarts: Dispatch<SetStateAction<Record<string, CartItem[]>>>;
 
   setToastMessage: (msg: string | null) => void;

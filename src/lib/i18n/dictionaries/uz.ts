@@ -160,6 +160,7 @@ export const uz = {
   'table.statFree': 'Bo‘sh',
   'table.statBusy': 'Band',
   'table.statReserved': 'Bron',
+  'table.sectionCount': '{n} ta stol',
   'table.guests': '{n} kishi',
   'table.moveTarget': "Qaysi stolga o'tkazilsin?",
   'table.mergeNeedsBusy': '{table}da faol buyurtma yo‘q! Birlashtirish uchun stol band bo‘lishi kerak.',

@@ -147,6 +147,7 @@ export const ru: Record<TranslationKey, string> = {
   'table.statFree': 'Свободные',
   'table.statBusy': 'Занятые',
   'table.statReserved': 'Брони',
+  'table.sectionCount': '{n} столов',
   'table.guests': '{n} гостей',
   'table.moveTarget': 'На какой стол перенести?',
   'table.mergeNeedsBusy': 'На столе {table} нет активного заказа! Для объединения стол должен быть занят.',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid, Calendar } from 'lucide-react';
+import { Grid, Calendar, Wine, Home, Umbrella, Layers } from 'lucide-react';
 import { TableCard, type TableItemData } from './TableCard';
 
 export interface POSTablesViewProps {
@@ -48,19 +48,42 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
     [filteredTables, statusFilter]
   );
 
-  const FILTERS: { id: StatusFilter; label: string; dot: string }[] = [
+  /*
+    Rasmdagi dizaynda holatlar bitta qatorga yig'ilgan " legenda "
+    ko'rinishida turadi. Bu saf ko'rsatkich ham, bosiladigan filtr ham:
+    kassa "band stol qayerda?" savoliga bir bosishda javob olishi kerak.
+  */
+  const LEGEND: { id: StatusFilter; label: string; dot: string }[] = [
     { id: 'all', label: t('table.filterAll'), dot: 'bg-slate-400' },
     { id: 'bosh', label: t('table.statFree'), dot: 'bg-emerald-500' },
     { id: 'band', label: t('table.statBusy'), dot: 'bg-orange-500' },
-    { id: 'bron', label: t('table.statReserved'), dot: 'bg-brand-500' },
+    { id: 'bron', label: t('table.statReserved'), dot: 'bg-violet-500' },
   ];
 
-  const STATS = [
-    { label: t('table.statTotal'), value: statusCounts.all, dot: 'bg-slate-400' },
-    { label: t('table.statFree'), value: statusCounts.bosh, dot: 'bg-emerald-500' },
-    { label: t('table.statBusy'), value: statusCounts.band, dot: 'bg-orange-500' },
-    { label: t('table.statReserved'), value: statusCounts.bron, dot: 'bg-brand-500' },
-  ];
+  /*
+    Stollar zonalar bo'yicha bo'linadi: kassa xodimi "Bar" degan tugmani
+    bosganda butun zonalarni ko'rmasdan kerak stollarni topadi. Zonalar
+    ro'yxati App'dan keladi (serverdagi xaotaga mos), shuning uchun
+    bu yerda qat'iy zona ro'yxati emas — kelgan nom bo'yicha guruhlanadi.
+  */
+  const areaIcon = (area: string) => {
+    const a = area.toLowerCase();
+    if (a.includes('bar') || a.includes('bars')) return Wine;
+    if (a.includes('hovli') || a.includes('zal') || a.includes('hall') || a.includes('ichki')) return Home;
+    if (a.includes('terras') || a.includes('terrace') || a.includes('tashqi') || a.includes('ochiq')) return Umbrella;
+    return Layers;
+  };
+
+  const groupedByArea = React.useMemo(() => {
+    const map = new Map<string, TableItemData[]>();
+    for (const tb of visibleTables) {
+      const key = tb.area || '';
+      const list = map.get(key);
+      if (list) list.push(tb);
+      else map.set(key, [tb]);
+    }
+    return Array.from(map.entries()).map(([area, list]) => ({ area, list }));
+  }, [visibleTables]);
 
   return (
     <div className="flex-1 flex flex-col gap-3 sm:gap-4 overflow-y-auto pr-1 min-h-0 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-2">
@@ -75,94 +98,74 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1.5 sm:ml-[2.75rem]">{t('table.subtitle')}</p>
         </div>
-        <button
-          type="button"
-          onClick={onOpenReservationModal}
-          className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 bg-brand-500 hover:bg-brand-600 active:scale-98 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
-        >
-          <Calendar className="w-4 h-4 shrink-0" />
-          <span>{t('table.reservation')}</span>
-        </button>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          {/*
+            Holat filtri maydonni ham kamaytiradi: kassa soragida "band stol
+            qayerda?" — o'sha savolga javob bir bosishda topiladi.
+          */}
+          <div className="flex items-center gap-1 sm:gap-2 bg-white border border-slate-200 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 shadow-xs">
+            {LEGEND.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setStatusFilter(f.id)}
+                aria-pressed={statusFilter === f.id}
+                className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                  statusFilter === f.id
+                    ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-200'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${f.dot}`} />
+                {f.label}
+                <span className="text-[11px] font-bold tabular-nums text-slate-400">
+                  {statusCounts[f.id]}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenReservationModal}
+            className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 bg-brand-500 hover:bg-brand-600 active:scale-98 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+          >
+            <Calendar className="w-4 h-4 shrink-0" />
+            <span>{t('table.reservation')}</span>
+          </button>
+        </div>
       </div>
 
       {/*
-        Ikki filtr (holat va zona) alohida qatorlarda turganida ular
-        chalkashdi: ikkalasida ham bir xil "Barchasi" va bir xil hisob
-        ko'rinardi, kassa esa bitta "Barchasi" qaysi filtrga tegishli
-        bo'lganini ajratolmaydi. Shu sabab bitta qatorga birlashtirildi
-        va ajratuvchi chiziq qo'yildi.
+        Zonalar bitta qatorga sig'dirilgan kartalar ko'rinishida — ular
+        endi nafaqat filtr, balki stollarning qaysi qismda turganini
+        ko'rsatadi (rasmdagi kabi). "Barchasi" birinchi bo'lib, chunki
+        kassa birinchi urinishda butun zaxirani ko'rmoqchi.
       */}
       <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 no-scrollbar">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setStatusFilter(f.id)}
-            aria-pressed={statusFilter === f.id}
-            className={`px-3.5 sm:px-4 py-2 rounded-full font-semibold text-xs sm:text-sm transition-all flex items-center gap-2 border whitespace-nowrap cursor-pointer ${
-              statusFilter === f.id
-                ? 'bg-brand-500 border-brand-500 text-white shadow-xs'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-brand-300 hover:text-brand-700'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full shrink-0 ${statusFilter === f.id ? 'bg-white' : f.dot}`} />
-            {f.label}
-            <span className={`text-[11px] font-bold tabular-nums ${statusFilter === f.id ? 'text-white/80' : 'text-slate-400'}`}>
-              {statusCounts[f.id]}
-            </span>
-          </button>
-        ))}
-
-        <span className="w-px h-6 bg-slate-200 shrink-0" aria-hidden="true" />
-
         {areas.map((area) => {
           const areaCount = tables.filter((tb) => area === allAreasLabel || tb.area === area).length;
-          const occupiedCount = tables.filter(
-            (tb) => (area === allAreasLabel || tb.area === area) && tb.status === 'band'
-          ).length;
           return (
             <button
               key={area}
               onClick={() => onSelectArea(area)}
-              className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full font-semibold text-xs transition-all flex items-center gap-1.5 sm:gap-2 border whitespace-nowrap cursor-pointer ${
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 sm:gap-3 border shadow-xs whitespace-nowrap cursor-pointer ${
                 activeArea === area
-                  ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
-                  : 'bg-transparent text-slate-500 border-slate-200 hover:border-brand-300 hover:text-brand-700'
+                  ? 'bg-brand-500 text-white border-brand-500'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-brand-300 hover:text-brand-700'
               }`}
             >
               <span>{area === allAreasLabel ? t('table.allAreas') : area}</span>
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold tabular-nums ${
+                className={`text-[11px] px-2 py-0.5 rounded-lg font-bold tabular-nums ${
                   activeArea === area ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
                 }`}
               >
                 {areaCount}
               </span>
-              {occupiedCount > 0 && (
-                <span
-                  className="w-2 h-2 rounded-full bg-orange-500"
-                  title={t('table.occupiedCount', { n: occupiedCount })}
-                />
-              )}
             </button>
           );
         })}
-      </div>
-
-      {/* Statistika qatori */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-        {STATS.map((s) => (
-          <div
-            key={s.label}
-            className="bg-white border border-slate-200 rounded-2xl px-3.5 sm:px-4 py-3 flex items-center gap-3 shadow-xs"
-          >
-            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${s.dot}`} />
-            <span className="text-[11px] sm:text-xs font-medium text-slate-500 truncate">{s.label}</span>
-            <span className="ml-auto text-lg sm:text-xl font-bold text-slate-900 tabular-nums tracking-tight">
-              {s.value}
-            </span>
-          </div>
-        ))}
       </div>
 
       {tables.length === 0 ? (
@@ -180,10 +183,32 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
           <p className="text-sm font-semibold text-slate-500">{t('table.none')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2.5 sm:gap-3">
-          {visibleTables.map((tbl) => (
-            <TableCard key={tbl.id} table={tbl} onSelect={onSelectTable} />
-          ))}
+        /* Har zona o'z sarlavhasi bilan: stol nomlari o'zlarida zona yozmaydi,
+           "Bar 3" desagina zona ham aytiladi, lekin "3" desagina nima
+           ko'rinmaydi. Sarlavhadagi ikonka va "N ta stol" yozuvi esa
+           kassaga bu qator nima ekanini bir qarashda aytadi. */
+        <div className="flex flex-col gap-6">
+          {groupedByArea.map(({ area, list }) => {
+            const Icon = areaIcon(area);
+            return (
+              <section key={area || 'no-area'} className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <Icon className="w-5 h-5 text-brand-500 shrink-0" />
+                  <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                    {area || t('table.allAreas')}
+                  </h2>
+                  <span className="text-[11px] sm:text-xs font-semibold text-slate-500 bg-slate-100 rounded-md px-2 py-0.5 shrink-0 tabular-nums">
+                    {t('table.sectionCount', { n: list.length })}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2.5 sm:gap-3">
+                  {list.map((tbl) => (
+                    <TableCard key={tbl.id} table={tbl} onSelect={onSelectTable} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
     </div>

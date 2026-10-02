@@ -47,10 +47,15 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
 
     Diqqat: chaqiruv va yuborilmagan chek holatlari sariq hoshiyali OQ
     kartada ko'rsatiladi, shuning uchun matn rangi kartaning o'zidan
-    (`dark`) kelib chiqadi, faqat holatdan emas.
+    (`onSolid`) kelib chiqadi, faqat holatdan emas.
   */
   const isAlert = Boolean(table.hasWaiterCall || table.unsynced);
-  const dark = table.status === 'band' && !isAlert;
+  /*
+    Band ham, bron ham karta to'liq rang bilan to'ldiriladi (navy / violet),
+    shuning uchun oq matn ikkalasida ham kerak — `onSolid` shu ikkalasini
+    birlashtiradi. Ogohlantirishli karta esa oq fonda qoladi.
+  */
+  const onSolid = (table.status === 'band' || table.status === 'bron') && !isAlert;
 
   const shell = table.hasWaiterCall
     ? 'bg-white border-amber-400 ring-2 ring-amber-300/60 shadow-lg shadow-amber-500/15 animate-pulse'
@@ -63,10 +68,10 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
     : table.status === 'band'
     ? 'bg-brand-500 border-brand-600 hover:border-brand-400 shadow-brand-900/20'
     : table.status === 'bron'
-    ? 'bg-violet-200 border-violet-300 hover:border-violet-400'
+    ? 'bg-violet-500 border-violet-600 hover:border-violet-400 shadow-violet-900/20'
     : 'bg-white border-slate-200 hover:border-brand-300';
 
-  const badge = dark
+  const badge = onSolid
     ? 'bg-white/15 text-white'
     : table.status === 'band'
     ? 'bg-brand-500 text-white'
@@ -74,19 +79,19 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
     ? 'bg-violet-500 text-white'
     : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200';
 
-  const badgeDot = dark
+  const badgeDot = onSolid
     ? 'bg-white'
     : table.status === 'bosh'
     ? 'bg-emerald-500'
     : 'bg-white/80';
 
-  const titleTone = dark ? 'text-white' : 'text-slate-900';
-  const chevronTone = dark
+  const titleTone = onSolid ? 'text-white' : 'text-slate-900';
+  const chevronTone = onSolid
     ? 'text-white/50 group-hover:text-white'
     : 'text-slate-300 group-hover:text-brand-500';
-  const chipTone = dark ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-200';
-  const amountTone = dark ? 'text-white' : 'text-slate-900';
-  const labelTone = dark
+  const chipTone = onSolid ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-200';
+  const amountTone = onSolid ? 'text-white' : 'text-slate-900';
+  const labelTone = onSolid
     ? 'text-white/70'
     : table.unsynced
     ? 'text-amber-600 font-bold'
@@ -167,8 +172,8 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
            tafsilotlari egallaydi. */
         <div className="flex items-end justify-between gap-2 min-w-0">
           <span className="flex items-center gap-1.5 min-w-0">
-            <Users className="w-4 h-4 shrink-0 text-violet-600" />
-            <span className="text-sm sm:text-base font-extrabold text-violet-700 truncate">
+            <Users className={`w-4 h-4 shrink-0 ${onSolid ? 'text-white' : 'text-violet-600'}`} />
+            <span className={`text-sm sm:text-base font-extrabold truncate ${onSolid ? 'text-white' : 'text-violet-700'}`}>
               {t('table.guests', { n: table.reservation.guestCount })}
             </span>
           </span>

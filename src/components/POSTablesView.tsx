@@ -74,24 +74,24 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
       {/* Sarlavha + bron tugmasi */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5">
-            <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0">
-              <Grid className="w-5 h-5" />
+          <h1 className="h-11 text-lg sm:text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5">
+            <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0">
+              <Grid className="w-4 h-4" />
             </span>
             {t('table.layout')}
           </h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Holat ko'rsatkichlari — bosilmaydi, faqat ma'lumot. */}
-          <div className="flex items-center gap-2 sm:gap-3 bg-white border border-slate-200 rounded-xl px-3 sm:px-4 py-2 shadow-xs">
+          <div className="flex items-center gap-2 sm:gap-3 h-11 bg-white border border-slate-200 rounded-xl px-3 sm:px-4 shadow-xs">
             {LEGEND.map((f) => (
               <span
                 key={f.id}
-                className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 whitespace-nowrap"
+                className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 whitespace-nowrap"
               >
                 <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${f.dot}`} />
                 {f.label}
-                <span className="text-[11px] font-bold tabular-nums text-slate-400">
+                <span className="text-[10px] font-bold tabular-nums text-slate-400">
                   {statusCounts[f.id]}
                 </span>
               </span>
@@ -101,7 +101,7 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
           <button
             type="button"
             onClick={onOpenReservationModal}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 bg-brand-500 hover:bg-brand-600 active:scale-98 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 h-11 px-3 sm:px-4 bg-brand-500 hover:bg-brand-600 active:scale-98 text-white rounded-xl text-[11px] sm:text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
           >
             <Calendar className="w-4 h-4 shrink-0" />
             <span>{t('table.reservation')}</span>

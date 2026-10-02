@@ -25,7 +25,7 @@ import { readSession, writeSession, clearSession, purgeLegacySession, isTokenExp
 import { DBProduct, DBCategory, CartItem, DBOrder, DBWaiter, KitchenSlipData, ProductVariant } from './types';
 import { API_BASE_URL, isActiveOrder, resolveActiveCafeId, DEFAULT_CAFE_ID, IS_DESKTOP_APP } from './constants';
 import { fetchWithTimeout, REPORT_TIMEOUT_MS } from './lib/net';
-import { mergeActiveOrders, mergeOrderHistory, unsyncedOrderIds } from './lib/orderMerge';
+import { mergeActiveOrders, mergeOrderHistory, needsHistorySync, unsyncedOrderIds } from './lib/orderMerge';
 import { filterOrdersForPeriod } from './lib/reportPeriod';
 import { failedActionToCartItems, tableNumberOfAction, type FailedAction } from './lib/failedActions';
 import { useT } from './lib/i18n/LanguageProvider';
@@ -614,12 +614,6 @@ export default function App() {
    */
   const applyActiveOrders = useCallback((data: DBOrder[]) => {
     const activeIds = new Set(data.map((o) => o.id));
-    const seen = seenActiveIdsRef.current;
-    // An id we were tracking is gone from the active set, so it was served —
-    // possibly on another terminal. Our copy of it is stale, so pull history.
-    let departed = false;
-    if (seen) seen.forEach((id) => { if (!activeIds.has(id)) departed = true; });
-    seenActiveIdsRef.current = activeIds;
 
     // Merged off a ref rather than inside a setState updater: updaters must
     // stay pure, and persisting needs the result synchronously.
@@ -633,6 +627,25 @@ export default function App() {
       readCafeJson<unknown>(cafeId, 'sync_queue', []),
       readCafeJson<unknown>(cafeId, 'sync_failed', []),
     );
+
+    /*
+     * Mahalliy ro'yxatda faol turgan, lekin serverning faol ro'yxatida yo'q
+     * chek — yopilgan. Ikki yo'l bor:
+     *
+     *   1. Chek kuzatilayotganda yo'qolgan (boshqa kassada yopilgan).
+     *   2. Ilova qayta yuklanganda diskdan o'qilgan eski nusxa hali faol
+     *      deb turgan — `seenActiveIdsRef` esa bo'sh.
+     *
+     * Ikkinchisi sezilmasdan qolardi: `mergeActiveOrders` mahalliy faol
+     * chekni saqlaydi (chunki faol javobda yopilganlar umuman yo'q), ya'ni
+     * stol kassada BAND bo'lib qotib qolardi. Ikkalasida ham to'liq tarix
+     * so'raladi.
+     */
+    const seen = seenActiveIdsRef.current;
+    let departed = needsHistorySync(ordersRef.current, activeIds, unsyncedIds);
+    if (!departed && seen) seen.forEach((id) => { if (!activeIds.has(id)) departed = true; });
+    seenActiveIdsRef.current = activeIds;
+
     const merged = sortOrders(mergeActiveOrders(ordersRef.current, data, unsyncedIds));
     ordersRef.current = merged;
     setOrders(merged);

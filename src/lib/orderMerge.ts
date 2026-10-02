@@ -69,6 +69,35 @@ function keepsLocal(local: MergeableOrder | undefined, incoming: MergeableOrder)
   return !isActiveOrder(local.status) && isActiveOrder(incoming.status);
 }
 
+/**
+ * Faol ro'yxatda yo'q, lekin mahalliy ro'yxatda hali faol turgan chek bormi.
+ *
+ * `active=1` ham, `pulse` ham kafening BARCHA ochiq cheklarini qaytaradi,
+ * ya'ni javobda yo'q chek yopilgan. Mahalliy nusxa buni bilmasligi mumkin:
+ * chek boshqa kassada yopilgan, yoki ilova qayta yuklanganda diskdan eski
+ * "faol" nusxa o'qilgan. Bunday chek stolni BAND qilib ushlab turadi va
+ * o'zi hech qachon ochilmaydi — shuning uchun to'liq tarix so'raladi, u
+ * yerda serverning yakuniy holati (to'lov tafsilotlari bilan) ustun turadi.
+ *
+ * Navbatda yoki rad etilganlar orasida turgan chek hisobga olinmaydi:
+ * uning CREATE i hali serverga yetmagan, ya'ni faol javobda yo'qligi
+ * tabiiy va uni o'chirish yuborilmagan pulni yo'qotardi.
+ */
+export function needsHistorySync(
+  local: MergeableOrder[],
+  activeIds: Set<string>,
+  unsyncedIds?: Set<string>,
+): boolean {
+  for (const o of Array.isArray(local) ? local : []) {
+    if (!o || typeof o.id !== 'string') continue;
+    if (!isActiveOrder(o.status)) continue;
+    if (activeIds.has(o.id)) continue;
+    if (unsyncedIds?.has(o.id)) continue;
+    return true;
+  }
+  return false;
+}
+
 /** Ro'yxatni id bo'yicha xaritaga soladi. */
 function byId<T extends MergeableOrder>(list: T[]): Map<string, T> {
   const map = new Map<string, T>();

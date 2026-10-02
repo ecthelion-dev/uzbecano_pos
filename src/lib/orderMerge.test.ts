@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { mergeActiveOrders, mergeOrderHistory, unsyncedOrderIds } from './orderMerge';
+import { mergeActiveOrders, mergeOrderHistory, needsHistorySync, unsyncedOrderIds } from './orderMerge';
 
 const order = (id: string, status = 'sent_to_kitchen') => ({ id, status });
 
@@ -141,6 +141,54 @@ describe('mergeOrderHistory', () => {
     const merged = mergeOrderHistory(local, null as unknown as typeof local, new Set());
 
     expect(merged).toEqual(local);
+  });
+});
+
+describe('needsHistorySync', () => {
+  test('serverning faol ro`yxatida yo`q mahalliy faol chek tarix so`raydi', () => {
+    const local = [order('o1', 'sent_to_kitchen')];
+
+    expect(needsHistorySync(local, new Set(), new Set())).toBe(true);
+  });
+
+  test('serverda ham faol turgan chek tarix so`ramaydi', () => {
+    const local = [order('o1', 'sent_to_kitchen')];
+
+    expect(needsHistorySync(local, new Set(['o1']), new Set())).toBe(false);
+  });
+
+  test('navbatda turgan chek uchun tarix so`ralmaydi', () => {
+    // CREATE hali serverga yetmagan — faol javobda yo'qligi tabiiy, uni
+    // o'chirish esa yuborilmagan pulni yo'qotardi.
+    const local = [order('o1', 'sent_to_kitchen')];
+
+    expect(needsHistorySync(local, new Set(), new Set(['o1']))).toBe(false);
+  });
+
+  test('yopilgan mahalliy cheklar tarix so`ramaydi', () => {
+    const local = [order('o1', 'served'), order('o2', 'cancelled')];
+
+    expect(needsHistorySync(local, new Set(), new Set())).toBe(false);
+  });
+
+  test('bo`sh yoki buzuq ro`yxat xato bermaydi', () => {
+    expect(needsHistorySync([], new Set(), new Set())).toBe(false);
+    expect(needsHistorySync(null as unknown as [], new Set(), new Set())).toBe(false);
+  });
+
+  test('qayta yuklangandan keyin qotib qolgan stol tarix bilan tuzatiladi', () => {
+    // Ilova qayta yuklandi (internet o'chib yondi), diskdagi eski nusxa
+    // hali faol, server esa stolni allaqachon yopgan. `seen` bo'sh bo'lgani
+    // uchun eski kod buni sezmasdan qoldirardi: stol kassada BAND bo'lib
+    // qotib qolardi.
+    const local = [{ id: 'o1', status: 'sent_to_kitchen', total: 73000 }];
+    const unsynced = new Set<string>();
+
+    expect(needsHistorySync(local, new Set(), unsynced)).toBe(true);
+
+    // Tarix javobi serverning yakuniy (yopilgan) nusxasini olib keladi.
+    const server = [{ id: 'o1', status: 'served', total: 73000 }];
+    expect(mergeOrderHistory(local, server, unsynced)).toEqual(server);
   });
 });
 

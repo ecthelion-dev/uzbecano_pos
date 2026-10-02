@@ -52,14 +52,14 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
         {/* Header */}
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="bg-violet-100 p-2.5 rounded-2xl text-violet-600 border border-violet-200/70 shrink-0">
+            <div className="bg-brand-100 p-2.5 rounded-2xl text-brand-600 border border-brand-200/70 shrink-0">
               <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
               <h3 className="font-bold text-base sm:text-lg text-slate-900 truncate">
                 {t('reservation.details')}
               </h3>
-              <p className="text-xs text-violet-600 font-bold">
+              <p className="text-xs text-brand-600 font-bold">
                 {reservation.tableNumber}
               </p>
             </div>
@@ -78,7 +78,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
         <div className="flex flex-col gap-2.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-sm">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-violet-400" />
+              <User className="w-3.5 h-3.5 text-brand-400" />
               {t('reservation.customerName')}
             </span>
             <span className="font-bold text-slate-900 text-right truncate">
@@ -89,7 +89,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
           {reservation.customerPhone && (
             <div className="flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-violet-400" />
+                <Phone className="w-3.5 h-3.5 text-brand-400" />
                 {t('reservation.customerPhone')}
               </span>
               <span className="font-medium text-slate-800 text-right">
@@ -100,17 +100,17 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
 
           <div className="flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-violet-400" />
+              <Clock className="w-3.5 h-3.5 text-brand-400" />
               {t('reservation.reservedTime')}
             </span>
-            <span className="font-bold text-violet-700 text-right">
+            <span className="font-bold text-brand-700 text-right">
               {formatDateClock(reservation.reservedTime)}
             </span>
           </div>
 
           <div className="flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-violet-400" />
+              <Users className="w-3.5 h-3.5 text-brand-400" />
               {t('reservation.guestCount')}
             </span>
             <span className="font-semibold text-slate-800 text-right">
@@ -120,7 +120,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
 
           <div className="flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-violet-400" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-brand-400" />
               {t('reservation.status')}
             </span>
             <span
@@ -143,7 +143,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
           {reservation.notes && (
             <div className="flex flex-col gap-1 border-t border-slate-200/60 pt-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-violet-400" />
+                <FileText className="w-3.5 h-3.5 text-brand-400" />
                 {t('reservation.notes')}
               </span>
               <p className="text-xs text-slate-700 italic bg-white p-2 rounded-xl border border-slate-200">
@@ -180,7 +180,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-3 bg-violet-600 hover:bg-violet-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-xs shadow-violet-600/20 cursor-pointer mt-1"
+            className="w-full py-3 bg-brand-600 hover:bg-brand-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-xs shadow-brand-600/20 cursor-pointer mt-1"
           >
             {t('common.close')}
           </button>

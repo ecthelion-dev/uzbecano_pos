@@ -73,13 +73,44 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
     <div className="flex-1 flex flex-col gap-3 sm:gap-4 overflow-y-auto pr-1 min-h-0 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-2">
       {/* Sarlavha + bron tugmasi */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <h1 className="h-11 text-lg sm:text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-wrap">
+          <h1 className="h-11 text-lg sm:text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5 shrink-0">
             <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0">
               <Grid className="w-4 h-4" />
             </span>
             {t('table.layout')}
           </h1>
+          {/*
+            Zonalar sarlavha yonida, bitta qatorga sig'dirilgan kartalar
+            ko'rinishida — ular endi nafaqat filtr, balki stollarning qaysi
+            qismda turganini ko'rsatadi. "Barchasi" birinchi bo'lib, chunki
+            kassa birinchi urinishda butun zaxirani ko'rmoqchi.
+          */}
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar max-w-full">
+            {areas.map((area) => {
+              const areaCount = tables.filter((tb) => area === allAreasLabel || tb.area === area).length;
+              return (
+                <button
+                  key={area}
+                  onClick={() => onSelectArea(area)}
+                  className={`px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 border shadow-xs whitespace-nowrap cursor-pointer ${
+                    activeArea === area
+                      ? 'bg-brand-500 text-white border-brand-500'
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-brand-300 hover:text-brand-700'
+                  }`}
+                >
+                  <span>{area === allAreasLabel ? t('table.allAreas') : area}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold tabular-nums leading-none ${
+                      activeArea === area ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}
+                  >
+                    {areaCount}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Holat ko'rsatkichlari — bosilmaydi, faqat ma'lumot. */}
@@ -107,38 +138,6 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
             <span>{t('table.reservation')}</span>
           </button>
         </div>
-      </div>
-
-      {/*
-        Zonalar bitta qatorga sig'dirilgan kartalar ko'rinishida — ular
-        endi nafaqat filtr, balki stollarning qaysi qismda turganini
-        ko'rsatadi (rasmdagi kabi). "Barchasi" birinchi bo'lib, chunki
-        kassa birinchi urinishda butun zaxirani ko'rmoqchi.
-      */}
-      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 no-scrollbar">
-        {areas.map((area) => {
-          const areaCount = tables.filter((tb) => area === allAreasLabel || tb.area === area).length;
-          return (
-            <button
-              key={area}
-              onClick={() => onSelectArea(area)}
-              className={`px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 border shadow-xs whitespace-nowrap cursor-pointer ${
-                activeArea === area
-                  ? 'bg-brand-500 text-white border-brand-500'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-brand-300 hover:text-brand-700'
-              }`}
-            >
-              <span>{area === allAreasLabel ? t('table.allAreas') : area}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold tabular-nums leading-none ${
-                  activeArea === area ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {areaCount}
-              </span>
-            </button>
-          );
-        })}
       </div>
 
       {tables.length === 0 ? (

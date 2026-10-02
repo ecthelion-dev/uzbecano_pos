@@ -768,7 +768,20 @@ export default function App() {
     }
     if (localOrds) {
       try {
-        setOrders(JSON.parse(localOrds));
+        const parsedOrders = JSON.parse(localOrds);
+        /*
+         * Ref DARHOL to'ldiriladi, faqat state emas.
+         *
+         * Quyida `fetchOrders`/`fetchOrderHistory` parallel ketadi va
+         * birlashtirishni `ordersRef` orqali qiladi. Ref bo'sh qolsa,
+         * diskdagi "yopilgan" (served) nusxa himoyasiz qoladi va serverning
+         * eskirgan "faol" nusxasi ustidan yoziladi: kassir pulni olib stolni
+         * yopgan, to'lov PATCH'i esa hali yetib bormagan bo'lsa, internet
+         * o'chib yonganda qayta yuklangan kassa o'sha stolni yana BAND qilib
+         * ko'rsatardi va u hech qachon o'zi ochilmasdi.
+         */
+        ordersRef.current = Array.isArray(parsedOrders) ? parsedOrders : [];
+        setOrders(ordersRef.current);
       } catch { }
     }
 

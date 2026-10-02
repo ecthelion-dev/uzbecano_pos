@@ -155,7 +155,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
             {/* Valyuta nomi ataylab yozilmaydi: kartochka tor va "so'm" summani
                 qirqib, "15,000 s..." qilib qo'yardi — ya'ni birlik uchun eng
                 kerakli narsa, raqamning o'zi yo'qolardi. */}
-            <span className={`text-base sm:text-lg font-extrabold tabular-nums tracking-tight shrink-0 whitespace-nowrap ${amountTone}`}>
+            <span className={`text-sm sm:text-base font-extrabold tabular-nums tracking-tight shrink-0 whitespace-nowrap ${amountTone}`}>
               {table.total.toLocaleString()}
             </span>
           </div>

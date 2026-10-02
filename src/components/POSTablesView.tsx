@@ -93,7 +93,7 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
                 <button
                   key={area}
                   onClick={() => onSelectArea(area)}
-                  className={`px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 border shadow-xs whitespace-nowrap cursor-pointer ${
+                  className={`h-11 px-3.5 sm:px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 border shadow-xs whitespace-nowrap cursor-pointer ${
                     activeArea === area
                       ? 'bg-brand-500 text-white border-brand-500'
                       : 'bg-white text-slate-700 border-slate-200 hover:border-brand-300 hover:text-brand-700'

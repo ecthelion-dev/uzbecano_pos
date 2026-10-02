@@ -491,7 +491,7 @@ export const ReservationModal: React.FC<ReservationModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-violet-600 hover:bg-violet-700 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-xs shadow-violet-600/20 mt-1 cursor-pointer disabled:opacity-50"
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 active:scale-98 text-white font-bold text-sm rounded-xl transition-all shadow-xs shadow-brand-600/20 mt-1 cursor-pointer disabled:opacity-50"
             >
               {t('reservation.create')}
             </button>

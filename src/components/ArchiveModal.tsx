@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Receipt, Search, ArrowLeft, Printer, ChevronRight, Calendar, Clock, RotateCcw, Utensils, AlertTriangle, PenLine, User, Banknote, CreditCard, Shuffle } from 'lucide-react';
+import { Receipt, Search, Printer, ChevronRight, Calendar, Clock, RotateCcw, Utensils, AlertTriangle, PenLine, User, Banknote, CreditCard, Shuffle } from 'lucide-react';
 import { DBOrder, DebtPaymentEntry } from '../types';
 import { useT } from '../lib/i18n/LanguageProvider';
 import { TakeawayTag } from './TakeawayTag';
@@ -251,10 +251,27 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
     }
   };
 
+  /*
+   * Bitta tugma — bitta ma'no.
+   *
+   * Oldin bitta oynada ikki xil "ortga" yo'li bor edi: sarlavhadagi × ham,
+   * "Ro'yxatga qaytish" tugmasi ham. Birinchisi chekni yopardi, ikkinchisi
+   * faqat ro'yxatga qaytarardi — kassir nima bosishidan qat'i nazar
+   * natijani oldindan bashorat qila olmasdi. Endi × har doim bir pog'ona
+   * orqaga oladi: chekda ro'yxatga, ro'yxatda esa oynani yopadi.
+   *
+   * Fon ustiga bosish ham aynan shu ishni qiladi: u "bekor qilish" deb
+   * o'qiladi, demak xuddi shu tugma bilan bir xil bo'lishi kerak.
+   */
+  const handleDismiss = () => {
+    if (selectedArchiveOrder) onSelectArchiveOrder(null);
+    else onClose();
+  };
+
   if (!show) return null;
 
   return (
-    <div onClick={onClose} className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fadeIn">
+    <div onClick={handleDismiss} className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-fadeIn">
       <div
         onClick={(e) => e.stopPropagation()}
         className="bg-white rounded-t-3xl sm:rounded-3xl p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-6 w-full sm:w-[94vw] max-w-6xl h-[92dvh] sm:h-[90vh] shadow-2xl flex flex-col gap-3 sm:gap-4 border border-slate-200 overflow-hidden"
@@ -276,8 +293,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-lg transition-colors cursor-pointer"
+            onClick={handleDismiss}
+            aria-label={selectedArchiveOrder ? t('archive.backToList') : t('common.close')}
+            title={selectedArchiveOrder ? t('archive.backToList') : t('common.close')}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-lg transition-colors cursor-pointer shrink-0"
           >
             ×
           </button>
@@ -286,13 +305,6 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
         {selectedArchiveOrder ? (
           /* SINGLE RECEIPT PREVIEW VIEW */
           <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-1">
-            <button
-              onClick={() => onSelectArchiveOrder(null)}
-              className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-brand-700 cursor-pointer bg-white hover:bg-brand-50 px-4 py-2 rounded-xl border border-slate-200 hover:border-brand-200 transition-colors w-fit shadow-2xs"
-            >
-              <ArrowLeft className="w-4 h-4" /> {t('archive.backToList')}
-            </button>
-
             <div
               id="printable-receipt"
               className={`${

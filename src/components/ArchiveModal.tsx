@@ -268,6 +268,73 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
     else onClose();
   };
 
+  /*
+   * Xulosa — bitta qatorga sig'adigan qilib.
+   *
+   * Avval har bir ko'rsatkich o'z chipiga ega edi va yettita chip ikki
+   * qatorga yorilib, "JAMI" oxirida qolardi. Oyna allaqachon balandda
+   * egilgan, qator esa ikki marta o'lchandi.
+   *
+   * Endi "JAMI" — kunlik asosiy savolning javobi — birinchi va yagona
+   * ko'rinchi element. Uning yonida tarkibi kichik matn bilan ketadi:
+   * nechta chek, naqd, karta. Muhim raqamlar (qaytarilgan, qarz qoldig'i)
+   * rangi saqlanadi, nolga teng bo'lganlari esa umuman chiqmaydi.
+   */
+  const summaryItems: {
+    label: string;
+    value: string;
+    labelClass: string;
+    valueClass: string;
+  }[] = [
+    {
+      label: t('archive.found'),
+      value: t('archive.receiptCount', { n: filteredOrders.length }),
+      labelClass: 'text-slate-400',
+      valueClass: 'text-slate-700',
+    },
+    {
+      label: t('common.cashLabel'),
+      value: `${cashTotal.toLocaleString()} ${t('common.currency')}`,
+      labelClass: 'text-slate-400',
+      valueClass: 'text-slate-700',
+    },
+    {
+      label: t('common.cardLabel'),
+      value: `${cardTotal.toLocaleString()} ${t('common.currency')}`,
+      labelClass: 'text-slate-400',
+      valueClass: 'text-slate-700',
+    },
+  ];
+
+  if (refundedCount > 0) {
+    summaryItems.push({
+      /*
+       * Soni yorlig'ning ichida, qiymatda emas: aks holda ekran o'quvchi
+       * uchun "Qaytarilgan(2)" deb bitta so'z o'qilardi.
+       */
+      label: `${t('archive.refundedShort')} (${refundedCount})`,
+      value: `−${refundedTotal.toLocaleString()} ${t('common.currency')}`,
+      labelClass: 'text-rose-500',
+      valueClass: 'text-rose-600',
+    });
+  }
+  if (debtTotalPending > 0) {
+    summaryItems.push({
+      label: t('archive.debtPendingSummary'),
+      value: `${debtTotalPending.toLocaleString()} ${t('common.currency')}`,
+      labelClass: 'text-rose-500',
+      valueClass: 'text-rose-600',
+    });
+  }
+  if (debtCollectedInPeriod > 0) {
+    summaryItems.push({
+      label: t('archive.debtCollectedSummary'),
+      value: `+${debtCollectedInPeriod.toLocaleString()} ${t('common.currency')}`,
+      labelClass: 'text-emerald-600',
+      valueClass: 'text-emerald-700',
+    });
+  }
+
   if (!show) return null;
 
   return (
@@ -724,44 +791,28 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             )}
 
             {/* Quick Summary Bar */}
-            <div className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
-              <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium">
-                <span className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-2.5 py-1 shadow-2xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('archive.found')}</span>
-                  <span className="font-bold text-slate-900 tabular-nums">{t('archive.receiptCount', { n: filteredOrders.length })}</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-2.5 py-1 shadow-2xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('common.cashLabel')}</span>
-                  <span className="font-bold text-slate-900 tabular-nums">{cashTotal.toLocaleString()} {t('common.currency')}</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-2.5 py-1 shadow-2xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('common.cardLabel')}</span>
-                  <span className="font-bold text-slate-900 tabular-nums">{cardTotal.toLocaleString()} {t('common.currency')}</span>
-                </span>
-                {refundedCount > 0 && (
-                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500">
-                      Qaytarilgan ({refundedCount} ta)
-                    </span>
-                    <span className="font-bold text-rose-600 tabular-nums">−{refundedTotal.toLocaleString()} {t('common.currency')}</span>
-                  </span>
-                )}
-                {debtTotalPending > 0 && (
-                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-rose-50 border border-rose-200 px-2.5 py-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500">{t('archive.debtPendingSummary')}</span>
-                    <span className="font-bold text-rose-600 tabular-nums">{debtTotalPending.toLocaleString()} {t('common.currency')}</span>
-                  </span>
-                )}
-                {debtCollectedInPeriod > 0 && (
-                  <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 px-2.5 py-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">{t('archive.debtCollectedSummary')}</span>
-                    <span className="font-bold text-emerald-700 tabular-nums">+{debtCollectedInPeriod.toLocaleString()} {t('common.currency')}</span>
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 text-white px-3 py-1 shadow-xs">
+            <div className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-2xl flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-3 gap-y-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0">
+                {/*
+                  JAMI birinchi bo'lib turadi: kunlik hisobotda asosiy savol
+                  "qancha tushum bo'ldi" — qolganlari uning tarkibi.
+                */}
+                <span className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 text-white px-3 py-1 shadow-xs shrink-0">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">{t('common.total')}</span>
                   <span className="font-bold tabular-nums">{totalSum.toLocaleString()} {t('common.currency')}</span>
                 </span>
+
+                {summaryItems.map((item) => (
+                  <span key={item.label} className="inline-flex items-center gap-1.5 text-xs">
+                    <span className="text-slate-300 text-[10px] select-none" aria-hidden="true">·</span>
+                    <span className={`font-semibold uppercase tracking-wide whitespace-nowrap ${item.labelClass}`}>
+                      {item.label}
+                    </span>
+                    <span className={`font-bold tabular-nums whitespace-nowrap ${item.valueClass}`}>
+                      {item.value}
+                    </span>
+                  </span>
+                ))}
               </div>
               {onPrintPeriod && (
                 <button

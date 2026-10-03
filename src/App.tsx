@@ -2289,7 +2289,7 @@ export default function App() {
                   setShowMobileCart(false);
                 }}
                 onCloseTable={() => {
-                  if (cart.length > 0) handleSendToKitchen();
+                  if (cart.length > 0) handleSendToKitchen({ printSlip: false });
                   setShowPaymentModal(true);
                   setShowMobileCart(false);
                 }}
@@ -2480,7 +2480,7 @@ export default function App() {
         onCloseUnsavedCartModal={() => setShowUnsavedCartModal(false)}
         onConfirmUnsavedCart={() => {
           setShowUnsavedCartModal(false);
-          handleSendToKitchen();
+          handleSendToKitchen({ printSlip: false });
           setShowPaymentModal(true);
         }}
         draftSubtotal={draftSubtotal}

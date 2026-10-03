@@ -142,7 +142,13 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
     ]
   );
 
-  const handleSendToKitchen = useCallback(async () => {
+  /*
+   * `printSlip: false` — to'lovdan oldin saqlanmagan savat avtomatik yuboriladigan
+   * yo'l. U yerda taomlar stol yopilishi uchun buyurtmaga yoziladi, lekin
+   * oshxonaga qog'oz chiqmaydi: kassir "To'lov va yopish" ni bosgan, "Tasdiqlash"
+   * ni emas, ya'ni oshpazga buyruq berilmagan.
+   */
+  const handleSendToKitchen = useCallback(async (opts?: { printSlip?: boolean }) => {
     if (cart.length === 0) return;
     setApiError(null);
     try {
@@ -276,15 +282,17 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
        *
        * Faqat shu safar qo'shilgan taomlar bosiladi, buyurtmaning hammasi emas.
        */
-      setKitchenSlipData({
-        orderId: kitchenOrderId,
-        tableNumber: selectedTable,
-        waiterName: currentWaiter?.name || 'Offitsiant',
-        items: newItems,
-        time: formatClock(new Date()),
-        timestamp: new Date().toISOString(),
-        slipNumber: kitchenDailyNumber,
-      });
+      if (opts?.printSlip !== false) {
+        setKitchenSlipData({
+          orderId: kitchenOrderId,
+          tableNumber: selectedTable,
+          waiterName: currentWaiter?.name || 'Offitsiant',
+          items: newItems,
+          time: formatClock(new Date()),
+          timestamp: new Date().toISOString(),
+          slipNumber: kitchenDailyNumber,
+        });
+      }
 
       setToastMessage(t('toast.sentToKitchen'));
       setTimeout(() => setToastMessage(null), 2500);

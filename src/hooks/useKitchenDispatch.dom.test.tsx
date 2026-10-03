@@ -114,6 +114,17 @@ describe('Tasdiqlashda oshxona qog‘ozi', () => {
     expect(slip.items).toHaveLength(1);
   });
 
+  it('to‘lovga o‘tishda saqlanmagan savat yuboriladi, lekin qog‘oz chiqmaydi', async () => {
+    vi.mocked(fetchWithTimeout).mockResolvedValue(jsonResponse({ id: 'srv-2', dailyNumber: 8 }));
+    const { hook, setKitchenSlipData, params } = setup();
+
+    await act(async () => { await hook.result.current.handleSendToKitchen({ printSlip: false }); });
+
+    expect(fetchWithTimeout).toHaveBeenCalledTimes(1);
+    expect(params.setOrders).toHaveBeenCalled();
+    expect(setKitchenSlipData).not.toHaveBeenCalled();
+  });
+
   it('savat bo‘sh bo‘lsa hech narsa chop etilmaydi', async () => {
     const { hook, setKitchenSlipData } = setup({ cart: [] });
 

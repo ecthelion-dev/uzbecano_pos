@@ -25,7 +25,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = React.memo(({
     <button
       type="button"
       onClick={() => onSelect(category.name)}
-      className="text-left w-full relative overflow-hidden aspect-[4/3] rounded-2xl border border-slate-200 bg-white shadow-xs transition-all duration-200 cursor-pointer group active:scale-98 hover:-translate-y-0.5 hover:shadow-lg hover:border-brand-300"
+      className="text-left w-full relative overflow-hidden aspect-[4/3] min-h-[8.75rem] rounded-2xl border border-slate-200 bg-white shadow-xs transition-all duration-200 cursor-pointer group active:scale-98 hover:-translate-y-0.5 hover:shadow-lg hover:border-brand-300"
     >
       {showImage ? (
         <>
@@ -53,14 +53,20 @@ export const CategoryCard: React.FC<CategoryCardProps> = React.memo(({
           </div>
         </>
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-3 bg-gradient-to-br from-brand-50 via-white to-slate-50">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 bg-gradient-to-br from-brand-50 via-white to-slate-50">
           <span className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white text-brand-500 border border-brand-100 shadow-xs flex items-center justify-center group-hover:bg-brand-500 group-hover:border-brand-500 group-hover:text-white transition-colors shrink-0">
             <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
           </span>
-          <h3 className="font-bold text-xs sm:text-sm text-slate-900 truncate max-w-full text-center group-hover:text-brand-600 transition-colors">
+          {/*
+            `shrink-0` va `leading-tight` shart: karta nisbati qat'iy (4:3), ichi
+            esa ikonka + nom + soni bilan sig'masa flex nomni siqib, `truncate`
+            (overflow: hidden) uning pastki yarmini kesib tashlardi — "Asosiy"
+            o'rniga faqat yuqori yarmi ko'rinardi.
+          */}
+          <h3 className="shrink-0 leading-tight py-px font-bold text-xs sm:text-sm text-slate-900 truncate max-w-full text-center group-hover:text-brand-600 transition-colors">
             {category.name}
           </h3>
-          <span className="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full tabular-nums transition-colors group-hover:border-brand-200 group-hover:text-brand-600">
+          <span className="shrink-0 text-[10px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full tabular-nums transition-colors group-hover:border-brand-200 group-hover:text-brand-600">
             {t('common.dishCount', { n: count })}
           </span>
         </div>

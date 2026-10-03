@@ -66,7 +66,9 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
       // qoladi va xodimlar bir-birini ayblaydi.
       'bg-white border-amber-400 ring-1 ring-amber-400/40'
     : table.status === 'band'
-    ? 'bg-brand-500 border-brand-600 hover:border-brand-400 shadow-brand-900/20'
+    ? // Band ham bron bilan bir uslubda (gradient, shishasimon belgi, doira),
+      // faqat rangi brend ko'ki: ikki holat bir oiladan, lekin rangi bilan ajraladi.
+      'bg-gradient-to-br from-brand-500 to-brand-700 border-brand-800 hover:border-brand-400 shadow-brand-900/25 overflow-hidden isolate'
     : table.status === 'bron'
     ? // Bron qizil: band (navy) va bo'sh (oq) kartadan eng ko'p ajraladi,
       // binafsha esa band bilan yonma-yon turganda zaldan qarab farqlanmasdi.
@@ -74,11 +76,8 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
       'bg-gradient-to-br from-rose-600 to-red-700 border-red-800 hover:border-rose-400 shadow-red-900/25 overflow-hidden isolate'
     : 'bg-white border-slate-200 hover:border-brand-300';
 
-  const isBronSolid = table.status === 'bron' && onSolid;
-  const badge = isBronSolid
+  const badge = onSolid
     ? 'bg-white/20 text-white ring-1 ring-white/25'
-    : onSolid
-    ? 'bg-white/15 text-white'
     : table.status === 'band'
     ? 'bg-brand-500 text-white'
     : table.status === 'bron'
@@ -109,7 +108,7 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
       onClick={() => onSelect(table.number)}
       className={`text-left w-full p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 flex flex-col justify-between h-[96px] sm:h-[108px] shadow-xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer group active:scale-98 relative ${shell}`}
     >
-      {isBronSolid && (
+      {onSolid && (
         <span
           aria-hidden
           className="pointer-events-none absolute -right-6 -top-8 -z-10 w-24 h-24 rounded-full bg-white/10"

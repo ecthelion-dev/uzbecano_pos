@@ -283,7 +283,6 @@ export const uz = {
   'archive.debtPayAmountExceeds': 'To‘lov summasi qarz qoldig‘idan ({max} {currency}) ko‘p bo‘lishi mumkin emas',
   'archive.debtPayError': 'To‘lovni amalga oshirishda xatolik',
   'archive.debtPendingSummary': 'Qarz qoldig‘i:',
-  'archive.debtCollectedSummary': 'Qarzdan undirildi:',
   'archive.debtRemainingBadge': 'Qarz qoldig‘i',
   'archive.debtPaidBadge': 'Qoldiq ({amount} to‘langan)',
   'archive.debtCustomerDefault': 'Mijoz',

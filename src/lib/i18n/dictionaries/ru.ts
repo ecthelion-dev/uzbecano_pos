@@ -270,7 +270,6 @@ export const ru: Record<TranslationKey, string> = {
   'archive.debtPayAmountExceeds': 'Сумма оплаты не может превышать остаток долга ({max} {currency})',
   'archive.debtPayError': 'Ошибка при совершении оплаты',
   'archive.debtPendingSummary': 'Остаток долга:',
-  'archive.debtCollectedSummary': 'Взыскано из долгов:',
   'archive.debtRemainingBadge': 'Остаток долга',
   'archive.debtPaidBadge': 'Остаток ({amount} оплачено)',
   'archive.debtCustomerDefault': 'Клиент',

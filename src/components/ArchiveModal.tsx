@@ -72,7 +72,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
   }, [orders]);
 
   // Filtered orders list and totals
-  const { filteredOrders, totalSum, cashTotal, cardTotal, refundedTotal, refundedCount, debtTotalPending, debtCollectedInPeriod } = useMemo(() => {
+  const { filteredOrders, totalSum, cashTotal, cardTotal } = useMemo(() => {
     const served = orders.filter((o: any) => o.status === 'served');
 
     const now = new Date();
@@ -125,24 +125,13 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
 
     let cash = 0;
     let card = 0;
-    let refunded = 0;
-    let refundedQty = 0;
-    let debtPending = 0;
-    let debtCollected = 0;
 
     // 1. Regular orders closed in this period (excluding qarz)
     filtered.forEach((ord: any) => {
       const tot = ord.total || 0;
-      if (ord.refunded) {
-        refunded += tot;
-        refundedQty += 1;
-        return;
-      }
-      if (ord.paymentMethod === 'qarz') {
-        const payments = Array.isArray(ord.debtPayments) ? ord.debtPayments : [];
-        const paidSoFar = payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
-        debtPending += Math.max(0, tot - paidSoFar);
-      } else if (!Array.isArray(ord.debtPayments) || ord.debtPayments.length === 0) {
+      if (ord.refunded) return;
+      if (ord.paymentMethod === 'qarz') return;
+      if (!Array.isArray(ord.debtPayments) || ord.debtPayments.length === 0) {
         if (ord.paymentMethod === 'aralash') {
           cash += ord.cashAmount || 0;
           card += ord.cardAmount || 0;
@@ -177,7 +166,6 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             const amt = Math.max(0, Number(p.amount) || 0);
             if (p.method === 'karta') card += amt;
             else cash += amt;
-            debtCollected += amt;
           }
         });
       }
@@ -188,10 +176,6 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       totalSum: cash + card,
       cashTotal: cash,
       cardTotal: card,
-      refundedTotal: refunded,
-      refundedCount: refundedQty,
-      debtTotalPending: debtPending,
-      debtCollectedInPeriod: debtCollected,
     };
   }, [orders, archiveSearch, timePreset, startDate, startTime, endDate, endTime]);
 
@@ -277,8 +261,11 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
    *
    * Endi "JAMI" — kunlik asosiy savolning javobi — birinchi va yagona
    * ko'rinchi element. Uning yonida tarkibi kichik matn bilan ketadi:
-   * nechta chek, naqd, karta. Muhim raqamlar (qaytarilgan, qarz qoldig'i)
-   * rangi saqlanadi, nolga teng bo'lganlari esa umuman chiqmaydi.
+   * nechta chek, naqd, karta.
+   *
+   * Qaytarilgan, qarz qoldig'i va undirilgan qarz bu yerda yo'q: ular
+   * qatorni yana ikkinchi satrga yorib yuborardi. Qarzlar "Qarzlar"
+   * tabida va chek ichida ko'rinadi.
    */
   const summaryItems: {
     label: string;
@@ -305,35 +292,6 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
       valueClass: 'text-slate-700',
     },
   ];
-
-  if (refundedCount > 0) {
-    summaryItems.push({
-      /*
-       * Soni yorlig'ning ichida, qiymatda emas: aks holda ekran o'quvchi
-       * uchun "Qaytarilgan(2)" deb bitta so'z o'qilardi.
-       */
-      label: `${t('archive.refundedShort')} (${refundedCount})`,
-      value: `−${refundedTotal.toLocaleString()} ${t('common.currency')}`,
-      labelClass: 'text-rose-500',
-      valueClass: 'text-rose-600',
-    });
-  }
-  if (debtTotalPending > 0) {
-    summaryItems.push({
-      label: t('archive.debtPendingSummary'),
-      value: `${debtTotalPending.toLocaleString()} ${t('common.currency')}`,
-      labelClass: 'text-rose-500',
-      valueClass: 'text-rose-600',
-    });
-  }
-  if (debtCollectedInPeriod > 0) {
-    summaryItems.push({
-      label: t('archive.debtCollectedSummary'),
-      value: `+${debtCollectedInPeriod.toLocaleString()} ${t('common.currency')}`,
-      labelClass: 'text-emerald-600',
-      valueClass: 'text-emerald-700',
-    });
-  }
 
   if (!show) return null;
 
@@ -791,13 +749,13 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
             )}
 
             {/* Quick Summary Bar */}
-            <div className="bg-slate-50 border border-slate-200 px-3 py-2 rounded-2xl flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-3 gap-y-2 shrink-0">
+            <div className="bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-xl flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-3 gap-y-1.5 shrink-0">
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0">
                 {/*
                   JAMI birinchi bo'lib turadi: kunlik hisobotda asosiy savol
                   "qancha tushum bo'ldi" — qolganlari uning tarkibi.
                 */}
-                <span className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 text-white px-3 py-1 shadow-xs shrink-0">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 text-white px-2.5 py-0.5 text-sm shadow-xs shrink-0">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-white/75">{t('common.total')}</span>
                   <span className="font-bold tabular-nums">{totalSum.toLocaleString()} {t('common.currency')}</span>
                 </span>

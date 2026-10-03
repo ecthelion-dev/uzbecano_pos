@@ -270,7 +270,6 @@ export const en: Record<TranslationKey, string> = {
   'archive.debtPayAmountExceeds': 'Payment amount cannot exceed remaining debt ({max} {currency})',
   'archive.debtPayError': 'Error processing payment',
   'archive.debtPendingSummary': 'Pending debt:',
-  'archive.debtCollectedSummary': 'Collected from debts:',
   'archive.debtRemainingBadge': 'Remaining debt',
   'archive.debtPaidBadge': 'Remaining ({amount} paid)',
   'archive.debtCustomerDefault': 'Customer',

@@ -158,26 +158,16 @@ describe('Arxiv xulosasi', () => {
   });
 
   /*
-   * Nolga teng bo'lgan ko'rsatkich ekranni band qilmasin: qaytarilgan
-   * chek yo'q kunda "qaytarilgan" yozuvi chiqsa, kassa undan kelib chiqib
-   * kunlik tushumni kamaygan deb o'ylaydi.
+   * Qaytarilgan va qarz xulosaga qaytib kirmasin: ular qatorni yana ikkinchi
+   * satrga yorib yuborgan edi. Qarzlar "Qarzlar" tabida, qaytarilgan esa
+   * ro'yxatdagi chekning o'zida ko'rinadi.
    */
-  it('nolga teng bo‘lgan ko‘rsatkichlar umuman chiqmaydi', () => {
-    renderModal(null, [chek]);
-    const bar = within(xulosaBar());
-
-    expect(bar.queryByText(uz('archive.refundedShort'))).toBeNull();
-    expect(bar.queryByText(uz('archive.debtPendingSummary'))).toBeNull();
-    expect(bar.queryByText(uz('archive.debtCollectedSummary'))).toBeNull();
-  });
-
-  it('qaytarilgan va qarz bo‘lsa ular ko‘rinadi', () => {
+  it('qaytarilgan va qarz bo‘lsa ham xulosada chiqmaydi', () => {
     renderModal(null, [chek, qaytarilgan, qarz]);
     const bar = within(xulosaBar());
 
-    expect(bar.getByText(new RegExp(uz('archive.refundedShort')))).toBeInTheDocument();
-    expect(bar.getByText(uz('archive.debtPendingSummary'))).toBeInTheDocument();
-    // Qaytarilgan summa manfiy belgi bilan ko'rinadi — tushumdan ayiriladi.
-    expect(bar.getByText(new RegExp(`−${(840_000).toLocaleString()}`))).toBeInTheDocument();
+    expect(bar.queryByText(new RegExp(uz('archive.refundedShort')))).toBeNull();
+    expect(bar.queryByText(uz('archive.debtPendingSummary'))).toBeNull();
+    expect(bar.queryByText(new RegExp(`−${(840_000).toLocaleString()}`))).toBeNull();
   });
 });

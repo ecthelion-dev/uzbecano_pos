@@ -46,6 +46,16 @@ a,
   outline-offset: 2px;
 }
 
+/* Matn maydonlarida fokus bitta chiziq bo'lsin: kontur maydonning o'z
+   chegarasiga yopishadi, chegaraning o'zi esa shaffof bo'ladi. Aks holda
+   ichkarida chegara, tashqarida kontur — ikki qatlam chiqardi. */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-offset: 0;
+  border-color: transparent !important;
+}
+
 /* Terminal va kiosk ekranlari uchun: kontrast yetarli bo'lmagan fon ustida
    ham ko'rinsin. */
 @media (prefers-contrast: more) {

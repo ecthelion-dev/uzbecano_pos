@@ -56,6 +56,21 @@ export function asProduct(raw: unknown): DBProduct | null {
 
   if (typeof raw.isAvailable === 'boolean') product.isAvailable = raw.isAvailable;
 
+  /*
+   * O'lchamlar/narxlar ro'yxati ("0.5 kg", "1 kg") o'tkazilmasa ko'p narxli
+   * taom kassada bir bosishda asosiy narxga qo'shilib ketaveradi va tanlash
+   * oynasi umuman ochilmaydi: `buildVariants` narxlar ro'yxatini aynan shu
+   * maydondan yig'adi.
+   *
+   * Server uni JSON MATNI qilib yuboradi (`sizes: '[{"label":...}]'`), lekin
+   * diskdagi nusxada yoki eski javobda massiv bo'lib kelishi ham mumkin —
+   * ikkalasi ham o'tadi. Qiymat bu yerda ataylab o'zgartirilmaydi: o'qish va
+   * tozalash `lib/productVariants.ts` da bir joyda turadi.
+   */
+  if (typeof raw.sizes === 'string' || Array.isArray(raw.sizes)) {
+    product.sizes = raw.sizes;
+  }
+
   if (Array.isArray(raw.variants)) {
     const variants = raw.variants
       .map((v) => (isRecord(v) ? { name: str(v.name), price: num(v.price), isBase: v.isBase === true } : null))

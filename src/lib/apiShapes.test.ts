@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { asCafeSettings, asCategoryArray, asProduct, asProductArray } from './apiShapes';
+import { buildVariants } from './productVariants';
 
 describe('asProduct', () => {
   it("to'g'ri taomni o'qidi", () => {
@@ -40,6 +41,46 @@ describe('asProduct', () => {
       variants: [{ name: 'Standart', price: 30000, isBase: true }],
     });
     expect(p?.variants).toEqual([{ name: 'Standart', price: 30000, isBase: true }]);
+  });
+
+  /*
+   * O'lchamlar serverdan JSON MATNI bo'lib keladi. Qo'riqchi ularni
+   * tashlab yuborsa, ko'p narxli taom kassada tanlovsiz qo'shilaveradi:
+   * tanlash oynasi ochilmaydi. Bu bir marta shu tarzda buzilgan edi.
+   */
+  it('serverning JSON matn o‘lchamlari saqlanadi', () => {
+    const sizes = '[{"label":"0.5 kg","price":120000},{"label":"1 kg","price":240000}]';
+    const p = asProduct({ id: 'p1', name: 'Tandir', category: 'Asosiy', price: 120000, sizes });
+    expect(p?.sizes).toBe(sizes);
+  });
+
+  it('massiv ko‘rinishidagi o‘lchamlar ham saqlanadi', () => {
+    const sizes = [{ label: 'Katta', price: 25000 }];
+    const p = asProduct({ id: 'p1', name: 'Cacao', category: 'Ichimlik', price: 20000, sizes });
+    expect(p?.sizes).toEqual(sizes);
+  });
+
+  it('o‘lcham bo‘lmasa yoki noto‘g‘ri turda bo‘lsa qo‘shilmaydi', () => {
+    expect(asProduct({ id: 'p1', name: 'Osh', category: 'Asosiy', price: 30000 })?.sizes)
+      .toBeUndefined();
+    expect(asProduct({ id: 'p1', name: 'Osh', category: 'Asosiy', price: 30000, sizes: null })?.sizes)
+      .toBeUndefined();
+  });
+
+  /*
+   * Butun zanjir: server javobi → qo'riqchi → o'lchamlar ro'yxati.
+   *
+   * Kassir "+" ni bosganda `buildVariants` natijasi bo'sh bo'lsa, tanlash
+   * oynasi ochilmaydi. Ikkalasi alohida to'g'ri bo'lib, ulanish uzilgani
+   * aynan shu xatoning sababi edi.
+   */
+  it('ko‘p narxli taom qo‘riqchidan o‘tib o‘lchamlar ro‘yxatini beradi', () => {
+    const p = asProduct({
+      id: 'p1', name: 'Tandir', category: 'Asosiy', price: 120000,
+      sizes: '[{"label":"0.5 kg","price":120000},{"label":"1 kg","price":240000}]',
+    });
+    expect(buildVariants(p!)!.map((v) => v.name)).toEqual(['0.5 kg', '1 kg']);
+    expect(buildVariants(p!)!.map((v) => v.price)).toEqual([120000, 240000]);
   });
 });
 

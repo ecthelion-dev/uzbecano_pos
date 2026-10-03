@@ -41,7 +41,7 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
   const LEGEND: { id: TableStatus; label: string; dot: string }[] = [
     { id: 'bosh', label: t('table.statFree'), dot: 'bg-emerald-500' },
     { id: 'band', label: t('table.statBusy'), dot: 'bg-brand-500' },
-    { id: 'bron', label: t('table.statReserved'), dot: 'bg-violet-500' },
+    { id: 'bron', label: t('table.statReserved'), dot: 'bg-red-600' },
   ];
 
   /*

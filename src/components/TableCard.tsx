@@ -68,15 +68,21 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
     : table.status === 'band'
     ? 'bg-brand-500 border-brand-600 hover:border-brand-400 shadow-brand-900/20'
     : table.status === 'bron'
-    ? 'bg-violet-500 border-violet-600 hover:border-violet-400 shadow-violet-900/20'
+    ? // Bron qizil: band (navy) va bo'sh (oq) kartadan eng ko'p ajraladi,
+      // binafsha esa band bilan yonma-yon turganda zaldan qarab farqlanmasdi.
+      // rose-600 → red-700: oq matn 4.5:1 dan pastga tushmasligi uchun.
+      'bg-gradient-to-br from-rose-600 to-red-700 border-red-800 hover:border-rose-400 shadow-red-900/25 overflow-hidden isolate'
     : 'bg-white border-slate-200 hover:border-brand-300';
 
-  const badge = onSolid
+  const isBronSolid = table.status === 'bron' && onSolid;
+  const badge = isBronSolid
+    ? 'bg-white/20 text-white ring-1 ring-white/25'
+    : onSolid
     ? 'bg-white/15 text-white'
     : table.status === 'band'
     ? 'bg-brand-500 text-white'
     : table.status === 'bron'
-    ? 'bg-violet-500 text-white'
+    ? 'bg-red-600 text-white'
     : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200';
 
   const badgeDot = onSolid
@@ -103,6 +109,12 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
       onClick={() => onSelect(table.number)}
       className={`text-left w-full p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 flex flex-col justify-between h-[96px] sm:h-[108px] shadow-xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer group active:scale-98 relative ${shell}`}
     >
+      {isBronSolid && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-6 -top-8 -z-10 w-24 h-24 rounded-full bg-white/10"
+        />
+      )}
       <div className="flex justify-between items-start gap-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
           {table.heldBy && (
@@ -172,8 +184,8 @@ export const TableCard: React.FC<TableCardProps> = React.memo(({
            tafsilotlari egallaydi. */
         <div className="flex items-end justify-between gap-2 min-w-0">
           <span className="flex items-center gap-1.5 min-w-0">
-            <Users className={`w-4 h-4 shrink-0 ${onSolid ? 'text-white' : 'text-violet-600'}`} />
-            <span className={`text-sm sm:text-base font-extrabold truncate ${onSolid ? 'text-white' : 'text-violet-700'}`}>
+            <Users className={`w-4 h-4 shrink-0 ${onSolid ? 'text-white' : 'text-red-600'}`} />
+            <span className={`text-sm sm:text-base font-extrabold truncate ${onSolid ? 'text-white' : 'text-red-700'}`}>
               {t('table.guests', { n: table.reservation.guestCount })}
             </span>
           </span>

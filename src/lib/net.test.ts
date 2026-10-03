@@ -81,17 +81,26 @@ describe('cheklangan kutish bilan so‘rov', () => {
  *
  * Chekdagi hamma narsa kassaning o'zida ma'lum: serverning javobidan
  * hech nima olinmaydi. Shunga qaramay chek to'lov so'rovidan KEYIN
- * bosilardi va shu bilan tarmoqqa bog'lanib qolgan edi.
+ * bosilardi va shu bilan tarmoqqa bog'lanib qolgan edi. To'lovning
+ * o'zi esa chekdan ham oldin — navbatga — yoziladi.
  */
 describe('stol yopilganda chek', () => {
   const appSrc = readFileSync(fileURLToPath(new URL('../App.tsx', import.meta.url)), 'utf-8');
   const checkoutSrc = readFileSync(fileURLToPath(new URL('../hooks/useCheckout.ts', import.meta.url)), 'utf-8');
 
-  it('to‘lov so‘rovidan oldin bosiladi', () => {
+  /*
+   * Chek tarmoqni kutmaydi, lekin to'lov undan OLDIN navbatga yoziladi:
+   * brauzerning chop etish oynasi JS ni to'xtatadi va navbatga yozish
+   * chekdan keyin bo'lsa, oyna ochiq paytda ilova yopilganda to'lov
+   * yo'qolardi (2026-10-03). Xatti-harakat useCheckout.dom.test.tsx da.
+   */
+  it('to‘lov navbatga yozilgandan keyin, server so‘rovidan oldin bosiladi', () => {
+    const queued = checkoutSrc.indexOf("queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment')");
     const print = checkoutSrc.indexOf('printClosedReceipt(closedOrder)');
-    const patch = checkoutSrc.indexOf("'finalize_payment'", print > 0 ? print : 0);
-    expect(print, "chek chop etish chaqiruvi topilmadi").toBeGreaterThan(0);
-    expect(patch, "to'lovni saqlash topilmadi").toBeGreaterThan(print);
+    const patch = checkoutSrc.indexOf('fetchWithTimeout(`${API_BASE_URL}/api/orders/${latestOrder.id}`', print > 0 ? print : 0);
+    expect(queued, "to'lovni navbatga yozish topilmadi").toBeGreaterThan(0);
+    expect(print, "chek chop etish chaqiruvi topilmadi").toBeGreaterThan(queued);
+    expect(patch, "to'lov so'rovi topilmadi").toBeGreaterThan(print);
   });
 
   it('kassadagi har bir so‘rov cheklangan kutish bilan ketadi', () => {

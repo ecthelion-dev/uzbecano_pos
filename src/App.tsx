@@ -983,6 +983,7 @@ export default function App() {
   const {
     queueOrderForSync,
     queuePatchForSync,
+    dequeueSyncItem,
     queueDeleteForSync,
     sendAppendItems,
     syncOfflineOrders,
@@ -1967,6 +1968,7 @@ export default function App() {
     sendAppendItems,
     queueOrderForSync,
     queuePatchForSync,
+    dequeueSyncItem,
     printClosedReceipt,
     handleSessionExpired,
     setOrders,

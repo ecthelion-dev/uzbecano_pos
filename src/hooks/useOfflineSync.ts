@@ -98,9 +98,10 @@ export function useOfflineSync({
   const queuePatchForSync = useCallback((orderId: string, body: any, label?: string, approvalToken?: string) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
+    const qid = newQueueId();
     queue.push({
       kind: 'patch',
-      qid: newQueueId(),
+      qid,
       queuedAt: Date.now(),
       actor: actorName(cafeId),
       orderId,
@@ -110,7 +111,26 @@ export function useOfflineSync({
     });
     writeSyncQueue(cafeId, queue);
     refreshUnsynced();
+    return qid;
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
+
+  /*
+   * Bitta yozuvni nomi (`qid`) bo'yicha navbatdan olib tashlaydi.
+   *
+   * To'lov avval navbatga yoziladi (pul chek bosilishidan oldin diskda
+   * bo'lsin), keyin to'g'ridan-to'g'ri yuboriladi; server qabul qilsa shu
+   * yerda olib tashlanadi. Navbat JONLI holatdan o'qiladi, ya'ni oradagi
+   * boshqa yozuvlarga tegilmaydi. Yozuv allaqachon drenaj tomonidan
+   * yuborilgan bo'lsa — hech narsa qilinmaydi.
+   */
+  const dequeueSyncItem = useCallback((qid: string) => {
+    const cafeId = getActiveCafeId();
+    const queue = readSyncQueue(cafeId);
+    const next = queue.filter((item: { qid?: string }) => item.qid !== qid);
+    if (next.length === queue.length) return;
+    writeSyncQueue(cafeId, next);
+    refreshUnsynced();
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, refreshUnsynced]);
 
   const queueDeleteForSync = useCallback((orderId: string, label?: string) => {
     const cafeId = getActiveCafeId();
@@ -267,6 +287,7 @@ export function useOfflineSync({
     writeSyncQueue,
     queueOrderForSync,
     queuePatchForSync,
+    dequeueSyncItem,
     queueDeleteForSync,
     sendAppendItems,
     syncOfflineOrders,

@@ -21,7 +21,8 @@ export interface UseCheckoutParams {
   getAuthHeaders: (approvalToken?: string, tokenOverride?: string | null) => Record<string, string>;
   sendAppendItems: (orderId: string, items: OutgoingOrderItem[]) => Promise<DBOrder | null>;
   queueOrderForSync: (order: any) => void;
-  queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => void;
+  queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => string | void;
+  dequeueSyncItem: (qid: string) => void;
   printClosedReceipt: (closedOrder: any) => void;
   handleSessionExpired: () => void;
   setOrders: (orders: DBOrder[]) => void;
@@ -51,6 +52,7 @@ export function useCheckout(params: UseCheckoutParams) {
     sendAppendItems,
     queueOrderForSync,
     queuePatchForSync,
+    dequeueSyncItem,
     printClosedReceipt,
     handleSessionExpired,
     setOrders,
@@ -270,6 +272,24 @@ export function useCheckout(params: UseCheckoutParams) {
           }
           setSelectedArchiveOrder(closedOrder);
 
+          /*
+           * Tartib: to'lov NAVBATGA -> chek -> serverga.
+           *
+           * Pul chek bosilishidan OLDIN diskda bo'lishi shart. Brauzerda chek
+           * tizimning chop etish oynasi orqali chiqadi va u ochiq turganda
+           * sahifaning JS i to'xtaydi: navbatga yozish chekdan keyin bo'lsa,
+           * oyna ochiq paytda ilova yopilganda to'lov yo'qolardi. 2026-10-03
+           * da test-cafe oflayn sinovida aynan shunday bo'ldi — buyurtma
+           * serverga yetdi, to'lovi yetmadi.
+           *
+           * Chek esa tarmoqni KUTMAYDI (net.test.ts: "qog'oz birinchi").
+           *
+           * Server qabul qilsa yozuv navbatdan olinadi. Drenaj uni ham
+           * yuborib ulgursa — zarari yo'q: server takroriy yopishni
+           * (served -> served) xato hisoblamaydi.
+           */
+          const paymentQid = queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
+
           printClosedReceipt(closedOrder);
 
           const canSendOnline = !isOfflineMode && serverConfirmedItems;
@@ -281,19 +301,16 @@ export function useCheckout(params: UseCheckoutParams) {
                 headers: getAuthHeaders(),
                 body: JSON.stringify(paymentPatchBody),
               });
-              if (res.status === 401) {
-                queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
+              if (res.ok) {
+                if (paymentQid) dequeueSyncItem(paymentQid);
+              } else if (res.status === 401) {
                 handleSessionExpired();
-              } else if (!res.ok) {
+              } else {
                 setApiError(t('toast.paymentNotSaved'));
-                queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
               }
             } catch {
               setApiError(t('toast.paymentQueued'));
-              queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
             }
-          } else {
-            queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment');
           }
         }
         setTableCarts((prev) => ({ ...prev, [targetTable]: [] }));
@@ -314,6 +331,7 @@ export function useCheckout(params: UseCheckoutParams) {
       sendAppendItems,
       queueOrderForSync,
       queuePatchForSync,
+      dequeueSyncItem,
       serviceFeePercent,
       draftSubtotal,
       printClosedReceipt,

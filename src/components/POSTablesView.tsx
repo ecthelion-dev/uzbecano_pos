@@ -72,28 +72,34 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
   return (
     <div className="flex-1 flex flex-col gap-3 sm:gap-4 overflow-y-auto pr-1 min-h-0 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-2">
       {/* Sarlavha + bron tugmasi */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-wrap">
-          <h1 className="h-11 text-lg sm:text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5 shrink-0">
-            <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0">
-              <Grid className="w-4 h-4" />
-            </span>
-            {t('table.layout')}
-          </h1>
+      {/*
+        Telefonda sarlavha o'z qatorida, zonalar + holat + bron esa BITTA
+        qatorda (sig'masa yon tomonga suriladi). Avval ular 3 qatorga
+        sinib, ro'yxatni ekranning yarmigacha pastga itarardi. Kompyuterda
+        `sm:contents` o'rami yo'qoladi va hammasi eskicha bir qatorda.
+      */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
+        <h1 className="h-11 text-lg sm:text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5 shrink-0">
+          <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0">
+            <Grid className="w-4 h-4" />
+          </span>
+          {t('table.layout')}
+        </h1>
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 sm:contents">
           {/*
             Zonalar sarlavha yonida, bitta qatorga sig'dirilgan kartalar
             ko'rinishida — ular endi nafaqat filtr, balki stollarning qaysi
             qismda turganini ko'rsatadi. "Barchasi" birinchi bo'lib, chunki
             kassa birinchi urinishda butun zaxirani ko'rmoqchi.
           */}
-          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar max-w-full">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 sm:overflow-x-auto sm:no-scrollbar sm:max-w-full">
             {areas.map((area) => {
               const areaCount = tables.filter((tb) => area === allAreasLabel || tb.area === area).length;
               return (
                 <button
                   key={area}
                   onClick={() => onSelectArea(area)}
-                  className={`h-11 px-3.5 sm:px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 border shadow-xs whitespace-nowrap cursor-pointer ${
+                  className={`h-11 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 border shadow-xs whitespace-nowrap cursor-pointer ${
                     activeArea === area
                       ? 'bg-brand-500 text-white border-brand-500'
                       : 'bg-white text-slate-700 border-slate-200 hover:border-brand-300 hover:text-brand-700'
@@ -111,32 +117,33 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
               );
             })}
           </div>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          {/* Holat ko'rsatkichlari — bosilmaydi, faqat ma'lumot. */}
-          <div className="flex items-center gap-2 sm:gap-3 h-11 bg-white border border-slate-200 rounded-xl px-3 sm:px-4 shadow-xs">
-            {LEGEND.map((f) => (
-              <span
-                key={f.id}
-                className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 whitespace-nowrap"
-              >
-                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${f.dot}`} />
-                {f.label}
-                <span className="text-[10px] font-bold tabular-nums text-slate-400">
-                  {statusCounts[f.id]}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 sm:ml-auto sm:flex-wrap">
+            {/* Holat ko'rsatkichlari — bosilmaydi, faqat ma'lumot. */}
+            <div className="flex items-center gap-2 sm:gap-3 h-11 bg-white border border-slate-200 rounded-xl px-2.5 sm:px-4 shadow-xs">
+              {LEGEND.map((f) => (
+                <span
+                  key={f.id}
+                  className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 whitespace-nowrap"
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${f.dot}`} />
+                  {f.label}
+                  <span className="text-[10px] font-bold tabular-nums text-slate-400">
+                    {statusCounts[f.id]}
+                  </span>
                 </span>
-              </span>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <button
-            type="button"
-            onClick={onOpenReservationModal}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 h-11 px-3 sm:px-4 bg-brand-500 hover:bg-brand-600 active:scale-98 text-white rounded-xl text-[11px] sm:text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
-          >
-            <Calendar className="w-4 h-4 shrink-0" />
-            <span>{t('table.reservation')}</span>
-          </button>
+            <button
+              type="button"
+              onClick={onOpenReservationModal}
+              aria-label={t('table.reservation')}
+              className="flex items-center justify-center gap-1.5 sm:gap-2 h-11 w-11 sm:w-auto sm:px-4 bg-brand-500 hover:bg-brand-600 active:scale-98 text-white rounded-xl text-[11px] sm:text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span className="hidden sm:inline">{t('table.reservation')}</span>
+            </button>
+          </div>
         </div>
       </div>
 

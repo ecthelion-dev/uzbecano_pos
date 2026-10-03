@@ -58,7 +58,7 @@ const ToggleRow: React.FC<ToggleRowProps> = ({ icon, tone, title, hint, checked,
     role="switch"
     aria-checked={checked}
     onClick={onToggle}
-    className="w-full text-left flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer"
+    className="w-full text-left flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-brand-300 hover:shadow-sm transition-all cursor-pointer"
   >
     <span className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${tone}`}>
       {icon}
@@ -69,7 +69,7 @@ const ToggleRow: React.FC<ToggleRowProps> = ({ icon, tone, title, hint, checked,
     </span>
     <span
       aria-hidden="true"
-      className={`relative w-11 h-6 shrink-0 rounded-full transition-colors ${checked ? 'bg-orange-500' : 'bg-slate-300'}`}
+      className={`relative w-11 h-6 shrink-0 rounded-full transition-colors ${checked ? 'bg-brand-500' : 'bg-slate-300'}`}
     >
       <span
         className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${checked ? 'translate-x-5' : ''}`}
@@ -202,7 +202,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-orange-50 border border-orange-100 text-orange-500 flex items-center justify-center">
+            <div className="w-11 h-11 rounded-2xl bg-brand-50 border border-brand-100 text-brand-500 flex items-center justify-center">
               <Printer className="w-5 h-5" />
             </div>
             <div>
@@ -358,7 +358,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               onClick={() => handlePaperChange('58mm')}
               className={`py-3 px-3 rounded-2xl border text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 settings.paperWidth === '58mm'
-                  ? 'border-orange-500 bg-orange-50 text-orange-600 ring-2 ring-orange-500/20'
+                  ? 'border-brand-500 bg-brand-50 text-brand-600 ring-2 ring-brand-500/20'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
               }`}
             >
@@ -369,7 +369,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               onClick={() => handlePaperChange('80mm')}
               className={`py-3 px-3 rounded-2xl border text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 settings.paperWidth === '80mm'
-                  ? 'border-orange-500 bg-orange-50 text-orange-600 ring-2 ring-orange-500/20'
+                  ? 'border-brand-500 bg-brand-50 text-brand-600 ring-2 ring-brand-500/20'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
               }`}
             >
@@ -442,7 +442,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               value={settings.headerText}
               onChange={(e) => setSettings({ ...settings, headerText: e.target.value })}
               placeholder={t('printer.headerPlaceholder')}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-orange-500"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500"
             />
           </div>
 
@@ -455,7 +455,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
               value={settings.footerText}
               onChange={(e) => setSettings({ ...settings, footerText: e.target.value })}
               placeholder={t('printer.footerPlaceholder')}
-              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-orange-500"
+              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-brand-500"
             />
           </div>
 
@@ -495,7 +495,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 sm:py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs shadow-md shadow-orange-500/25 cursor-pointer transition-all active:scale-95"
+              className="flex-1 py-3 sm:py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow-md shadow-brand-500/25 cursor-pointer transition-all active:scale-95"
             >
               {t('common.save')}
             </button>

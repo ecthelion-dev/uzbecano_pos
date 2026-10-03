@@ -86,8 +86,8 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3">
-              <p className="text-[11px] font-medium text-orange-700">{t('shift.netRevenue')}</p>
+            <div className="bg-brand-50 border border-brand-200 rounded-2xl p-3">
+              <p className="text-[11px] font-medium text-brand-700">{t('shift.netRevenue')}</p>
               <p className="text-lg font-bold text-slate-900 mt-0.5">{netRevenue.toLocaleString()} {t('common.currency')}</p>
             </div>
             <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3">
@@ -121,7 +121,7 @@ export const ShiftReportModal: React.FC<ShiftReportModalProps> = ({
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
           <button
             onClick={onPrint}
-            className="w-full sm:w-auto justify-center bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 sm:py-2.5 px-5 rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer active:scale-95"
+            className="w-full sm:w-auto justify-center bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 sm:py-2.5 px-5 rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer active:scale-95"
           >
             <Printer className="w-4 h-4" /> {t('shift.print')}
           </button>

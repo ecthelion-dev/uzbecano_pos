@@ -95,7 +95,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
       <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-t-3xl sm:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-6 max-w-sm w-full shadow-2xl flex flex-col gap-4 border border-slate-200 max-h-[92dvh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-            <Printer className="w-4 h-4 text-orange-500" /> {t('receipt.preview')}
+            <Printer className="w-4 h-4 text-brand-500" /> {t('receipt.preview')}
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-lg font-semibold">×</button>
         </div>
@@ -112,7 +112,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               <h4 className="font-bold text-xl text-slate-900 tracking-wider uppercase">{cafeName || 'ORDERPLUS RESTORAN'}</h4>
             </div>
             {receiptHeader && (
-              <p className="text-xs text-orange-600 font-bold">{receiptHeader}</p>
+              <p className="text-xs text-brand-600 font-bold">{receiptHeader}</p>
             )}
             {cafeAddress && <p className="text-xs text-slate-600 font-medium">{cafeAddress}</p>}
             {cafePhone && <p className="text-xs text-slate-600 font-medium">{cafePhone.startsWith('Tel') ? cafePhone : `Tel: ${cafePhone}`}</p>}
@@ -262,7 +262,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               onClose();
               onPrint();
             }}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 cursor-pointer"
+            className="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-semibold py-3 sm:py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-98 cursor-pointer"
           >
             <Printer className="w-4 h-4" /> {t('common.print')}
           </button>

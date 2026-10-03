@@ -91,7 +91,7 @@ export const UnsavedCartModal: React.FC<UnsavedCartModalProps> = ({
             ))}
             <div className="flex justify-between items-center text-xs font-bold text-slate-900 pt-2 border-t border-slate-300/80 mt-1">
               <span>{t('unsaved.cartTotal')}</span>
-              <span className="text-orange-600 font-extrabold">{subtotal.toLocaleString()} {t('common.currency')}</span>
+              <span className="text-brand-600 font-extrabold">{subtotal.toLocaleString()} {t('common.currency')}</span>
             </div>
           </div>
         )}

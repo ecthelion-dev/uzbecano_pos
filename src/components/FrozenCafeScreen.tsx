@@ -59,7 +59,7 @@ export const FrozenCafeScreen: React.FC<FrozenCafeScreenProps> = ({ cafeName, on
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => openExternal('https://orderplus.uz/admin', e)}
-            className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 cursor-pointer transition-all"
+            className="w-full py-3.5 bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-600 hover:to-brand-800 text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 cursor-pointer transition-all"
           >
             <span>{t('frozen.toAdmin')}</span>
             <ExternalLink className="w-4 h-4" />

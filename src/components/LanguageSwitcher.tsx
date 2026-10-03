@@ -81,7 +81,7 @@ export default function LanguageSwitcher({ className = '' }: { className?: strin
                 }}
                 className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors cursor-pointer ${
                   active
-                    ? 'bg-orange-50 text-orange-600 font-semibold'
+                    ? 'bg-brand-50 text-brand-600 font-semibold'
                     : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >

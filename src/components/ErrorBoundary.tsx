@@ -63,7 +63,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col sm:flex-row gap-2 w-full mt-2">
               <button
                 onClick={this.handleReload}
-                className="flex-1 flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition cursor-pointer"
               >
                 <RotateCw className="w-4 h-4" />
                 Qayta yuklash

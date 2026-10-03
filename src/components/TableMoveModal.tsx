@@ -55,7 +55,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3 sm:pb-4">
           <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-            <div className="bg-orange-100 p-2 sm:p-3 rounded-2xl text-orange-600 shadow-sm shrink-0">
+            <div className="bg-brand-100 p-2 sm:p-3 rounded-2xl text-brand-600 shadow-sm shrink-0">
               <Shuffle className="w-5 h-5 sm:w-7 sm:h-7" />
             </div>
             <div>
@@ -86,7 +86,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
             <button
               onClick={() => setIsMerge(false)}
               className={`py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                !isMerge ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                !isMerge ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20' : 'text-slate-600 hover:bg-white hover:text-slate-900'
               }`}
             >
               <ArrowRight className="w-4 h-4" />
@@ -95,7 +95,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
             <button
               onClick={() => setIsMerge(true)}
               className={`py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                isMerge ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                isMerge ? 'bg-brand-500 text-white shadow-md shadow-brand-500/20' : 'text-slate-600 hover:bg-white hover:text-slate-900'
               }`}
             >
               <Merge className="w-4 h-4" />
@@ -109,7 +109,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
             <select
               value={targetTable}
               onChange={(e) => setTargetTable(e.target.value)}
-              className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3.5 text-base font-semibold text-slate-900 focus:outline-none focus:border-orange-500 focus:bg-white transition-all shadow-2xs cursor-pointer"
+              className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3.5 text-base font-semibold text-slate-900 focus:outline-none focus:border-brand-500 focus:bg-white transition-all shadow-2xs cursor-pointer"
             >
               <option value="">{t('table.selectTable')}</option>
               {availableTables.map((t) => {
@@ -133,7 +133,7 @@ export const TableMoveModal: React.FC<TableMoveModalProps> = ({
         <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3 pt-3 border-t border-slate-100">
           <button
             onClick={handleSubmit}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base shadow-lg shadow-orange-500/20 transition-all cursor-pointer active:scale-98"
+            className="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base shadow-lg shadow-brand-500/20 transition-all cursor-pointer active:scale-98"
           >
             {isMerge ? 'BIRLASHTIRISH' : 'KO\'CHIRISH'}
           </button>

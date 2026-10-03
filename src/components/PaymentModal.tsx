@@ -153,7 +153,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               }}
               className={`h-12 rounded-xl text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 payMode === 'payment' && entered === grandTotal
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  ? 'bg-brand-500 text-white border-brand-500 shadow-sm'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
             >
@@ -168,7 +168,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               }}
               className={`h-12 rounded-xl text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 payMode === 'payment' && entered === 0
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  ? 'bg-brand-500 text-white border-brand-500 shadow-sm'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
             >
@@ -180,7 +180,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               onClick={() => setPayMode('debt')}
               className={`h-12 rounded-xl text-sm font-bold border transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 payMode === 'debt'
-                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                  ? 'bg-brand-500 text-white border-brand-500 shadow-sm'
                   : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
             >
@@ -294,7 +294,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <button
               type="button"
               onClick={confirm}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3.5 rounded-2xl text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               <Check className="w-4 h-4" /> {t('cart.payAndClose')}
             </button>
@@ -303,7 +303,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               type="button"
               onClick={confirmDebt}
               disabled={!debtName.trim()}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-2xl text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-2xl text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               <Check className="w-4 h-4" /> {t('cart.debtClose')}
             </button>

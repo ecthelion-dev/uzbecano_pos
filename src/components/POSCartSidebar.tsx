@@ -180,7 +180,7 @@ export const POSCartSidebar: React.FC<POSCartSidebarProps> = ({
             <button
               onClick={() => onCloseTable()}
               disabled={activeTableOrderItems.length === 0 && cart.length === 0}
-              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-2xl text-[11px] uppercase tracking-wide transition-all shadow-xs active:scale-95 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer h-13"
+              className="bg-brand-500 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-2xl text-[11px] uppercase tracking-wide transition-all shadow-xs active:scale-95 flex flex-col items-center justify-center text-center gap-1.5 cursor-pointer h-13"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{t('cart.payAndClose')}</span>

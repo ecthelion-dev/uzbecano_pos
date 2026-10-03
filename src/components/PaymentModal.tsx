@@ -246,7 +246,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   value={debtName}
                   onChange={(e) => setDebtName(e.target.value)}
                   placeholder={t('cart.debtCustomerPlaceholder')}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-brand-500 outline-none"
                   autoFocus
                 />
               </div>
@@ -259,7 +259,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   value={debtPhone}
                   onChange={(e) => setDebtPhone(e.target.value)}
                   placeholder="+998 90 123 45 67"
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-brand-500 outline-none"
                 />
               </div>
               <div>
@@ -270,7 +270,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   type="datetime-local"
                   value={debtDueDate}
                   onChange={(e) => setDebtDueDate(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-brand-500 outline-none"
                 />
               </div>
               <div>
@@ -282,7 +282,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   value={debtNote}
                   onChange={(e) => setDebtNote(e.target.value)}
                   placeholder={t('cart.debtNotePlaceholder')}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:border-brand-500 outline-none"
                 />
               </div>
             </div>

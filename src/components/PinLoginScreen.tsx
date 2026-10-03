@@ -49,12 +49,9 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
       <div className="p-5 max-w-[288px] w-full flex flex-col items-center gap-3.5 relative">
         {/* Header */}
         <div className="flex flex-col items-center gap-2 text-center w-full">
-          <div className="flex items-center gap-3">
-            <img src="/favicon.png" alt="OrderPlus" className="w-9 h-9 object-contain" />
-            <h1 className="text-lg font-bold tracking-wider text-slate-900">
-              ORDER<span className="text-brand-500">PLUS</span>
-            </h1>
-          </div>
+          <h1>
+            <img src="/main-logo.svg" alt="INCOME POS System" className="h-11 w-auto" />
+          </h1>
 
           {/* Current Cafe Badge */}
           <button
@@ -133,7 +130,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
 
         {/* Footer */}
         <div className="text-center pt-3 border-t border-slate-200 w-full flex items-center justify-between text-[11px] text-slate-500">
-          <span>OrderPlus POS</span>
+          <span>INCOME POS</span>
           <button
             onClick={() => {
               setInputCafeId(currentCafeId);

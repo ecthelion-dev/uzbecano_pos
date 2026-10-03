@@ -482,7 +482,7 @@ export const ru: Record<TranslationKey, string> = {
   'print.thanksBuy': 'Спасибо за покупку!',
   'print.thanksVisit': 'Спасибо за визит!',
   'print.welcome': 'Добро пожаловать!',
-  'print.system': 'Система OrderPlus POS',
+  'print.system': 'Система INCOME POS',
   'print.kitchenTitle': 'ЗАКАЗ НА КУХНЮ',
   'print.tableWord': 'Стол',
   'print.tableUpper': 'СТОЛ',

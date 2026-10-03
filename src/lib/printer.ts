@@ -713,7 +713,7 @@ function buildReceiptLayout(
 
   // 1. Logotip va kafe nomi
   lines.push({ kind: 'logo' });
-  lines.push({ kind: 'banner', text: cafeName || 'OrderPlus', bold: true, big: true });
+  lines.push({ kind: 'banner', text: cafeName || 'INCOME', bold: true, big: true });
   lines.push({ kind: 'banner', text: settings.headerText || t('print.welcome') });
   row();
 

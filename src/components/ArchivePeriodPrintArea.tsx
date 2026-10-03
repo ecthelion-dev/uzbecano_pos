@@ -203,7 +203,7 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
 
         {/* Davr ma'lumotlari */}
         <div className="space-y-0.5 pb-1.5 border-b border-dashed border-slate-900">
-          <InfoRow label={t('print.cafe')} value={cafeName || 'ORDERPLUS'} />
+          <InfoRow label={t('print.cafe')} value={cafeName || 'INCOME'} />
           <InfoRow label={t('print.waiter')} value={report.waiterLabel} />
           <InfoRow label={t('print.periodFrom')} value={fmtDateTime(data.from, locale)} />
           <InfoRow label={t('print.periodTo')} value={fmtDateTime(data.to, locale)} />
@@ -313,7 +313,7 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
         )}
 
         <div className="text-center text-[10px] font-medium text-slate-600 print-text-dark pt-1">
-          {fmtDateTime(new Date(), locale)} · OrderPlus POS
+          {fmtDateTime(new Date(), locale)} · INCOME POS
         </div>
       </div>
     </div>,

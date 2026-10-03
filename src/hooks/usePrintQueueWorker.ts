@@ -41,7 +41,7 @@ export function usePrintQueueWorker({
       let why: string | null = null;
       try {
         if (job.kind === 'receipt' && job.order) {
-          ok = await printReceiptDirect(job.order, connectedCafeName || 'OrderPlus');
+          ok = await printReceiptDirect(job.order, connectedCafeName || 'INCOME');
           if (!ok) why = getLastPrintError() || t('toast.printFailed');
         } else if (job.kind === 'kitchen') {
           const extra = job.payload ? JSON.parse(job.payload) : null;
@@ -52,7 +52,7 @@ export function usePrintQueueWorker({
             time: extra?.time,
             slipNumber: extra?.slipNumber,
           };
-          ok = await printKitchenSlipDirect(data, connectedCafeName || 'OrderPlus');
+          ok = await printKitchenSlipDirect(data, connectedCafeName || 'INCOME');
           if (!ok) why = getLastPrintError() || t('toast.printFailed');
         } else {
           why = t('toast.orderNotFound');

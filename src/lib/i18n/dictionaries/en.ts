@@ -482,7 +482,7 @@ export const en: Record<TranslationKey, string> = {
   'print.thanksBuy': 'Thank you for your purchase!',
   'print.thanksVisit': 'Thank you for visiting!',
   'print.welcome': 'Welcome!',
-  'print.system': 'OrderPlus POS system',
+  'print.system': 'INCOME POS system',
   'print.kitchenTitle': 'KITCHEN ORDER',
   'print.tableWord': 'Table',
   'print.tableUpper': 'TABLE',

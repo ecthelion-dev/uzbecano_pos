@@ -58,7 +58,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   return (
     <header className="bg-white border-b border-slate-200 px-2 sm:px-6 py-2 sm:py-3 flex items-center justify-between shadow-sm sticky top-0 z-50 gap-1.5 sm:gap-4 shrink-0 relative">
       {/* Connected Cafe Brand */}
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-none" title={connectedCafeName || 'OrderPlus'}>
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-none" title={connectedCafeName || 'INCOME'}>
         {connectedCafeLogo ? (
           <img
             src={connectedCafeLogo}
@@ -72,9 +72,9 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         )}
         <div className="min-w-0">
           <h1 className="text-sm sm:text-lg font-bold tracking-wide text-slate-900 leading-none truncate max-w-[200px] sm:max-w-[320px]">
-            {connectedCafeName || 'OrderPlus'}
+            {connectedCafeName || 'INCOME'}
           </h1>
-          <p className="text-[10px] text-slate-500 font-medium mt-0.5">OrderPlus POS</p>
+          <p className="text-[10px] text-slate-500 font-medium mt-0.5">INCOME POS</p>
         </div>
       </div>
 

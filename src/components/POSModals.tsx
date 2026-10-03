@@ -363,7 +363,7 @@ export const POSModals: React.FC<POSModalsProps> = ({
 
       <ArchivePeriodPrintArea
         data={periodPrint}
-        cafeName={cafeName || 'ORDERPLUS'}
+        cafeName={cafeName || 'INCOME'}
         cafeLogo={cafeLogo}
       />
 

@@ -39,7 +39,7 @@ const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
  *     id bilan saqlab, ekranda tarjima qilish; u alohida ish.
  */
 const ALLOWED = [
-  /^OrderPlus/,
+  /^INCOME/,
   /^PLUS$/,
   // Faqat uskuna nomining o'zi. Ilgari bu `/^Bluetooth/` edi va shu so'z
   // bilan boshlangan HAR QANDAY jumlani o'tkazib yuborardi — "Bluetooth

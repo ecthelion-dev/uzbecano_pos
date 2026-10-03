@@ -107,9 +107,9 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               {cafeLogo ? (
                 <img src={cafeLogo} alt={cafeName} className="w-12 h-12 rounded-xl object-contain mx-auto" />
               ) : (
-                <img src="/favicon.png" alt="OrderPlus" className="w-10 h-10 object-contain mx-auto" />
+                <img src="/favicon.png" alt="INCOME" className="w-10 h-10 object-contain mx-auto" />
               )}
-              <h4 className="font-bold text-xl text-slate-900 tracking-wider uppercase">{cafeName || 'ORDERPLUS RESTORAN'}</h4>
+              <h4 className="font-bold text-xl text-slate-900 tracking-wider uppercase">{cafeName || 'INCOME RESTORAN'}</h4>
             </div>
             {receiptHeader && (
               <p className="text-xs text-brand-600 font-bold">{receiptHeader}</p>
@@ -252,7 +252,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
           <div className="text-center pt-2 text-xs text-slate-500 font-sans">
             <p className="font-medium">{t('print.thanksVisit')}</p>
-            <p className="text-[10px] mt-0.5 text-slate-400">OrderPlus POS v1.0</p>
+            <p className="text-[10px] mt-0.5 text-slate-400">INCOME POS v1.0</p>
           </div>
         </div>
 

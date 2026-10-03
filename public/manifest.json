@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "OrderPlus POS",
-  "short_name": "OrderPlus",
-  "description": "OrderPlus POS Restoran Kassa va Buyurtma Tizimi",
+  "name": "INCOME POS",
+  "short_name": "INCOME",
+  "description": "INCOME POS Restoran Kassa va Buyurtma Tizimi",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

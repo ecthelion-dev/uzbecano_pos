@@ -496,7 +496,7 @@ export const uz = {
   'print.thanksBuy': 'Xaridingiz uchun rahmat!',
   'print.thanksVisit': 'Tashrifingiz uchun rahmat!',
   'print.welcome': 'Xush kelibsiz!',
-  'print.system': 'OrderPlus POS tizimi',
+  'print.system': 'INCOME POS tizimi',
   'print.kitchenTitle': 'OSHXONA BUYURTMASI',
   'print.tableWord': 'Stol',
   'print.tableUpper': 'STOL',

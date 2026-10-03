@@ -384,7 +384,7 @@ export default function App() {
 
   // Chek logotipini oldindan dekodlab qo'yamiz: chek yig'ilishi sinxron, ya'ni
   // chop etish payti rasm yuklashni kutib turolmaydi. Kafe logotipi bo'lmasa
-  // OrderPlus belgisi ketadi — u ilova bilan birga keladi va har doim bor.
+  // INCOME belgisi ketadi — u ilova bilan birga keladi va har doim bor.
   useEffect(() => {
     void setReceiptLogo(connectedCafeLogo || '/favicon.png');
   }, [connectedCafeLogo]);
@@ -1631,7 +1631,7 @@ export default function App() {
         }
       }
 
-      const ok = await printKitchenSlipDirect(kitchenSlipData, connectedCafeName || 'OrderPlus');
+      const ok = await printKitchenSlipDirect(kitchenSlipData, connectedCafeName || 'INCOME');
       if (cancelled) return;
       if (ok) {
         setKitchenSlipData(null);
@@ -1749,7 +1749,7 @@ export default function App() {
           return;
         }
       }
-      await executePrintReceipt(closedOrder, connectedCafeName || 'OrderPlus', (why) => {
+      await executePrintReceipt(closedOrder, connectedCafeName || 'INCOME', (why) => {
         // Qog'oz chiqmadi. Kassir buni stol yopilgan zahoti bilishi kerak:
         // chekni keyinroq arxivdan qayta bosish mumkin, lekin buning uchun
         // avval chiqmaganini bilish kerak.
@@ -1785,7 +1785,7 @@ export default function App() {
       // Navbatga yozilmadi — chek yo'qolmasin, brauzer yo'liga tushamiz.
     }
 
-    const ok = await printReceiptDirect(order, connectedCafeName || 'OrderPlus');
+    const ok = await printReceiptDirect(order, connectedCafeName || 'INCOME');
     if (!ok) {
       const why = getLastPrintError();
       if (why) {
@@ -1794,7 +1794,7 @@ export default function App() {
       }
       // `window.print()` emas: u butun sahifani qog'ozga oladi. Chek termal
       // printerdagi maketning aynan o'zi bo'lib, alohida hujjatda chiqadi.
-      await printReceiptViaBrowser(order, connectedCafeName || 'OrderPlus');
+      await printReceiptViaBrowser(order, connectedCafeName || 'INCOME');
     }
   }, [connectedCafeName, getAuthHeaders]);
 
@@ -2044,7 +2044,7 @@ export default function App() {
           const data: any = await res.json().catch(() => ({}));
           if (res.ok && data.success) {
             const matchedCafeId = data.cafe?.slug || data.cafe?.id || DEFAULT_CAFE_ID;
-            const matchedCafeName = data.cafe?.name || 'OrderPlus Restoran';
+            const matchedCafeName = data.cafe?.name || 'INCOME Restoran';
             const matchedCafeLogo = data.cafe?.logo || '';
 
             writeGlobalText('cafeId', matchedCafeId);

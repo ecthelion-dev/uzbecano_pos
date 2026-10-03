@@ -1,11 +1,11 @@
 import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
-import type { CartItem, DBOrder, DBWaiter } from '../types';
+import type { CartItem, DBOrder, DBWaiter, KitchenSlipData } from '../types';
 import { orderTotals, parsePromoTerms, type PromoTerms } from '../lib/promo';
 import { adoptServerId, cartLineToOrderItem, removeItemPatch, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { fetchWithTimeout } from '../lib/net';
 import { decideFromStatus } from '../lib/syncQueue';
 import { writeCafeJson, readGlobalText } from '../lib/storage';
-
+import { formatClock } from '../lib/timeFormat';
 import { API_BASE_URL, DEFAULT_CAFE_ID } from '../constants';
 
 export interface UseKitchenDispatchParams {
@@ -30,7 +30,7 @@ export interface UseKitchenDispatchParams {
   setOrders: (orders: DBOrder[]) => void;
   setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms | null>>>;
   setTableCarts: Dispatch<SetStateAction<Record<string, CartItem[]>>>;
-
+  setKitchenSlipData: (slip: KitchenSlipData | null) => void;
   setToastMessage: (msg: string | null) => void;
   setApiError: (msg: string | null) => void;
   setStorageBlockingError: (msg: string | null) => void;
@@ -60,7 +60,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
     setOrders,
     setTableDraftPromos,
     setTableCarts,
-
+    setKitchenSlipData,
     setToastMessage,
     setApiError,
     setStorageBlockingError,
@@ -149,7 +149,12 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
       const newItems = cart.map(cartLineToOrderItem);
       let updatedOrders = [...ordersRef.current];
 
+      let kitchenOrderId = '';
+      let kitchenDailyNumber = 0;
+
       if (activeTableOrder) {
+        kitchenOrderId = String(activeTableOrder.id || '');
+        kitchenDailyNumber = Number((activeTableOrder as any).dailyNumber) || 0;
         const itemMap = new Map<string, OutgoingOrderItem>();
         activeTableOrderItems.forEach((i: any, idx: number) => {
           itemMap.set(`${i.name}_${i.note || ''}_${idx}`, sentItemToOrderItem(i));
@@ -166,6 +171,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
         );
 
         const serverOrder = await sendAppendItems(activeTableOrder.id, newItems);
+        kitchenDailyNumber = Number((serverOrder as any)?.dailyNumber) || kitchenDailyNumber;
 
         updatedOrders = updatedOrders.map((o) =>
           o.id !== activeTableOrder.id
@@ -212,6 +218,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
           total: tot,
           status: 'sent_to_kitchen',
         };
+        kitchenOrderId = newOrderObj.id;
 
         if (!isOfflineMode) {
           try {
@@ -231,6 +238,8 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
                 if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
                 if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;
               }
+              kitchenOrderId = newOrderObj.id;
+              kitchenDailyNumber = Number(newOrderObj.dailyNumber) || 0;
             }
           } catch {
             queueOrderForSync(newOrderObj);
@@ -256,7 +265,26 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
       }
       setTableCarts((prev) => ({ ...prev, [selectedTable]: [] }));
 
-
+      /*
+       * Oshxona qog'ozi tasdiqlash bosilishi bilan chiqadi, navbat raqami bilan.
+       *
+       * Raqam SERVERDAN: buyurtmaning kunlik tartib raqami, har kuni 1 dan
+       * boshlanadi va chekdagi raqam bilan bir xil. Kassa o'z hisobini
+       * yuritmaydi — ikkinchi qurilma qo'shilsa bir kunda ikkita "No 7"
+       * chiqardi. Oflayn buyurtmada raqam hali yo'q (u sinxronizatsiyada
+       * beriladi): qog'oz raqamsiz chiqadi, taomlar esa yo'qolmaydi.
+       *
+       * Faqat shu safar qo'shilgan taomlar bosiladi, buyurtmaning hammasi emas.
+       */
+      setKitchenSlipData({
+        orderId: kitchenOrderId,
+        tableNumber: selectedTable,
+        waiterName: currentWaiter?.name || 'Offitsiant',
+        items: newItems,
+        time: formatClock(new Date()),
+        timestamp: new Date().toISOString(),
+        slipNumber: kitchenDailyNumber,
+      });
 
       setToastMessage(t('toast.sentToKitchen'));
       setTimeout(() => setToastMessage(null), 2500);
@@ -283,6 +311,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
     setStorageBlockingError,
     t,
     setTableCarts,
+    setKitchenSlipData,
     setToastMessage,
     setApiError,
     setTableDraftPromos,

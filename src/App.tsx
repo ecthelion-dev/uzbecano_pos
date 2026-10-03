@@ -1928,6 +1928,7 @@ export default function App() {
     setOrders,
     setTableDraftPromos,
     setTableCarts,
+    setKitchenSlipData,
     setToastMessage,
     setApiError,
     setStorageBlockingError,

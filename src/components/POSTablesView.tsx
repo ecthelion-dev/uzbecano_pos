@@ -118,16 +118,15 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
             })}
           </div>
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 sm:ml-auto sm:flex-wrap">
-            {/* Holat ko'rsatkichlari — bosilmaydi, faqat ma'lumot. */}
-            <div className="flex items-center gap-2 sm:gap-3 h-11 bg-white border border-slate-200 rounded-xl px-2 sm:px-4 shadow-xs">
+            {/* Holat ko'rsatkichlari — bosilmaydi, faqat ma'lumot. Telefonda joy tor, kartaning o'zida holat yozilgan. */}
+            <div className="hidden sm:flex items-center gap-3 h-11 bg-white border border-slate-200 rounded-xl px-4 shadow-xs">
               {LEGEND.map((f) => (
                 <span
                   key={f.id}
                   className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 whitespace-nowrap"
                 >
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${f.dot}`} />
-                  {/* Telefonda joy tor: nom yashirin, rang kartadagi belgi bilan bir xil. */}
-                  <span className="sr-only sm:not-sr-only">{f.label}</span>
+                  {f.label}
                   <span className="text-[10px] font-bold tabular-nums text-slate-400">
                     {statusCounts[f.id]}
                   </span>
@@ -138,11 +137,10 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
             <button
               type="button"
               onClick={onOpenReservationModal}
-              aria-label={t('table.reservation')}
-              className="flex items-center justify-center gap-1.5 sm:gap-2 h-11 w-11 sm:w-auto sm:px-4 bg-brand-500 hover:bg-brand-600 active:scale-98 text-white rounded-xl text-[11px] sm:text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0"
+              className="flex items-center justify-center gap-1.5 sm:gap-2 h-11 px-3 sm:px-4 bg-brand-500 hover:bg-brand-600 active:scale-98 text-white rounded-xl text-[11px] sm:text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0"
             >
               <Calendar className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline">{t('table.reservation')}</span>
+              <span>{t('table.reservation')}</span>
             </button>
           </div>
         </div>

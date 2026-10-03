@@ -85,21 +85,21 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
           </span>
           {t('table.layout')}
         </h1>
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 sm:contents">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar sm:contents">
           {/*
             Zonalar sarlavha yonida, bitta qatorga sig'dirilgan kartalar
             ko'rinishida — ular endi nafaqat filtr, balki stollarning qaysi
             qismda turganini ko'rsatadi. "Barchasi" birinchi bo'lib, chunki
             kassa birinchi urinishda butun zaxirani ko'rmoqchi.
           */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 sm:overflow-x-auto sm:no-scrollbar sm:max-w-full">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 sm:overflow-x-auto sm:no-scrollbar sm:max-w-full">
             {areas.map((area) => {
               const areaCount = tables.filter((tb) => area === allAreasLabel || tb.area === area).length;
               return (
                 <button
                   key={area}
                   onClick={() => onSelectArea(area)}
-                  className={`h-11 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 border shadow-xs whitespace-nowrap cursor-pointer ${
+                  className={`h-11 px-2.5 sm:px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 border shadow-xs whitespace-nowrap cursor-pointer ${
                     activeArea === area
                       ? 'bg-brand-500 text-white border-brand-500'
                       : 'bg-white text-slate-700 border-slate-200 hover:border-brand-300 hover:text-brand-700'
@@ -117,16 +117,17 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
               );
             })}
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 sm:ml-auto sm:flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 sm:ml-auto sm:flex-wrap">
             {/* Holat ko'rsatkichlari — bosilmaydi, faqat ma'lumot. */}
-            <div className="flex items-center gap-2 sm:gap-3 h-11 bg-white border border-slate-200 rounded-xl px-2.5 sm:px-4 shadow-xs">
+            <div className="flex items-center gap-2 sm:gap-3 h-11 bg-white border border-slate-200 rounded-xl px-2 sm:px-4 shadow-xs">
               {LEGEND.map((f) => (
                 <span
                   key={f.id}
                   className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 whitespace-nowrap"
                 >
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${f.dot}`} />
-                  {f.label}
+                  {/* Telefonda joy tor: nom yashirin, rang kartadagi belgi bilan bir xil. */}
+                  <span className="sr-only sm:not-sr-only">{f.label}</span>
                   <span className="text-[10px] font-bold tabular-nums text-slate-400">
                     {statusCounts[f.id]}
                   </span>

@@ -52,8 +52,8 @@ jobs:
         with:
           # Reliz faqat teg push qilinganda yaratiladi.
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
-          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('OrderPlus POS {0}', github.ref_name) || '' }}
-          releaseBody: ${{ startsWith(github.ref, 'refs/tags/') && 'OrderPlus POS Windows Desktop Release' || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('INCOME POS {0}', github.ref_name) || '' }}
+          releaseBody: ${{ startsWith(github.ref, 'refs/tags/') && 'INCOME POS Windows Desktop Release' || '' }}
           releaseDraft: false
           prerelease: false
 

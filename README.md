@@ -1,6 +1,6 @@
-# OrderPlus POS
+# INCOME POS
 
-OrderPlus restoran kassa tizimi — brauzerdan o'rnatiladigan PWA. React, Vite, TypeScript va TailwindCSS.
+INCOME restoran kassa tizimi — brauzerdan o'rnatiladigan PWA. React, Vite, TypeScript va TailwindCSS.
 
 Manzil: https://pos.orderplus.uz
 

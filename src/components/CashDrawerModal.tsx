@@ -5,11 +5,12 @@ import { useT } from '../lib/i18n/LanguageProvider';
 import { cashCategoryLabel, normalizeCategory, MAX_CATEGORY_LENGTH } from '../lib/cashCategories';
 import { amountValue, digitsOnly, formatAmount } from '../lib/amountInput';
 import { formatClock } from '../lib/timeFormat';
+import { previousCafeDay } from '../lib/businessDate';
 
 interface CashDrawerModalProps {
   show: boolean;
   transactions: CashTransaction[];
-  onAddTransaction: (category: string, amount: number, note: string) => void;
+  onAddTransaction: (category: string, amount: number, note: string, businessDate?: string) => void;
   onClose: () => void;
 }
 
@@ -27,6 +28,9 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
   const [amount, setAmount] = useState<string>('');
   const [note, setNote] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  // Sut ertalab keldi, bugun hali savdo yo'q: pul kassadan bugun beriladi,
+  // lekin hisobga kechagi savdodan o'tadi.
+  const [forYesterday, setForYesterday] = useState(false);
 
   if (!show) return null;
 
@@ -52,9 +56,10 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
       return;
     }
 
-    onAddTransaction(cleanCategory, numAmount, note.trim());
+    onAddTransaction(cleanCategory, numAmount, note.trim(), forYesterday ? previousCafeDay() : undefined);
     setAmount('');
     setNote('');
+    setForYesterday(false);
     // Turkum ATAYLAB tozalanmaydi: ketma-ket bir nechta xarajat kiritilganda
     // ular ko'pincha bir xil turkumda bo'ladi.
   };
@@ -137,6 +142,17 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
               className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-orange-500"
             />
           </div>
+
+
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={forYesterday}
+              onChange={(e) => setForYesterday(e.target.checked)}
+              className="w-4 h-4 accent-orange-500"
+            />
+            {t('drawer.forYesterday')}
+          </label>
 
           {/*
             Tugmaning o'zi qancha saqlanishini aytadi. Summa maydonda

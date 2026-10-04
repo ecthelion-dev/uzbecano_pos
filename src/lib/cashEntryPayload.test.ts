@@ -26,4 +26,9 @@ describe('buildCashEntryPayload', () => {
   it('kind yuborilmaydi: server uni umumiy xarajat deb oladi', () => {
     expect(buildCashEntryPayload('Sut', 1000, '', 'k')).not.toHaveProperty('kind');
   });
+
+  it('businessDate faqat berilganda yuboriladi', () => {
+    expect(buildCashEntryPayload('Sut', 1000, '', 'k')).not.toHaveProperty('businessDate');
+    expect(buildCashEntryPayload('Sut', 1000, '', 'k', '2026-10-03').businessDate).toBe('2026-10-03');
+  });
 });

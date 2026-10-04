@@ -291,6 +291,7 @@ export const en: Record<TranslationKey, string> = {
   'drawer.totalExpense': 'Total out (-)',
   'drawer.netDiff': 'Net difference',
   'drawer.todayHistory': "Today's movements",
+  'drawer.forYesterday': "From yesterday's sales",
   'drawer.empty': 'No till movements recorded today',
   'drawer.needReason': 'Enter a reason for the cash in or out!',
   'drawer.amountInvalid': 'Enter a valid amount!',

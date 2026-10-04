@@ -17,6 +17,8 @@ export interface CashEntryPayload {
   amount: number;
   note?: string;
   idempotencyKey: string;
+  /** Faqat kechagi savdo hisobiga yozilganda: kassa hisoblagan `YYYY-MM-DD`. */
+  businessDate?: string;
 }
 
 export function buildCashEntryPayload(
@@ -24,6 +26,7 @@ export function buildCashEntryPayload(
   amount: number,
   note: string,
   idempotencyKey: string = crypto.randomUUID(),
+  businessDate?: string,
 ): CashEntryPayload {
   return {
     type: 'chiqim',
@@ -31,5 +34,6 @@ export function buildCashEntryPayload(
     amount,
     note: note.trim() || undefined,
     idempotencyKey,
+    ...(businessDate ? { businessDate } : {}),
   };
 }

@@ -304,6 +304,7 @@ export const uz = {
   'drawer.totalExpense': 'Jami chiqim (-)',
   'drawer.netDiff': 'Sof farq',
   'drawer.todayHistory': 'Bugungi harakatlar tarixi',
+  'drawer.forYesterday': 'Kechagi savdo hisobidan',
   'drawer.empty': 'Bugun kassa harakatlari qayd etilmagan',
   'drawer.needReason': 'Xarajat yoki kirim sababini kiriting!',
   'drawer.amountInvalid': "Summani to'g'ri kiriting!",

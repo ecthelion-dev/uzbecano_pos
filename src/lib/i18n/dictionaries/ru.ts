@@ -291,6 +291,7 @@ export const ru: Record<TranslationKey, string> = {
   'drawer.totalExpense': 'Всего расход (-)',
   'drawer.netDiff': 'Чистая разница',
   'drawer.todayHistory': 'История операций за сегодня',
+  'drawer.forYesterday': 'Из вчерашней выручки',
   'drawer.empty': 'Сегодня операций по кассе не было',
   'drawer.needReason': 'Укажите причину расхода или прихода!',
   'drawer.amountInvalid': 'Введите корректную сумму!',

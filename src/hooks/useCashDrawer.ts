@@ -77,7 +77,7 @@ export function useCashDrawer({
     else open();
   }, [show, close, open]);
 
-  const addTransaction = useCallback(async (category: string, amount: number, note: string) => {
+  const addTransaction = useCallback(async (category: string, amount: number, note: string, businessDate?: string) => {
     const newTx: CashTransaction = {
       id: `tx_${Date.now()}`,
       type: 'chiqim',
@@ -91,7 +91,7 @@ export function useCashDrawer({
     setTransactions(updated);
     writeCafeJson(getActiveCafeId(), 'cash_transactions', updated);
 
-    const payload = buildCashEntryPayload(category, amount, note);
+    const payload = buildCashEntryPayload(category, amount, note, undefined, businessDate);
     const label = cashCategoryLabel(category);
 
     if (isOfflineMode) {

@@ -20,6 +20,7 @@ function setup() {
     onMenu: vi.fn(),
     toggleArchive: vi.fn(),
     toggleShiftReport: vi.fn(),
+    toggleCashDrawer: vi.fn(),
     onEscape: vi.fn(),
   };
   render(<Harness handlers={handlers} />);
@@ -35,6 +36,17 @@ describe('usePosShortcuts', () => {
 
     fireEvent.keyDown(window, { key: 'F2' });
     expect(h.onMenu).toHaveBeenCalledTimes(1);
+  });
+
+  it('F5 kassa xarajatlari oynasini almashtiradi, matn terilayotganda esa emas', () => {
+    const h = setup();
+
+    fireEvent.keyDown(window, { key: 'F5' });
+    expect(h.toggleCashDrawer).toHaveBeenCalledTimes(1);
+
+    screen.getByLabelText('izoh').focus();
+    fireEvent.keyDown(window, { key: 'F5' });
+    expect(h.toggleCashDrawer).toHaveBeenCalledTimes(1);
   });
 
   it('F3 va F4 oynalarni ochadi/yopadi (toggle)', () => {
@@ -95,6 +107,7 @@ describe('usePosShortcuts', () => {
       onMenu: vi.fn(),
       toggleArchive: vi.fn(),
       toggleShiftReport: vi.fn(),
+      toggleCashDrawer: vi.fn(),
       onEscape: vi.fn(),
     };
     const { rerender } = render(<Harness handlers={handlers} />);

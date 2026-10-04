@@ -174,3 +174,14 @@ export interface DBReservation {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface CashTransaction {
+  id: string;
+  type: 'kirim' | 'chiqim';
+  /** Turkum ro'yxati: src/lib/cashCategories.ts */
+  category: string;
+  amount: number;
+  note: string;
+  createdAt: string;
+  createdBy: string;
+}

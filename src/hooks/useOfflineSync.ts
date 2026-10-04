@@ -132,6 +132,29 @@ export function useOfflineSync({
     refreshUnsynced();
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue, refreshUnsynced]);
 
+  /*
+   * Kassa xarajati serverga yetmasa navbatda qoladi: internet uzilganda ham
+   * sut sotib olinaveradi, o'sha payt yozib qo'yolmasa kassir keyin esdan
+   * chiqaradi. Tasdiq tokeni navbat bilan birga diskka tushadi — usiz aloqa
+   * tiklanganda server yozuvni rad etardi va oflayn kiritilgan xarajat
+   * yo'qolib ketardi.
+   */
+  const queueCashForSync = useCallback((entry: unknown, label?: string, approvalToken?: string) => {
+    const cafeId = getActiveCafeId();
+    const queue = readSyncQueue(cafeId);
+    queue.push({
+      kind: 'cash',
+      qid: newQueueId(),
+      queuedAt: Date.now(),
+      actor: actorName(cafeId),
+      entry,
+      label,
+      approvalToken,
+    });
+    writeSyncQueue(cafeId, queue);
+    refreshUnsynced();
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
+
   const queueDeleteForSync = useCallback((orderId: string, label?: string) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
@@ -289,6 +312,7 @@ export function useOfflineSync({
     queuePatchForSync,
     dequeueSyncItem,
     queueDeleteForSync,
+    queueCashForSync,
     sendAppendItems,
     syncOfflineOrders,
     retryFailedSync,

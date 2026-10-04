@@ -6,6 +6,7 @@ import { KitchenPrintArea } from './KitchenPrintArea';
 import { ReceiptPreviewModal } from './ReceiptPreviewModal';
 import { ArchiveModal } from './ArchiveModal';
 import { ShiftReportModal } from './ShiftReportModal';
+import { CashDrawerModal } from './CashDrawerModal';
 import { AdminPinModal } from './AdminPinModal';
 import { TableMoveModal } from './TableMoveModal';
 import { ProductModifierModal } from './ProductModifierModal';
@@ -23,6 +24,7 @@ import type {
   KitchenSlipData,
   DBReservation,
   DebtCustomerInfo,
+  CashTransaction,
   ProductVariant,
 } from '../types';
 import type { SyncVerdict } from '../lib/syncHealth';
@@ -68,6 +70,13 @@ export interface POSModalsProps {
   shiftBacklog?: SyncVerdict;
   onRetryFailedSync: () => void;
   onPrintShiftReport: () => void;
+
+  // Kassa xarajatlari
+  showCashDrawer: boolean;
+  cashTransactions: CashTransaction[];
+  knownCashCategories: string[];
+  onAddCashTransaction: (category: string, amount: number, note: string) => void;
+  onCloseCashDrawer: () => void;
 
   // Product Modifier
   selectedModifierProduct: DBProduct | null;
@@ -177,6 +186,11 @@ export const POSModals: React.FC<POSModalsProps> = ({
   shiftBacklog,
   onRetryFailedSync,
   onPrintShiftReport,
+  showCashDrawer,
+  cashTransactions,
+  knownCashCategories,
+  onAddCashTransaction,
+  onCloseCashDrawer,
 
   selectedModifierProduct,
   onCloseModifier,
@@ -281,6 +295,14 @@ export const POSModals: React.FC<POSModalsProps> = ({
         onRetryFailed={onRetryFailedSync}
         onClose={onCloseShiftReport}
         onPrint={onPrintShiftReport}
+      />
+
+      <CashDrawerModal
+        show={showCashDrawer}
+        transactions={cashTransactions}
+        knownCategories={knownCashCategories}
+        onAddTransaction={onAddCashTransaction}
+        onClose={onCloseCashDrawer}
       />
 
       <ProductModifierModal

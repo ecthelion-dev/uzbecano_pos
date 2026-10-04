@@ -9,6 +9,8 @@ export interface PosShortcutHandlers {
   toggleArchive: () => void;
   /** F4 — smena hisoboti (ochiladi/yopiladi). */
   toggleShiftReport: () => void;
+  /** F5 — kassa xarajatlari oynasi (PIN bilan ochiladi, ochiq bo'lsa yopiladi). */
+  toggleCashDrawer: () => void;
   /** ESC — ochiq oynalar yopiladi. */
   onEscape: () => void;
 }
@@ -61,6 +63,10 @@ export function usePosShortcuts(handlers: PosShortcutHandlers) {
         case 'F4':
           e.preventDefault();
           ref.current.toggleShiftReport();
+          break;
+        case 'F5':
+          e.preventDefault();
+          ref.current.toggleCashDrawer();
           break;
         case 'Escape':
           ref.current.onEscape();

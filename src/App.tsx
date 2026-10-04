@@ -57,6 +57,7 @@ import { useTableHolds } from './hooks/useTableHolds';
 import { useTableMove } from './hooks/useTableMove';
 import { usePosShortcuts } from './hooks/usePosShortcuts';
 import { useOfflineSync } from './hooks/useOfflineSync';
+import { useCashDrawer } from './hooks/useCashDrawer';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -985,6 +986,7 @@ export default function App() {
     queuePatchForSync,
     dequeueSyncItem,
     queueDeleteForSync,
+    queueCashForSync,
     sendAppendItems,
     syncOfflineOrders,
     retryFailedSync,
@@ -1146,13 +1148,28 @@ export default function App() {
     getAuthHeaders,
   });
 
-  // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, ESC: Close)
+  // Kassa xarajatlari oynasi: rahbar PIN kodi bilan ochiladi (hooks/useCashDrawer.ts).
+  const cashDrawer = useCashDrawer({
+    getActiveCafeId,
+    getAuthHeaders,
+    requestAdminPin,
+    isOfflineMode,
+    currentWaiterName: currentWaiter?.name || '',
+    queueCashForSync,
+    onSaved: () => {
+      setToastMessage(t('drawer.savedExpense'));
+      window.setTimeout(() => setToastMessage(null), 2500);
+    },
+  });
+
+  // Global Keyboard Shortcuts (F1: Stollar, F2: Menyu, F3: Arxiv, F4: Z-Hisobot, F5: Xarajatlar, ESC: Close)
   // Mantiq `hooks/usePosShortcuts.ts` da: u yerda test bilan qulflangan.
   usePosShortcuts({
     onTables: () => setActiveTab('stollar'),
     onMenu: () => setActiveTab('menyu'),
     toggleArchive: () => setShowArchiveModal(prev => !prev),
     toggleShiftReport: () => setShowShiftReport(prev => !prev),
+    toggleCashDrawer: cashDrawer.toggle,
     onEscape: () => {
       setShowMobileCart(false);
       setShowMobileSearch(false);
@@ -1161,6 +1178,7 @@ export default function App() {
       setShowShiftReport(false);
       setShowTableMoveModal(false);
       setShowUnsavedCartModal(false);
+      cashDrawer.close();
     },
   });
 
@@ -2194,6 +2212,7 @@ export default function App() {
         }}
         onOpenArchive={() => setShowArchiveModal(true)}
         onOpenPrinterSettings={() => setShowPrinterModal(true)}
+        onOpenCashDrawer={cashDrawer.open}
         onRefreshOrders={handleManualRefresh}
         isLoading={loading}
         currentWaiter={currentWaiter}
@@ -2422,6 +2441,11 @@ export default function App() {
         shiftBacklog={shiftBacklog}
         onRetryFailedSync={retryFailedSync}
         onPrintShiftReport={() => window.print()}
+        showCashDrawer={cashDrawer.show}
+        cashTransactions={cashDrawer.transactions}
+        knownCashCategories={cashDrawer.knownCategories}
+        onAddCashTransaction={cashDrawer.addTransaction}
+        onCloseCashDrawer={cashDrawer.close}
 
         selectedModifierProduct={selectedModifierProduct}
         onCloseModifier={() => setSelectedModifierProduct(null)}

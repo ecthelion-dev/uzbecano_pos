@@ -74,7 +74,6 @@ export interface POSModalsProps {
   // Kassa xarajatlari
   showCashDrawer: boolean;
   cashTransactions: CashTransaction[];
-  knownCashCategories: string[];
   onAddCashTransaction: (category: string, amount: number, note: string) => void;
   onCloseCashDrawer: () => void;
 
@@ -188,7 +187,6 @@ export const POSModals: React.FC<POSModalsProps> = ({
   onPrintShiftReport,
   showCashDrawer,
   cashTransactions,
-  knownCashCategories,
   onAddCashTransaction,
   onCloseCashDrawer,
 
@@ -300,7 +298,6 @@ export const POSModals: React.FC<POSModalsProps> = ({
       <CashDrawerModal
         show={showCashDrawer}
         transactions={cashTransactions}
-        knownCategories={knownCashCategories}
         onAddTransaction={onAddCashTransaction}
         onClose={onCloseCashDrawer}
       />

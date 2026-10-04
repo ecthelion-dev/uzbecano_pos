@@ -9,8 +9,6 @@ import { formatClock } from '../lib/timeFormat';
 interface CashDrawerModalProps {
   show: boolean;
   transactions: CashTransaction[];
-  /** Ilgari ishlatilgan turkum nomlari — tugma bo'lib chiqadi. */
-  knownCategories: string[];
   onAddTransaction: (category: string, amount: number, note: string) => void;
   onClose: () => void;
 }
@@ -18,7 +16,6 @@ interface CashDrawerModalProps {
 export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
   show,
   transactions,
-  knownCategories,
   onAddTransaction,
   onClose,
 }) => {
@@ -110,30 +107,6 @@ export const CashDrawerModal: React.FC<CashDrawerModalProps> = ({
             onChange={(e) => setCategory(e.target.value)}
             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-900 placeholder:font-medium placeholder:text-slate-400 focus:outline-none focus:border-orange-500"
           />
-
-          {/*
-            Ilgari yozilgan nomlar — bir bosishda. Har safar qaytadan terish
-            "Sut" va "sut oldik" degan ikkita turkum hosil qilardi va oylik
-            jamlanma ikkiga bo'linib ketardi.
-          */}
-          {knownCategories.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {knownCategories.slice(0, 12).map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => setCategory(name)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer active:scale-95 ${
-                    normalizeCategory(category).toLocaleLowerCase() === name.toLocaleLowerCase()
-                      ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {/*

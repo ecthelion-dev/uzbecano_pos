@@ -2443,7 +2443,6 @@ export default function App() {
         onPrintShiftReport={() => window.print()}
         showCashDrawer={cashDrawer.show}
         cashTransactions={cashDrawer.transactions}
-        knownCashCategories={cashDrawer.knownCategories}
         onAddCashTransaction={cashDrawer.addTransaction}
         onCloseCashDrawer={cashDrawer.close}
 

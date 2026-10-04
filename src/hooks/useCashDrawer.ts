@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { API_BASE_URL } from '../constants';
 import { fetchWithTimeout } from '../lib/net';
 import { readCafeText, writeCafeJson } from '../lib/storage';
-import { cashCategoryLabel, dedupeCategories } from '../lib/cashCategories';
+import { cashCategoryLabel } from '../lib/cashCategories';
 import { buildCashEntryPayload } from '../lib/cashEntryPayload';
 import type { CashTransaction } from '../types';
 import type { TranslationKey } from '../lib/i18n/dictionaries/uz';
@@ -53,8 +53,6 @@ export function useCashDrawer({
   const [transactions, setTransactions] = useState<CashTransaction[]>(() =>
     readSavedTransactions(getActiveCafeId()),
   );
-  /** Ilgari ishlatilgan turkum nomlari — oynada tugma bo'lib chiqadi. */
-  const [knownCategories, setKnownCategories] = useState<string[]>([]);
 
   /**
    * Kassadan pul olish kafedagi eng oson suiiste'mol qilinadigan amal. Oynaning
@@ -139,18 +137,6 @@ export function useCashDrawer({
           createdAt: r.createdAt,
           createdBy: r.createdBy || '',
         })));
-
-        // Turkumlar alohida so'raladi: bugungi yozuvlardan yig'ilsa, kecha
-        // ishlatilgan nom bugun tugma bo'lib chiqmasdi va kassir uni qaytadan
-        // terib, ikkinchi turkum hosil qilardi.
-        const catRes = await fetchWithTimeout(
-          `${API_BASE_URL}/api/cash-entries/categories`,
-          { cache: 'no-store', headers: getAuthHeaders(approvalToken) },
-        );
-        if (catRes.ok && !cancelled) {
-          const names = await catRes.json();
-          if (Array.isArray(names)) setKnownCategories(dedupeCategories(names));
-        }
       } catch {
         // Serverga yetib bo'lmadi — diskdagi nusxa ekranda qoladi.
       }
@@ -159,5 +145,5 @@ export function useCashDrawer({
     return () => { cancelled = true; };
   }, [show, isOfflineMode, getAuthHeaders, approvalToken]);
 
-  return { show, open, close, toggle, transactions, knownCategories, addTransaction };
+  return { show, open, close, toggle, transactions, addTransaction };
 }

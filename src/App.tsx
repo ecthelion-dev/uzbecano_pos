@@ -387,7 +387,7 @@ export default function App() {
   // chop etish payti rasm yuklashni kutib turolmaydi. Kafe logotipi bo'lmasa
   // INCOME belgisi ketadi — u ilova bilan birga keladi va har doim bor.
   useEffect(() => {
-    void setReceiptLogo(connectedCafeLogo || '/favicon.png');
+    void setReceiptLogo(connectedCafeLogo || '/receipt-logo.png');
   }, [connectedCafeLogo]);
 
   /*

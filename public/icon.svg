@@ -1,22 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!--
-    OrderPlus belgisi.
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="165.91 137.19 778.81 778.81">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+      }
 
-    Bu fayl ilgari butunlay boshqa rasm edi — to'q sariq kvadrat ichida
-    chiziqlar bilan chizilgan sanchqi shakli va sariq nuqta. Loyihaning
-    boshqa hamma joyida esa mana shu to'rt doirali belgi ishlatiladi, ya'ni
-    bitta ilova ikki xil belgi bilan yurardi.
-
-    O'lchamlar favicon.png dan olindi (709px, 512 ga keltirilgan):
-    burchak radiusi 172 -> 124, doira radiusi 123 -> 88.8, markazlar
-    226/481 -> 164/348. Ranglar ham o'sha fayldan o'qildi.
-
-    Kulrang va oq doiralar diagonal bo'yicha joylashgan: chap-yuqori bilan
-    o'ng-past kulrang, qolgan ikkitasi oq.
-  -->
-  <rect width="512" height="512" rx="124" fill="#F7771E"/>
-  <circle cx="164" cy="164" r="88.8" fill="#CCCCCC"/>
-  <circle cx="348" cy="164" r="88.8" fill="#F7F7F7"/>
-  <circle cx="164" cy="348" r="88.8" fill="#F7F7F7"/>
-  <circle cx="348" cy="348" r="88.8" fill="#CCCCCC"/>
+      .cls-2 {
+        fill: #053f5c;
+      }
+    </style>
+  </defs>
+  <rect class="cls-2" x="165.91" y="137.19" width="778.81" height="778.81" rx="96.07" ry="96.07"/>
+  <g>
+    <rect class="cls-1" x="298.34" y="316.34" width="93.44" height="93.45" rx="46.72" ry="46.72"/>
+    <path class="cls-1" d="M812.3,339.7v373.79c0,12.9-10.46,23.36-23.36,23.36h-186.9c-12.9,0-23.36-10.46-23.36-23.36v-140.17c0-12.9-10.46-23.36-23.36-23.36h0c-12.9,0-23.36,10.46-23.36,23.36v140.17c0,12.9-10.46,23.36-23.36,23.36h-186.9c-12.9,0-23.36-10.46-23.36-23.36v-210.26c0-25.8,20.92-46.72,46.72-46.72h0c25.8,0,46.72,20.92,46.72,46.72v116.81c0,12.9,10.46,23.36,23.36,23.36h.02c12.9,0,23.36-10.46,23.36-23.36v-140.17c0-12.9,10.46-23.36,23.36-23.36h186.9c12.9,0,23.36,10.46,23.36,23.36v140.17c0,12.9,10.46,23.36,23.36,23.36h0c12.9,0,23.36-10.46,23.36-23.36v-186.89c0-12.9-10.46-23.36-23.36-23.36h-210.25c-25.81,0-46.73-20.92-46.73-46.73h0c0-25.81,20.92-46.73,46.73-46.73h303.7c12.9,0,23.36,10.46,23.36,23.36Z"/>
+  </g>
 </svg>

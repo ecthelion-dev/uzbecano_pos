@@ -50,7 +50,7 @@ export const PinLoginScreen: React.FC<PinLoginScreenProps> = ({
         {/* Header */}
         <div className="flex flex-col items-center gap-2 text-center w-full">
           <h1>
-            <img src="/main-logo.svg" alt="INCOME POS System" className="h-11 w-auto" />
+            <img src="/main-logo.svg" alt="INCOME POS System" className="h-14 w-auto" />
           </h1>
 
           {/* Current Cafe Badge */}

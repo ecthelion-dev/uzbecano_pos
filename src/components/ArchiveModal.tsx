@@ -343,7 +343,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                   {cafeLogo ? (
                     <img src={cafeLogo} alt={cafeName} className="w-12 h-12 rounded-xl object-contain mx-auto" />
                   ) : (
-                    <img src="/favicon.png" alt="INCOME" className="w-10 h-10 object-contain mx-auto" />
+                    <img src="/receipt-logo.png" alt="INCOME" className="w-10 h-10 object-contain mx-auto" />
                   )}
                   <h4 className="font-bold text-2xl text-slate-900 tracking-wider uppercase">{cafeName || 'INCOME RESTORAN'}</h4>
                 </div>

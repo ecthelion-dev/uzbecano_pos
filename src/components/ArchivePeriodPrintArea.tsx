@@ -190,7 +190,7 @@ export const ArchivePeriodPrintArea: React.FC<ArchivePeriodPrintAreaProps> = ({
         {/* Sarlavha */}
         <div className="text-center pt-1 space-y-1">
           <img
-            src={cafeLogo || '/favicon.png'}
+            src={cafeLogo || '/receipt-logo.png'}
             alt={cafeName}
             /* Termoprinter rasmni nuqtalarga aylantiradi — juda kichigi dog'
                bo'lib chiqadi, shuning uchun 48px. */

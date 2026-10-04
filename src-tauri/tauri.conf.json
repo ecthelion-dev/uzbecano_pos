@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "OrderPlus POS",
+  "productName": "INCOME POS",
   "version": "../package.json",
   "identifier": "uz.orderplus.pos",
   "build": {

@@ -13,3 +13,7 @@ build/
 
 # JetBrains — eski Flutter loyihasidan qolgan sozlamalar
 .idea/
+
+# `tauri icon` yaratadi, lekin kassa faqat Windows uchun yig'iladi
+src-tauri/icons/android/
+src-tauri/icons/ios/

@@ -1,8 +1,9 @@
-import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useRef, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
 import type { CartItem, DBOrder, DBWaiter, KitchenSlipData } from '../types';
 import { orderTotals, parsePromoTerms, type PromoTerms } from '../lib/promo';
 import { adoptServerId, cartLineToOrderItem, removeItemPatch, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { fetchWithTimeout } from '../lib/net';
+import { createExclusive } from '../lib/exclusive';
 import { decideFromStatus } from '../lib/syncQueue';
 import { writeCafeJson, readGlobalText } from '../lib/storage';
 import { formatClock } from '../lib/timeFormat';
@@ -148,7 +149,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
    * oshxonaga qog'oz chiqmaydi: kassir "To'lov va yopish" ni bosgan, "Tasdiqlash"
    * ni emas, ya'ni oshpazga buyruq berilmagan.
    */
-  const handleSendToKitchen = useCallback(async (opts?: { printSlip?: boolean }) => {
+  const sendToKitchen = useCallback(async (opts?: { printSlip?: boolean }) => {
     if (cart.length === 0) return;
     setApiError(null);
     try {
@@ -324,6 +325,14 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
     setApiError,
     setTableDraftPromos,
   ]);
+
+  // "Tasdiqlash" tarmoq javobini kutayotganda qayta bosilsa, oshxonaga ikki
+  // marta ketardi: savat javobdan keyingina bo'shaydi.
+  const exclusive = useRef(createExclusive()).current;
+  const handleSendToKitchen = useCallback(
+    (opts?: { printSlip?: boolean }) => exclusive(() => sendToKitchen(opts)),
+    [exclusive, sendToKitchen],
+  );
 
   return {
     handleSendToKitchen,

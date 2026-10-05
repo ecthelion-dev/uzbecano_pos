@@ -1052,6 +1052,7 @@ export default function App() {
    * ya'ni topshiriqni olib, bosa olmay, navbatdan chiqarib tashlagan bo'lardi
    * — chek esa hech qayerda chiqmasdi.
    */
+  const handledKitchenSlipRef = useRef<unknown>(null);
   const { drainPrintJobs } = usePrintQueueWorker({
     connectedCafeName,
     getAuthHeaders,
@@ -1618,7 +1619,17 @@ export default function App() {
    */
   useEffect(() => {
     if (!kitchenSlipData) return;
-    let cancelled = false;
+    /*
+     * Bir xil kvitansiya ikki marta bosilmasin. Effekt `connectedCafeName` yoki
+     * `getAuthHeaders` o'zgarganda qayta ishga tushadi; chop etish/navbatga
+     * yozish esa bir necha soniya davom etadi. Birinchi nusxa tugamasidan
+     * ikkinchisi boshlansa, bir xil qog'oz ikki marta chiqardi.
+     */
+    if (handledKitchenSlipRef.current === kitchenSlipData) return;
+    handledKitchenSlipRef.current = kitchenSlipData;
+    const slip = kitchenSlipData;
+    // Faqat o'zining kvitansiyasini bo'shatadi: yangisi kelgan bo'lsa unga tegmaydi.
+    const clearSlip = () => setKitchenSlipData((cur) => (cur === slip ? null : cur));
 
     (async () => {
       /*
@@ -1639,9 +1650,8 @@ export default function App() {
             slipNumber: kitchenSlipData.slipNumber,
           },
         );
-        if (cancelled) return;
         if (queued.queued) {
-          setKitchenSlipData(null);
+          clearSlip();
           // Navbatga yozilgani qog'oz chiqqani degani EMAS: kvitansiyani
           // printer ulangan kassa bosadi va u yopiq bo'lishi mumkin.
           setToastMessage(queued.willPrint ? t('toast.kitchenSlipSent') : t('toast.tillClosedKitchen'));
@@ -1651,9 +1661,8 @@ export default function App() {
       }
 
       const ok = await printKitchenSlipDirect(kitchenSlipData, connectedCafeName || 'INCOME');
-      if (cancelled) return;
       if (ok) {
-        setKitchenSlipData(null);
+        clearSlip();
         return;
       }
 
@@ -1665,7 +1674,7 @@ export default function App() {
         done = true;
         window.clearTimeout(timer);
         document.body.classList.remove('printing-kitchen');
-        setKitchenSlipData(null);
+        clearSlip();
       };
       // `afterprint` ba'zi brauzerlarda umuman chaqirilmaydi — taymer zaxira.
       window.addEventListener('afterprint', finish, { once: true });
@@ -1675,10 +1684,8 @@ export default function App() {
       // Uya har qanday holatda bo'shashi shart. U band qolsa keyingi
       // buyurtmalar ham chop etilmaydi — bitta xato butun oqimni to'xtatadi.
       console.warn('Oshxona kvitansiyasi chop etilmadi:', e);
-      if (!cancelled) setKitchenSlipData(null);
+      clearSlip();
     });
-
-    return () => { cancelled = true; };
   }, [kitchenSlipData, connectedCafeName, getAuthHeaders]);
 
   /**

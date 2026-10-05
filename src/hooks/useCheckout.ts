@@ -1,10 +1,11 @@
-import { useCallback, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useRef, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
 import type { CartItem, DBOrder, DBWaiter, DebtCustomerInfo } from '../types';
 import { orderTotals, parsePromoTerms, type PromoTerms } from '../lib/promo';
 import { splitPayment } from '../lib/payment';
 import { adoptServerId, cartLineToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { writeCafeJson } from '../lib/storage';
 import { fetchWithTimeout } from '../lib/net';
+import { createExclusive } from '../lib/exclusive';
 import { API_BASE_URL, isActiveOrder } from '../constants';
 
 export interface UseCheckoutParams {
@@ -66,7 +67,7 @@ export function useCheckout(params: UseCheckoutParams) {
     t,
   } = params;
 
-  const handleCloseTable = useCallback(
+  const closeTable = useCallback(
     async (
       tableNum?: string,
       skipConfirm = false,
@@ -348,6 +349,14 @@ export function useCheckout(params: UseCheckoutParams) {
       setApiError,
       t,
     ]
+  );
+
+  // "To'lov" javob kutayotganda qayta bosilsa, to'lov va chek ikki-uch marta
+  // ketardi (2026-10-05: bir stolga 1 soniyada uchta PATCH).
+  const exclusive = useRef(createExclusive()).current;
+  const handleCloseTable = useCallback(
+    (...args: Parameters<typeof closeTable>) => exclusive(() => closeTable(...args)),
+    [exclusive, closeTable],
   );
 
   return { handleCloseTable };

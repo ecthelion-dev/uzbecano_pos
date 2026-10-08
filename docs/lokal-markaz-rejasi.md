@@ -98,13 +98,21 @@ ya'ni ish o'rtasida kafe to'xtamaydi.
 
 1. "Stol band" 409 endi navbatda aylanmaydi, "Rad etilgan amallar"ga chiqadi; kassir "Savatga yuklash" bilan hal qiladi (kassa 1.4.113).
 2. Telefonlar server orqali kassa uzilganini biladi va "kassa uzilgan, yangi stolni kassir bilan kelishib oching" banneri chiqadi (PWA, darhol).
-3. Kassa oflayn bo'lsa o'zida ham shunday banner (keyingi desktop relizda).
+3. Kassa oflayn bo'lsa o'zida ham shunday banner (kassa 1.4.114).
 4. Tashkiliy: kafe uchun zaxira 4G router; internet uzilganda yangi stolni bitta qurilmadan ochish.
 
-## 7. Boshlashdan oldin javob kerak bo'lgan savollar
+## 7. Javoblar (2026-10-08)
 
-1. Ofitsiantlar telefonda kafe Wi-Fi'siga ulanadimi yoki faqat mobil internetdami?
-2. Kassa kompyuteri butun ish kuni yoniq turadimi?
-3. Ofitsiantlarda Android'mi, iPhone ham bormi?
-4. Kafeda bir nechta kassa kompyuteri bo'ladimi?
-5. A varianti (telefon brauzerida, ilovasiz) yetarlimi yoki alohida ilova kerakmi?
+- **Ofitsiantlar telefoni:** har xil — kimdir kafe Wi-Fi'sida, kimdir mobil internetda.
+  **Oqibati:** lokal markaz faqat Wi-Fi'dagi telefonga ishlaydi. Shuning uchun
+  "ish paytida telefon kafe Wi-Fi'siga ulangan bo'lsin" — majburiy qoida bo'ladi.
+  Mobil internetdagi telefon bulutga faqat o'qish uchun ulanadi va ogohlantiriladi
+  (3.3), stol ocholmaydi — aks holda bugungi muammo qaytadi. Sinov bosqichida
+  (6-bo'lim, 1-qadam) Wi-Fi'ga o'tkazish xodimlarga qanchalik qulayligini ham ko'ramiz.
+- **Kassa kompyuteri kun bo'yi yoniq:** ha — markaz uchun asosiy shart bajarilgan.
+
+## 8. Hali ochiq savollar
+
+1. Ofitsiantlarda Android'mi, iPhone ham bormi?
+2. Kafeda bir nechta kassa kompyuteri bo'ladimi?
+3. A varianti (telefon brauzerida, ilovasiz) yetarlimi yoki alohida ilova kerakmi?

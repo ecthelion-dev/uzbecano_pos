@@ -1,4 +1,4 @@
-import { canSync, decideFromStatus, removeProcessed } from './syncQueue';
+import { canSync, decideFromStatus, isTableBusyConflict, removeProcessed } from './syncQueue';
 import { extractReason, stampRejection, type FailedAction } from './failedActions';
 
 /**
@@ -75,6 +75,16 @@ async function readReason(res: Response): Promise<string> {
   }
 }
 
+/** Javob "stol band" 409 mi (tana o'qilmasa — yo'q, ya'ni avvalgidek qayta urinadi). */
+async function isTableBusy(res: Response): Promise<boolean> {
+  if (res.status !== 409) return false;
+  try {
+    return isTableBusyConflict(JSON.parse(await res.clone().text()));
+  } catch {
+    return false;
+  }
+}
+
 function orderIdOf(item: QueuedItem): string | undefined {
   if (item.kind === 'create') return item.order?.id;
   if (item.kind === 'cash') return undefined;
@@ -110,12 +120,23 @@ export async function runSyncCycle(
   const processedIds = new Set<string>();
   const parked: FailedAction[] = [];
   const blockedOrders = new Set<string>();
+  /*
+   * Serverda YARATILMAGAN chek → rad etish sababi. Uning keyingi amallari
+   * (masalan to'lov) yuborilmaydi va u bilan birga chiqadi: yuborilsa 404
+   * olib alohida, chekdan ajralgan holda rad etilganlarga tushardi.
+   */
+  const parkedOrders = new Map<string, string>();
   const rejectedLabels: string[] = [];
   let anySucceeded = false;
   let unauthorized = false;
 
   for (const item of queue) {
     const orderId = orderIdOf(item);
+    const parkedReason = orderId ? parkedOrders.get(orderId) : undefined;
+    if (parkedReason !== undefined) {
+      parked.push(stampRejection(item, 409, parkedReason, Date.now()));
+      continue;
+    }
     /*
      * Shu chekning avvalgi amali o'tmagan bo'lsa, keyingisiga ham
      * urinmaymiz: serverda hali mavjud bo'lmagan chekka PATCH yuborish 404
@@ -139,6 +160,11 @@ export async function runSyncCycle(
         // hammasi navbatda qoladi — hech biri "ishlangan" deb
         // belgilanmagani uchun o'zi shunday bo'ladi.
         break;
+      } else if (item.kind === 'create' && (await isTableBusy(res))) {
+        const reason = await readReason(res);
+        parked.push(stampRejection(item, res.status, reason, Date.now()));
+        rejectedLabels.push(ports.label(item));
+        if (orderId) parkedOrders.set(orderId, reason);
       } else if (decideFromStatus(res.status) === 'retry') {
         if (orderId) blockedOrders.add(orderId);
       } else {

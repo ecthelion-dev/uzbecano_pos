@@ -165,6 +165,59 @@ describe('server rad etganda', () => {
     expect(store.state.failed).toEqual([]);
   });
 
+  /*
+   * 2026-10-08: uzilishda telefonlar mobil internet bilan stollarni serverda
+   * ochdi, kassa oflayn o'sha stollarga zakaz urdi. Tiklanganda server
+   * "stolda ochiq buyurtma bor" deb 409 berdi, kassa uni "eskirgan
+   * ma'lumot" deb tushunib 136 marta qayta yubordi va 5 ta chek
+   * "kutilmoqda" da qolib ketdi — bu 409 o'zi hech qachon o'tmaydi.
+   */
+  describe('stol band (409 + conflict.tableNumber)', () => {
+    const tableBusy = () =>
+      new Response(
+        JSON.stringify({
+          statusCode: 409,
+          message: '"Stol 1" stolida ochiq buyurtma bor.',
+          conflict: { tableNumber: 'Stol 1', orderId: 'server-order' },
+        }),
+        { status: 409 },
+      );
+
+    it('navbatda aylanmaydi — sababi bilan RAD ETILGANLARGA chiqadi', async () => {
+      const store = fakeStore([create('o1', 'q1')]);
+
+      const outcome = await runSyncCycle(store.ports({ send: async () => tableBusy() }), 'token');
+
+      expect(store.state.queue).toEqual([]);
+      expect(store.state.failed.map((i) => i.qid)).toEqual(['q1']);
+      expect((store.state.failed[0] as any).rejectedReason).toContain('ochiq buyurtma bor');
+      expect(outcome?.rejectedLabels).toHaveLength(1);
+    });
+
+    it('o`sha chekning to`lovi ham birga chiqadi, 404 olib alohida yo`qolmaydi', async () => {
+      const store = fakeStore([create('o1', 'q1'), patch('o1', 'q2'), create('o2', 'q3')]);
+      const sent: string[] = [];
+
+      await runSyncCycle(store.ports({
+        send: async (i) => { sent.push(i.qid!); return i.qid === 'q1' ? tableBusy() : ok(); },
+      }), 'token');
+
+      // To'lov serverga yuborilmaydi: chek u yerda yaratilmagan.
+      expect(sent).toEqual(['q1', 'q3']);
+      expect(store.state.failed.map((i) => i.qid)).toEqual(['q1', 'q2']);
+      expect(store.state.queue).toEqual([]);
+    });
+
+    it('oddiy 409 (eskirgan ma`lumot) avvalgidek navbatda qoladi', async () => {
+      const store = fakeStore([patch('o1', 'q1')]);
+      await runSyncCycle(store.ports({
+        send: async () => new Response(JSON.stringify({ message: 'Buyurtma boshqa qurilmada o`zgardi' }), { status: 409 }),
+      }), 'token');
+      expect(store.state.queue.map((i) => i.qid)).toEqual(['q1']);
+      expect(store.state.failed).toEqual([]);
+    });
+  });
+
   it('401 ham navbatda qoladi', async () => {
     const store = fakeStore([create('o1', 'q1')]);
 

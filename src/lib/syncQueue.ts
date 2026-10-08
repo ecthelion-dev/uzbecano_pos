@@ -49,6 +49,21 @@ export function isRetryableStatus(status: number): boolean {
   );
 }
 
+/**
+ * 409 ning "stol band" turi — u o'zi HECH QACHON o'tmaydi.
+ *
+ * Server yangi chekni rad etib `conflict.tableNumber` qaytaradi: shu stolda
+ * serverda boshqa ochiq buyurtma bor. Bu eskirgan ma'lumot emas, qayta
+ * o'qish uni hal qilmaydi — stolni kimdir yopmaguncha har urinish yana 409.
+ * 2026-10-08 da kassa uni 136 marta yubordi va 5 ta chek "kutilmoqda" da
+ * qolib ketdi. Endi u rad etilganlarga chiqadi, kassir u yerdan taomlarni
+ * "Savatga qaytarish" bilan stoldagi ochiq buyurtmaga qo'shadi.
+ */
+export function isTableBusyConflict(body: unknown): boolean {
+  const conflict = (body as { conflict?: { tableNumber?: unknown } } | null)?.conflict;
+  return typeof conflict?.tableNumber === 'string' && conflict.tableNumber.trim().length > 0;
+}
+
 /** Javob kelgan holat uchun qaror. */
 export function decideFromStatus(status: number): SyncDecision {
   if (status >= 200 && status < 300) return 'done';

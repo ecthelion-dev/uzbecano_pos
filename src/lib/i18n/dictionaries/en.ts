@@ -401,6 +401,10 @@ export const en: Record<TranslationKey, string> = {
   'net.retryAll': 'Retry all',
   'net.restoreToCart': 'Restore to cart',
   'net.restoredToCartToast': 'Items restored to cart for table {table}',
+  'net.splitRiskSelfBanner': "No internet: tables opened on other devices are not visible here. Agree with your colleagues before opening a new table, or the same table may be opened twice.",
+  'net.splitRiskTillBanner': "The till is not connected to the server (no internet or the app is closed): tables opened at the till are not visible here. Check with the cashier before opening a new table.",
+  'net.splitRiskSelf': "Heads up: no internet — this table may already be open on another device.",
+  'net.splitRiskTill': "Heads up: the till is offline — this table may already be open at the till. Check with the cashier.",
   'net.itemsPreview': 'Items:',
 
   // ── Storage writes ──────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import {
   fetchPrintJobs,
 } from './lib/printQueue';
 import { fetchPulse, resetPulse } from './lib/pulse';
+import { splitTableRisk, type TillStatus } from './lib/splitRisk';
 import {
   readCafeText,
   writeCafeText,
@@ -174,6 +175,8 @@ export default function App() {
    * stol telefondagi ilovada bo'sh turardi va ikki kishi bitta stolga
    * buyurtma yozib yuborishi mumkin edi.
    */
+  // Server aytgan desktop kassa holati (faqat telefonda ma'noli).
+  const [tillStatus, setTillStatus] = useState<TillStatus>('none');
   const [tableHolds, setTableHolds] = useState<
     {
       tableNumber: string;
@@ -1105,6 +1108,7 @@ export default function App() {
 
       applyActiveOrders(result.data.orders as DBOrder[]);
       setTableHolds(result.data.tableHolds);
+      setTillStatus(result.data.till);
       if (result.data.reservations) setReservations(result.data.reservations);
       // Chaqiruv ovozi ekran oldida turgan odam uchun — yig'ilgan oynada
       // chalinsa, u shunchaki e'tiborsiz qoladi.
@@ -1297,7 +1301,19 @@ export default function App() {
     return tables.filter(tb => tb.area === activeArea);
   }, [tables, activeArea]);
 
+  const splitRisk = splitTableRisk({ isDesktopApp: IS_DESKTOP_APP, isOffline: isOfflineMode, tillStatus });
+
   const handleSelectTable = useCallback((tableNumber: string, ignoreReservation = false) => {
+    /*
+     * Internet uzilgan paytda BO'SH stol ochilsa — ehtimol u boshqa qurilmada
+     * ham ochilgan (2026-10-08, Terassa 1). To'sib qo'ymaymiz: oflayn kassa
+     * ishlashi shart. Faqat xodim bilib qolsin.
+     */
+    if (splitRisk !== 'none' && tables.find((tb) => tb.number === tableNumber)?.status === 'bosh') {
+      setToastMessage(t(splitRisk === 'tillOffline' ? 'net.splitRiskTill' : 'net.splitRiskSelf'));
+      setTimeout(() => setToastMessage(null), 6000);
+    }
+
     /*
      * Buyurtma boshqa qurilmada yig'ilayotgan stolni ochib bo'lmaydi.
      *
@@ -1362,7 +1378,7 @@ export default function App() {
       }).catch(() => {});
       setWaiterCalls(prev => prev.filter(t => (t || '').trim().toLowerCase() !== tableNumber.trim().toLowerCase()));
     }
-  }, [getActiveCafeId, getAuthHeaders, tables, t, tableCarts, tableHolds, deviceId, products]);
+  }, [getActiveCafeId, getAuthHeaders, tables, t, tableCarts, tableHolds, deviceId, products, splitRisk]);
 
   /*
    * `handleSelectTableRef` effektda yangilanadi.
@@ -2250,6 +2266,7 @@ export default function App() {
             allAreasLabel={ALL_AREAS}
             onSelectArea={setSelectedArea}
             onSelectTable={handleSelectTable}
+            warning={splitRisk === 'none' ? null : t(splitRisk === 'tillOffline' ? 'net.splitRiskTillBanner' : 'net.splitRiskSelfBanner')}
             onOpenReservationModal={() => {
               setReservationDefaultTable(undefined);
               setShowReservationModal(true);

@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../constants';
+import { parseTillStatus, type TillStatus } from './splitRisk';
 import { fetchWithTimeout } from './net';
 import type { PrintJob } from './printQueue';
 import type { DBReservation } from '../types';
@@ -40,6 +41,8 @@ export interface PulseData {
     total?: number;
   }[];
   reservations?: DBReservation[];
+  /** Desktop kassa server bilan gaplashyaptimi — telefon "kassa uzilgan" deyishi uchun. */
+  till: TillStatus;
 }
 
 export type PulseResult =
@@ -126,6 +129,7 @@ export async function fetchPulse(
         // Eski serverda bu maydon yo'q — bo'sh ro'yxat zal ko'rinishini
         // buzmaydi, shunchaki savat belgilari ko'rinmaydi.
         tableHolds: Array.isArray(data.tableHolds) ? data.tableHolds : [],
+        till: parseTillStatus(data.till),
       },
     };
   } catch {

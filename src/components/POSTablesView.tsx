@@ -1,5 +1,5 @@
 import React from 'react';
-import { Grid, Calendar, Wine, Home, Umbrella, Layers } from 'lucide-react';
+import { Grid, Calendar, Wine, Home, Umbrella, Layers, AlertTriangle } from 'lucide-react';
 import { TableCard, type TableItemData } from './TableCard';
 
 export interface POSTablesViewProps {
@@ -12,6 +12,11 @@ export interface POSTablesViewProps {
   onSelectArea: (area: string) => void;
   onSelectTable: (tableNumber: string) => void;
   onOpenReservationModal: () => void;
+  /**
+   * Bir stol ikki joyda ochilishi mumkin bo'lgan payt (internet uzilgan) —
+   * zal ustida doim ko'rinib turadi. Bildirishnoma o'tib ketadi, bu qolmaydi.
+   */
+  warning?: string | null;
 }
 
 type TableStatus = 'bosh' | 'band' | 'bron';
@@ -26,6 +31,7 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
   onSelectArea,
   onSelectTable,
   onOpenReservationModal,
+  warning = null,
 }) => {
   const statusCounts = React.useMemo(() => {
     const counts: Record<TableStatus, number> = { bosh: 0, band: 0, bron: 0 };
@@ -78,6 +84,12 @@ export const POSTablesView: React.FC<POSTablesViewProps> = ({
         sinib, ro'yxatni ekranning yarmigacha pastga itarardi. Kompyuterda
         `sm:contents` o'rami yo'qoladi va hammasi eskicha bir qatorda.
       */}
+      {warning && (
+        <div role="alert" className="mb-3 flex items-start gap-2.5 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-amber-900">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+          <span>{warning}</span>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
         <h1 className="h-11 text-lg sm:text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5 shrink-0">
           <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0">

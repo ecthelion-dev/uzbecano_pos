@@ -415,6 +415,10 @@ export const uz = {
   'net.retryAll': 'Barchasini qayta yuborish',
   'net.restoreToCart': 'Savatga yuklash',
   'net.restoredToCartToast': 'Taomlar {table}-stol savatiga qaytarildi',
+  'net.splitRiskSelfBanner': "Internet yo‘q: boshqa qurilmalarda ochilgan stollar bu yerda ko‘rinmaydi. Yangi stolni ochishdan oldin hamkasblaringiz bilan kelishing — aks holda bir stol ikki joyda ochilib qoladi.",
+  'net.splitRiskTillBanner': "Kassa serverga ulanmagan (internet yo‘q yoki dastur yopiq): kassada ochilgan stollar bu yerda ko‘rinmaydi. Yangi stolni ochishdan oldin kassir bilan kelishing.",
+  'net.splitRiskSelf': "Diqqat: internet yo‘q — bu stol boshqa qurilmada ochilgan bo‘lishi mumkin.",
+  'net.splitRiskTill': "Diqqat: kassa uzilgan — bu stol kassada ochilgan bo‘lishi mumkin. Kassir bilan tekshiring.",
   'net.itemsPreview': 'Taomlar:',
 
   // ── Disk yozuvi ─────────────────────────────────────────────────────

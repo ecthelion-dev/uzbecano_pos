@@ -1,4 +1,4 @@
-import { canSync, decideFromStatus, isTableBusyConflict, removeProcessed } from './syncQueue';
+import { canSync, decideFromStatus, isObsoleteRemoval, isTableBusyConflict, removeProcessed } from './syncQueue';
 import { extractReason, stampRejection, type FailedAction } from './failedActions';
 
 /**
@@ -76,6 +76,15 @@ async function readReason(res: Response): Promise<string> {
 }
 
 /** Javob "stol band" 409 mi (tana o'qilmasa — yo'q, ya'ni avvalgidek qayta urinadi). */
+async function isObsolete(item: QueuedItem, res: Response): Promise<boolean> {
+  if (item.kind !== 'patch' || res.status !== 400) return false;
+  try {
+    return isObsoleteRemoval(item.label, JSON.parse(await res.clone().text()));
+  } catch {
+    return false;
+  }
+}
+
 async function isTableBusy(res: Response): Promise<boolean> {
   if (res.status !== 409) return false;
   try {
@@ -160,6 +169,9 @@ export async function runSyncCycle(
         // hammasi navbatda qoladi — hech biri "ishlangan" deb
         // belgilanmagani uchun o'zi shunday bo'ladi.
         break;
+      } else if (await isObsolete(item, res)) {
+        // Chek serverda allaqachon bekor qilingan — o'chirish keraksiz.
+        if (item.qid) processedIds.add(item.qid);
       } else if (item.kind === 'create' && (await isTableBusy(res))) {
         const reason = await readReason(res);
         parked.push(stampRejection(item, res.status, reason, Date.now()));

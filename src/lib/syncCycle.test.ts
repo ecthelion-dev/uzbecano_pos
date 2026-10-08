@@ -218,6 +218,49 @@ describe('server rad etganda', () => {
     });
   });
 
+  /*
+   * 2026-10-08: oflayn paytda Terassa 1 dan taom o'chirildi, lekin chekni
+   * keyin admin serverda o'zi bekor qildi. Navbatdagi o'chirish endi har
+   * urinishda 400 "yopilgan (cancelled) buyurtma" olib, kassada abadiy
+   * "o'tmagan amal" bo'lib qolardi — chek esa allaqachon bo'sh.
+   */
+  describe('bekor qilingan chekdan taom o`chirish', () => {
+    const removeItem = (orderId: string, qid: string): QueuedItem =>
+      ({ kind: 'patch', qid, orderId, label: 'remove_item', body: { items: [] } });
+    const alreadyCancelled = () =>
+      new Response(
+        JSON.stringify({ message: 'Tayyorlanayotgan yoki yopilgan (cancelled) buyurtma tarkibini o‘zgartirish taqiqlanadi', orderStatus: 'cancelled' }),
+        { status: 400 },
+      );
+
+    it('eskirgan amal sifatida navbatdan chiqadi, rad etilganlarga tushmaydi', async () => {
+      const store = fakeStore([removeItem('o1', 'q1')]);
+
+      const outcome = await runSyncCycle(store.ports({ send: async () => alreadyCancelled() }), 'token');
+
+      expect(store.state.queue).toEqual([]);
+      expect(store.state.failed).toEqual([]);
+      expect(outcome?.rejectedLabels).toEqual([]);
+    });
+
+    it('yopilgan (to`langan) chekdan o`chirish avvalgidek rad etiladi', async () => {
+      const store = fakeStore([removeItem('o1', 'q1')]);
+      const closed = () => new Response(JSON.stringify({ message: 'yopilgan (closed)', orderStatus: 'closed' }), { status: 400 });
+
+      await runSyncCycle(store.ports({ send: async () => closed() }), 'token');
+
+      expect(store.state.failed.map((i) => i.qid)).toEqual(['q1']);
+    });
+
+    it('bekor qilingan chekka boshqa amal (to`lov) avvalgidek rad etiladi', async () => {
+      const store = fakeStore([patch('o1', 'q1')]);
+
+      await runSyncCycle(store.ports({ send: async () => alreadyCancelled() }), 'token');
+
+      expect(store.state.failed.map((i) => i.qid)).toEqual(['q1']);
+    });
+  });
+
   it('401 ham navbatda qoladi', async () => {
     const store = fakeStore([create('o1', 'q1')]);
 

@@ -64,6 +64,23 @@ export function isTableBusyConflict(body: unknown): boolean {
   return typeof conflict?.tableNumber === 'string' && conflict.tableNumber.trim().length > 0;
 }
 
+/**
+ * Bekor qilingan chekdan taom o'chirish — eskirgan, ya'ni bajarilgan amal.
+ *
+ * 2026-10-08: oflayn paytda o'chirilgan taomning cheki keyin serverda
+ * bekor qilindi. Server o'chirishni "yopilgan (cancelled) buyurtma" deb rad
+ * etadi va bu abadiy shunday — lekin maqsadga allaqachon erishilgan: chek
+ * bo'sh. Uni kassada "o'tmagan amal" qilib qoldirish faqat chalg'itadi.
+ *
+ * Faqat o'chirish va faqat `cancelled`: to'langan (`closed`) chekdan
+ * o'chirish vozvrat masalasi, bekor qilingan chekka to'lov esa pul — ular
+ * ko'rib chiqishga chiqaveradi.
+ */
+export function isObsoleteRemoval(label: string | undefined, body: unknown): boolean {
+  if (label !== 'remove_item') return false;
+  return (body as { orderStatus?: unknown } | null)?.orderStatus === 'cancelled';
+}
+
 /** Javob kelgan holat uchun qaror. */
 export function decideFromStatus(status: number): SyncDecision {
   if (status >= 200 && status < 300) return 'done';

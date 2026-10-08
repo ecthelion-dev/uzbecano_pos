@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  forReview,
   extractReason,
   stampRejection,
   acknowledge,
@@ -270,3 +271,23 @@ describe('extractActionItems — taom qo‘shish so‘rovi', () => {
     ]);
   });
 });
+
+/*
+ * 2026-10-08: "Tushunarli" bosilgan chek ro'yxatdan yashirilib, kassada
+ * "yuborilmadi" bo'lib qolaverdi — Terassa 1 qulflanib qoldi.
+ */
+describe('forReview', () => {
+  const item = (qid: string, acknowledgedAt?: number) =>
+    ({ kind: 'create', qid, order: { id: qid }, ...(acknowledgedAt ? { acknowledgedAt } : {}) }) as any;
+
+  it('ko‘rilgan yozuv ham ro‘yxatda qoladi — yashirinmaydi', () => {
+    const list = forReview([item('a', 1), item('b')]);
+    expect(list.map((i) => i.qid)).toEqual(['b', 'a']);
+  });
+
+  it('bo‘sh yoki buzuq ro‘yxat — bo‘sh', () => {
+    expect(forReview(undefined as any)).toEqual([]);
+    expect(forReview([null as any, item('a')]).map((i) => i.qid)).toEqual(['a']);
+  });
+});
+

@@ -4,6 +4,7 @@ import { readCafeJson, writeCafeJson, writeCafeJsonMany } from '../lib/storage';
 import {
   acknowledge,
   awaitingReview,
+  forReview,
   discard,
   retryFailedAction,
   retryAllFailedActions,
@@ -38,14 +39,20 @@ export function useNetworkStatus() {
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [failedCount, setFailedCount] = useState<number>(0);
   const [failed, setFailed] = useState<FailedAction[]>([]);
+  const [heldCount, setHeldCount] = useState<number>(0);
 
   const refresh = useCallback(() => {
     setPendingCount(countOf('sync_queue'));
     // Faqat ko'rilmaganlar: "Tushunarli" deyilgan yozuv chekni kassada
     // ushlab turish uchun saqlanadi, lekin belgini yondirib turmaydi.
-    const unseen = awaitingReview(readFailed());
+    const all = readFailed();
+    const unseen = awaitingReview(all);
     setFailedCount(unseen.length);
-    setFailed(unseen);
+    // Ro'yxatda HAMMASI: ko'rilgan yozuv ham chekni kassada ushlab turadi va
+    // uni qayta yuborish yo'li yopilib qolmasligi kerak (2026-10-08, Terassa 1).
+    const listed = forReview(all);
+    setFailed(listed);
+    setHeldCount(listed.length);
   }, []);
 
   /**
@@ -138,7 +145,9 @@ export function useNetworkStatus() {
      * da yo'qotish aynan hech kim hech narsa ko'rmagani uchun sezilmadi.
      */
     failedCount,
-    /** Rad etilganlarning o'zi — kim, nega va qachon. */
+    /** Ro'yxatdagi jami (ko'rilganlari ham) — belgi hech qachon yo'qolib qolmasin. */
+    heldCount,
+    /** Rad etilganlarning o'zi — kim, nega va qachon; ko'rilmaganlari tepada. */
     failed,
     acknowledgeFailed,
     discardFailed,

@@ -404,6 +404,7 @@ export const uz = {
   'net.startSync': 'Sinxlashni boshlash',
   'net.pending': '{n} kutilmoqda',
   'net.failed': '{n} xato',
+  'net.held': '{n} ta kutib turibdi',
   'net.rejectedTitle': 'Serverga o‘tmagan amallar',
   'net.rejectedHint': 'Bu o‘zgarishlar serverga yetmadi. Ularni qaytadan kiriting.',
   'net.rejectedBy': 'Kim: {name}',

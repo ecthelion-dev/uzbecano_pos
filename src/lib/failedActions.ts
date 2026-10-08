@@ -108,6 +108,20 @@ export function awaitingReview(list: FailedAction[]): FailedAction[] {
 }
 
 /**
+ * Ro'yxatda ko'rsatish tartibi: ko'rilmaganlar tepada, keyin ko'rilganlar.
+ *
+ * 2026-10-08: "Tushunarli" bosilgan chek ro'yxatdan YASHIRILARDI, lekin
+ * kassada "yuborilmadi" bo'lib qolaverardi — uni qayta yuborish ham, savatga
+ * qaytarish ham imkonsiz bo'lib, Terassa 1 qulflanib qoldi. Ko'rilgan yozuv
+ * endi ham ro'yxatda turadi, faqat pastroqda.
+ */
+export function forReview(list: FailedAction[]): FailedAction[] {
+  if (!Array.isArray(list)) return [];
+  const items = list.filter(Boolean);
+  return [...items.filter((i) => !i.acknowledgedAt), ...items.filter((i) => i.acknowledgedAt)];
+}
+
+/**
  * Yozuvni butunlay olib tashlaydi — faqat amal qaytadan bajarilganda
  * ("savatga qaytarish"). Oddiy "Tushunarli" uchun `acknowledge`.
  */

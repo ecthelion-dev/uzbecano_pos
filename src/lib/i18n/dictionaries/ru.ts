@@ -390,6 +390,7 @@ export const ru: Record<TranslationKey, string> = {
   'net.startSync': 'Начать синхронизацию',
   'net.pending': '{n} в очереди',
   'net.failed': '{n} с ошибкой',
+  'net.held': 'ожидает: {n}',
   'net.rejectedTitle': 'Не дошли до сервера',
   'net.rejectedHint': 'Эти изменения не дошли до сервера. Введите их заново.',
   'net.rejectedBy': 'Кто: {name}',

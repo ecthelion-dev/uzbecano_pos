@@ -126,7 +126,7 @@ export const RejectedActionsModal: React.FC<RejectedActionsModalProps> = ({
                           <span>{t('net.restoreToCart')}</span>
                         </button>
                       )}
-                      {item.qid && (
+                      {item.qid && !item.acknowledgedAt && (
                         <button
                           onClick={() => onAcknowledge(item.qid as string)}
                           className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer"

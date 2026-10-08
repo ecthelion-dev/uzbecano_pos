@@ -27,6 +27,7 @@ export const NetworkIndicator: React.FC = () => {
     isOnline,
     pendingCount,
     failedCount,
+    heldCount,
     failed,
     acknowledgeFailed,
     discardFailed,
@@ -69,6 +70,16 @@ export const NetworkIndicator: React.FC = () => {
         qilgani va nega o'tmagani shu tugma ortida turadi — aks holda
         javobni serverdagi loglardan qidirishga to'g'ri keladi.
       */}
+      {failedCount === 0 && heldCount > 0 && (
+        <button
+          onClick={() => setIsRejectedOpen(true)}
+          title={t('net.rejectedTitle')}
+          className="flex items-center gap-1 text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-lg whitespace-nowrap hover:bg-slate-200 transition-colors cursor-pointer"
+        >
+          <AlertCircle className="w-3 h-3 shrink-0" />
+          {t('net.held', { n: heldCount })}
+        </button>
+      )}
       {failedCount > 0 && (
         <button
           onClick={() => setIsRejectedOpen(true)}

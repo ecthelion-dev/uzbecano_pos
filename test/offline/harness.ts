@@ -95,6 +95,7 @@ export function seed(): void {
       VALUES ('cafe-offline', '${CAFE}', 'Oflayn sinov', 0, now() + interval '30 days', now(), now());
     INSERT INTO "Product" (id, "cafeId", name, category, description, price, image, "createdAt") VALUES ${products};
     INSERT INTO "Table" (id, "cafeId", name, "createdAt") VALUES ${tables};
+    INSERT INTO "Promo" (id, "cafeId", code, type, value) VALUES ('promo-10', '${CAFE}', 'BAHOR10', 'percent', 10);
   `);
 }
 

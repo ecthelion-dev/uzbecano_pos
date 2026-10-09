@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { appendItemsPatch, cartLineToOrderItem, removeItemPatch, type OutgoingOrderItem } from '../../src/lib/orderItems';
-import { orderTotals } from '../../src/lib/promo';
+import { orderTotals, type PromoTerms } from '../../src/lib/promo';
 import type { QueuedItem } from '../../src/lib/syncCycle';
 import {
   CAFE,
@@ -30,10 +30,10 @@ function line(product: Product, quantity = 1): OutgoingOrderItem {
 }
 
 /** `useKitchenDispatch` dagi `newOrderObj` shakli. */
-function newOrder(tableNumber: string, items: OutgoingOrderItem[]): QueuedItem {
+function newOrder(tableNumber: string, items: OutgoingOrderItem[], promo: PromoTerms | null = null): QueuedItem {
   const id = crypto.randomUUID();
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const { serviceFee, discount, total } = orderTotals(subtotal, 0, null);
+  const { serviceFee, discount, total } = orderTotals(subtotal, 0, promo);
   return {
     kind: 'create',
     order: {
@@ -46,6 +46,7 @@ function newOrder(tableNumber: string, items: OutgoingOrderItem[]): QueuedItem {
       serviceFee,
       discount,
       total,
+      promo: promo ? { code: promo.code, type: promo.type, value: promo.value } : undefined,
       status: 'sent_to_kitchen',
       idempotencyKey: id,
     },
@@ -172,6 +173,20 @@ describeOffline('oflayn → onlayn: navbat haqiqiy serverga', () => {
     expect(till.queue).toEqual([]);
     expect(till.failed.map((i) => (i as any).label)).toEqual(['move_table', 'finalize_payment']);
     expect((till.failed[0] as any).rejectedReason).toMatch(/ochiq buyurtma bor/);
+  });
+
+  it('oflayn promo-kodli chek serverda ham chegirma bilan, kassa olgan summada', async () => {
+    const till = new TillQueue();
+    const promo = { code: 'BAHOR10', type: 'percent', value: 10, minOrder: 0 } as PromoTerms;
+    const a = newOrder('Terassa 1', [line(PRODUCTS.fruitMix, 2)], promo);
+    till.push(a);
+    till.push(cashPayment(orderId(a), (a as any).order.total));
+
+    await till.drainUntilSettled(waiter);
+
+    expect((a as any).order.total).toBe(81000);
+    expect(till.failed).toEqual([]);
+    expect(serverOrders().map((o) => [o.status, o.total])).toEqual([['served', 81000]]);
   });
 
   it('javob yo`qolib, xuddi o`sha navbat qayta yuborilsa nusxa paydo bo`lmaydi', async () => {

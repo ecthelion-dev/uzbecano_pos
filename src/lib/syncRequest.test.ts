@@ -15,6 +15,11 @@ describe('buildSyncRequest', () => {
     expect(JSON.parse(String(r.init.body))).toEqual({ id: 'o1', tableNumber: 'Stol 1', cafeId: 'kafe' });
   });
 
+  it('navbatdagi promo-kodli chek `promoCode` bilan ketadi', () => {
+    const r = buildSyncRequest({ kind: 'create', order: { id: 'o1', promo: { code: 'BAHOR10', type: 'percent', value: 10 } } }, ctx);
+    expect(JSON.parse(String(r.init.body)).promoCode).toBe('BAHOR10');
+  });
+
   it('PATCH rahbar tasdig`ini sarlavhada olib ketadi', () => {
     const r = buildSyncRequest({ kind: 'patch', orderId: 'o1', body: { items: [] }, approvalToken: 'ok' }, ctx);
     expect(r.url).toBe('https://api.test/api/orders/o1');

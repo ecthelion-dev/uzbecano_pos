@@ -23,9 +23,18 @@ export interface SyncRequest {
 export function buildSyncRequest(item: QueuedItem, ctx: SyncRequestContext): SyncRequest {
   const { baseUrl, cafeId, headers } = ctx;
   if (item.kind === 'create') {
+    /*
+     * `promoCode` — server chegirmani FAQAT shundan hisoblaydi. Onlayn yo'l
+     * uni qo'shib yuborardi, navbatdagi chekda esa faqat `promo` qolardi:
+     * oflayn promo-kodli chek serverda chegirmasiz yozilib, kassa olgan
+     * summadan katta chiqardi (2026-10-09, oflayn ssenariy testi).
+     * Navbatda allaqachon turgan yozuvlar ham shu yerda tuzaladi.
+     */
+    const promoCode = item.order?.promoCode ?? item.order?.promo?.code;
+    const body = { ...item.order, cafeId, ...(promoCode ? { promoCode } : {}) };
     return {
       url: `${baseUrl}/api/orders`,
-      init: { method: 'POST', headers: headers(), body: JSON.stringify({ ...item.order, cafeId }) },
+      init: { method: 'POST', headers: headers(), body: JSON.stringify(body) },
     };
   }
   if (item.kind === 'patch') {

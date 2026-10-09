@@ -208,6 +208,18 @@ describe('server rad etganda', () => {
       expect(store.state.queue).toEqual([]);
     });
 
+    it('band stolga ko`chirish ham aylanmaydi, chekning to`lovi bilan chiqadi', async () => {
+      const move: QueuedItem = { kind: 'patch', qid: 'q1', orderId: 'o1', label: 'move_table', body: { tableNumber: 'Stol 1' } };
+      const store = fakeStore([move, patch('o1', 'q2')]);
+      const sent: string[] = [];
+
+      await runSyncCycle(store.ports({ send: async (i) => { sent.push(i.qid!); return tableBusy(); } }), 'token');
+
+      expect(sent).toEqual(['q1']);
+      expect(store.state.queue).toEqual([]);
+      expect(store.state.failed.map((i) => i.qid)).toEqual(['q1', 'q2']);
+    });
+
     it('oddiy 409 (eskirgan ma`lumot) avvalgidek navbatda qoladi', async () => {
       const store = fakeStore([patch('o1', 'q1')]);
       await runSyncCycle(store.ports({

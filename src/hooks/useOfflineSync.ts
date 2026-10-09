@@ -5,6 +5,7 @@ import { readCafeJson, writeCafeJson, writeCafeJsonMany } from '../lib/storage';
 import { readSession } from '../lib/session';
 import { newQueueId, withQueueIds } from '../lib/syncQueue';
 import { runSyncCycle, type QueuedItem } from '../lib/syncCycle';
+import { buildSyncRequest } from '../lib/syncRequest';
 import { oldestQueuedAt, summariseBacklog, type SyncVerdict } from '../lib/syncHealth';
 import { appendItemsPatch, type OutgoingOrderItem } from '../lib/orderItems';
 import type { DBOrder } from '../types';
@@ -221,31 +222,12 @@ export function useOfflineSync({
             ...(failed ? [{ key: 'sync_failed' as const, value: failed }] : []),
           ]),
         send: (item) => {
-          if (item.kind === 'create') {
-            return fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
-              method: 'POST',
-              headers: getAuthHeaders(undefined, effectiveToken),
-              body: JSON.stringify({ ...item.order, cafeId }),
-            });
-          }
-          if (item.kind === 'patch') {
-            return fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
-              method: 'PATCH',
-              headers: getAuthHeaders(item.approvalToken, effectiveToken),
-              body: JSON.stringify(item.body),
-            });
-          }
-          if (item.kind === 'cash') {
-            return fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
-              method: 'POST',
-              headers: getAuthHeaders(item.approvalToken, effectiveToken),
-              body: JSON.stringify(item.entry),
-            });
-          }
-          return fetchWithTimeout(`${API_BASE_URL}/api/orders/${item.orderId}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders(undefined, effectiveToken),
+          const { url, init } = buildSyncRequest(item, {
+            baseUrl: API_BASE_URL,
+            cafeId,
+            headers: (approvalToken) => getAuthHeaders(approvalToken, effectiveToken),
           });
+          return fetchWithTimeout(url, init);
         },
         isFrozen: (res) => applyFrozenFromResponse(res, cafeId),
         label: (item) =>

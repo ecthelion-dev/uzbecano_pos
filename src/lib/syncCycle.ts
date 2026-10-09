@@ -172,7 +172,8 @@ export async function runSyncCycle(
       } else if (await isObsolete(item, res)) {
         // Chek serverda allaqachon bekor qilingan — o'chirish keraksiz.
         if (item.qid) processedIds.add(item.qid);
-      } else if (item.kind === 'create' && (await isTableBusy(res))) {
+      } else if (await isTableBusy(res)) {
+        // Yangi chek ham, stolni ko'chirish ham: band stol o'zi bo'shamaydi.
         const reason = await readReason(res);
         parked.push(stampRejection(item, res.status, reason, Date.now()));
         rejectedLabels.push(ports.label(item));

@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { appendItemsPatch, cartLineToOrderItem, removeItemPatch, type OutgoingOrderItem } from '../../src/lib/orderItems';
 import { orderTotals, type PromoTerms } from '../../src/lib/promo';
 import type { QueuedItem } from '../../src/lib/syncCycle';
+import { buildCashEntryPayload } from '../../src/lib/cashEntryPayload';
 import {
   CAFE,
   PRODUCTS,
@@ -10,6 +11,7 @@ import {
   harnessAvailable,
   resetDatabase,
   seed,
+  query,
   serverOrders,
   startApi,
   stopApi,
@@ -187,6 +189,96 @@ describeOffline('oflayn → onlayn: navbat haqiqiy serverga', () => {
     expect((a as any).order.total).toBe(81000);
     expect(till.failed).toEqual([]);
     expect(serverOrders().map((o) => [o.status, o.total])).toEqual([['served', 81000]]);
+  });
+
+  it('stollar birlashtiriladi (useTableMove) va birlashgan chek to`lanadi', async () => {
+    const till = new TillQueue();
+    const source = newOrder('Terassa 1', [line(PRODUCTS.latte)]);
+    const target = newOrder('Terassa 2', [line(PRODUCTS.cappuccino)]);
+    till.push(source);
+    till.push(target);
+    const merged = [line(PRODUCTS.cappuccino), line(PRODUCTS.latte)];
+    till.push({
+      kind: 'patch',
+      orderId: orderId(target),
+      label: 'merge_table',
+      body: { tableNumber: 'Terassa 2', items: JSON.stringify(merged), subtotal: 55000, serviceFee: 0, total: 55000 },
+    });
+    till.push({ kind: 'delete', orderId: orderId(source), label: 'merge_table_cleanup' });
+    till.push(cashPayment(orderId(target), 55000));
+
+    await till.drainUntilSettled(waiter);
+
+    expect(till.failed).toEqual([]);
+    const open = serverOrders().filter((o) => o.status !== 'cancelled');
+    expect(open.map((o) => [o.tableNumber, o.status, o.total])).toEqual([['Terassa 2', 'served', 55000]]);
+  });
+
+  it('qarzga yopiladi, qarzning bir qismi to`lanadi — takroriy yuborish ikki marta yozmaydi', async () => {
+    const till = new TillQueue();
+    const a = newOrder('Bar 4', [line(PRODUCTS.fruitMix)]);
+    till.push(a);
+    till.push({
+      kind: 'patch',
+      orderId: orderId(a),
+      label: 'finalize_payment',
+      body: {
+        status: 'served', paymentMethod: 'qarz', cashAmount: 0, cardAmount: 0,
+        debtCustomerName: 'Aziz', debtCustomerPhone: '+998901234567', debtDueDate: null, debtNote: null,
+      },
+    });
+    const debtPayment: QueuedItem = {
+      kind: 'patch',
+      orderId: orderId(a),
+      label: 'debtPayment',
+      body: { debtPayment: { id: crypto.randomUUID(), amount: 20000, method: 'cash' } },
+    };
+    till.push(debtPayment);
+    till.push(debtPayment);
+
+    await till.drainUntilSettled(waiter);
+
+    expect(till.failed).toEqual([]);
+    const [[method, payments]] = query(
+      `SELECT "paymentMethod", jsonb_array_length(coalesce("debtPayments"::jsonb, '[]'::jsonb)) FROM "Order"`,
+    );
+    expect([method, Number(payments)]).toEqual(['qarz', 1]);
+  });
+
+  it('oflayn PIN bilan vozvrat', async () => {
+    const till = new TillQueue();
+    const a = newOrder('Bar 4', [line(PRODUCTS.latte)]);
+    till.push(a);
+    till.push(cashPayment(orderId(a), 25000));
+    till.push({
+      kind: 'patch',
+      orderId: orderId(a),
+      label: 'refund',
+      approvalToken: managerSession,
+      body: { action: 'refund', refundReason: 'Mijoz qaytardi' },
+    });
+
+    await till.drainUntilSettled(waiter);
+
+    expect(till.failed).toEqual([]);
+    expect(query(`SELECT refunded FROM "Order"`)).toEqual([['t']]);
+  });
+
+  it('kassa xarajati oflayn PIN bilan, takroriy yuborish bitta yozuv', async () => {
+    const till = new TillQueue();
+    const entry: QueuedItem = {
+      kind: 'cash',
+      label: 'Sut',
+      approvalToken: managerSession,
+      entry: buildCashEntryPayload('Mahsulot', 50000, 'Sut'),
+    };
+    till.push(entry);
+    till.push(entry);
+
+    await till.drainUntilSettled(waiter);
+
+    expect(till.failed).toEqual([]);
+    expect(query(`SELECT count(*), sum(amount) FROM "CashEntry"`)).toEqual([['1', '50000']]);
   });
 
   it('javob yo`qolib, xuddi o`sha navbat qayta yuborilsa nusxa paydo bo`lmaydi', async () => {

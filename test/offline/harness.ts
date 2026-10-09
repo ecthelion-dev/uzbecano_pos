@@ -100,7 +100,7 @@ export function seed(): void {
 }
 
 export function clearOrders(): void {
-  psql(`DELETE FROM "PrintJob"; DELETE FROM "AuditLog"; DELETE FROM "Order";`);
+  psql(`DELETE FROM "PrintJob"; DELETE FROM "AuditLog"; DELETE FROM "Order"; DELETE FROM "CashEntry";`);
 }
 
 let api: ChildProcess | null = null;

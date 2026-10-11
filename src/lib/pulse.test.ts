@@ -47,6 +47,19 @@ describe('bitta so‘rov', () => {
     expect(spy.mock.calls[0][1].headers['If-None-Match']).toBeUndefined();
   });
 
+  /*
+   * 2026-10-11: `cache: 'no-store'` bilan so'rovda Chromium preflight
+   * keshini ham chetlab o'tadi — desktop kassa har 5 soniyalik nabzdan oldin
+   * OPTIONS yuborardi (kuniga ~10 ming, har nabz tarmoqda ikki marta).
+   * Keshlashni server taqiqlaydi (`Cache-Control: no-store` javobda).
+   */
+  it('so‘rovni no-store qilmaydi — preflight keshi ishlasin', async () => {
+    const spy = mockFetch(() => okRes('"a1"'));
+    await fetchPulse(headers, true, 'uzbecano');
+
+    expect(spy.mock.calls[0][1].cache).toBeUndefined();
+  });
+
   it('keyingi safar izni qaytaradi', async () => {
     const spy = mockFetch(() => okRes('"a1"'));
     await fetchPulse(headers, false);

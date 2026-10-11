@@ -490,8 +490,8 @@ export default function App() {
   const fetchTableDefs = useCallback(async () => {
     const cafeId = getActiveCafeId();
     try {
+      // `no-store` yo'q — sababi `lib/pulse.ts` da; server javobi keshlanmaydi.
       const res = await fetchWithTimeout(`${API_BASE_URL}/api/tables?cafeId=${encodeURIComponent(cafeId)}`, {
-        cache: 'no-store',
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error('tables fetch failed');

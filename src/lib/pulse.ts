@@ -102,7 +102,9 @@ export async function fetchPulse(
     const res = await fetchWithTimeout(
       `${API_BASE_URL}/api/pulse${pulseQuery(isConsumer, cafeId)}`,
       {
-        cache: 'no-store',
+        // `cache: 'no-store'` YO'Q: u bilan Chromium preflight keshini ham
+        // chetlab o'tib, har nabzdan oldin OPTIONS yuborardi. Javob baribir
+        // keshlanmaydi — server `Cache-Control: no-store` qaytaradi.
         headers: { ...headers, ...(lastEtag ? { 'If-None-Match': lastEtag } : {}) },
       },
     );

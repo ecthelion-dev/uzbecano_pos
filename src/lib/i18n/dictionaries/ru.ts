@@ -446,6 +446,7 @@ export const ru: Record<TranslationKey, string> = {
   'toast.noMenu': 'В базе не найдены категории или товары',
   'toast.syncRejected': 'Сервер не принял: {list}. Введите заново.',
   'toast.andMore': 'и ещё {n}',
+  'toast.syncMerged': 'Стол был занят — чек кассы добавлен к открытому заказу стола: {list}. Проверьте чек.',
   'toast.waiterCallOne': '{table} — вызывают официанта',
   'toast.waiterCallMany': 'Официанта вызывают {n} столов',
   'toast.kitchenSlipSent': 'Кухонный чек отправлен на принтер кассы',

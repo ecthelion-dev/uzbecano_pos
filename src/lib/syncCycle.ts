@@ -1,5 +1,6 @@
 import { canSync, decideFromStatus, isObsoleteRemoval, isTableBusyConflict, removeProcessed } from './syncQueue';
 import { extractReason, stampRejection, type FailedAction } from './failedActions';
+import { planTableMerge, type TableMergePlan } from './tableMerge';
 
 /**
  * Oflayn navbatni bo'shatish — bir sikl.
@@ -48,6 +49,11 @@ export interface SyncPorts {
 export interface SyncOutcome {
   anySucceeded: boolean;
   rejectedLabels: string[];
+  /**
+   * "Stol band" bo'lib, stoldagi ochiq chekka o'zi qo'shilgan cheklar.
+   * Kassir buni bilishi kerak: stolda endi bitta, kattaroq chek bor.
+   */
+  mergedLabels: string[];
   /** Diskka yozib bo'lmadi — navbat o'z holicha qoldi. */
   commitFailed: boolean;
   /** Sessiya eskirgan (401) — qayta PIN kiritilishi kerak. */
@@ -85,12 +91,41 @@ async function isObsolete(item: QueuedItem, res: Response): Promise<boolean> {
   }
 }
 
-async function isTableBusy(res: Response): Promise<boolean> {
-  if (res.status !== 409) return false;
+/** "Stol band" 409 bo'lsa — javob tanasi (unda stoldagi chek), aks holda `null`. */
+async function tableBusyBody(res: Response): Promise<unknown | null> {
+  if (res.status !== 409) return null;
   try {
-    return isTableBusyConflict(JSON.parse(await res.clone().text()));
+    const body = JSON.parse(await res.clone().text());
+    return isTableBusyConflict(body) ? body : null;
   } catch {
-    return false;
+    return null;
+  }
+}
+
+type MergeResult = 'merged' | 'retry' | 'refused';
+
+/**
+ * Taomlarni stoldagi chekka qo'shadi.
+ *
+ * `refused` — server qabul qilmadi (masalan chek shu orada yopildi): yaratish
+ * avvalgidek kassirga chiqadi. `retry` — tarmoq yoki vaqtinchalik xato:
+ * yaratish navbatda qoladi va keyingi sikl yana 409 olib, AYNAN o'sha kalit
+ * bilan qayta urinadi.
+ */
+async function sendMerge(ports: SyncPorts, item: QueuedItem, plan: TableMergePlan): Promise<MergeResult> {
+  try {
+    const res = await ports.send({
+      kind: 'patch',
+      qid: item.qid,
+      actor: item.actor,
+      orderId: plan.targetOrderId,
+      body: plan.patch,
+      label: 'merge_table',
+    });
+    if (res.ok) return 'merged';
+    return decideFromStatus(res.status) === 'retry' ? 'retry' : 'refused';
+  } catch {
+    return 'retry';
   }
 }
 
@@ -136,10 +171,18 @@ export async function runSyncCycle(
    */
   const parkedOrders = new Map<string, string>();
   const rejectedLabels: string[] = [];
+  const mergedLabels: string[] = [];
+  /*
+   * Stoldagi chekka qo'shilgan mahalliy chek → stoldagi chek. Uning navbatdagi
+   * keyingi taom qo'shishlari ham o'sha yerga boradi: mahalliy id serverda
+   * hech qachon paydo bo'lmaydi va ular 404 olib qolardi.
+   */
+  const mergedInto = new Map<string, string>();
   let anySucceeded = false;
   let unauthorized = false;
 
   for (const item of queue) {
+    let busyBody: unknown | null = null;
     const orderId = orderIdOf(item);
     const parkedReason = orderId ? parkedOrders.get(orderId) : undefined;
     if (parkedReason !== undefined) {
@@ -153,8 +196,12 @@ export async function runSyncCycle(
      */
     if (orderId && blockedOrders.has(orderId)) continue;
 
+    const mergedTarget = orderId ? mergedInto.get(orderId) : undefined;
+    const outgoing: QueuedItem =
+      mergedTarget && item.kind === 'patch' ? { ...item, orderId: mergedTarget } : item;
+
     try {
-      const res = await ports.send(item);
+      const res = await ports.send(outgoing);
 
       if (res.ok) {
         anySucceeded = true;
@@ -172,7 +219,20 @@ export async function runSyncCycle(
       } else if (await isObsolete(item, res)) {
         // Chek serverda allaqachon bekor qilingan — o'chirish keraksiz.
         if (item.qid) processedIds.add(item.qid);
-      } else if (await isTableBusy(res)) {
+      } else if ((busyBody = await tableBusyBody(res)) !== null) {
+        const plan = planTableMerge(item, busyBody, queue);
+        const merge = plan ? await sendMerge(ports, item, plan) : 'refused';
+        if (merge === 'merged') {
+          anySucceeded = true;
+          mergedLabels.push(ports.label(item));
+          if (item.qid) processedIds.add(item.qid);
+          if (orderId && plan) mergedInto.set(orderId, plan.targetOrderId);
+          continue;
+        }
+        if (merge === 'retry') {
+          if (orderId) blockedOrders.add(orderId);
+          continue;
+        }
         // Yangi chek ham, stolni ko'chirish ham: band stol o'zi bo'shamaydi.
         const reason = await readReason(res);
         parked.push(stampRejection(item, res.status, reason, Date.now()));
@@ -221,5 +281,5 @@ export async function runSyncCycle(
   // tushmay qolishi mumkin bo'lgan oraliq umuman bo'lmasligi kerak.
   const saved = ports.commit(nextQueue, nextFailed);
 
-  return { anySucceeded, rejectedLabels, commitFailed: !saved, unauthorized };
+  return { anySucceeded, rejectedLabels, mergedLabels, commitFailed: !saved, unauthorized };
 }

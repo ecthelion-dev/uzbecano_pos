@@ -253,18 +253,20 @@ export function useOfflineSync({
         console.error("[sync] navbat holatini saqlab bo'lmadi");
       }
 
+      const listOf = (labels: string[]) =>
+        labels.slice(0, 3).join(', ') +
+        (labels.length > 3 ? ' ' + t('toast.andMore', { n: labels.length - 3 }) : '');
+
       if (outcome.rejectedLabels.length > 0) {
         window.dispatchEvent(new Event('sync-rejected'));
         setToastMessage(
-          t('toast.syncRejected', {
-            list:
-              outcome.rejectedLabels.slice(0, 3).join(', ') +
-              (outcome.rejectedLabels.length > 3
-                ? ' ' + t('toast.andMore', { n: outcome.rejectedLabels.length - 3 })
-                : ''),
-          })
+          t('toast.syncRejected', { list: listOf(outcome.rejectedLabels) })
         );
         setTimeout(() => setToastMessage(null), 6000);
+      } else if (outcome.mergedLabels.length > 0) {
+        // Jimgina emas: stoldagi chek kattalashdi va kassir buni ko'rishi kerak.
+        setToastMessage(t('toast.syncMerged', { list: listOf(outcome.mergedLabels) }));
+        setTimeout(() => setToastMessage(null), 8000);
       } else if (outcome.anySucceeded) {
         setToastMessage("Oflayn amallar serverga sinxronlandi!");
         setTimeout(() => setToastMessage(null), 2500);

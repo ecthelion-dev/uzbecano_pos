@@ -460,6 +460,7 @@ export const uz = {
   'toast.noMenu': 'Bazada kategoriyalar yoki mahsulotlar topilmadi',
   'toast.syncRejected': 'Server qabul qilmadi: {list}. Qayta kiriting.',
   'toast.andMore': 'va yana {n} ta',
+  'toast.syncMerged': "Stol band edi — kassadagi chek stoldagi ochiq chekka qo'shildi: {list}. Chekni tekshiring.",
   'toast.waiterCallOne': '{table} — ofitsiant chaqirilyapti',
   'toast.waiterCallMany': '{n} stol ofitsiant chaqiryapti',
   'toast.kitchenSlipSent': 'Oshxona kvitansiyasi kassa printeriga yuborildi',

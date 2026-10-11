@@ -220,6 +220,167 @@ describe('server rad etganda', () => {
       expect(store.state.failed.map((i) => i.qid)).toEqual(['q1', 'q2']);
     });
 
+    /*
+     * AVTOMATIK BIRLASHTIRISH. Kassir rad etilgan chekni "Savatga yuklash"
+     * bilan stoldagi ochiq chekka qo'shardi — navbat endi buni o'zi qiladi,
+     * lekin faqat chek OCHIQ va undagi pul faqat taomlardan iborat bo'lsa.
+     * To'langan, chegirmali yoki boshqa amali bor chek avvalgidek kassirga
+     * chiqadi: u yerda qaror pul haqida, taom haqida emas.
+     */
+    const OSH = { productId: 'p-osh', name: 'Osh', price: 35000, quantity: 2 };
+    const openCreate = (id: string, qid: string, extra: Record<string, unknown> = {}): QueuedItem =>
+      ({
+        kind: 'create',
+        qid,
+        order: {
+          id,
+          idempotencyKey: id,
+          tableNumber: 'Stol 1',
+          status: 'sent_to_kitchen',
+          discount: 0,
+          items: JSON.stringify([OSH]),
+          ...extra,
+        },
+      });
+    const appendPatch = (orderId: string, qid: string, appendKey: string): QueuedItem =>
+      ({
+        kind: 'patch',
+        qid,
+        orderId,
+        label: 'add_items',
+        body: { addItems: [{ productId: 'p-choy', name: 'Choy', price: 5000, quantity: 1 }], appendKey, status: 'sent_to_kitchen' },
+      });
+
+    it('ochiq chek stoldagi chekka qo`shiladi — rad etilganlarga tushmaydi', async () => {
+      // Arrange
+      const store = fakeStore([openCreate('o1', 'q1')]);
+      const sent: QueuedItem[] = [];
+
+      // Act
+      const outcome = await runSyncCycle(store.ports({
+        send: async (i) => { sent.push(i); return i.kind === 'create' ? tableBusy() : ok(); },
+      }), 'token');
+
+      // Assert
+      expect(sent).toHaveLength(2);
+      const merge = sent[1] as Extract<QueuedItem, { kind: 'patch' }>;
+      expect(merge.kind).toBe('patch');
+      expect(merge.orderId).toBe('server-order');
+      expect(merge.body.addItems).toEqual([
+        { productId: 'p-osh', name: 'Osh', price: 35000, quantity: 2, note: '' },
+      ]);
+      // Kalit chekning o'zidan: takroriy urinish taomni ikkinchi marta qo'shmaydi.
+      expect(merge.body.appendKey).toBe('merge:o1');
+      expect(store.state.queue).toEqual([]);
+      expect(store.state.failed).toEqual([]);
+      // Nom `ports.label` dan (bu soxta portda yaratish — 'chek').
+      expect(outcome?.mergedLabels).toEqual(['chek']);
+      expect(outcome?.rejectedLabels).toEqual([]);
+      expect(outcome?.anySucceeded).toBe(true);
+    });
+
+    it('birlashtirish paytida tarmoq uzilsa — chek navbatda qoladi, keyingi urinish o`sha kalit bilan', async () => {
+      const store = fakeStore([openCreate('o1', 'q1')]);
+      const keys: string[] = [];
+
+      await runSyncCycle(store.ports({
+        send: async (i) => {
+          if (i.kind === 'create') return tableBusy();
+          keys.push((i as any).body.appendKey);
+          throw new Error('tarmoq yo`q');
+        },
+      }), 'token');
+      expect(store.state.queue.map((i) => i.qid)).toEqual(['q1']);
+      expect(store.state.failed).toEqual([]);
+
+      await runSyncCycle(store.ports({
+        send: async (i) => {
+          if (i.kind === 'create') return tableBusy();
+          keys.push((i as any).body.appendKey);
+          return ok();
+        },
+      }), 'token');
+      expect(store.state.queue).toEqual([]);
+      expect(keys).toEqual(['merge:o1', 'merge:o1']);
+    });
+
+    it('stoldagi chek shu orada yopilgan bo`lsa — chek kassirga chiqadi, yo`qolmaydi', async () => {
+      const store = fakeStore([openCreate('o1', 'q1')]);
+      const closed = () =>
+        new Response(JSON.stringify({ message: "Yopilgan (served) buyurtmaga taom qo'shib bo'lmaydi", orderStatus: 'served' }), { status: 400 });
+
+      const outcome = await runSyncCycle(store.ports({
+        send: async (i) => (i.kind === 'create' ? tableBusy() : closed()),
+      }), 'token');
+
+      expect(store.state.queue).toEqual([]);
+      expect(store.state.failed.map((i) => i.qid)).toEqual(['q1']);
+      // Sabab — asl "stol band": kassir chekni qayerga qo'yishni shundan biladi.
+      expect((store.state.failed[0] as any).rejectedReason).toContain('ochiq buyurtma bor');
+      expect(outcome?.mergedLabels).toEqual([]);
+    });
+
+    it('stoldagi chek boshqa qurilmada o`zgarayotgan bo`lsa (409) — keyinroq qayta uriniladi', async () => {
+      const store = fakeStore([openCreate('o1', 'q1')]);
+
+      await runSyncCycle(store.ports({
+        send: async (i) =>
+          i.kind === 'create'
+            ? tableBusy()
+            : new Response(JSON.stringify({ message: 'Buyurtma boshqa qurilmada o`zgardi' }), { status: 409 }),
+      }), 'token');
+
+      expect(store.state.queue.map((i) => i.qid)).toEqual(['q1']);
+      expect(store.state.failed).toEqual([]);
+    });
+
+    it('chekka keyin qo`shilgan taom ham o`sha stoldagi chekka boradi', async () => {
+      const store = fakeStore([openCreate('o1', 'q1'), appendPatch('o1', 'q2', 'add-1')]);
+      const sent: QueuedItem[] = [];
+
+      await runSyncCycle(store.ports({
+        send: async (i) => { sent.push(i); return i.kind === 'create' ? tableBusy() : ok(); },
+      }), 'token');
+
+      expect(sent.map((i) => (i.kind === 'patch' ? i.orderId : 'create'))).toEqual([
+        'create',
+        'server-order',
+        'server-order',
+      ]);
+      expect((sent[2] as any).body.appendKey).toBe('add-1');
+      expect(store.state.queue).toEqual([]);
+      expect(store.state.failed).toEqual([]);
+    });
+
+    it.each([
+      ['promo-kodli', { promo: { code: 'YOZ10', type: 'percent', value: 10 } }],
+      ['qo`lda chegirmali', { discount: 5000 }],
+      ['to`langan', { status: 'served', paymentMethod: 'cash' }],
+      ['taomsiz', { items: '[]' }],
+    ])('%s chek birlashtirilmaydi — kassirga chiqadi', async (_name, extra) => {
+      const store = fakeStore([openCreate('o1', 'q1', extra)]);
+      const sent: string[] = [];
+
+      await runSyncCycle(store.ports({
+        send: async (i) => { sent.push(i.kind); return tableBusy(); },
+      }), 'token');
+
+      expect(sent).toEqual(['create']);
+      expect(store.state.failed.map((i) => i.qid)).toEqual(['q1']);
+    });
+
+    it('chekning keyingi amali to`lov bo`lsa birlashtirilmaydi — ikkalasi kassirga chiqadi', async () => {
+      const store = fakeStore([openCreate('o1', 'q1'), patch('o1', 'q2')]);
+      const sent: string[] = [];
+
+      await runSyncCycle(store.ports({
+        send: async (i) => { sent.push(i.qid!); return tableBusy(); },
+      }), 'token');
+
+      expect(sent).toEqual(['q1']);
+      expect(store.state.failed.map((i) => i.qid)).toEqual(['q1', 'q2']);
+    });
+
     it('oddiy 409 (eskirgan ma`lumot) avvalgidek navbatda qoladi', async () => {
       const store = fakeStore([patch('o1', 'q1')]);
       await runSyncCycle(store.ports({

@@ -297,7 +297,12 @@ describeOffline('oflayn → onlayn: navbat haqiqiy serverga', () => {
     expect(serverOrders().map((o) => [o.status, o.total])).toEqual([['served', 25000]]);
   });
 
-  it('2026-10-02: bitta stolga ikki xil chek — ikkinchisi aylanmaydi, sababi bilan chiqadi', async () => {
+  /*
+   * 2026-10-02 / 2026-10-08: bitta stolga ikki xil chek. Ochiq chek endi
+   * kassirga chiqmaydi — taomlari stoldagi chekka qo'shiladi va summa
+   * serverda qayta hisoblanadi.
+   */
+  it('bitta stolga ikki xil ochiq chek — ikkinchisi stoldagi chekka qo`shiladi', async () => {
     const till = new TillQueue();
     till.push(newOrder('Bar 4', [line(PRODUCTS.latte)]));
     till.push(newOrder('Bar 4', [line(PRODUCTS.latte)]));
@@ -305,8 +310,27 @@ describeOffline('oflayn → onlayn: navbat haqiqiy serverga', () => {
     await till.drainUntilSettled(waiter);
 
     expect(till.queue).toEqual([]);
-    expect(till.failed).toHaveLength(1);
+    expect(till.failed).toEqual([]);
+    const orders = serverOrders();
+    expect(orders).toHaveLength(1);
+    expect(orders[0].total).toBe(2 * PRODUCTS.latte.price);
+    const [[items]] = query(`SELECT items FROM "Order" WHERE id = '${orders[0].id}'`);
+    expect(JSON.parse(items)).toHaveLength(2);
+  });
+
+  it('to`langan ikkinchi chek birlashtirilmaydi — sababi va to`lovi bilan kassirga chiqadi', async () => {
+    const till = new TillQueue();
+    till.push(newOrder('Bar 4', [line(PRODUCTS.latte)]));
+    const paid = newOrder('Bar 4', [line(PRODUCTS.cappuccino)]);
+    till.push(paid);
+    till.push(cashPayment(orderId(paid), PRODUCTS.cappuccino.price));
+
+    await till.drainUntilSettled(waiter);
+
+    expect(till.queue).toEqual([]);
+    expect(till.failed).toHaveLength(2);
     expect((till.failed[0] as any).rejectedReason).toMatch(/ochiq buyurtma bor/);
-    expect(serverOrders()).toHaveLength(1);
+    // Stoldagi chekka hech narsa qo'shilmagan.
+    expect(serverOrders().map((o) => [o.status, o.total])).toEqual([['sent_to_kitchen', PRODUCTS.latte.price]]);
   });
 });

@@ -446,6 +446,7 @@ export const en: Record<TranslationKey, string> = {
   'toast.noMenu': 'No categories or products found in the database',
   'toast.syncRejected': 'The server refused: {list}. Enter them again.',
   'toast.andMore': 'and {n} more',
+  'toast.syncMerged': 'Table was taken — the till check was added to the open table order: {list}. Please review it.',
   'toast.waiterCallOne': '{table} — calling a waiter',
   'toast.waiterCallMany': '{n} tables are calling a waiter',
   'toast.kitchenSlipSent': 'Kitchen slip sent to the till printer',

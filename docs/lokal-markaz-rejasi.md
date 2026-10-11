@@ -46,6 +46,10 @@ ga so'rov yuborishga ruxsat bermaydi (mixed content va Private Network Access).
 
 **Tavsiya: A dan boshlash.** B keyinroq, agar A yetmasa.
 
+Cheklov WebSocket'ga ham tegishli: HTTPS sahifa `ws://192.168.x.x` ga ham ulana olmaydi.
+A variantida sahifaning o'zi `http` bo'lgani uchun bu muammo emas. Lekin `http` sahifada
+service worker ishlamaydi, ya'ni sahifa kassadan har safar yangidan yuklanadi.
+
 ### 3.2 Telefon kassani qanday topadi
 
 - Kassa ekranida QR-kod: `http://192.168.1.25:7420`. Ofitsiant smena boshida bir marta skaner qiladi.
@@ -57,11 +61,47 @@ ga so'rov yuborishga ruxsat bermaydi (mixed content va Private Network Access).
 - **Ochiq buyurtmalar** (stollar, savat, oshxona) — kassada. Telefon faqat kassadan o'qiydi va kassaga yozadi.
 - **Yopilgan cheklar, hisobot, menyu, xodimlar, tariflar** — bulutda, kassa ularni yuklab oladi.
 - Telefon kassaga ulana olmasa (masalan, Wi-Fi'dan tashqarida): bulutga **faqat o'qish** uchun ulanadi va ogohlantirish chiqadi. Hozirgi "kassa uzilgan" banneri shu yerda qayta ishlatiladi. Stolni ochish bulutda emas, faqat markazda bo'ladi, aks holda muammo qaytadi.
+- **Telefon markazni ko'rmasa, yozuvni o'z navbatiga ham qo'ymaydi.** "Keyin yuboraman" deb
+  saqlangan buyurtma — markazdan bexabar ikkinchi haqiqat, ya'ni 10-08 dagi xatoning o'zi.
+  Telefondagi IndexedDB faqat o'qish keshi bo'lib qoladi. (Tashqi maslahatda telefonga
+  navbat taklif qilingan edi — shu sababdan rad etildi.)
+
+### 3.3a Bulut markaz rejimini biladi
+
+Faqat telefonni cheklash yetmaydi: mobil internetdagi telefon markazni umuman ko'rmaydi va
+bulutga to'g'ridan-to'g'ri yozishga urinadi. Shuning uchun:
+
+- Kafe sozlamasida `hubMode` bayrog'i (`Cafe` jadvalida, standart — o'chiq).
+- Bayroq yoqilgan kafeda bulut API ochiq buyurtmalarga yozishni (`POST /api/orders`,
+  `PATCH .../addItems`, yopish) **faqat markaz qurilmasidan** qabul qiladi. Markaz o'zini
+  juftlashda olgan qurilma tokeni bilan tanitadi. Boshqa qurilmaga aniq xato qaytadi va
+  telefon "kafe Wi-Fi'siga ulaning" deb ko'rsatadi.
+- Bayroq bulut tomonda birinchi chiqadi (CLAUDE.md: API o'zgarishi kassadan oldin), kassa
+  esa uni keyin yoqadi — aks holda yangi kassa eski serverda jimgina ishlamay qoladi.
+
+### 3.3b Oflayn pul hisobi
+
+Hozir summani faqat server hisoblaydi va mijozning summasiga ishonmaydi. Markaz internet
+yo'qligida ham chek yopishi kerak, demak summani u ham hisoblaydi:
+
+- Bu hisob mantig'ining **uchinchi nusxasi** bo'ladi (API `apps/api/src/common/`, Next
+  `src/lib/`, endi kassa). Nusxalar ajralib ketmasligi uchun bir xil kirish → bir xil
+  natija testlari (umumiy test vektorlari JSON faylda) uchala joyda ham ishlaydi.
+- Sinxron paytida bulut summani o'zi qayta hisoblaydi. Farq chiqsa chek rad etilmaydi
+  (pul allaqachon olingan), lekin audit yozuvi va admin panelda ogohlantirish bo'ladi.
 
 ### 3.4 Kassa ichida nima bo'ladi
 
 - Tauri ichida kichik HTTP server (Rust, `axum`), faqat lokal tarmoqda.
 - Ochiq buyurtmalar uchun lokal baza (SQLite). Hozirgi `localStorage` navbati u yerga ko'chadi.
+- Lokal API bulut API bilan **bir xil shaklda**: `POST /api/orders` (`idempotencyKey`),
+  `PATCH { addItems, appendKey }`, `version` bilan optimistik qulf. Telefon kodida faqat
+  manzil o'zgaradi. Yangi `/local/*` shakllari yoki `operationId` kiritilmaydi — bular
+  bizda allaqachon bor.
+- Rust tomonda `rusqlite` + `axum`: kassa bitta jarayon, `sqlx` ning asinxron puli shart emas.
+  "Bir stolda bitta ochiq buyurtma" SQLite'da qisman unikal indeks bilan qulflanadi.
+- `kvStore` dagi `localStorage` nusxasi ataylab saqlanadi (eski versiyaga qaytganda smena
+  yo'qolmasin) — SQLite'ga ko'chishda ham bu qoida saqlanadi.
 - Bulut bilan sinxron hozirgi `syncCycle` mantiqi asosida, lekin endi faqat kassadan.
 - Chop etish soddalashadi: telefon chekni to'g'ridan-to'g'ri kassaga beradi, bulutdagi `PrintJob` navbati kerak bo'lmaydi.
 

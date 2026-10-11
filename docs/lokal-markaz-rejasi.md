@@ -151,8 +151,41 @@ ya'ni ish o'rtasida kafe to'xtamaydi.
   (6-bo'lim, 1-qadam) Wi-Fi'ga o'tkazish xodimlarga qanchalik qulayligini ham ko'ramiz.
 - **Kassa kompyuteri kun bo'yi yoniq:** ha — markaz uchun asosiy shart bajarilgan.
 
-## 8. Hali ochiq savollar
+## 8. Javoblar (2026-10-11)
 
-1. Ofitsiantlarda Android'mi, iPhone ham bormi?
-2. Kafeda bir nechta kassa kompyuteri bo'ladimi?
-3. A varianti (telefon brauzerida, ilovasiz) yetarlimi yoki alohida ilova kerakmi?
+- **Telefonlar:** aralash — Android ham, iPhone ham.
+  **Oqibati:** A varianti ikkalasida ham ishlaydi (oddiy brauzer). B varianti iPhone
+  uchun qimmat: Apple developer hisobi (yiliga $99), App Store/TestFlight tekshiruvi,
+  har yangilanish yana tekshiruvdan o'tadi.
+- **Kassa kompyuterlari:** hozircha bitta; boshqa restoranlarda qancha bo'lishi
+  noma'lum.
+  **Oqibati:** har kafeda BITTA markaz. Ikkinchi kassa kompyuteri qo'shilsa u
+  markazning mijozi bo'ladi, ikkinchi markaz emas. Lokal API bulut API bilan bir xil
+  shaklda bo'lgani uchun bu yo'l keyin ham ochiq — hozir qo'shimcha ish shart emas.
+- **A yetarlimi:** egasi maslahat so'radi. **Qaror: A dan boshlaymiz** — bitta kafe,
+  bitta kassa sinov uchun eng toza sharoit; A ishlasa B kerak emas, ishlamasa nima
+  yetishmasligini aniq bilamiz.
+
+### A varianti — `http` sahifadagi cheklovlar (kod tekshirildi, 2026-10-11)
+
+Sahifa `http://192.168.x.x` dan ochilgani uchun brauzer ba'zi imkoniyatlarni beradi:
+
+| Imkoniyat | Kassada qayerda | `http` da | Holat |
+|---|---|---|---|
+| `crypto.randomUUID` | chek, to'lov, xarajat id lari | yo'q — chek ochish yiqilardi | **tuzatildi** (`lib/uuid.ts`, kassa `778e158`) |
+| `crypto.subtle` | oflayn PIN tekshiruvi | yo'q | muammo emas: markazda PIN ni kassa tekshiradi |
+| Kamera (`getUserMedia`) | promo-kod QR skaneri | yo'q | kod qo'lda kiritiladi |
+| Service worker | PWA keshi | yo'q | sahifa har safar kassadan yuklanadi — normal |
+
+iPhone'ga xos: Safari fondagi tabni tez to'xtatadi — ofitsiant ilovaga qaytganda
+sahifa qayta ulanishi kerak (nabz buni o'zi qiladi, sinovda kuzatiladi). Ekran
+o'chsa ulanish uziladi — Android'da ham.
+
+**B ga o'tish belgilari** (sinovda kuzatiladi): ofitsiantlar har smenada sahifani
+qayta ochishdan charchaydi; kassa IP o'zgarib turadi; Safari uzilishlari ishga
+xalaqit beradi. Unda Tauri 2 mobil bilan shu koddan ilova yig'iladi.
+
+## 9. Keyingi qadam
+
+0-bosqich (kafedagi ish): routerda kassa kompyuteriga doimiy IP (DHCP reservation)
+va "ish paytida telefon kafe Wi-Fi'sida" qoidasi.

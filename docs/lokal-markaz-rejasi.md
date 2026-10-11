@@ -1,6 +1,6 @@
 # Kassa — kafe ichidagi markaz: reja
 
-> Holat: taklif (2026-10-08). Hali boshlanmagan.
+> Holat: taklif (2026-10-08), savollarga javob olindi (2026-10-11). Kod hali boshlanmagan.
 
 ## 1. Muammo
 

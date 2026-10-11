@@ -1,3 +1,5 @@
+import { newId } from './uuid';
+
 /**
  * Oflayn navbatdagi amal bilan nima qilish kerak.
  *
@@ -121,10 +123,7 @@ export function canSync(token: string | null | undefined): boolean {
  * tashlanadi. Oradagi yangi yozuv o'z joyida qoladi.
  */
 export function newQueueId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `q-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return newId();
 }
 
 /** Nomi bor navbat yozuvi. */

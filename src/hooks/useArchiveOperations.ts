@@ -4,6 +4,7 @@ import { writeCafeJson } from '../lib/storage';
 import { fetchWithTimeout } from '../lib/net';
 import { decideFromStatus } from '../lib/syncQueue';
 import { API_BASE_URL } from '../constants';
+import { newId } from '../lib/uuid';
 
 export interface UseArchiveOperationsParams {
   orders: DBOrder[];
@@ -123,7 +124,7 @@ export function useArchiveOperations(params: UseArchiveOperationsParams) {
        * yozuv qo'shib, mijoz ikki marta to'lagandek ko'rinardi. Server
        * `debtPayment.id` ni ko'rib, takroriy so'rovni jimgina qaytaradi.
        */
-      const paymentId = crypto.randomUUID();
+      const paymentId = newId();
       const debtPayment = {
         id: paymentId,
         amount,

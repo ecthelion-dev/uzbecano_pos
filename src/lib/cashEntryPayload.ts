@@ -1,3 +1,5 @@
+import { newId } from './uuid';
+
 /**
  * Kassa xarajatining serverga ketadigan tanasi.
  *
@@ -25,7 +27,7 @@ export function buildCashEntryPayload(
   category: string,
   amount: number,
   note: string,
-  idempotencyKey: string = crypto.randomUUID(),
+  idempotencyKey: string = newId(),
   businessDate?: string,
 ): CashEntryPayload {
   return {

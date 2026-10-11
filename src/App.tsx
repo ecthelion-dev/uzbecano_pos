@@ -59,6 +59,7 @@ import { useTableMove } from './hooks/useTableMove';
 import { usePosShortcuts } from './hooks/usePosShortcuts';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { useCashDrawer } from './hooks/useCashDrawer';
+import { newId } from './lib/uuid';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -970,7 +971,7 @@ export default function App() {
   // they were queued, so a PATCH for an order always retries after that same
   // order's CREATE — required since the order only exists server-side once
   // its CREATE has synced. This only works because the order id is generated
-  // client-side (crypto.randomUUID()) and the backend now honors it as the
+  // client-side (newId()) and the backend now honors it as the
   // real primary key (see POST /api/orders), so a PATCH's target id is valid
   // whether the order synced immediately or was queued.
   /*
@@ -1434,7 +1435,7 @@ export default function App() {
         [selectedTable]: [
           ...currentCart,
           {
-            lineId: crypto.randomUUID(),
+            lineId: newId(),
             product,
             quantity: 1,
             note,

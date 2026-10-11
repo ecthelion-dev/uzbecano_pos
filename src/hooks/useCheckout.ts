@@ -7,6 +7,7 @@ import { writeCafeJson } from '../lib/storage';
 import { fetchWithTimeout } from '../lib/net';
 import { createExclusive } from '../lib/exclusive';
 import { API_BASE_URL, isActiveOrder } from '../constants';
+import { newId } from '../lib/uuid';
 
 export interface UseCheckoutParams {
   orders: DBOrder[];
@@ -142,7 +143,7 @@ export function useCheckout(params: UseCheckoutParams) {
           const draftPromo = tableDraftPromos[targetTable] || null;
           const { serviceFee: orderFee, discount, total: orderTot } = orderTotals(sub, serviceFeePercent, draftPromo);
           const newOrderObj = {
-            id: crypto.randomUUID(),
+            id: newId(),
             cafeId: getActiveCafeId(),
             tableNumber: targetTable,
             waiterName: currentWaiter?.name || '',

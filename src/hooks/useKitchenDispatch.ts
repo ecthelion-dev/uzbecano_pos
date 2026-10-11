@@ -8,6 +8,7 @@ import { decideFromStatus } from '../lib/syncQueue';
 import { writeCafeJson, readGlobalText } from '../lib/storage';
 import { formatClock } from '../lib/timeFormat';
 import { API_BASE_URL, DEFAULT_CAFE_ID } from '../constants';
+import { newId } from '../lib/uuid';
 
 export interface UseKitchenDispatchParams {
   cart: CartItem[];
@@ -213,7 +214,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
           promo?: any;
           discount?: number;
         } = {
-          id: crypto.randomUUID(),
+          id: newId(),
           cafeId,
           tableNumber: selectedTable,
           waiterName: currentWaiter?.name || '',

@@ -1,3 +1,5 @@
+import { newId } from './uuid';
+
 /**
  * Shu qurilmaning barqaror nomi.
  *
@@ -27,10 +29,7 @@ export function getDeviceId(): string {
     // yasaladi: u ilova yopilguncha yashaydi va belgi o'zi eskiradi.
   }
 
-  const fresh =
-    typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const fresh = newId();
 
   try {
     localStorage.setItem(KEY, fresh);

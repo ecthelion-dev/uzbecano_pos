@@ -156,6 +156,35 @@ describe('BarcodeScannerModal', () => {
     expect(zxing.reset).toHaveBeenCalled();
   });
 
+  /*
+   * Noma'lum kod: administrator darhol menyuga qo'sha oladi (narxni faqat u
+   * qo'yadi), qolgan xodim faqat xabarni ko'radi.
+   */
+  it('noma‘lum kodda administratorga "qo‘shish" tugmasi chiqadi', async () => {
+    const onAddUnknown = vi.fn();
+    render(
+      <LanguageProvider>
+        <BarcodeScannerModal onDetected={vi.fn()} onClose={vi.fn()} unknownCode="2145UZ" onAddUnknown={onAddUnknown} />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByText(translate('uz', 'toast.barcodeUnknown' as never, { code: '2145UZ' }))).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: uz('scanner.addProduct') }));
+
+    expect(onAddUnknown).toHaveBeenCalledWith('2145UZ');
+  });
+
+  it('administrator bo‘lmasa faqat xabar, tugma yo‘q', async () => {
+    render(
+      <LanguageProvider>
+        <BarcodeScannerModal onDetected={vi.fn()} onClose={vi.fn()} unknownCode="2145UZ" />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByText(translate('uz', 'toast.barcodeUnknown' as never, { code: '2145UZ' }))).toBeTruthy();
+    expect(screen.queryByRole('button', { name: uz('scanner.addProduct') })).toBeNull();
+  });
+
   it('Escape oynani yopadi', async () => {
     const { onClose } = renderModal();
     await waitFor(() => expect(zxing.decodeFromConstraints).toHaveBeenCalled());

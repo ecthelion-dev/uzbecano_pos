@@ -120,6 +120,7 @@ export const en: Record<TranslationKey, string> = {
   'scanner.barcodeTitle': "Scan the product barcode",
   'scanner.barcodeHint': "Hold the barcode in front of the camera",
   'scanner.barcodeLast': "Last code: {code}",
+  'scanner.addProduct': "Add in admin panel",
   'menu.scanBarcode': "Scan barcode",
   'toast.barcodeAdded': "{name} added to the cart",
   'toast.barcodeUnknown': "No product found for this code: {code}",

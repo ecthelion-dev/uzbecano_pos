@@ -120,6 +120,7 @@ export const ru: Record<TranslationKey, string> = {
   'scanner.barcodeTitle': "Отсканируйте штрихкод товара",
   'scanner.barcodeHint': "Держите штрихкод перед камерой",
   'scanner.barcodeLast': "Последний код: {code}",
+  'scanner.addProduct': "Добавить в админ-панели",
   'menu.scanBarcode': "Сканировать штрихкод",
   'toast.barcodeAdded': "{name} добавлен в корзину",
   'toast.barcodeUnknown': "Товар с таким кодом не найден: {code}",

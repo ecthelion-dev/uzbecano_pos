@@ -133,6 +133,7 @@ export const uz = {
   'scanner.barcodeTitle': "Tovar shtrix-kodini skanerlang",
   'scanner.barcodeHint': "Shtrix-kodni kamera oldida ushlab turing",
   'scanner.barcodeLast': "Oxirgi kod: {code}",
+  'scanner.addProduct': "Admin panelda qo'shish",
   'menu.scanBarcode': "Shtrix-kodni skanerlash",
   'toast.barcodeAdded': "{name} savatga qo'shildi",
   'toast.barcodeUnknown': "Bu kod bo'yicha mahsulot topilmadi: {code}",

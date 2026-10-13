@@ -46,7 +46,9 @@ import { holdLinesToCart, parseHoldItems } from './lib/cartSync';
 import { pollIntervalMs, shouldPollWhileHidden } from './lib/pollPolicy';
 import { setInstallGuard } from './lib/autoUpdater';
 import { resolveBarcodeScan } from './lib/barcodeLookup';
+import { canManageProducts, newProductAdminUrl, openExternalUrl } from './lib/adminLinks';
 import { BarcodeScannerModal } from './components/BarcodeScannerModal';
+import { useBarcodeWedge } from './hooks/useBarcodeWedge';
 import { isSafeToInstall } from './lib/updateTiming';
 import { asCafeSettings, asCategoryArray, asProductArray } from './lib/apiShapes';
 import { buildVariants } from './lib/productVariants';
@@ -198,6 +200,8 @@ export default function App() {
   const [showUnsavedCartModal, setShowUnsavedCartModal] = useState<boolean>(false);
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  /** Skanerlangan, lekin menyuda topilmagan oxirgi kod (skaner oynasida ko'rsatiladi). */
+  const [unknownBarcode, setUnknownBarcode] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const {
     showAdminPinModal,
@@ -1483,9 +1487,11 @@ export default function App() {
     };
 
     if (outcome.kind === 'unknown') {
+      setUnknownBarcode(code);
       notify(t('toast.barcodeUnknown', { code }));
       return;
     }
+    setUnknownBarcode(null);
     if (outcome.kind === 'unavailable') {
       notify(t('toast.barcodeUnavailable', { name: outcome.product.name }));
       return;
@@ -1495,6 +1501,15 @@ export default function App() {
     handleAddToCart(outcome.product);
     if (!outcome.needsChoice) notify(t('toast.barcodeAdded', { name: outcome.product.name }));
   }, [products, handleAddToCart, t]);
+
+  // USB skaner (klaviatura kabi yozadi) — faqat menyu ekranida, ya'ni stol
+  // tanlangan paytda: aks holda tovar kassir ko'rmayotgan stolga tushardi.
+  useBarcodeWedge(activeTab === 'menyu' && currentWaiter !== null, handleBarcodeScanned);
+
+  const closeBarcodeScanner = useCallback(() => {
+    setShowBarcodeScanner(false);
+    setUnknownBarcode(null);
+  }, []);
 
   const updateQuantity = useCallback((lineId: string, delta: number) => {
     setTableCarts(prev => {
@@ -2453,7 +2468,14 @@ export default function App() {
       {showBarcodeScanner && (
         <BarcodeScannerModal
           onDetected={handleBarcodeScanned}
-          onClose={() => setShowBarcodeScanner(false)}
+          onClose={closeBarcodeScanner}
+          unknownCode={unknownBarcode}
+          // Narxni faqat administrator qo'yadi — tugma ham faqat unga.
+          onAddUnknown={
+            canManageProducts(currentWaiter?.role)
+              ? (code) => void openExternalUrl(newProductAdminUrl(code))
+              : undefined
+          }
         />
       )}
 

@@ -19,6 +19,10 @@ const SAME_CODE_COOLDOWN_MS = 2000;
 interface BarcodeScannerModalProps {
   onDetected: (code: string) => void;
   onClose: () => void;
+  /** Oxirgi skanerlangan, lekin menyuda topilmagan kod. */
+  unknownCode?: string | null;
+  /** Faqat administratorga beriladi: noma'lum kodni admin panelda qo'shish. */
+  onAddUnknown?: (code: string) => void;
 }
 
 /**
@@ -33,7 +37,12 @@ interface BarcodeScannerModalProps {
  * Natijani (savatga qo'shildi / topilmadi) chaqiruvchi xabar sifatida chiqaradi.
  * USB skaner kerak emas — u klaviatura kabi yozadi va alohida ishlaydi.
  */
-export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ onDetected, onClose }) => {
+export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
+  onDetected,
+  onClose,
+  unknownCode,
+  onAddUnknown,
+}) => {
   const t = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const onDetectedRef = useRef(onDetected);
@@ -162,6 +171,21 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ onDete
               <p className="text-xs font-mono font-semibold text-slate-700">
                 {t('scanner.barcodeLast', { code: lastCode })}
               </p>
+            )}
+          </div>
+        )}
+
+        {unknownCode && (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-2 text-center">
+            <p className="text-xs font-semibold text-amber-700">{t('toast.barcodeUnknown', { code: unknownCode })}</p>
+            {onAddUnknown && (
+              <button
+                type="button"
+                onClick={() => onAddUnknown(unknownCode)}
+                className="w-full h-10 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold active:scale-95 transition-colors cursor-pointer"
+              >
+                {t('scanner.addProduct')}
+              </button>
             )}
           </div>
         )}

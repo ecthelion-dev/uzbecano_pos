@@ -44,6 +44,8 @@ import { getDeviceId } from './lib/deviceId';
 import { tableState } from './lib/floorPlan';
 import { holdLinesToCart, parseHoldItems } from './lib/cartSync';
 import { pollIntervalMs, shouldPollWhileHidden } from './lib/pollPolicy';
+import { setInstallGuard } from './lib/autoUpdater';
+import { isSafeToInstall } from './lib/updateTiming';
 import { asCafeSettings, asCategoryArray, asProductArray } from './lib/apiShapes';
 import { buildVariants } from './lib/productVariants';
 import { formatClock } from './lib/timeFormat';
@@ -1045,6 +1047,25 @@ export default function App() {
    * kutayotgan chaqiruv bo'lsa tez, bo'lmasa sekin.
    */
   const hasLiveWork = orders.some(o => o.status !== 'served') || waiterCalls.length > 0;
+
+  /*
+   * Yangilanish kassa band paytida o'rnatilmasin: o'rnatuvchi ilovani yopib
+   * qayta ochadi va kassir PIN ni qayta kiritadi. Qoidaning o'zi
+   * `lib/updateTiming.ts` da.
+   *
+   * To'siq App tushganda ham olib tashlanadi (effekt tozalanishi), aks holda
+   * render qulagan kassa "band" deb turib yangilana olmay qolardi.
+   */
+  useEffect(() => {
+    return setInstallGuard(() => {
+      const queue = readCafeJson<unknown>(getActiveCafeId(), 'sync_queue', []);
+      return isSafeToInstall({
+        isLoggedIn: currentWaiter !== null,
+        hasLiveWork,
+        hasQueuedActions: Array.isArray(queue) && queue.length > 0,
+      });
+    });
+  }, [currentWaiter, hasLiveWork, getActiveCafeId]);
 
   /**
    * Chop etish navbatini bo'shatadi — faqat printer ulangan desktop kassada.

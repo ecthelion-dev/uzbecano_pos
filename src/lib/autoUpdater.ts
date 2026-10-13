@@ -54,6 +54,62 @@ let inFlight: Promise<boolean> | null = null;
 const REMIND_AFTER_MS = 30 * 60 * 1000;
 let remindTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * "Hozir o'rnatsa bo'ladimi" degan savolga javob beruvchi. Uni ilova
+ * (`App.tsx`) beradi, chunki chek va navbat holatini faqat u biladi.
+ */
+export type InstallGuard = () => boolean;
+let installGuard: InstallGuard | null = null;
+
+/** Band kassa bo'shashini shuncha vaqtda bir tekshiramiz. */
+const GUARD_RECHECK_MS = 30 * 1000;
+
+/**
+ * Band paytda kutishning eng uzun muddati (bir smena).
+ *
+ * Chegarasiz kutish jim xavf: ochiq cheki hech tugamaydigan kassa eski
+ * versiyada abadiy qolardi, 1.4.2 va undan eskisi esa o'zi yangilana olmaydi.
+ */
+const MAX_DEFER_MS = 8 * 60 * 60 * 1000;
+
+let deferTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * O'rnatish to'siqini qo'yadi. Qaytarilgan funksiya uni olib tashlaydi.
+ *
+ * Olib tashlash shart: render qulab `App` tushib ketsa, eskirgan to'siq
+ * "band" deb turib yangilanishni abadiy to'sib qo'ymasligi kerak. Aynan shu
+ * holat 1.4.1 da kassani oq ekranda qoldirgan edi.
+ */
+export function setInstallGuard(guard: InstallGuard): () => void {
+  installGuard = guard;
+  return () => {
+    if (installGuard === guard) installGuard = null;
+  };
+}
+
+/** To'siq xato otsa yoki yo'q bo'lsa yangilanish to'xtatilmaydi. */
+function isGuardOpen(): boolean {
+  if (!installGuard) return true;
+  try {
+    return installGuard();
+  } catch (err) {
+    console.warn('O‘rnatish to‘siqi xato berdi, yangilanish to‘xtatilmaydi:', err);
+    return true;
+  }
+}
+
+/** Kassa band bo'lmaganda o'rnatadi; band bo'lsa o'zi qayta tekshirib turadi. */
+function installWhenSafe(readyAt: number) {
+  deferTimer = null;
+  const waitedMs = Date.now() - readyAt;
+  if (isGuardOpen() || waitedMs >= MAX_DEFER_MS) {
+    void installUpdate();
+    return;
+  }
+  deferTimer = setTimeout(() => installWhenSafe(readyAt), GUARD_RECHECK_MS);
+}
+
 function notify(update: Partial<UpdateStatus>) {
   currentStatus = { ...currentStatus, ...update };
   listeners.forEach((cb) => cb(currentStatus));
@@ -130,9 +186,10 @@ async function runCheck(): Promise<boolean> {
     pendingUpdate = update;
     notify({ phase: 'ready', progress: 100 });
 
-    // Darhol o'rnatamiz. Xato bo'lsa `installUpdate` holatni `ready` ga
-    // qaytaradi va banner tugmasi zaxira yo'l bo'lib qoladi.
-    void installUpdate();
+    // Kassa band bo'lmasa darhol o'rnatamiz, band bo'lsa bo'shaguncha
+    // kutamiz (banner `ready` da turadi va tugma qo'lda o'rnatadi). Xato
+    // bo'lsa `installUpdate` holatni `ready` ga qaytaradi.
+    installWhenSafe(Date.now());
     return true;
   } catch (err: any) {
     const errMsg = err?.message || String(err);
@@ -150,6 +207,11 @@ async function runCheck(): Promise<boolean> {
  */
 export async function installUpdate(): Promise<void> {
   if (!pendingUpdate) return;
+  // Qo'lda bosilsa yoki muddat tugasa kutish tugaydi.
+  if (deferTimer) {
+    clearTimeout(deferTimer);
+    deferTimer = null;
+  }
 
   try {
     notify({ phase: 'installing' });

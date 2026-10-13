@@ -130,6 +130,13 @@ export const uz = {
   'scanner.failed': "Kamerani ochib bo'lmadi",
   'scanner.unsupported': "Bu qurilmada kamera ishlamaydi",
   'scanner.notPromo': "Bu QR kodda promokod yo'q",
+  'scanner.barcodeTitle': "Tovar shtrix-kodini skanerlang",
+  'scanner.barcodeHint': "Shtrix-kodni kamera oldida ushlab turing",
+  'scanner.barcodeLast': "Oxirgi kod: {code}",
+  'menu.scanBarcode': "Shtrix-kodni skanerlash",
+  'toast.barcodeAdded': "{name} savatga qo'shildi",
+  'toast.barcodeUnknown': "Bu kod bo'yicha mahsulot topilmadi: {code}",
+  'toast.barcodeUnavailable': "{name} hozir sotuvda yo'q",
   'modifier.pickSize': "Kerakli porsiya yoki o'lchamni tanlang",
 
   // ── Aralash to'lov ──────────────────────────────────────────────────

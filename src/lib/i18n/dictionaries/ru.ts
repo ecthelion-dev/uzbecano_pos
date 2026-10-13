@@ -117,6 +117,13 @@ export const ru: Record<TranslationKey, string> = {
   'scanner.failed': "Не удалось открыть камеру",
   'scanner.unsupported': "Камера недоступна на этом устройстве",
   'scanner.notPromo': "В этом QR-коде нет промокода",
+  'scanner.barcodeTitle': "Отсканируйте штрихкод товара",
+  'scanner.barcodeHint': "Держите штрихкод перед камерой",
+  'scanner.barcodeLast': "Последний код: {code}",
+  'menu.scanBarcode': "Сканировать штрихкод",
+  'toast.barcodeAdded': "{name} добавлен в корзину",
+  'toast.barcodeUnknown': "Товар с таким кодом не найден: {code}",
+  'toast.barcodeUnavailable': "{name} сейчас недоступен",
   'modifier.pickSize': 'Выберите нужную порцию или размер',
 
   // ── Смешанная оплата ────────────────────────────────────────────────

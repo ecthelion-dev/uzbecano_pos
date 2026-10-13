@@ -117,6 +117,13 @@ export const en: Record<TranslationKey, string> = {
   'scanner.failed': "Could not open the camera",
   'scanner.unsupported': "The camera is not available on this device",
   'scanner.notPromo': "This QR code has no promo code",
+  'scanner.barcodeTitle': "Scan the product barcode",
+  'scanner.barcodeHint': "Hold the barcode in front of the camera",
+  'scanner.barcodeLast': "Last code: {code}",
+  'menu.scanBarcode': "Scan barcode",
+  'toast.barcodeAdded': "{name} added to the cart",
+  'toast.barcodeUnknown': "No product found for this code: {code}",
+  'toast.barcodeUnavailable': "{name} is unavailable right now",
   'modifier.pickSize': 'Pick the portion or size you need',
 
   // ── Split payment ───────────────────────────────────────────────────

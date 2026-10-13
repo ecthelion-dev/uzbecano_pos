@@ -45,6 +45,8 @@ import { tableState } from './lib/floorPlan';
 import { holdLinesToCart, parseHoldItems } from './lib/cartSync';
 import { pollIntervalMs, shouldPollWhileHidden } from './lib/pollPolicy';
 import { setInstallGuard } from './lib/autoUpdater';
+import { resolveBarcodeScan } from './lib/barcodeLookup';
+import { BarcodeScannerModal } from './components/BarcodeScannerModal';
 import { isSafeToInstall } from './lib/updateTiming';
 import { asCafeSettings, asCategoryArray, asProductArray } from './lib/apiShapes';
 import { buildVariants } from './lib/productVariants';
@@ -195,6 +197,7 @@ export default function App() {
 
   const [showUnsavedCartModal, setShowUnsavedCartModal] = useState<boolean>(false);
   const [selectedModifierProduct, setSelectedModifierProduct] = useState<DBProduct | null>(null);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const {
     showAdminPinModal,
@@ -1468,6 +1471,31 @@ export default function App() {
     });
   }, [selectedTable, selectedModifierProduct]);
 
+  /*
+   * Kameradan o'qilgan shtrix-kod. Qaror `lib/barcodeLookup.ts` da; bu yerda
+   * faqat natijani savat va xabarga ulaymiz.
+   */
+  const handleBarcodeScanned = useCallback((code: string) => {
+    const outcome = resolveBarcodeScan(products, code);
+    const notify = (message: string) => {
+      setToastMessage(message);
+      window.setTimeout(() => setToastMessage(null), 2500);
+    };
+
+    if (outcome.kind === 'unknown') {
+      notify(t('toast.barcodeUnknown', { code }));
+      return;
+    }
+    if (outcome.kind === 'unavailable') {
+      notify(t('toast.barcodeUnavailable', { name: outcome.product.name }));
+      return;
+    }
+    // Tanlash oynasi kamera ustida ochilmasin: avval kamera yopiladi.
+    if (outcome.needsChoice) setShowBarcodeScanner(false);
+    handleAddToCart(outcome.product);
+    if (!outcome.needsChoice) notify(t('toast.barcodeAdded', { name: outcome.product.name }));
+  }, [products, handleAddToCart, t]);
+
   const updateQuantity = useCallback((lineId: string, delta: number) => {
     setTableCarts(prev => {
       const currentCart = prev[selectedTable] || [];
@@ -2320,6 +2348,7 @@ export default function App() {
               onOpenMobileSearch={() => setShowMobileSearch(true)}
               onSelectCategory={handleSelectCategory}
               onAddToCart={handleAddToCart}
+              onOpenBarcodeScanner={() => setShowBarcodeScanner(true)}
             />
 
             {/* Light Receipt Panel — kompyuterda yon panel, telefonda pastdan
@@ -2419,6 +2448,14 @@ export default function App() {
           })}
         </div>
       </div>
+
+      {/* POSModals dan OLDIN: xabar (toast) bir xil qatlamda kamera oynasi ustida chiqishi uchun. */}
+      {showBarcodeScanner && (
+        <BarcodeScannerModal
+          onDetected={handleBarcodeScanned}
+          onClose={() => setShowBarcodeScanner(false)}
+        />
+      )}
 
       <POSModals
         showReceiptPreview={showReceiptPreview}

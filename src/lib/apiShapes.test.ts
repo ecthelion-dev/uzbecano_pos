@@ -84,6 +84,29 @@ describe('asProduct', () => {
   });
 });
 
+/*
+ * Kassa mahsulotni skaner kodi bilan topadi. `asProduct` maydonlarni ro'yxat
+ * bo'yicha o'tkazadi, ya'ni kod bu yerda sanalmasa kassaga umuman yetib
+ * kelmaydi va skanerlash hech qachon mahsulot topmaydi — xatosiz, jimgina.
+ */
+describe('asProduct — shtrix-kod', () => {
+  const base = { id: 'p1', name: 'Suv', category: 'Ichimliklar', price: 5000 };
+
+  it('kodni saqlaydi', () => {
+    expect(asProduct({ ...base, barcode: '4780001234567' })?.barcode).toBe('4780001234567');
+  });
+
+  it('chetidagi bo‘shliqni olib tashlaydi', () => {
+    expect(asProduct({ ...base, barcode: ' 4780001234567 ' })?.barcode).toBe('4780001234567');
+  });
+
+  it('bo‘sh, null yoki matn bo‘lmagan kodda maydon umuman qo‘yilmaydi', () => {
+    expect('barcode' in (asProduct({ ...base, barcode: '' }) ?? {})).toBe(false);
+    expect('barcode' in (asProduct({ ...base, barcode: null }) ?? {})).toBe(false);
+    expect('barcode' in (asProduct({ ...base, barcode: 123 }) ?? {})).toBe(false);
+  });
+});
+
 describe('asProductArray', () => {
   it("ro'yxat bo'lmasa null — chaqiruvchi eski menyuni saqlaydi", () => {
     expect(asProductArray({ xato: 'javob' })).toBeNull();

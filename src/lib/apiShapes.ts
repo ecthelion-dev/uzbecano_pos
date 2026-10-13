@@ -54,6 +54,11 @@ export function asProduct(raw: unknown): DBProduct | null {
   const description = str(raw.description);
   if (description) product.description = description;
 
+  // Skaner kodi: bu yerda sanalmasa kassaga yetib kelmaydi va skanerlash
+  // hech qachon mahsulot topmaydi — xatosiz, jimgina.
+  const barcode = str(raw.barcode)?.trim();
+  if (barcode) product.barcode = barcode;
+
   if (typeof raw.isAvailable === 'boolean') product.isAvailable = raw.isAvailable;
 
   /*

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Search, X } from 'lucide-react';
+import { ArrowLeft, ScanBarcode, Search, X } from 'lucide-react';
 import { CategoryCard } from './CategoryCard';
 import { ProductCard } from './ProductCard';
 import type { DBCategory, DBProduct } from '../types';
@@ -20,6 +20,8 @@ export interface POSMenuViewProps {
   onOpenMobileSearch: () => void;
   onSelectCategory: (categoryName: string) => void;
   onAddToCart: (product: DBProduct) => void;
+  /** Tovar shtrix-kodini kamera bilan skanerlash oynasini ochadi. */
+  onOpenBarcodeScanner: () => void;
 }
 
 export const POSMenuView: React.FC<POSMenuViewProps> = ({
@@ -38,6 +40,7 @@ export const POSMenuView: React.FC<POSMenuViewProps> = ({
   onOpenMobileSearch,
   onSelectCategory,
   onAddToCart,
+  onOpenBarcodeScanner,
 }) => {
   return (
     <div className="flex-1 flex flex-col gap-2.5 sm:gap-4 overflow-hidden min-h-0">
@@ -105,6 +108,20 @@ export const POSMenuView: React.FC<POSMenuViewProps> = ({
             <Search className="w-5 h-5" />
           </button>
         )}
+
+        {/* Qadoqlangan tovarni shtrix-kod bilan topish: kamera oynasini ochadi */}
+        <button
+          type="button"
+          onClick={onOpenBarcodeScanner}
+          title={t('menu.scanBarcode')}
+          aria-label={t('menu.scanBarcode')}
+          className={`${
+            showMobileSearch ? 'hidden sm:flex' : 'flex'
+          } items-center justify-center gap-2 w-11 h-11 sm:h-9 sm:w-auto sm:px-3.5 shrink-0 rounded-xl bg-white text-slate-600 border border-slate-200 shadow-2xs hover:bg-slate-50 hover:text-brand-700 active:scale-95 transition-all cursor-pointer`}
+        >
+          <ScanBarcode className="w-5 h-5 sm:w-4 sm:h-4" />
+          <span className="hidden sm:inline text-xs font-bold">{t('menu.scanBarcode')}</span>
+        </button>
       </div>
 
       {/* Dynamic Categories / Products Grid */}

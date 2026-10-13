@@ -14,7 +14,7 @@ interface QrScannerModalProps {
   onClose: () => void;
 }
 
-function cameraErrorKey(error: unknown): TranslationKey {
+export function cameraErrorKey(error: unknown): TranslationKey {
   const name = error instanceof DOMException ? error.name : '';
   if (name === 'NotAllowedError' || name === 'SecurityError') return 'scanner.denied';
   if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'scanner.noCamera';

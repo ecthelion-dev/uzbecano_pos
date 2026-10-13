@@ -32,6 +32,8 @@ export interface DBProduct {
   addons?: ProductAddon[];
   sizes?: any;
   recipe?: string;
+  /** Skaner kodi: kassa kameradan yoki USB skanerdan o'qiganini shu bilan topadi. */
+  barcode?: string;
 }
 
 export interface DBCategory {

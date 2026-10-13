@@ -19,6 +19,7 @@
     "@tauri-apps/plugin-opener": "^2.5.4",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.11.0",
+    "@zxing/library": "^0.23.0",
     "jsqr": "^1.4.0",
     "lucide-react": "^0.469.0",
     "react": "^18.3.1",

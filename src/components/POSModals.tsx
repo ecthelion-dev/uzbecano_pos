@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { lazy } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useT } from '../lib/i18n/LanguageProvider';
+import { LazyModal } from './LazyModal';
 import { ToastNotification } from './ToastNotification';
 import { KitchenPrintArea } from './KitchenPrintArea';
 import { ReceiptPreviewModal } from './ReceiptPreviewModal';
-import { ArchiveModal } from './ArchiveModal';
 import { ShiftReportModal } from './ShiftReportModal';
 import { CashDrawerModal } from './CashDrawerModal';
 import { AdminPinModal } from './AdminPinModal';
@@ -12,8 +12,6 @@ import { TableMoveModal } from './TableMoveModal';
 import { ProductModifierModal } from './ProductModifierModal';
 import { PaymentModal } from './PaymentModal';
 import { UnsavedCartModal } from './UnsavedCartModal';
-import { PrinterSettingsModal } from './PrinterSettingsModal';
-import { ReservationModal } from './ReservationModal';
 import { ReservationDetailsModal } from './ReservationDetailsModal';
 import { ArchivePeriodPrintArea, type PeriodPrintData } from './ArchivePeriodPrintArea';
 import type {
@@ -28,6 +26,19 @@ import type {
   ProductVariant,
 } from '../types';
 import type { SyncVerdict } from '../lib/syncHealth';
+
+/*
+ * Kassir kuniga bir-ikki marta ochadigan og'ir modallar alohida bo'lakka
+ * chiqarilgan: ilova ochilishida ularning kodi yuklanmaydi va tahlil
+ * qilinmaydi. Ular faqat birinchi ochilganda keladi (`LazyModal`).
+ *
+ * `ArchivePeriodPrintArea` BU YERDA YO'Q: `App.tsx` dagi chop etish effekti
+ * hisobot paydo bo'lgandan 60 ms keyin `window.print()` chaqiradi. Bo'lak
+ * hali kelmagan bo'lsa kassir bo'sh qog'oz olardi.
+ */
+const ArchiveModal = lazy(() => import('./ArchiveModal').then((m) => ({ default: m.ArchiveModal })));
+const ReservationModal = lazy(() => import('./ReservationModal').then((m) => ({ default: m.ReservationModal })));
+const PrinterSettingsModal = lazy(() => import('./PrinterSettingsModal').then((m) => ({ default: m.PrinterSettingsModal })));
 
 export interface POSModalsProps {
   // Receipt Preview
@@ -266,23 +277,25 @@ export const POSModals: React.FC<POSModalsProps> = ({
         onPrint={onPrintReceiptPreview}
       />
 
-      <ArchiveModal
-        show={showArchiveModal}
-        orders={orders}
-        archiveSearch={archiveSearch}
-        selectedArchiveOrder={selectedArchiveOrder}
-        cafeName={cafeName}
-        cafeLogo={cafeLogo}
-        cafeAddress={cafeAddress}
-        cafePhone={cafePhone}
-        onSearchChange={onSearchChange}
-        onSelectArchiveOrder={onSelectArchiveOrder}
-        onRefundOrder={onRefundOrder}
-        onPayDebt={onPayDebt}
-        onPrintPeriod={onPrintPeriod}
-        onClose={onCloseArchiveModal}
-        onPrint={onPrintArchiveOrder}
-      />
+      <LazyModal open={showArchiveModal} onClose={onCloseArchiveModal}>
+        <ArchiveModal
+          show={showArchiveModal}
+          orders={orders}
+          archiveSearch={archiveSearch}
+          selectedArchiveOrder={selectedArchiveOrder}
+          cafeName={cafeName}
+          cafeLogo={cafeLogo}
+          cafeAddress={cafeAddress}
+          cafePhone={cafePhone}
+          onSearchChange={onSearchChange}
+          onSelectArchiveOrder={onSelectArchiveOrder}
+          onRefundOrder={onRefundOrder}
+          onPayDebt={onPayDebt}
+          onPrintPeriod={onPrintPeriod}
+          onClose={onCloseArchiveModal}
+          onPrint={onPrintArchiveOrder}
+        />
+      </LazyModal>
 
       <KitchenPrintArea data={kitchenSlipData} />
 
@@ -341,16 +354,18 @@ export const POSModals: React.FC<POSModalsProps> = ({
         onClose={onCloseTableMove}
       />
 
-      <ReservationModal
-        show={showReservationModal}
-        tableDefs={tableDefs}
-        reservations={reservations}
-        defaultTableNumber={reservationDefaultTable}
-        onCreateReservation={onCreateReservation}
-        onCancelReservation={onCancelReservation}
-        onOpenTable={onOpenReservedTable}
-        onClose={onCloseReservationModal}
-      />
+      <LazyModal open={showReservationModal} onClose={onCloseReservationModal}>
+        <ReservationModal
+          show={showReservationModal}
+          tableDefs={tableDefs}
+          reservations={reservations}
+          defaultTableNumber={reservationDefaultTable}
+          onCreateReservation={onCreateReservation}
+          onCancelReservation={onCancelReservation}
+          onOpenTable={onOpenReservedTable}
+          onClose={onCloseReservationModal}
+        />
+      </LazyModal>
 
       <ReservationDetailsModal
         show={showReservationDetailsModal}
@@ -403,13 +418,15 @@ export const POSModals: React.FC<POSModalsProps> = ({
         </div>
       )}
 
-      <PrinterSettingsModal
-        isOpen={showPrinterModal}
-        onClose={onClosePrinterModal}
-        cafeName={cafeName}
-        onToast={onPrinterToast}
-        onFreshStart={onFreshStart}
-      />
+      <LazyModal open={showPrinterModal} onClose={onClosePrinterModal}>
+        <PrinterSettingsModal
+          isOpen={showPrinterModal}
+          onClose={onClosePrinterModal}
+          cafeName={cafeName}
+          onToast={onPrinterToast}
+          onFreshStart={onFreshStart}
+        />
+      </LazyModal>
     </>
   );
 };

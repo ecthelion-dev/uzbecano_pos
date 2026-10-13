@@ -14,6 +14,7 @@ export const en: Record<TranslationKey, string> = {
   'common.total': 'Total:',
   'common.totalUpper': 'TOTAL:',
   'common.reload': 'Reload',
+  'lazy.loadFailed': 'The window failed to load. Check the internet and reload the till.',
   'common.logout': 'Log out',
   'common.print': 'PRINT',
   'common.noData': 'No data',

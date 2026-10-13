@@ -14,6 +14,7 @@ export const ru: Record<TranslationKey, string> = {
   'common.total': 'Итого:',
   'common.totalUpper': 'ИТОГО:',
   'common.reload': 'Обновить',
+  'lazy.loadFailed': 'Окно не загрузилось. Проверьте интернет и перезагрузите кассу.',
   'common.logout': 'Выйти',
   'common.print': 'ПЕЧАТЬ',
   'common.noData': 'Нет данных',

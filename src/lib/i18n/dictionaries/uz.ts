@@ -27,6 +27,7 @@ export const uz = {
   'common.total': 'Jami:',
   'common.totalUpper': 'JAMI:',
   'common.reload': 'Qayta yuklash',
+  'lazy.loadFailed': 'Oyna yuklanmadi. Internetni tekshirib, kassani qayta yuklang.',
   'common.logout': 'Chiqish',
   'common.print': 'CHOP ETISH',
   'common.noData': "Ma'lumot yo'q",

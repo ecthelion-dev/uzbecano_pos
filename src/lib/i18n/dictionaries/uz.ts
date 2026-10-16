@@ -419,6 +419,7 @@ export const uz = {
   'net.rejectedBy': 'Kim: {name}',
   'net.rejectedByUnknown': 'Kim: noma’lum',
   'net.rejectedAck': 'Tushunarli',
+  'net.rejectedRemove': 'O‘chirish',
   'net.rejectedEmpty': 'O‘tmagan amal yo‘q',
   'net.rejectedClose': 'Yopish',
   'net.retry': 'Qayta yuborish',

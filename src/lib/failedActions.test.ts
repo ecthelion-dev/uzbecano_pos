@@ -9,6 +9,7 @@ import {
   actorOf,
   retryFailedAction,
   retryAllFailedActions,
+  canDiscard,
   extractActionItems,
   tableNumberOfAction,
   type FailedAction,
@@ -204,6 +205,38 @@ describe('retryFailedAction va retryAllFailedActions', () => {
 
     expect(nextFailed).toEqual([]);
     expect(nextQueue.map((x) => x.qid)).toEqual(['q-0', 'q-1', 'q-2']);
+  });
+
+  it('"Tushunarli" deyilganlarni qayta yubormaydi — ular ro‘yxatda qoladi', () => {
+    // 2026-10-16: mavjud bo'lmagan chekning to'lovi "Tushunarli" dan keyin
+    // ham "Barchasini qayta yuborish" bilan qayta ketib, yana 404 olib,
+    // yana ko'rilmagan xato bo'lib qaytardi — aylana hech tugamasdi.
+    const list = [failedList[0], { ...failedList[1], acknowledgedAt: 5 }];
+    const { nextQueue, nextFailed } = retryAllFailedActions([], list);
+
+    expect(nextQueue.map((x) => x.qid)).toEqual(['q-1']);
+    expect(nextFailed.map((x) => x.qid)).toEqual(['q-2']);
+    expect(nextFailed[0].acknowledgedAt).toBe(5);
+  });
+});
+
+describe('canDiscard — ro‘yxatdan butunlay olib tashlash', () => {
+  it('ko‘rilgan to‘lov/o‘zgartirish olib tashlanadi', () => {
+    const paid = { ...stampRejection({ ...ITEM, label: 'finalize_payment' }, 404, 'Buyurtma topilmadi', 1), acknowledgedAt: 2 };
+    expect(canDiscard(paid)).toBe(true);
+  });
+
+  it('ko‘rilmagan yozuv olib tashlanmaydi — avval "Tushunarli"', () => {
+    expect(canDiscard(stampRejection(ITEM, 404, 'Buyurtma topilmadi', 1))).toBe(false);
+  });
+
+  it('chek yaratish olib tashlanmaydi — chekning yagona nusxasi shu yozuvda', () => {
+    // 2026-10-08: yaratish yozuvi yo'qolsa mahalliy chek ham o'chardi.
+    const create = {
+      ...stampRejection({ kind: 'create' as const, qid: 'c-1', order: { id: 'o-1', items: '[]' } }, 409, 'stol band', 1),
+      acknowledgedAt: 2,
+    };
+    expect(canDiscard(create)).toBe(false);
   });
 });
 

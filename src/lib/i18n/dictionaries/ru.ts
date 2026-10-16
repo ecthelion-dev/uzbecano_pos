@@ -405,6 +405,7 @@ export const ru: Record<TranslationKey, string> = {
   'net.rejectedBy': 'Кто: {name}',
   'net.rejectedByUnknown': 'Кто: неизвестно',
   'net.rejectedAck': 'Понятно',
+  'net.rejectedRemove': 'Удалить',
   'net.rejectedEmpty': 'Таких действий нет',
   'net.rejectedClose': 'Закрыть',
   'net.retry': 'Повторить',

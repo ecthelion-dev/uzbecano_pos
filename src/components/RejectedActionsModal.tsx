@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertCircle, X, RefreshCw, ShoppingCart } from 'lucide-react';
 import {
   actorOf,
+  canDiscard,
   extractActionItems,
   type FailedAction,
 } from '../lib/failedActions';
@@ -26,6 +27,8 @@ interface RejectedActionsModalProps {
   onRetry?: (qid: string) => void;
   onRetryAll?: () => void;
   onRestoreToCart?: (item: FailedAction) => void;
+  /** Ko'rilgan to'lov/o'zgartirishni ro'yxatdan olib tashlash (`canDiscard`). */
+  onDiscard?: (qid: string) => void;
   onClose: () => void;
 }
 
@@ -47,6 +50,7 @@ export const RejectedActionsModal: React.FC<RejectedActionsModalProps> = ({
   onRetry,
   onRetryAll,
   onRestoreToCart,
+  onDiscard,
   onClose,
 }) => {
   const t = useT();
@@ -63,7 +67,7 @@ export const RejectedActionsModal: React.FC<RejectedActionsModalProps> = ({
             <p className="text-[11px] text-slate-500 mt-1">{t('net.rejectedHint')}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {onRetryAll && items.length > 0 && (
+            {onRetryAll && items.some((i) => !i.acknowledgedAt) && (
               <button
                 onClick={onRetryAll}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors cursor-pointer"
@@ -124,6 +128,14 @@ export const RejectedActionsModal: React.FC<RejectedActionsModalProps> = ({
                         >
                           <ShoppingCart className="w-3 h-3" />
                           <span>{t('net.restoreToCart')}</span>
+                        </button>
+                      )}
+                      {onDiscard && canDiscard(item) && (
+                        <button
+                          onClick={() => onDiscard(item.qid as string)}
+                          className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 cursor-pointer"
+                        >
+                          {t('net.rejectedRemove')}
                         </button>
                       )}
                       {item.qid && !item.acknowledgedAt && (

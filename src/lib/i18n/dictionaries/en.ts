@@ -405,6 +405,7 @@ export const en: Record<TranslationKey, string> = {
   'net.rejectedBy': 'By: {name}',
   'net.rejectedByUnknown': 'By: unknown',
   'net.rejectedAck': 'Got it',
+  'net.rejectedRemove': 'Remove',
   'net.rejectedEmpty': 'Nothing was rejected',
   'net.rejectedClose': 'Close',
   'net.retry': 'Retry',

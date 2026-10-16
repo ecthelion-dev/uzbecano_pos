@@ -120,6 +120,7 @@ export const NetworkIndicator: React.FC = () => {
           // Amal savatdan qaytadan bajariladi — yozuv kerak emas.
           if (item.qid) discardFailed(item.qid);
         }}
+        onDiscard={discardFailed}
         onClose={() => setIsRejectedOpen(false)}
       />
     )}

@@ -152,7 +152,26 @@ export function retryFailedAction(
 }
 
 /**
- * Barcha rad etilgan amallarni navbatga qaytaradi.
+ * Ko'rilgan yozuvni ro'yxatdan butunlay olib tashlash mumkinmi.
+ *
+ * 2026-10-16: mavjud bo'lmagan chekning to'lovi (`finalize_payment`, 404)
+ * "Tushunarli" dan keyin ham ro'yxatda abadiy turardi — taomi yo'q, ya'ni
+ * "savatga qaytarish" ham yo'q, boshqa chiqish yo'li yo'q edi.
+ *
+ * Faqat ko'rilgani va faqat yaratish BO'LMAGANI: yaratish yozuvi chekning
+ * yagona nusxasi (2026-10-08, `acknowledge` ga qarang). To'lov, o'zgartirish
+ * yoki o'chirish esa serverdagi chekka ishora — undan chek yo'qolmaydi.
+ */
+export function canDiscard(item: FailedAction): boolean {
+  return Boolean(item?.qid && item.acknowledgedAt && item.kind !== 'create');
+}
+
+/**
+ * Hali ko'rilmagan rad etilgan amallarni navbatga qaytaradi.
+ *
+ * "Tushunarli" deyilganlar o'z joyida qoladi: ular ataylab hal qilingan.
+ * Ilgari ular ham qayta yuborilardi va yana rad etilib, ko'rilmagan xato
+ * bo'lib qaytardi (2026-10-16) — bittasini kerak bo'lsa `retryFailedAction`.
  */
 export function retryAllFailedActions(
   queue: QueuedItem[],
@@ -162,14 +181,17 @@ export function retryAllFailedActions(
     return { nextQueue: queue || [], nextFailed: [] };
   }
 
-  const restored: QueuedItem[] = failed.map((item) => {
+  const reviewed = failed.filter((item) => item?.acknowledgedAt);
+  const pending = failed.filter((item) => item && !item.acknowledgedAt);
+
+  const restored: QueuedItem[] = pending.map((item) => {
     const { rejectedAt: _a, rejectedStatus: _s, rejectedReason: _r, acknowledgedAt: _k, ...cleanItem } = item;
     return { ...cleanItem, queuedAt: Date.now() };
   });
 
   return {
     nextQueue: [...(Array.isArray(queue) ? queue : []), ...restored],
-    nextFailed: [],
+    nextFailed: reviewed,
   };
 }
 

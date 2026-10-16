@@ -46,6 +46,32 @@ describe('createExclusive', () => {
     expect(calls).toBe(1);
   });
 
+  it('idle: ishlayotgan bajarilish tugashini kutadi, bo‘sh bo‘lsa darhol', async () => {
+    const run = createExclusive();
+    await run.idle();
+
+    const gate = deferred();
+    let finished = false;
+    const first = run(async () => { await gate.promise; finished = true; });
+
+    let idled = false;
+    const idle = run.idle().then(() => { idled = true; });
+    await Promise.resolve();
+    expect(idled).toBe(false);
+
+    gate.resolve();
+    await Promise.all([first, idle]);
+    expect(finished).toBe(true);
+    expect(idled).toBe(true);
+  });
+
+  it('idle: xato bilan tugasa ham bo‘shaydi', async () => {
+    const run = createExclusive();
+    const failing = run(async () => { throw new Error('tarmoq'); });
+    await expect(run.idle()).resolves.toBeUndefined();
+    await expect(failing).rejects.toThrow('tarmoq');
+  });
+
   it('natijani qaytaradi, o‘tkazib yuborilganda undefined', async () => {
     const run = createExclusive();
     const gate = deferred();

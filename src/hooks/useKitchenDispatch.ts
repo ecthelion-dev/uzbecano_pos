@@ -1,4 +1,4 @@
-import { useCallback, useRef, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useState, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
 import type { CartItem, DBOrder, DBWaiter, KitchenSlipData } from '../types';
 import { orderTotals, parsePromoTerms, type PromoTerms } from '../lib/promo';
 import { adoptServerId, cartLineToOrderItem, removeItemPatch, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
@@ -329,7 +329,9 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
 
   // "Tasdiqlash" tarmoq javobini kutayotganda qayta bosilsa, oshxonaga ikki
   // marta ketardi: savat javobdan keyingina bo'shaydi.
-  const exclusive = useRef(createExclusive()).current;
+  // `useState` — bir marta yaratiladi va render paytida o'qish xavfsiz
+  // (`idle` ni qaytaramiz; ref'dan o'qish React qoidasiga zid).
+  const [exclusive] = useState(createExclusive);
   const handleSendToKitchen = useCallback(
     (opts?: { printSlip?: boolean }) => exclusive(() => sendToKitchen(opts)),
     [exclusive, sendToKitchen],
@@ -338,5 +340,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
   return {
     handleSendToKitchen,
     handleRemoveKitchenItem,
+    /** Yuborish ketayotgan bo'lsa — tugashini kutadi (`checkoutFlow.ts`). */
+    waitForKitchenDispatch: exclusive.idle,
   };
 }

@@ -12,18 +12,39 @@
  * (kutib turilmaydi): ikkinchi bosish "yana bir marta" degani emas, balki
  * birinchisi sekin ishlayotgani.
  */
-export function createExclusive() {
-  let busy = false;
+export interface Exclusive {
+  <T>(task: () => Promise<T>): Promise<T | undefined>;
+  /**
+   * Hozirgi bajarilish tugashini kutadi; hech narsa ishlamayotgan bo'lsa
+   * darhol qaytadi. Xato bilan tugasa ham bo'shaydi (xatoni chaqiruvchi
+   * o'zi oladi, bu yerda takrorlanmaydi).
+   *
+   * O'tkazib yuborilgan chaqiruv `undefined` ni DARHOL qaytaradi — ishning
+   * tugaganini bildirmaydi. Natijaga tayanadigan keyingi qadam (to'lov
+   * oynasi) shuni kutishi kerak.
+   */
+  idle(): Promise<void>;
+}
 
-  return async function runExclusive<T>(task: () => Promise<T>): Promise<T | undefined> {
-    if (busy) return undefined;
-    busy = true;
+export function createExclusive(): Exclusive {
+  let current: Promise<void> | null = null;
+
+  const runExclusive = async function <T>(task: () => Promise<T>): Promise<T | undefined> {
+    // Tekshirish va band qilish bitta sinxron qadamda: async funksiya
+    // birinchi `await` gacha to'xtamaydi.
+    if (current) return undefined;
+    let release!: () => void;
+    current = new Promise<void>((resolve) => { release = resolve; });
     try {
       return await task();
     } finally {
       // Xato bo'lsa ham bo'shaydi: aks holda bitta uzilish tugmani
       // butunlay qotirib qo'yardi.
-      busy = false;
+      current = null;
+      release();
     }
-  };
+  } as Exclusive;
+
+  runExclusive.idle = () => current ?? Promise.resolve();
+  return runExclusive;
 }

@@ -66,6 +66,7 @@ import { usePosShortcuts } from './hooks/usePosShortcuts';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { useCashDrawer } from './hooks/useCashDrawer';
 import { newId } from './lib/uuid';
+import { openPaymentAfterDispatch } from './lib/checkoutFlow';
 
 // Kategoriya nomlarini solishtirish uchun yagona shakl: bosh/oxirgi bo'shliqlar
 // olib tashlanadi, ichki bo'shliqlar bittaga keltiriladi va harflar kichiklashadi.
@@ -2013,7 +2014,7 @@ export default function App() {
     t,
   });
 
-  const { handleSendToKitchen, handleRemoveKitchenItem } = useKitchenDispatch({
+  const { handleSendToKitchen, handleRemoveKitchenItem, waitForKitchenDispatch } = useKitchenDispatch({
     cart,
     selectedTable,
     activeTableOrder,
@@ -2400,9 +2401,13 @@ export default function App() {
                   setShowMobileCart(false);
                 }}
                 onCloseTable={() => {
-                  if (cart.length > 0) handleSendToKitchen({ printSlip: false });
-                  setShowPaymentModal(true);
                   setShowMobileCart(false);
+                  void openPaymentAfterDispatch({
+                    hasUnsavedCart: cart.length > 0,
+                    send: () => handleSendToKitchen({ printSlip: false }),
+                    waitIdle: waitForKitchenDispatch,
+                    openPayment: () => setShowPaymentModal(true),
+                  });
                 }}
                 onOpenReceiptPreview={() => setShowReceiptPreview(true)}
                 onOpenTableMove={() => setShowTableMoveModal(true)}
@@ -2610,8 +2615,12 @@ export default function App() {
         onCloseUnsavedCartModal={() => setShowUnsavedCartModal(false)}
         onConfirmUnsavedCart={() => {
           setShowUnsavedCartModal(false);
-          handleSendToKitchen({ printSlip: false });
-          setShowPaymentModal(true);
+          void openPaymentAfterDispatch({
+            hasUnsavedCart: true,
+            send: () => handleSendToKitchen({ printSlip: false }),
+            waitIdle: waitForKitchenDispatch,
+            openPayment: () => setShowPaymentModal(true),
+          });
         }}
         draftSubtotal={draftSubtotal}
 

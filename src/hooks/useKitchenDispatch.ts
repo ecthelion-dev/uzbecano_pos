@@ -2,12 +2,11 @@ import { useCallback, useState, type MutableRefObject, type Dispatch, type SetSt
 import type { CartItem, DBOrder, DBWaiter, KitchenSlipData } from '../types';
 import { orderTotals, parsePromoTerms, type PromoTerms } from '../lib/promo';
 import { cartLineToOrderItem, removeItemPatch, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
-import { fetchWithTimeout } from '../lib/net';
 import { createExclusive } from '../lib/exclusive';
 import { decideFromStatus } from '../lib/syncQueue';
 import { writeCafeJson, readGlobalText } from '../lib/storage';
 import { formatClock } from '../lib/timeFormat';
-import { API_BASE_URL, DEFAULT_CAFE_ID } from '../constants';
+import { DEFAULT_CAFE_ID } from '../constants';
 import { newId } from '../lib/uuid';
 
 export interface UseKitchenDispatchParams {
@@ -23,13 +22,11 @@ export interface UseKitchenDispatchParams {
   serviceFeePercent: number;
   tableDraftPromos: Record<string, PromoTerms | null>;
   getActiveCafeId: () => string;
-  getAuthHeaders: (approvalToken?: string, tokenOverride?: string | null) => Record<string, string>;
   sendAppendItems: (orderId: string, items: OutgoingOrderItem[]) => Promise<DBOrder | null>;
   queueOrderForSync: (order: any) => string;
   /** Navbatni hozir yuboradi va `qid` javobini qaytaradi (`useOfflineSync`). */
   flushNow: (qid?: string) => Promise<Response | null>;
-  queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => void;
-  applyFrozenFromResponse: (res: Response, cafeId: string) => Promise<boolean>;
+  queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => string;
   requestAdminPin: (callback: (approvalToken?: string) => void | Promise<void>) => void;
   setOrders: (orders: DBOrder[]) => void;
   setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms | null>>>;
@@ -55,12 +52,10 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
     serviceFeePercent,
     tableDraftPromos,
     getActiveCafeId,
-    getAuthHeaders,
     sendAppendItems,
     queueOrderForSync,
     flushNow,
     queuePatchForSync,
-    applyFrozenFromResponse,
     requestAdminPin,
     setOrders,
     setTableDraftPromos,
@@ -88,27 +83,21 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
           parsePromoTerms(activeTableOrder.promo)
         );
         const { subtotal: sub, serviceFee: fee, discount, total: tot } = patchBody;
+        /*
+         * Faqat navbat orqali (2026-10-16): bu PATCH chekning TO'LIQ
+         * ro'yxatini yuboradi. To'g'ridan-to'g'ri ketsa, navbatda turgan taom
+         * qo'shishni quvib o'tardi — keyin o'sha qo'shish o'chirilgan taomni
+         * qaytarib olib kelardi yoki chek hali serverda bo'lmay 404 olardi.
+         */
+        const qid = queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
         if (!isOfflineMode) {
-          try {
-            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${activeTableOrder.id}`, {
-              method: 'PATCH',
-              headers: getAuthHeaders(approvalToken),
-              body: JSON.stringify(patchBody),
-            });
-            if (!res.ok) {
-              if (decideFromStatus(res.status) !== 'retry') {
-                const why = await res.json().catch(() => null);
-                setToastMessage(why?.error || "Taomni o'chirib bo'lmadi");
-                setTimeout(() => setToastMessage(null), 5000);
-                return;
-              }
-              queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
-            }
-          } catch {
-            queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
+          const res = await flushNow(qid);
+          if (res && !res.ok && res.status !== 401 && decideFromStatus(res.status) !== 'retry') {
+            const why = await res.json().catch(() => null);
+            setToastMessage(why?.error || "Taomni o'chirib bo'lmadi");
+            setTimeout(() => setToastMessage(null), 5000);
+            return;
           }
-        } else {
-          queuePatchForSync(activeTableOrder.id, patchBody, 'remove_item', approvalToken);
         }
 
         const emptied = updatedItems.length === 0;
@@ -138,8 +127,8 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
       isOfflineMode,
       requestAdminPin,
       getActiveCafeId,
-      getAuthHeaders,
       queuePatchForSync,
+      flushNow,
       serviceFeePercent,
       setOrders,
       setToastMessage,
@@ -319,13 +308,12 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
     draftSubtotal,
     ordersRef,
     isOfflineMode,
+    flushNow,
     currentWaiter,
     serviceFeePercent,
     getActiveCafeId,
-    getAuthHeaders,
     sendAppendItems,
     queueOrderForSync,
-    applyFrozenFromResponse,
     tableDraftPromos,
     setOrders,
     setStorageBlockingError,

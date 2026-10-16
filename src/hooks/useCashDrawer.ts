@@ -13,7 +13,8 @@ interface UseCashDrawerArgs {
   requestAdminPin: (action: (approvalToken?: string) => void, titleKey?: TranslationKey) => void;
   isOfflineMode: boolean;
   currentWaiterName: string;
-  queueCashForSync: (entry: unknown, label?: string, approvalToken?: string) => void;
+  queueCashForSync: (entry: unknown, label?: string, approvalToken?: string) => string;
+  flushNow: (qid?: string | string[]) => Promise<Response | null>;
   /** Saqlangandan keyin qisqa xabar (toast). */
   onSaved: () => void;
 }
@@ -46,6 +47,7 @@ export function useCashDrawer({
   isOfflineMode,
   currentWaiterName,
   queueCashForSync,
+  flushNow,
   onSaved,
 }: UseCashDrawerArgs) {
   const [show, setShow] = useState(false);
@@ -94,23 +96,12 @@ export function useCashDrawer({
     const payload = buildCashEntryPayload(category, amount, note, undefined, businessDate);
     const label = cashCategoryLabel(category);
 
-    if (isOfflineMode) {
-      queueCashForSync(payload, label, approvalToken);
-    } else {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE_URL}/api/cash-entries`, {
-          method: 'POST',
-          headers: getAuthHeaders(approvalToken),
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) queueCashForSync(payload, label, approvalToken);
-      } catch {
-        queueCashForSync(payload, label, approvalToken);
-      }
-    }
-
+    // Faqat navbat orqali (2026-10-16): server rad etsa, yozuv sababi bilan
+    // rad etilganlarga tushadi — avval 4xx ham qayta-qayta navbatga qo'yilardi.
+    const qid = queueCashForSync(payload, label, approvalToken);
     onSaved();
-  }, [transactions, currentWaiterName, isOfflineMode, getActiveCafeId, getAuthHeaders, queueCashForSync, approvalToken, onSaved]);
+    if (!isOfflineMode) await flushNow(qid);
+  }, [transactions, currentWaiterName, isOfflineMode, getActiveCafeId, queueCashForSync, flushNow, approvalToken, onSaved]);
 
   useEffect(() => {
     if (!show || isOfflineMode) return;

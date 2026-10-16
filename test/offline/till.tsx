@@ -16,11 +16,13 @@ import { useOfflineSync } from '../../src/hooks/useOfflineSync';
 import { useKitchenDispatch } from '../../src/hooks/useKitchenDispatch';
 import { useCheckout } from '../../src/hooks/useCheckout';
 import { useTableMove } from '../../src/hooks/useTableMove';
+import { useArchiveOperations } from '../../src/hooks/useArchiveOperations';
+import { usePromoCode } from '../../src/hooks/usePromoCode';
 import { isActiveOrder } from '../../src/constants';
 import { readCafeJson } from '../../src/lib/storage';
 import { installMemoryStorage } from '../../src/lib/testStorage';
 import type { CartItem, DBOrder } from '../../src/types';
-import { BASE_URL, CAFE, PRODUCTS } from './harness';
+import { BASE_URL, CAFE, PRODUCTS, approvalFor } from './harness';
 
 type Product = (typeof PRODUCTS)[keyof typeof PRODUCTS];
 
@@ -86,6 +88,7 @@ function useTill(token: string, offline: { current: boolean }) {
   const [selectedTable, setSelectedTable] = useState('Terassa 1');
   const [tableDraftPromos, setTableDraftPromos] = useState<Record<string, any>>({});
   const authTokenRef = useRef<string | null>(token);
+  const pinWork = useRef<Promise<void>>(Promise.resolve());
 
   const setOrders = (next: DBOrder[]) => {
     ordersRef.current = next;
@@ -144,13 +147,11 @@ function useTill(token: string, offline: { current: boolean }) {
     serviceFeePercent: 0,
     tableDraftPromos,
     getActiveCafeId,
-    getAuthHeaders,
     sendAppendItems: sync.sendAppendItems,
     queueOrderForSync: sync.queueOrderForSync,
     flushNow: sync.flushNow,
     queuePatchForSync: sync.queuePatchForSync,
-    applyFrozenFromResponse: async () => false,
-    requestAdminPin: noop,
+    requestAdminPin: (cb: (token?: string) => void | Promise<void>) => { pinWork.current = Promise.resolve(cb(approvalFor())); },
     setOrders,
     setTableDraftPromos,
     setTableCarts,
@@ -207,7 +208,46 @@ function useTill(token: string, offline: { current: boolean }) {
     setToastMessage: noop,
   });
 
-  return { orders, ordersRef, tableCarts, setTableCarts, selectedTable, setSelectedTable, sync, kitchen, checkout, tableMove };
+  const archive = useArchiveOperations({
+    orders,
+    ordersRef,
+    currentWaiter: { id: 'w1', name: 'Dilsora' } as any,
+    isOfflineMode: offline.current,
+    // Rahbar PIN ni darhol kiritdi; amalning o'zi `pinWork` da kutiladi.
+    requestAdminPin: (cb) => { pinWork.current = Promise.resolve(cb(approvalFor())); },
+    getActiveCafeId,
+    queuePatchForSync: sync.queuePatchForSync,
+    flushNow: sync.flushNow,
+    setOrders,
+    setSelectedArchiveOrder: noop,
+    setToastMessage: noop,
+    setApiError: noop,
+    t,
+  });
+
+  const activeSubtotal = activeTableOrderItems.reduce(
+    (s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.quantity) || 1),
+    0,
+  );
+  const promo = usePromoCode({
+    activeTableOrder,
+    selectedTable,
+    draftSubtotal,
+    activeSubtotal,
+    isOfflineMode: offline.current,
+    serviceFeePercent: 0,
+    ordersRef,
+    getAuthHeaders,
+    flushNow: sync.flushNow,
+    readSyncQueue: sync.readSyncQueue,
+    getActiveCafeId,
+    setOrders,
+    persistOrders: noop,
+    setTableDraftPromos,
+    t,
+  });
+
+  return { promo, pinWork, orders, ordersRef, tableCarts, setTableCarts, selectedTable, setSelectedTable, sync, kitchen, checkout, tableMove, archive };
 }
 
 /**
@@ -271,6 +311,30 @@ export class Till {
   /** Stolni ko'chirish (`merge` — boshqa stoldagi chekka qo'shish). */
   async moveTable(from: string, to: string, merge: boolean): Promise<void> {
     await act(async () => { await this.h.tableMove.handleMoveTable(from, to, merge); });
+  }
+
+  /** Arxivdagi oxirgi chekni vozvrat qilish (rahbar PIN bilan). */
+  async refundLast(reason: string): Promise<void> {
+    const order = this.h.ordersRef.current.at(-1)!;
+    await act(async () => {
+      this.h.archive.handleRefundOrder(order, reason);
+      await this.h.pinWork.current;
+    });
+  }
+
+  /** Ochiq chekka promo-kod; `null` — qo'llandi, aks holda kassirga xabar. */
+  async applyPromo(code: string): Promise<string | null> {
+    let result: string | null = null;
+    await act(async () => { result = await this.h.promo.handleApplyPromo(code); });
+    return result;
+  }
+
+  /** Oshxonaga ketgan taomni o'chirish (rahbar PIN bilan). */
+  async removeKitchenItem(index: number): Promise<void> {
+    await act(async () => {
+      this.h.kitchen.handleRemoveKitchenItem(index);
+      await this.h.pinWork.current;
+    });
   }
 
   /** Navbat sikli (kassada taymer yoki "online" hodisasi chaqiradi). */

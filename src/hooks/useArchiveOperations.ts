@@ -1,9 +1,7 @@
 import { useCallback, type Dispatch, type SetStateAction, type MutableRefObject } from 'react';
 import type { DBOrder, DBWaiter, DebtPaymentEntry } from '../types';
 import { writeCafeJson } from '../lib/storage';
-import { fetchWithTimeout } from '../lib/net';
 import { decideFromStatus } from '../lib/syncQueue';
-import { API_BASE_URL } from '../constants';
 import { newId } from '../lib/uuid';
 
 export interface UseArchiveOperationsParams {
@@ -13,8 +11,8 @@ export interface UseArchiveOperationsParams {
   isOfflineMode: boolean;
   requestAdminPin: (callback: (approvalToken?: string) => void | Promise<void>) => void;
   getActiveCafeId: () => string;
-  getAuthHeaders: (approvalToken?: string, tokenOverride?: string | null) => Record<string, string>;
-  queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => void;
+  queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => string;
+  flushNow: (qid?: string | string[]) => Promise<Response | null>;
   setOrders: (orders: DBOrder[]) => void;
   setSelectedArchiveOrder: Dispatch<SetStateAction<DBOrder | null>>;
   setToastMessage: (msg: string | null) => void;
@@ -30,8 +28,8 @@ export function useArchiveOperations(params: UseArchiveOperationsParams) {
     isOfflineMode,
     requestAdminPin,
     getActiveCafeId,
-    getAuthHeaders,
     queuePatchForSync,
+    flushNow,
     setOrders,
     setSelectedArchiveOrder,
     setToastMessage,
@@ -39,33 +37,39 @@ export function useArchiveOperations(params: UseArchiveOperationsParams) {
     t,
   } = params;
 
+  /*
+   * Arxiv amallari ham faqat navbat orqali (2026-10-16). To'g'ridan-to'g'ri
+   * so'rov hali navbatda turgan chekni (oflayn ochilgan, endi to'langan)
+   * quvib o'tib 404 olardi va amal "saqlanmadi" deb yo'qolardi; navbat esa
+   * uni chekning o'z amallaridan keyin yuboradi.
+   *
+   * `rejected` — server aniq rad etdi (navbat uni sababi bilan rad
+   * etilganlarga qo'ygan); mahalliy holat o'zgartirilmaydi.
+   */
+  const sendQueued = useCallback(
+    async (qid: string): Promise<{ res: Response | null; rejected: string | null }> => {
+      if (isOfflineMode) return { res: null, rejected: null };
+      const res = await flushNow(qid);
+      if (!res || res.ok || res.status === 401 || decideFromStatus(res.status) === 'retry') {
+        return { res, rejected: null };
+      }
+      const data = await res.json().catch(() => ({}));
+      return { res, rejected: typeof data.error === 'string' ? data.error : '' };
+    },
+    [isOfflineMode, flushNow],
+  );
+
   const handleRefundOrder = useCallback(
     (targetOrder: DBOrder, reason: string) => {
       requestAdminPin(async (approvalToken?: string) => {
         const refundBody = { action: 'refund', refundReason: reason };
-        if (!isOfflineMode) {
-          try {
-            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
-              method: 'PATCH',
-              headers: getAuthHeaders(approvalToken),
-              body: JSON.stringify(refundBody),
-            });
-            if (!res.ok) {
-              const data = await res.json().catch(() => ({}));
-              if (decideFromStatus(res.status) !== 'retry') {
-                setApiError(data.error || t('toast.refundNotSaved'));
-                return;
-              }
-              setApiError(data.error || t('toast.refundNotSaved'));
-              queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
-            }
-          } catch {
-            setApiError(t('toast.refundQueued'));
-            queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
-          }
-        } else {
-          queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
+        const qid = queuePatchForSync(targetOrder.id, refundBody, 'refund', approvalToken);
+        const { res, rejected } = await sendQueued(qid);
+        if (rejected !== null) {
+          setApiError(rejected || t('toast.refundNotSaved'));
+          return;
         }
+        if (!isOfflineMode && !res?.ok) setApiError(t('toast.refundQueued'));
 
         const updatedOrders = orders.map((o) =>
           o.id === targetOrder.id
@@ -101,8 +105,8 @@ export function useArchiveOperations(params: UseArchiveOperationsParams) {
       isOfflineMode,
       requestAdminPin,
       getActiveCafeId,
-      getAuthHeaders,
       queuePatchForSync,
+      sendQueued,
       setOrders,
       setSelectedArchiveOrder,
       setToastMessage,
@@ -135,38 +139,24 @@ export function useArchiveOperations(params: UseArchiveOperationsParams) {
 
       let serverUpdatedOrder: DBOrder | null = null;
 
-      if (!isOfflineMode) {
-        try {
-          const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
-            method: 'PATCH',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(patchBody),
-          });
-          if (res.ok) {
-            /*
-             * Server YALANG'OCH chekni qaytaradi (`{ order }` konverti yo'q) —
-             * `useOfflineSync.sendAppendItems` ham xuddi shunday o'qiydi.
-             * Ilgari bu yerda `data.order` tekshirilar edi, ya'ni shart hech
-             * qachon bajarilmasdi va kassa mahalliy (taxminiy) hisobda
-             * qolaverardi: serverda saqlangan haqiqiy holat emas.
-             */
-            const data = await res.json().catch(() => ({}));
-            if (data?.id === targetOrder.id) {
-              serverUpdatedOrder = data as DBOrder;
-            }
-          } else {
-            const data = await res.json().catch(() => ({}));
-            if (decideFromStatus(res.status) !== 'retry') {
-              setApiError(data.error || t('toast.debtPaymentNotSaved'));
-              return;
-            }
-            queuePatchForSync(targetOrder.id, patchBody, 'debtPayment');
-          }
-        } catch {
-          queuePatchForSync(targetOrder.id, patchBody, 'debtPayment');
+      const qid = queuePatchForSync(targetOrder.id, patchBody, 'debtPayment');
+      const { res, rejected } = await sendQueued(qid);
+      if (rejected !== null) {
+        setApiError(rejected || t('toast.debtPaymentNotSaved'));
+        return;
+      }
+      if (res?.ok) {
+        /*
+         * Server YALANG'OCH chekni qaytaradi (`{ order }` konverti yo'q) —
+         * `useOfflineSync.sendAppendItems` ham xuddi shunday o'qiydi.
+         * Ilgari bu yerda `data.order` tekshirilar edi, ya'ni shart hech
+         * qachon bajarilmasdi va kassa mahalliy (taxminiy) hisobda
+         * qolaverardi: serverda saqlangan haqiqiy holat emas.
+         */
+        const data = await res.json().catch(() => ({}));
+        if (data?.id === targetOrder.id) {
+          serverUpdatedOrder = data as DBOrder;
         }
-      } else {
-        queuePatchForSync(targetOrder.id, patchBody, 'debtPayment');
       }
 
       const paymentEntry: DebtPaymentEntry = {
@@ -222,10 +212,9 @@ export function useArchiveOperations(params: UseArchiveOperationsParams) {
       setTimeout(() => setToastMessage(null), 3000);
     },
     [
-      isOfflineMode,
       getActiveCafeId,
-      getAuthHeaders,
       queuePatchForSync,
+      sendQueued,
       currentWaiter,
       ordersRef,
       setOrders,

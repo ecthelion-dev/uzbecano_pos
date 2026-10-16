@@ -47,13 +47,11 @@ function setup(over: Partial<UseKitchenDispatchParams> = {}) {
     serviceFeePercent: 0,
     tableDraftPromos: {},
     getActiveCafeId: () => 'test-cafe',
-    getAuthHeaders: () => ({}),
     sendAppendItems: vi.fn().mockResolvedValue(null),
     queueOrderForSync: vi.fn(() => 'q-new'),
     // Yangi chek navbat orqali ketadi (2026-10-16); javob `flushNow` dan.
     flushNow: vi.fn().mockResolvedValue(null),
     queuePatchForSync: vi.fn(),
-    applyFrozenFromResponse: vi.fn().mockResolvedValue(false),
     requestAdminPin: vi.fn(),
     setOrders: vi.fn(),
     setTableDraftPromos: vi.fn(),

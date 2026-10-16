@@ -62,6 +62,7 @@ import { useCheckout } from './hooks/useCheckout';
 import { useArchiveOperations } from './hooks/useArchiveOperations';
 import { useTableHolds } from './hooks/useTableHolds';
 import { useTableMove } from './hooks/useTableMove';
+import { usePromoCode } from './hooks/usePromoCode';
 import { usePosShortcuts } from './hooks/usePosShortcuts';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { useCashDrawer } from './hooks/useCashDrawer';
@@ -996,6 +997,7 @@ export default function App() {
    * ularga nom `readSyncQueue` da qo'yiladi.
    */
   const {
+    readSyncQueue,
     queueOrderForSync,
     queuePatchForSync,
     queueDeleteForSync,
@@ -1191,6 +1193,7 @@ export default function App() {
     isOfflineMode,
     currentWaiterName: currentWaiter?.name || '',
     queueCashForSync,
+    flushNow,
     onSaved: () => {
       setToastMessage(t('drawer.savedExpense'));
       window.setTimeout(() => setToastMessage(null), 2500);
@@ -1574,72 +1577,23 @@ export default function App() {
   );
   const discountPercent = activePromo?.type === 'percent' ? activePromo.value : 0;
 
-  /**
-   * Promo-kodni stolning ochiq buyurtmasiga yoki tasdiqlanmagan savatiga
-   * qo'llaydi, bo'sh kod bilan esa olib tashlaydi.
-   *
-   * Faqat onlayn: kodning yaroqliligi va hisoblagichi serverda. Navbatga
-   * qo'yilsa, kassir mijozga chegirmali summani aytib bo'lgach server kodni
-   * rad etishi mumkin edi. Summalar mahalliy taomlardan qayta hisoblanadi —
-   * hali serverga yetmagan taom ham chekda qolsin.
-   */
-  const handleApplyPromo = useCallback(async (code: string): Promise<string | null> => {
-    const order = activeTableOrder;
-    if (!order) {
-      if (!code.trim()) {
-        setTableDraftPromos((prev) => {
-          if (!prev[selectedTable]) return prev;
-          const copy = { ...prev };
-          delete copy[selectedTable];
-          return copy;
-        });
-        return null;
-      }
-      if (isOfflineMode) return t('promo.offline');
-      try {
-        const res = await fetchWithTimeout(`${API_BASE_URL}/api/promos/validate`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ code: code.trim(), subtotal: draftSubtotal }),
-        });
-        const body: any = await res.json().catch(() => null);
-        if (!res.ok) return body?.error || t('promo.failed');
-
-        const promo = parsePromoTerms(body);
-        if (!promo) return t('promo.failed');
-
-        setTableDraftPromos((prev) => ({
-          ...prev,
-          [selectedTable]: promo,
-        }));
-        return null;
-      } catch {
-        return t('promo.offline');
-      }
-    }
-    if (isOfflineMode) return t('promo.offline');
-    try {
-      const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${order.id}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ promoCode: code }),
-      });
-      const body: any = await res.json().catch(() => null);
-      if (!res.ok) return body?.error || t('promo.failed');
-
-      const promo = parsePromoTerms(body?.promo);
-      const totals = orderTotals(activeSubtotal, serviceFeePercent, promo);
-      const updated = ordersRef.current.map((o) => (o.id === order.id
-        ? { ...o, promo, subtotal: activeSubtotal, serviceFee: totals.serviceFee, discount: totals.discount, total: totals.total }
-        : o));
-      ordersRef.current = updated;
-      setOrders(updated);
-      persistOrders(updated);
-      return null;
-    } catch {
-      return t('promo.offline');
-    }
-  }, [activeTableOrder, selectedTable, draftSubtotal, isOfflineMode, getAuthHeaders, activeSubtotal, serviceFeePercent, persistOrders, t]);
+  const { handleApplyPromo } = usePromoCode({
+    activeTableOrder,
+    selectedTable,
+    draftSubtotal,
+    activeSubtotal,
+    isOfflineMode,
+    serviceFeePercent,
+    ordersRef,
+    getAuthHeaders,
+    getActiveCafeId,
+    readSyncQueue,
+    flushNow,
+    setOrders,
+    persistOrders,
+    setTableDraftPromos,
+    t,
+  });
   const mobileCartCount = useMemo(
     () => activeTableOrderItems.length + cart.length,
     [activeTableOrderItems, cart]
@@ -2005,8 +1959,8 @@ export default function App() {
     isOfflineMode,
     requestAdminPin,
     getActiveCafeId,
-    getAuthHeaders,
     queuePatchForSync,
+    flushNow,
     setOrders,
     setSelectedArchiveOrder,
     setToastMessage,
@@ -2027,12 +1981,10 @@ export default function App() {
     serviceFeePercent,
     tableDraftPromos,
     getActiveCafeId,
-    getAuthHeaders,
     sendAppendItems,
     queueOrderForSync,
     flushNow,
     queuePatchForSync,
-    applyFrozenFromResponse,
     requestAdminPin,
     setOrders,
     setTableDraftPromos,

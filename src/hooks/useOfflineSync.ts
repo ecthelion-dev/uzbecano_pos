@@ -146,9 +146,10 @@ export function useOfflineSync({
   const queueCashForSync = useCallback((entry: unknown, label?: string, approvalToken?: string) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
+    const qid = newQueueId();
     queue.push({
       kind: 'cash',
-      qid: newQueueId(),
+      qid,
       queuedAt: Date.now(),
       actor: actorName(cafeId),
       entry,
@@ -157,6 +158,7 @@ export function useOfflineSync({
     });
     writeSyncQueue(cafeId, queue);
     refreshUnsynced();
+    return qid;
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
 
   /** `afterOrderId` — `syncCycle.ts` dagi `QueuedItem` izohiga qarang. */

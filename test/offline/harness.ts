@@ -151,6 +151,14 @@ export function tokenFor(role: Role, name = role === 'waiter' ? 'Dilsora' : 'Rah
   return jwt.createSessionToken({ userId: `u-${role}`, cafeId: CAFE, role, name });
 }
 
+/** Rahbarning PIN tasdig'i (vozvrat kabi amallar uchun `X-Approval-Token`). */
+export function approvalFor(role: Role = 'manager', name = 'Rahbar'): string {
+  process.env.SESSION_SECRET = SESSION_SECRET;
+  const require = createRequire(import.meta.url);
+  const jwt = require(resolve(API_REPO, 'apps/api/dist/common/auth/jwt.util.js'));
+  return jwt.createApprovalToken({ userId: `u-${role}`, cafeId: CAFE, role, name });
+}
+
 /**
  * Kassaning diskdagi navbati — xotirada. `commit` kassadagidek bitta
  * qadamda ikkalasini yozadi.

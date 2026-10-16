@@ -7,6 +7,7 @@ import {
   PRODUCTS,
   clearOrders,
   harnessAvailable,
+  query,
   resetDatabase,
   seed,
   serverOrders,
@@ -154,6 +155,59 @@ describeOffline('yarim internet: kassaning haqiqiy hook\'lari haqiqiy serverga',
     expect(serverOrders().map((o) => [o.tableNumber, o.status, o.total])).toEqual([
       ['Terassa 2', 'sent_to_kitchen', PRODUCTS.latte.price + PRODUCTS.cappuccino.price],
     ]);
+  });
+
+  it('T6 internet qaytgan zahoti vozvrat: chek hali navbatda — vozvrat undan keyin ketadi, "topilmadi" yo‘q', async () => {
+    // Arrange: chek oflayn ochilib, oflayn to'langan — hammasi navbatda.
+    await till.openTable('Terassa 1');
+    till.setOnline(false);
+    await till.addToCart(PRODUCTS.latte);
+    await till.sendToKitchen();
+    await till.payCash(PRODUCTS.latte.price);
+
+    // Act: Wi-Fi qaytdi, rahbar darhol vozvrat qildi (navbat hali ketmagan).
+    till.setOnline(true);
+    await till.refundLast('Mijoz qaytardi');
+    await till.syncUntilSettled();
+
+    // Assert
+    expect(notFound()).toEqual([]);
+    expect(till.failed()).toEqual([]);
+    expect(till.queue()).toEqual([]);
+    expect(query(`SELECT status, refunded FROM "Order" WHERE "cafeId" = '${CAFE}'`)).toEqual([['served', 't']]);
+  });
+
+  it('T7 internet qaytgan zahoti promo-kod: chek hali navbatda — avval chek, keyin kod, "topilmadi" yo‘q', async () => {
+    await till.openTable('Terassa 1');
+    till.setOnline(false);
+    await till.addToCart(PRODUCTS.latte);
+    await till.sendToKitchen();
+
+    till.setOnline(true);
+    const message = await till.applyPromo('BAHOR10');
+
+    expect(message).toBeNull();
+    expect(notFound()).toEqual([]);
+    expect(till.failed()).toEqual([]);
+    expect(query(`SELECT total, discount FROM "Order" WHERE "cafeId" = '${CAFE}'`)).toEqual([
+      [String(PRODUCTS.latte.price * 0.9), String(PRODUCTS.latte.price * 0.1)],
+    ]);
+  });
+
+  it('T8 internet qaytgan zahoti taomni o‘chirish: chek hali navbatda — o‘chirish undan keyin ketadi', async () => {
+    await till.openTable('Terassa 1');
+    till.setOnline(false);
+    await till.addToCart(PRODUCTS.latte);
+    await till.addToCart(PRODUCTS.cappuccino);
+    await till.sendToKitchen();
+
+    till.setOnline(true);
+    await till.removeKitchenItem(0);
+    await till.syncUntilSettled();
+
+    expect(notFound()).toEqual([]);
+    expect(till.failed()).toEqual([]);
+    expect(serverOrders().map((o) => [o.status, o.total])).toEqual([['sent_to_kitchen', PRODUCTS.cappuccino.price]]);
   });
 
   it('T5 server aniq "stol band" dedi — 409 qayta-qayta yuborilmaydi, taom stoldagi chekka qo‘shiladi', async () => {

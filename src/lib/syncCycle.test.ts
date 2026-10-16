@@ -477,6 +477,62 @@ describe('bitta chekning tartibi', () => {
   });
 });
 
+describe('stol birlashtirish: eski chek yangisiga qo`shilgandan KEYIN o`chadi', () => {
+  // Birlashtirishda ikki yozuv bor: maqsad chekka taomlar (PATCH) va manba
+  // chekni o'chirish (DELETE). Ular boshqa-boshqa cheklar, ya'ni oddiy
+  // "bitta chek tartibi" ularni bog'lamaydi.
+  const mergeQueue = (): QueuedItem[] => [
+    patch('target', 'q1'),
+    { kind: 'delete', qid: 'q2', orderId: 'source', label: 'merge_table_cleanup', afterOrderId: 'target' },
+  ];
+
+  it('PATCH tarmoqda qolsa, manba chek o`chirilmaydi', async () => {
+    const store = fakeStore(mergeQueue());
+    const sent: string[] = [];
+
+    await runSyncCycle(store.ports({
+      send: async (i) => {
+        sent.push(i.qid!);
+        if (i.kind === 'patch') throw new Error('tarmoq');
+        return ok();
+      },
+    }), 'token');
+
+    expect(sent).toEqual(['q1']);
+    expect(store.state.queue.map((i) => i.qid)).toEqual(['q1', 'q2']);
+  });
+
+  it('PATCH rad etilsa, manba chek ham o`chirilmaydi — ikkalasi rad etilganlarda', async () => {
+    // Maqsad chek shu orada boshqa qurilmada to'langan: taomlar unga
+    // qo'shilmadi. Manba chek o'chirilsa, taomlar hech qayerda qolmasdi.
+    const store = fakeStore(mergeQueue());
+    const sent: string[] = [];
+
+    await runSyncCycle(store.ports({
+      send: async (i) => {
+        sent.push(i.qid!);
+        return i.kind === 'patch' ? fail(400) : ok();
+      },
+    }), 'token');
+
+    expect(sent).toEqual(['q1']);
+    expect(store.state.queue).toEqual([]);
+    expect(store.state.failed.map((i) => i.qid)).toEqual(['q1', 'q2']);
+  });
+
+  it('PATCH o`tsa, manba chek o`chiriladi', async () => {
+    const store = fakeStore(mergeQueue());
+    const sent: string[] = [];
+
+    await runSyncCycle(store.ports({
+      send: async (i) => { sent.push(i.qid!); return ok(); },
+    }), 'token');
+
+    expect(sent).toEqual(['q1', 'q2']);
+    expect(store.state.queue).toEqual([]);
+  });
+});
+
 describe('kafe muzlatilganda', () => {
   it('tsikl to`xtaydi va qolganlari navbatda qoladi', async () => {
     const store = fakeStore([create('o1', 'q1'), create('o2', 'q2'), create('o3', 'q3')]);

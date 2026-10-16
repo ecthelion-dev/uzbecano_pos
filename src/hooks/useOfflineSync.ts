@@ -159,19 +159,23 @@ export function useOfflineSync({
     refreshUnsynced();
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
 
-  const queueDeleteForSync = useCallback((orderId: string, label?: string) => {
+  /** `afterOrderId` — `syncCycle.ts` dagi `QueuedItem` izohiga qarang. */
+  const queueDeleteForSync = useCallback((orderId: string, label?: string, afterOrderId?: string) => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
+    const qid = newQueueId();
     queue.push({
       kind: 'delete',
-      qid: newQueueId(),
+      qid,
       queuedAt: Date.now(),
       actor: actorName(cafeId),
       orderId,
       label,
+      ...(afterOrderId ? { afterOrderId } : {}),
     });
     writeSyncQueue(cafeId, queue);
     refreshUnsynced();
+    return qid;
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
 
   /*
@@ -191,15 +195,17 @@ export function useOfflineSync({
     return run;
   }, []);
 
-  const runCycle = useCallback(async (tokenOverride?: string | null, watchQid?: string): Promise<Response | null> => {
+  const runCycle = useCallback(async (tokenOverride?: string | null, ownQids: string[] = []): Promise<Response | null> => {
     syncInProgressRef.current = true;
     let watched = null as Response | null;
     try {
       const cafeId = getActiveCafeId();
       const effectiveToken = tokenOverride !== undefined ? tokenOverride : (authTokenRef.current ?? authToken);
-      // Navbatda faqat shu amal bo'lsa — bu kundalik ish, "oflayn amallar
+      // Navbatda faqat shu amal(lar) bo'lsa — bu kundalik ish, "oflayn amallar
       // sinxronlandi" emas: na xabar, na buyurtmalarni qayta yuklash kerak.
-      const routine = watchQid !== undefined && readSyncQueue(cafeId).length <= 1;
+      const watchQid = ownQids[0];
+      const routine = ownQids.length > 0 &&
+        readSyncQueue(cafeId).every((item: { qid?: string }) => item.qid !== undefined && ownQids.includes(item.qid));
 
       const outcome = await runSyncCycle({
         readQueue: () => readSyncQueue(cafeId),
@@ -283,12 +289,19 @@ export function useOfflineSync({
    * Navbatni HOZIR yuboradi (oldingi sikl tugashini kutib) va `qid` amalining
    * server javobini qaytaradi. `null` — javob kelmadi (tarmoq): amal navbatda
    * qoladi va keyin o'zi ketadi.
+   *
+   * Bitta amal bir nechta yozuv qo'ysa (stol birlashtirish), hammasi beriladi:
+   * javob birinchisiniki, qolganlari esa "boshqa oflayn amal" sanalmaydi.
    */
   const flushNow = useCallback(
-    (qid?: string): Promise<Response | null> =>
+    (qid?: string | string[]): Promise<Response | null> =>
       // Kassir ko'pi bilan avvalgi to'g'ridan-to'g'ri so'rovdek kutadi; navbat
       // fonda davom etadi (`deadline.ts`).
-      withDeadline(serialCycle(() => runCycle(undefined, qid)), TILL_TIMEOUT_MS, null),
+      withDeadline(
+        serialCycle(() => runCycle(undefined, qid === undefined ? [] : ([] as string[]).concat(qid))),
+        TILL_TIMEOUT_MS,
+        null,
+      ),
     [serialCycle, runCycle],
   );
 

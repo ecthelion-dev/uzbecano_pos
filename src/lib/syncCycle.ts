@@ -25,7 +25,12 @@ import { planTableMerge, type TableMergePlan } from './tableMerge';
 export type QueuedItem = { queuedAt?: number; qid?: string; actor?: string } & (
   | { kind: 'create'; order: any }
   | { kind: 'patch'; orderId: string; body: any; label?: string; approvalToken?: string }
-  | { kind: 'delete'; orderId: string; label?: string }
+  /**
+   * `afterOrderId` — shu chekning navbatdagi amallari o'tmaguncha bu o'chirish
+   * yuborilmaydi (stol birlashtirish: manba chek taomlari maqsad chekka
+   * qo'shilgandan keyingina o'chadi).
+   */
+  | { kind: 'delete'; orderId: string; label?: string; afterOrderId?: string }
   | { kind: 'cash'; entry: any; label?: string; approvalToken?: string }
 );
 
@@ -184,6 +189,8 @@ export async function runSyncCycle(
    * hech qachon paydo bo'lmaydi va ular 404 olib qolardi.
    */
   const mergedInto = new Map<string, string>();
+  /** Shu siklda server rad etgan chek → sabab (unga bog'liq amallar uchun). */
+  const rejectedOrders = new Map<string, string>();
   let anySucceeded = false;
   let unauthorized = false;
 
@@ -201,6 +208,27 @@ export async function runSyncCycle(
      * beradi va uni chetga qo'yardi — ya'ni to'lov yo'qolardi.
      */
     if (orderId && blockedOrders.has(orderId)) continue;
+
+    /*
+     * Stol birlashtirish: manba chek faqat taomlari maqsad chekka yetgach
+     * o'chadi. Avval PATCH va DELETE alohida yuborilardi — PATCH rad etilsa
+     * (maqsad chek shu orada to'langan), DELETE baribir o'tib, manba chek
+     * taomlari bilan birga yo'qolardi.
+     */
+    const dependsOn = item.kind === 'delete' ? item.afterOrderId : undefined;
+    if (dependsOn) {
+      const dependencyRejected = rejectedOrders.get(dependsOn) ?? parkedOrders.get(dependsOn);
+      if (dependencyRejected !== undefined) {
+        parked.push(stampRejection(item, 409, dependencyRejected, Date.now()));
+        rejectedLabels.push(ports.label(item));
+        if (orderId) parkedOrders.set(orderId, dependencyRejected);
+        continue;
+      }
+      if (blockedOrders.has(dependsOn)) {
+        if (orderId) blockedOrders.add(orderId);
+        continue;
+      }
+    }
 
     const mergedTarget = orderId ? mergedInto.get(orderId) : undefined;
     const outgoing: QueuedItem =
@@ -257,9 +285,13 @@ export async function runSyncCycle(
          * "nega o'tmadi" degan savolga boshqa hech qayerdan javob topib
          * bo'lmaydi va xodimlar bir-birini ayblay boshlaydi.
          */
-        parked.push(stampRejection(item, res.status, await readReason(res), Date.now()));
+        const reason = await readReason(res);
+        parked.push(stampRejection(item, res.status, reason, Date.now()));
         rejectedLabels.push(ports.label(item));
-        if (orderId) blockedOrders.add(orderId);
+        if (orderId) {
+          blockedOrders.add(orderId);
+          rejectedOrders.set(orderId, reason);
+        }
       }
     } catch {
       // Tarmoq yiqildi. So'rov serverga yetmagan ham, yetib javobi

@@ -106,6 +106,56 @@ describeOffline('yarim internet: kassaning haqiqiy hook\'lari haqiqiy serverga',
     expect(serverOrders().map((o) => [o.status, o.total])).toEqual([['served', PRODUCTS.latte.price]]);
   });
 
+  it('T4 birlashtirish: stoldagi chek boshqa qurilmada to‘langan — eski chek taomlari bilan o‘chib ketmaydi', async () => {
+    // Arrange: kassada ikki ochiq stol.
+    await till.openTable('Terassa 1');
+    await till.addToCart(PRODUCTS.latte);
+    await till.sendToKitchen();
+    await till.openTable('Terassa 2');
+    await till.addToCart(PRODUCTS.cappuccino);
+    await till.sendToKitchen();
+    const target = serverOrders().find((o) => o.tableNumber === 'Terassa 2')!;
+
+    // Ofitsiant telefoni Terassa 2 ni yopdi; kassa hali buni bilmaydi.
+    const paid = await fetch(`${BASE_URL}/api/orders/${target.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${waiter}` },
+      body: JSON.stringify({ status: 'served', paymentMethod: 'cash', cashAmount: PRODUCTS.cappuccino.price, cardAmount: 0 }),
+    });
+    expect(paid.status).toBe(200);
+
+    // Act
+    await till.moveTable('Terassa 1', 'Terassa 2', true);
+    await till.syncUntilSettled();
+
+    // Assert: Terassa 1 cheki serverda qoldi, birlashtirish rad etilganlarda.
+    expect(serverOrders().map((o) => [o.tableNumber, o.status, o.total])).toEqual([
+      ['Terassa 1', 'sent_to_kitchen', PRODUCTS.latte.price],
+      ['Terassa 2', 'served', PRODUCTS.cappuccino.price],
+    ]);
+    expect(till.failed().length).toBeGreaterThan(0);
+    expect(till.queue()).toEqual([]);
+  });
+
+  it('T4b birlashtirish javobi yo‘qoldi — bitta chek, ikkala stol taomlari bilan', async () => {
+    await till.openTable('Terassa 1');
+    await till.addToCart(PRODUCTS.latte);
+    await till.sendToKitchen();
+    await till.openTable('Terassa 2');
+    await till.addToCart(PRODUCTS.cappuccino);
+    await till.sendToKitchen();
+
+    net.loseResponses = 1;
+    await till.moveTable('Terassa 1', 'Terassa 2', true);
+    await till.syncUntilSettled();
+
+    expect(notFound()).toEqual([]);
+    expect(till.failed()).toEqual([]);
+    expect(serverOrders().map((o) => [o.tableNumber, o.status, o.total])).toEqual([
+      ['Terassa 2', 'sent_to_kitchen', PRODUCTS.latte.price + PRODUCTS.cappuccino.price],
+    ]);
+  });
+
   it('T5 server aniq "stol band" dedi — 409 qayta-qayta yuborilmaydi, taom stoldagi chekka qo‘shiladi', async () => {
     // Boshqa qurilma (ofitsiant telefoni) stolni serverda allaqachon ochgan.
     const other = crypto.randomUUID();

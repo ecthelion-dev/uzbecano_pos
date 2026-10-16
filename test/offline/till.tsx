@@ -15,6 +15,7 @@ import { act, renderHook } from '@testing-library/react';
 import { useOfflineSync } from '../../src/hooks/useOfflineSync';
 import { useKitchenDispatch } from '../../src/hooks/useKitchenDispatch';
 import { useCheckout } from '../../src/hooks/useCheckout';
+import { useTableMove } from '../../src/hooks/useTableMove';
 import { isActiveOrder } from '../../src/constants';
 import { readCafeJson } from '../../src/lib/storage';
 import { installMemoryStorage } from '../../src/lib/testStorage';
@@ -189,7 +190,24 @@ function useTill(token: string, offline: { current: boolean }) {
     t,
   });
 
-  return { orders, ordersRef, tableCarts, setTableCarts, selectedTable, setSelectedTable, sync, kitchen, checkout };
+  const tableMove = useTableMove({
+    orders,
+    ordersRef,
+    tableCarts,
+    isOfflineMode: offline.current,
+    serviceFeePercent: 0,
+    getActiveCafeId,
+    queuePatchForSync: sync.queuePatchForSync,
+    queueDeleteForSync: sync.queueDeleteForSync,
+    flushNow: sync.flushNow,
+    setOrders,
+    setTableCarts,
+    setTableDraftPromos,
+    setSelectedTable,
+    setToastMessage: noop,
+  });
+
+  return { orders, ordersRef, tableCarts, setTableCarts, selectedTable, setSelectedTable, sync, kitchen, checkout, tableMove };
 }
 
 /**
@@ -248,6 +266,11 @@ export class Till {
     await act(async () => {
       await this.h.checkout.handleCloseTable(this.h.selectedTable, true, { cash: amount, card: 0 });
     });
+  }
+
+  /** Stolni ko'chirish (`merge` — boshqa stoldagi chekka qo'shish). */
+  async moveTable(from: string, to: string, merge: boolean): Promise<void> {
+    await act(async () => { await this.h.tableMove.handleMoveTable(from, to, merge); });
   }
 
   /** Navbat sikli (kassada taymer yoki "online" hodisasi chaqiradi). */

@@ -2,8 +2,7 @@ import { useCallback, type Dispatch, type SetStateAction, type MutableRefObject 
 import type { DBOrder, CartItem } from '../types';
 import type { PromoTerms } from '../lib/promo';
 import { writeCafeJson } from '../lib/storage';
-import { fetchWithTimeout } from '../lib/net';
-import { API_BASE_URL, isActiveOrder } from '../constants';
+import { isActiveOrder } from '../constants';
 
 export interface UseTableMoveParams {
   orders: DBOrder[];
@@ -12,9 +11,9 @@ export interface UseTableMoveParams {
   isOfflineMode: boolean;
   serviceFeePercent: number;
   getActiveCafeId: () => string;
-  getAuthHeaders: (approvalToken?: string, tokenOverride?: string | null) => Record<string, string>;
-  queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => void;
-  queueDeleteForSync: (orderId: string, label?: string) => void;
+  queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => string;
+  queueDeleteForSync: (orderId: string, label?: string, afterOrderId?: string) => string;
+  flushNow: (qid?: string | string[]) => Promise<Response | null>;
   setOrders: (orders: DBOrder[]) => void;
   setTableCarts: Dispatch<SetStateAction<Record<string, CartItem[]>>>;
   setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms | null>>>;
@@ -30,9 +29,9 @@ export function useTableMove(params: UseTableMoveParams) {
     isOfflineMode,
     serviceFeePercent,
     getActiveCafeId,
-    getAuthHeaders,
     queuePatchForSync,
     queueDeleteForSync,
+    flushNow,
     setOrders,
     setTableCarts,
     setTableDraftPromos,
@@ -48,6 +47,17 @@ export function useTableMove(params: UseTableMoveParams) {
       if (!sourceOrder && sourceCart.length === 0) return;
 
       let updatedOrders = [...ordersRef.current];
+      /*
+       * Yozuvlar faqat navbat orqali (2026-10-16): avval to'g'ridan-to'g'ri
+       * PATCH, keyin DELETE ketardi va PATCH rad etilsa ham DELETE o'tib,
+       * manba chek taomlari bilan yo'qolardi. Navbat ularni tartib bilan
+       * yuboradi, o'chirish esa birlashtirish o'tgandan keyingina ketadi.
+       */
+      let pending: string[] = [];
+      const moveOrder = (order: DBOrder) => {
+        pending = [queuePatchForSync(order.id, { tableNumber: targetTable }, 'move_table')];
+        updatedOrders = updatedOrders.map((o) => (o.id === order.id ? { ...o, tableNumber: targetTable } : o));
+      };
 
       if (isMerge) {
         const targetOrder = orders.find((o) => o.tableNumber === targetTable && isActiveOrder(o.status));
@@ -79,31 +89,10 @@ export function useTableMove(params: UseTableMoveParams) {
             serviceFee: fee,
             total: tot,
           };
-          if (!isOfflineMode) {
-            try {
-              const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${targetOrder.id}`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(mergeTablePatchBody),
-              });
-              if (!res.ok) queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table');
-            } catch {
-              queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table');
-            }
-
-            try {
-              const delRes = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-                method: 'DELETE',
-                headers: getAuthHeaders(),
-              });
-              if (!delRes.ok) queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup');
-            } catch {
-              queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup');
-            }
-          } else {
-            queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table');
-            queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup');
-          }
+          pending = [
+            queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table'),
+            queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup', targetOrder.id),
+          ];
 
           updatedOrders = updatedOrders
             .filter((o) => o.id !== sourceOrder.id)
@@ -120,47 +109,12 @@ export function useTableMove(params: UseTableMoveParams) {
                 : o
             );
         } else if (sourceOrder && !targetOrder) {
-          if (!isOfflineMode) {
-            try {
-              const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ tableNumber: targetTable }),
-              });
-              if (!res.ok) queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-            } catch {
-              queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-            }
-          } else {
-            queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-          }
-          updatedOrders = updatedOrders.map((o) =>
-            o.id === sourceOrder.id ? { ...o, tableNumber: targetTable } : o
-          );
+          moveOrder(sourceOrder);
         }
 
         setToastMessage(`${sourceTable} va ${targetTable} muvaffaqiyatli birlashtirildi!`);
       } else {
-        if (sourceOrder) {
-          if (!isOfflineMode) {
-            try {
-              const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${sourceOrder.id}`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ tableNumber: targetTable }),
-              });
-              if (!res.ok) queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-            } catch {
-              queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-            }
-          } else {
-            queuePatchForSync(sourceOrder.id, { tableNumber: targetTable }, 'move_table');
-          }
-
-          updatedOrders = updatedOrders.map((o) =>
-            o.id === sourceOrder.id ? { ...o, tableNumber: targetTable } : o
-          );
-        }
+        if (sourceOrder) moveOrder(sourceOrder);
         setToastMessage(`${sourceTable} buyurtmasi ${targetTable}ga ko'chirildi!`);
       }
 
@@ -193,6 +147,10 @@ export function useTableMove(params: UseTableMoveParams) {
       writeCafeJson(getActiveCafeId(), 'orders', updatedOrders);
       setSelectedTable(targetTable);
       setTimeout(() => setToastMessage(null), 2500);
+
+      // Kassa allaqachon yangi holatda; server javobi kutilmaydi (ko'pi bilan
+      // 8 soniya), rad etilsa navbat o'zi xabar beradi.
+      if (pending.length > 0 && !isOfflineMode) await flushNow(pending);
     },
     [
       orders,
@@ -201,9 +159,9 @@ export function useTableMove(params: UseTableMoveParams) {
       isOfflineMode,
       serviceFeePercent,
       getActiveCafeId,
-      getAuthHeaders,
       queuePatchForSync,
       queueDeleteForSync,
+      flushNow,
       setOrders,
       setTableCarts,
       setTableDraftPromos,

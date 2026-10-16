@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { API_BASE_URL } from '../constants';
-import { fetchWithTimeout } from '../lib/net';
+import { fetchWithTimeout, TILL_TIMEOUT_MS } from '../lib/net';
+import { withDeadline } from '../lib/deadline';
 import { readCafeJson, writeCafeJson, writeCafeJsonMany } from '../lib/storage';
 import { readSession } from '../lib/session';
 import { newQueueId, withQueueIds } from '../lib/syncQueue';
@@ -82,18 +83,20 @@ export function useOfflineSync({
     return readSession(cafeId)?.waiter?.name || undefined;
   }, []);
 
-  const queueOrderForSync = useCallback((order: any) => {
+  const queueOrderForSync = useCallback((order: any): string => {
     const cafeId = getActiveCafeId();
     const queue = readSyncQueue(cafeId);
+    const qid = newQueueId();
     queue.push({
       kind: 'create',
-      qid: newQueueId(),
+      qid,
       queuedAt: Date.now(),
       actor: actorName(cafeId),
       order: { ...order, idempotencyKey: order.idempotencyKey || order.id },
     });
     writeSyncQueue(cafeId, queue);
     refreshUnsynced();
+    return qid;
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
 
   const queuePatchForSync = useCallback((orderId: string, body: any, label?: string, approvalToken?: string) => {
@@ -171,44 +174,32 @@ export function useOfflineSync({
     refreshUnsynced();
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
 
-  const sendAppendItems = useCallback(async (
-    orderId: string,
-    items: OutgoingOrderItem[],
-  ): Promise<DBOrder | null> => {
-    const body = appendItemsPatch(items, newQueueId());
-    if (isOfflineMode) {
-      queuePatchForSync(orderId, body, 'add_items');
-      return null;
-    }
-    try {
-      const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(body),
-      });
-      if (res.status === 401) {
-        queuePatchForSync(orderId, body, 'add_items');
-        handleSessionExpired();
-        return null;
-      }
-      if (!res.ok) {
-        queuePatchForSync(orderId, body, 'add_items');
-        return null;
-      }
-      const serverOrder = await res.json().catch(() => null);
-      return serverOrder && serverOrder.id === orderId ? (serverOrder as DBOrder) : null;
-    } catch {
-      queuePatchForSync(orderId, body, 'add_items');
-      return null;
-    }
-  }, [isOfflineMode, getAuthHeaders, queuePatchForSync, handleSessionExpired]);
+  /*
+   * Navbat sikllari BITTA-BITTA, ketma-ket.
+   *
+   * 2026-10-16 22:18: kassa serverga ikki yo'l bilan yozardi — to'g'ridan-
+   * to'g'ri va navbat orqali. Sekin Wi-Fi'da ular bir-birini quvib o'tdi:
+   * ikkinchi chek "stol band" (409) oldi, to'lov esa hali yaratilmagan chekka
+   * ketib 404 oldi. Endi har bir yozuv navbatga tushadi va navbat SHU ZAHOTI,
+   * tartib bilan yuboriladi (`flushNow`) — bitta chekning amallari bir-birini
+   * quvib o'tolmaydi, server "yo'q" degan amal esa ikkinchi marta ketmaydi.
+   */
+  const cycleChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  const serialCycle = useCallback(<T>(task: () => Promise<T>): Promise<T> => {
+    const run = cycleChainRef.current.then(task, task);
+    cycleChainRef.current = run.catch(() => undefined);
+    return run;
+  }, []);
 
-  const syncOfflineOrders = useCallback(async (tokenOverride?: string | null) => {
-    if (syncInProgressRef.current) return;
+  const runCycle = useCallback(async (tokenOverride?: string | null, watchQid?: string): Promise<Response | null> => {
     syncInProgressRef.current = true;
+    let watched = null as Response | null;
     try {
       const cafeId = getActiveCafeId();
       const effectiveToken = tokenOverride !== undefined ? tokenOverride : (authTokenRef.current ?? authToken);
+      // Navbatda faqat shu amal bo'lsa — bu kundalik ish, "oflayn amallar
+      // sinxronlandi" emas: na xabar, na buyurtmalarni qayta yuklash kerak.
+      const routine = watchQid !== undefined && readSyncQueue(cafeId).length <= 1;
 
       const outcome = await runSyncCycle({
         readQueue: () => readSyncQueue(cafeId),
@@ -229,6 +220,9 @@ export function useOfflineSync({
           });
           return fetchWithTimeout(url, init);
         },
+        onSent: (item, res) => {
+          if (watchQid && item.qid === watchQid) watched = res.clone();
+        },
         isFrozen: (res) => applyFrozenFromResponse(res, cafeId),
         label: (item) =>
           String(
@@ -242,11 +236,11 @@ export function useOfflineSync({
 
       refreshUnsynced();
 
-      if (!outcome) return;
+      if (!outcome) return watched;
 
       if (outcome.unauthorized) {
         handleSessionExpired();
-        return;
+        return watched;
       }
 
       if (outcome.commitFailed) {
@@ -267,16 +261,49 @@ export function useOfflineSync({
         // Jimgina emas: stoldagi chek kattalashdi va kassir buni ko'rishi kerak.
         setToastMessage(t('toast.syncMerged', { list: listOf(outcome.mergedLabels) }));
         setTimeout(() => setToastMessage(null), 8000);
-      } else if (outcome.anySucceeded) {
+      } else if (outcome.anySucceeded && !routine) {
         setToastMessage("Oflayn amallar serverga sinxronlandi!");
         setTimeout(() => setToastMessage(null), 2500);
       }
 
-      if (outcome.anySucceeded) fetchOrders();
+      if (outcome.anySucceeded && (!routine || outcome.mergedLabels.length > 0)) fetchOrders();
+      return watched;
     } finally {
       syncInProgressRef.current = false;
     }
   }, [authToken, authTokenRef, getActiveCafeId, getAuthHeaders, fetchOrders, readSyncQueue, applyFrozenFromResponse, refreshUnsynced, handleSessionExpired, setToastMessage, t]);
+
+  /** Fondagi taymer va "online" hodisasi: sikl ketayotgan bo'lsa kutmaydi. */
+  const syncOfflineOrders = useCallback(async (tokenOverride?: string | null) => {
+    if (syncInProgressRef.current) return;
+    await serialCycle(() => runCycle(tokenOverride));
+  }, [serialCycle, runCycle]);
+
+  /**
+   * Navbatni HOZIR yuboradi (oldingi sikl tugashini kutib) va `qid` amalining
+   * server javobini qaytaradi. `null` — javob kelmadi (tarmoq): amal navbatda
+   * qoladi va keyin o'zi ketadi.
+   */
+  const flushNow = useCallback(
+    (qid?: string): Promise<Response | null> =>
+      // Kassir ko'pi bilan avvalgi to'g'ridan-to'g'ri so'rovdek kutadi; navbat
+      // fonda davom etadi (`deadline.ts`).
+      withDeadline(serialCycle(() => runCycle(undefined, qid)), TILL_TIMEOUT_MS, null),
+    [serialCycle, runCycle],
+  );
+
+  const sendAppendItems = useCallback(async (
+    orderId: string,
+    items: OutgoingOrderItem[],
+  ): Promise<DBOrder | null> => {
+    const body = appendItemsPatch(items, newQueueId());
+    const qid = queuePatchForSync(orderId, body, 'add_items');
+    if (isOfflineMode) return null;
+    const res = await flushNow(qid);
+    if (!res?.ok) return null;
+    const serverOrder = await res.json().catch(() => null);
+    return serverOrder && serverOrder.id === orderId ? (serverOrder as DBOrder) : null;
+  }, [isOfflineMode, queuePatchForSync, flushNow]);
 
   useEffect(() => {
     refreshUnsynced();
@@ -299,6 +326,7 @@ export function useOfflineSync({
     queueCashForSync,
     sendAppendItems,
     syncOfflineOrders,
+    flushNow,
     retryFailedSync,
     shiftBacklog,
   };

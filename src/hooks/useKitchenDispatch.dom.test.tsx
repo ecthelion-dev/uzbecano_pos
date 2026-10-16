@@ -49,7 +49,9 @@ function setup(over: Partial<UseKitchenDispatchParams> = {}) {
     getActiveCafeId: () => 'test-cafe',
     getAuthHeaders: () => ({}),
     sendAppendItems: vi.fn().mockResolvedValue(null),
-    queueOrderForSync: vi.fn(),
+    queueOrderForSync: vi.fn(() => 'q-new'),
+    // Yangi chek navbat orqali ketadi (2026-10-16); javob `flushNow` dan.
+    flushNow: vi.fn().mockResolvedValue(null),
     queuePatchForSync: vi.fn(),
     applyFrozenFromResponse: vi.fn().mockResolvedValue(false),
     requestAdminPin: vi.fn(),
@@ -73,8 +75,8 @@ describe('Tasdiqlashda oshxona qog‘ozi', () => {
   });
 
   it('yangi buyurtma: qog‘oz serverning kunlik raqami bilan chiqadi', async () => {
-    vi.mocked(fetchWithTimeout).mockResolvedValue(jsonResponse({ id: 'srv-1', dailyNumber: 7 }));
-    const { hook, setKitchenSlipData } = setup();
+    const { hook, setKitchenSlipData, params } = setup();
+    vi.mocked(params.flushNow).mockResolvedValue(jsonResponse({ id: 'srv-1', dailyNumber: 7 }));
 
     await act(async () => { await hook.result.current.handleSendToKitchen(); });
 
@@ -107,7 +109,7 @@ describe('Tasdiqlashda oshxona qog‘ozi', () => {
 
     await act(async () => { await hook.result.current.handleSendToKitchen(); });
 
-    expect(fetchWithTimeout).not.toHaveBeenCalled();
+    expect(params.flushNow).not.toHaveBeenCalled();
     expect(params.queueOrderForSync).toHaveBeenCalledTimes(1);
     const slip = setKitchenSlipData.mock.calls[0][0]!;
     expect(slip.slipNumber).toBe(0);
@@ -115,12 +117,12 @@ describe('Tasdiqlashda oshxona qog‘ozi', () => {
   });
 
   it('to‘lovga o‘tishda saqlanmagan savat yuboriladi, lekin qog‘oz chiqmaydi', async () => {
-    vi.mocked(fetchWithTimeout).mockResolvedValue(jsonResponse({ id: 'srv-2', dailyNumber: 8 }));
     const { hook, setKitchenSlipData, params } = setup();
+    vi.mocked(params.flushNow).mockResolvedValue(jsonResponse({ id: 'srv-2', dailyNumber: 8 }));
 
     await act(async () => { await hook.result.current.handleSendToKitchen({ printSlip: false }); });
 
-    expect(fetchWithTimeout).toHaveBeenCalledTimes(1);
+    expect(params.flushNow).toHaveBeenCalledWith('q-new');
     expect(params.setOrders).toHaveBeenCalled();
     expect(setKitchenSlipData).not.toHaveBeenCalled();
   });

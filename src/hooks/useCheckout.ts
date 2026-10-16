@@ -4,9 +4,8 @@ import { orderTotals, parsePromoTerms, type PromoTerms } from '../lib/promo';
 import { splitPayment } from '../lib/payment';
 import { adoptServerId, cartLineToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { writeCafeJson } from '../lib/storage';
-import { fetchWithTimeout } from '../lib/net';
 import { createExclusive } from '../lib/exclusive';
-import { API_BASE_URL, isActiveOrder } from '../constants';
+import { isActiveOrder } from '../constants';
 import { newId } from '../lib/uuid';
 
 export interface UseCheckoutParams {
@@ -22,9 +21,10 @@ export interface UseCheckoutParams {
   getActiveCafeId: () => string;
   getAuthHeaders: (approvalToken?: string, tokenOverride?: string | null) => Record<string, string>;
   sendAppendItems: (orderId: string, items: OutgoingOrderItem[]) => Promise<DBOrder | null>;
-  queueOrderForSync: (order: any) => void;
+  queueOrderForSync: (order: any) => string;
+  /** Navbatni hozir yuboradi va `qid` javobini qaytaradi (`useOfflineSync`). */
+  flushNow: (qid?: string) => Promise<Response | null>;
   queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => string | void;
-  dequeueSyncItem: (qid: string) => void;
   printClosedReceipt: (closedOrder: any) => void;
   handleSessionExpired: () => void;
   setOrders: (orders: DBOrder[]) => void;
@@ -54,9 +54,8 @@ export function useCheckout(params: UseCheckoutParams) {
     sendAppendItems,
     queueOrderForSync,
     queuePatchForSync,
-    dequeueSyncItem,
+    flushNow,
     printClosedReceipt,
-    handleSessionExpired,
     setOrders,
     setTableDraftPromos,
     setTableCarts,
@@ -88,7 +87,6 @@ export function useCheckout(params: UseCheckoutParams) {
       }
 
       let currentOrders = [...ordersRef.current];
-      let serverConfirmedItems = true;
 
       if (currentCart.length > 0) {
         if (!skipConfirm) {
@@ -121,9 +119,6 @@ export function useCheckout(params: UseCheckoutParams) {
           const combined = orderTotals(combinedSubtotal, serviceFeePercent, parsePromoTerms(latestActive.promo));
 
           const serverOrder = await sendAppendItems(latestActive.id, newItems);
-          if (!serverOrder) {
-            serverConfirmedItems = false;
-          }
 
           currentOrders = currentOrders.map((o) =>
             o.id !== latestActive.id
@@ -163,37 +158,20 @@ export function useCheckout(params: UseCheckoutParams) {
             status: 'sent_to_kitchen',
           };
 
-          let serverCreatedOrder = false;
+          // To'g'ridan-to'g'ri POST yo'q: navbatga va SHU ZAHOTI yuborish.
+          // Navbatda shu stolning oldingi amallari bo'lsa, ular oldin ketadi.
+          const createQid = queueOrderForSync(newOrderObj);
           if (!isOfflineMode) {
-            try {
-              const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ ...newOrderObj, promoCode: draftPromo?.code, idempotencyKey: newOrderObj.id }),
-              });
-              if (res.status === 401) {
-                queueOrderForSync(newOrderObj);
-                handleSessionExpired();
-              } else if (!res.ok) {
-                queueOrderForSync(newOrderObj);
-              } else {
-                serverCreatedOrder = true;
-                await adoptServerId(res, newOrderObj);
-                const serverCreated = await res.clone().json().catch(() => null);
-                if (serverCreated) {
-                  if (serverCreated.promo !== undefined) (newOrderObj as any).promo = serverCreated.promo;
-                  if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
-                  if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;
-                }
+            const res = await flushNow(createQid);
+            if (res?.ok) {
+              await adoptServerId(res, newOrderObj);
+              const serverCreated = await res.clone().json().catch(() => null);
+              if (serverCreated) {
+                if (serverCreated.promo !== undefined) (newOrderObj as any).promo = serverCreated.promo;
+                if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
+                if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;
               }
-            } catch {
-              queueOrderForSync(newOrderObj);
             }
-          } else {
-            queueOrderForSync(newOrderObj);
-          }
-          if (!serverCreatedOrder) {
-            serverConfirmedItems = false;
           }
 
           currentOrders.push(newOrderObj);
@@ -294,24 +272,18 @@ export function useCheckout(params: UseCheckoutParams) {
 
           printClosedReceipt(closedOrder);
 
-          const canSendOnline = !isOfflineMode && serverConfirmedItems;
-
-          if (canSendOnline) {
-            try {
-              const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders/${latestOrder.id}`, {
-                method: 'PATCH',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(paymentPatchBody),
-              });
-              if (res.ok) {
-                if (paymentQid) dequeueSyncItem(paymentQid);
-              } else if (res.status === 401) {
-                handleSessionExpired();
-              } else {
-                setApiError(t('toast.paymentNotSaved'));
-              }
-            } catch {
+          /*
+           * To'lov ham navbat orqali — o'zidan oldingi amallar (shu chekning
+           * yaratilishi, taom qo'shish) server tomonidan qabul qilingandan
+           * KEYIN ketadi. Ilgari u to'g'ridan-to'g'ri ketib, hali yaratilmagan
+           * chekka yetardi: "Buyurtma topilmadi" (2026-10-16).
+           */
+          if (!isOfflineMode && paymentQid) {
+            const res = await flushNow(paymentQid);
+            if (!res) {
               setApiError(t('toast.paymentQueued'));
+            } else if (!res.ok && res.status !== 401) {
+              setApiError(t('toast.paymentNotSaved'));
             }
           }
         }
@@ -332,13 +304,12 @@ export function useCheckout(params: UseCheckoutParams) {
       getAuthHeaders,
       sendAppendItems,
       queueOrderForSync,
+      flushNow,
       queuePatchForSync,
-      dequeueSyncItem,
       serviceFeePercent,
       draftSubtotal,
       printClosedReceipt,
       tableDraftPromos,
-      handleSessionExpired,
       ordersRef,
       setOrders,
       setSelectedArchiveOrder,

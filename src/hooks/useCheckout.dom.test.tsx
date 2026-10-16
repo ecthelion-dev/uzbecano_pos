@@ -1,15 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { DBOrder } from '../types';
 
-vi.mock('../lib/net', () => ({ fetchWithTimeout: vi.fn() }));
 // Test muhitida localStorage to'liq emas: yozish muvaffaqiyatli deb qaytariladi.
 vi.mock('../lib/storage', async (orig) => ({
   ...(await orig<typeof import('../lib/storage')>()),
   writeCafeJson: vi.fn(() => true),
 }));
 
-import { fetchWithTimeout } from '../lib/net';
 import { useCheckout, type UseCheckoutParams } from './useCheckout';
 
 /*
@@ -21,6 +19,9 @@ import { useCheckout, type UseCheckoutParams } from './useCheckout';
  * turganda sahifaning JS i to'xtaydi. Chek oldin chaqirilganda to'lov
  * navbatga yozilishi shu oynani kutardi; oyna ochiq paytda ilova yopilsa,
  * to'lov yo'qolardi (2026-10-03, test-cafe oflayn sinovi).
+ *
+ * Yuborish 2026-10-16 dan beri navbat orqali (`flushNow`): to'lov o'zidan
+ * oldingi amallar qabul qilingach ketadi, to'g'ridan-to'g'ri `fetch` yo'q.
  */
 
 const openOrder = {
@@ -35,7 +36,8 @@ const openOrder = {
 
 function setup(over: Partial<UseCheckoutParams> = {}) {
   const queuePatchForSync = vi.fn(() => 'q-pay');
-  const dequeueSyncItem = vi.fn();
+  const flushNow = vi.fn<(qid?: string) => Promise<Response | null>>();
+  const setApiError = vi.fn();
   const printClosedReceipt = vi.fn();
   const params = {
     orders: [openOrder],
@@ -52,7 +54,7 @@ function setup(over: Partial<UseCheckoutParams> = {}) {
     sendAppendItems: vi.fn(),
     queueOrderForSync: vi.fn(),
     queuePatchForSync,
-    dequeueSyncItem,
+    flushNow,
     printClosedReceipt,
     handleSessionExpired: vi.fn(),
     setOrders: vi.fn(),
@@ -61,73 +63,67 @@ function setup(over: Partial<UseCheckoutParams> = {}) {
     setSelectedArchiveOrder: vi.fn(),
     setShowUnsavedCartModal: vi.fn(),
     setToastMessage: vi.fn(),
-    setApiError: vi.fn(),
+    setApiError,
     setStorageBlockingError: vi.fn(),
     t: (k: string) => k,
     ...over,
   } as unknown as UseCheckoutParams;
   const hook = renderHook(() => useCheckout(params));
-  return { hook, queuePatchForSync, dequeueSyncItem, printClosedReceipt };
+  return { hook, queuePatchForSync, flushNow, setApiError, printClosedReceipt };
 }
 
 describe('To‘lov chekdan oldin saqlanadi', () => {
-  beforeEach(() => {
-    vi.mocked(fetchWithTimeout).mockReset();
-  });
-
-  it('tarmoq yiqilsa: to‘lov navbatga yoziladi, chek undan KEYIN bosiladi', async () => {
-    vi.mocked(fetchWithTimeout).mockRejectedValue(new TypeError('Failed to fetch'));
-    const { hook, queuePatchForSync, dequeueSyncItem, printClosedReceipt } = setup();
-
+  const pay = async (hook: ReturnType<typeof setup>['hook']) => {
     await act(async () => {
       await hook.result.current.handleCloseTable('Stol 06', true, { cash: 120_000, card: 0 });
     });
+  };
+
+  it('tarmoq yiqilsa: to‘lov navbatda qoladi, chek undan KEYIN bosiladi, kassir biladi', async () => {
+    const { hook, queuePatchForSync, flushNow, setApiError, printClosedReceipt } = setup();
+    flushNow.mockResolvedValue(null);
+
+    await pay(hook);
 
     expect(queuePatchForSync).toHaveBeenCalledTimes(1);
     expect((queuePatchForSync.mock.calls[0] as unknown[])[2]).toBe('finalize_payment');
     expect(printClosedReceipt).toHaveBeenCalledTimes(1);
     expect(queuePatchForSync.mock.invocationCallOrder[0])
       .toBeLessThan(printClosedReceipt.mock.invocationCallOrder[0]);
-    // tarmoq yiqildi — yozuv navbatda qoladi
-    expect(dequeueSyncItem).not.toHaveBeenCalled();
+    expect(setApiError).toHaveBeenCalledWith('toast.paymentQueued');
   });
 
-  it('oflayn: to‘lov navbatga yoziladi, chek undan keyin', async () => {
-    const { hook, queuePatchForSync, printClosedReceipt } = setup({ isOfflineMode: true });
+  it('oflayn: to‘lov navbatga yoziladi, chek undan keyin, yuborilmaydi', async () => {
+    const { hook, queuePatchForSync, flushNow, printClosedReceipt } = setup({ isOfflineMode: true });
 
-    await act(async () => {
-      await hook.result.current.handleCloseTable('Stol 06', true, { cash: 120_000, card: 0 });
-    });
+    await pay(hook);
 
-    expect(fetchWithTimeout).not.toHaveBeenCalled();
+    expect(flushNow).not.toHaveBeenCalled();
     expect(queuePatchForSync.mock.invocationCallOrder[0])
       .toBeLessThan(printClosedReceipt.mock.invocationCallOrder[0]);
   });
 
-  it('onlayn: chek tarmoqni kutmaydi; server qabul qilsa yozuv navbatdan olinadi', async () => {
-    vi.mocked(fetchWithTimeout).mockResolvedValue(new Response('{}', { status: 200 }));
-    const { hook, queuePatchForSync, dequeueSyncItem, printClosedReceipt } = setup();
+  it('onlayn: navbat -> chek -> o‘sha yozuvni yuborish', async () => {
+    const { hook, queuePatchForSync, flushNow, setApiError, printClosedReceipt } = setup();
+    flushNow.mockResolvedValue(new Response('{}', { status: 200 }));
 
-    await act(async () => {
-      await hook.result.current.handleCloseTable('Stol 06', true, { cash: 120_000, card: 0 });
-    });
+    await pay(hook);
 
-    // navbat -> chek -> server
     expect(queuePatchForSync.mock.invocationCallOrder[0])
       .toBeLessThan(printClosedReceipt.mock.invocationCallOrder[0]);
     expect(printClosedReceipt.mock.invocationCallOrder[0])
-      .toBeLessThan(vi.mocked(fetchWithTimeout).mock.invocationCallOrder[0]);
-    expect(dequeueSyncItem).toHaveBeenCalledWith('q-pay');
+      .toBeLessThan(flushNow.mock.invocationCallOrder[0]);
+    expect(flushNow).toHaveBeenCalledWith('q-pay');
+    // Boshidagi `setApiError(null)` — eski xabarni tozalash; xato xabari yo'q.
+    expect(setApiError.mock.calls.filter(([m]) => m !== null)).toEqual([]);
   });
 
-  it('server rad etsa yozuv navbatda qoladi', async () => {
-    vi.mocked(fetchWithTimeout).mockResolvedValue(new Response('{}', { status: 500 }));
-    const { hook, dequeueSyncItem } = setup();
+  it('server rad etsa kassirga aytiladi', async () => {
+    const { hook, flushNow, setApiError } = setup();
+    flushNow.mockResolvedValue(new Response('{}', { status: 404 }));
 
-    await act(async () => {
-      await hook.result.current.handleCloseTable('Stol 06', true, { cash: 120_000, card: 0 });
-    });
+    await pay(hook);
 
-    expect(dequeueSyncItem).not.toHaveBeenCalled();
+    expect(setApiError).toHaveBeenCalledWith('toast.paymentNotSaved');
   });
 });

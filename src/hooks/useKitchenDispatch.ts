@@ -1,7 +1,7 @@
 import { useCallback, useState, type MutableRefObject, type Dispatch, type SetStateAction } from 'react';
 import type { CartItem, DBOrder, DBWaiter, KitchenSlipData } from '../types';
 import { orderTotals, parsePromoTerms, type PromoTerms } from '../lib/promo';
-import { adoptServerId, cartLineToOrderItem, removeItemPatch, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
+import { cartLineToOrderItem, removeItemPatch, sentItemToOrderItem, type OutgoingOrderItem } from '../lib/orderItems';
 import { fetchWithTimeout } from '../lib/net';
 import { createExclusive } from '../lib/exclusive';
 import { decideFromStatus } from '../lib/syncQueue';
@@ -25,7 +25,9 @@ export interface UseKitchenDispatchParams {
   getActiveCafeId: () => string;
   getAuthHeaders: (approvalToken?: string, tokenOverride?: string | null) => Record<string, string>;
   sendAppendItems: (orderId: string, items: OutgoingOrderItem[]) => Promise<DBOrder | null>;
-  queueOrderForSync: (order: any) => void;
+  queueOrderForSync: (order: any) => string;
+  /** Navbatni hozir yuboradi va `qid` javobini qaytaradi (`useOfflineSync`). */
+  flushNow: (qid?: string) => Promise<Response | null>;
   queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => void;
   applyFrozenFromResponse: (res: Response, cafeId: string) => Promise<boolean>;
   requestAdminPin: (callback: (approvalToken?: string) => void | Promise<void>) => void;
@@ -56,6 +58,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
     getAuthHeaders,
     sendAppendItems,
     queueOrderForSync,
+    flushNow,
     queuePatchForSync,
     applyFrozenFromResponse,
     requestAdminPin,
@@ -159,6 +162,19 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
 
       let kitchenOrderId = '';
       let kitchenDailyNumber = 0;
+      /*
+       * Avval KASSADA, keyin serverga (2026-10-16 22:18). Chek kassa
+       * ro'yxatiga server javobidan KEYIN qo'shilardi — o'sha bir soniyada
+       * bosilgan "To'lov" stolni bo'sh ko'rib ikkinchi chek ochardi.
+       * Server javobi (kunlik raqam, promo summasi) kelgach ustiga yoziladi.
+       */
+      let sendToServer: () => Promise<void> = async () => {};
+      const adoptLocal = (fn: (o: DBOrder) => DBOrder) => {
+        const next = ordersRef.current.map(fn);
+        ordersRef.current = next;
+        setOrders(next);
+        writeCafeJson(getActiveCafeId(), 'orders', next);
+      };
 
       if (activeTableOrder) {
         kitchenOrderId = String(activeTableOrder.id || '');
@@ -178,14 +194,10 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
           parsePromoTerms(activeTableOrder.promo)
         );
 
-        const serverOrder = await sendAppendItems(activeTableOrder.id, newItems);
-        kitchenDailyNumber = Number((serverOrder as any)?.dailyNumber) || kitchenDailyNumber;
-
+        const appendTo = activeTableOrder.id;
         updatedOrders = updatedOrders.map((o) =>
-          o.id !== activeTableOrder.id
+          o.id !== appendTo
             ? o
-            : serverOrder
-            ? { ...o, ...serverOrder }
             : {
                 ...o,
                 items: JSON.stringify(combinedItems),
@@ -195,6 +207,12 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
                 total: combinedTotal,
               }
         );
+        sendToServer = async () => {
+          const serverOrder = await sendAppendItems(appendTo, newItems);
+          if (!serverOrder) return;
+          kitchenDailyNumber = Number((serverOrder as any).dailyNumber) || kitchenDailyNumber;
+          adoptLocal((o) => (o.id === appendTo ? { ...o, ...serverOrder } : o));
+        };
       } else {
         const draftPromo = tableDraftPromos[selectedTable] || null;
         const sub = draftSubtotal;
@@ -228,33 +246,24 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
         };
         kitchenOrderId = newOrderObj.id;
 
-        if (!isOfflineMode) {
-          try {
-            const res = await fetchWithTimeout(`${API_BASE_URL}/api/orders`, {
-              method: 'POST',
-              headers: getAuthHeaders(),
-              body: JSON.stringify({ ...newOrderObj, promoCode: draftPromo?.code, idempotencyKey: newOrderObj.id }),
-            });
-            if (await applyFrozenFromResponse(res, getActiveCafeId())) return;
-            if (!res.ok) {
-              queueOrderForSync(newOrderObj);
-            } else {
-              await adoptServerId(res, newOrderObj);
-              const serverCreated = await res.clone().json().catch(() => null);
-              if (serverCreated) {
-                if (serverCreated.promo !== undefined) (newOrderObj as any).promo = serverCreated.promo;
-                if (serverCreated.discount !== undefined) (newOrderObj as any).discount = serverCreated.discount;
-                if (serverCreated.total !== undefined) (newOrderObj as any).total = serverCreated.total;
-              }
-              kitchenOrderId = newOrderObj.id;
-              kitchenDailyNumber = Number(newOrderObj.dailyNumber) || 0;
-            }
-          } catch {
-            queueOrderForSync(newOrderObj);
-          }
-        } else {
-          queueOrderForSync(newOrderObj);
-        }
+        const createQid = queueOrderForSync(newOrderObj);
+        sendToServer = async () => {
+          if (isOfflineMode) return;
+          const res = await flushNow(createQid);
+          if (!res?.ok) return;
+          const created = await res.json().catch(() => null);
+          if (!created) return;
+          const localId = newOrderObj.id;
+          const fromServer: Partial<DBOrder> = {};
+          if (created.id) fromServer.id = String(created.id);
+          if (Number(created.dailyNumber) > 0) fromServer.dailyNumber = Number(created.dailyNumber);
+          if (created.promo !== undefined) (fromServer as any).promo = created.promo;
+          if (created.discount !== undefined) fromServer.discount = created.discount;
+          if (created.total !== undefined) fromServer.total = created.total;
+          kitchenOrderId = fromServer.id || localId;
+          kitchenDailyNumber = Number(fromServer.dailyNumber) || 0;
+          adoptLocal((o) => (o.id === localId ? { ...o, ...fromServer } : o));
+        };
 
         updatedOrders = [newOrderObj as any, ...updatedOrders];
         setTableDraftPromos((prev) => {
@@ -272,6 +281,7 @@ export function useKitchenDispatch(params: UseKitchenDispatchParams) {
         return;
       }
       setTableCarts((prev) => ({ ...prev, [selectedTable]: [] }));
+      await sendToServer();
 
       /*
        * Oshxona qog'ozi tasdiqlash bosilishi bilan chiqadi, navbat raqami bilan.

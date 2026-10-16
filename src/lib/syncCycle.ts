@@ -44,6 +44,12 @@ export interface SyncPorts {
   isFrozen(res: Response): Promise<boolean>;
   /** Rad etilgan amalni kassirga qanday atash. */
   label(item: QueuedItem): string;
+  /**
+   * Har javob kelganda (holatidan qat'i nazar), sikl uni o'qishidan OLDIN.
+   * `flushNow` shu orqali o'z amalining javobini oladi — oshxona chekidagi
+   * kunlik raqam serverdan keladi. Tanani o'qimoqchi bo'lgan `clone()` qilsin.
+   */
+  onSent?(item: QueuedItem, res: Response): void;
 }
 
 export interface SyncOutcome {
@@ -202,6 +208,7 @@ export async function runSyncCycle(
 
     try {
       const res = await ports.send(outgoing);
+      ports.onSent?.(item, res);
 
       if (res.ok) {
         anySucceeded = true;

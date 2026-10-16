@@ -97,7 +97,8 @@ describe('stol yopilganda chek', () => {
   it('to‘lov navbatga yozilgandan keyin, server so‘rovidan oldin bosiladi', () => {
     const queued = checkoutSrc.indexOf("queuePatchForSync(latestOrder.id, paymentPatchBody, 'finalize_payment')");
     const print = checkoutSrc.indexOf('printClosedReceipt(closedOrder)');
-    const patch = checkoutSrc.indexOf('fetchWithTimeout(`${API_BASE_URL}/api/orders/${latestOrder.id}`', print > 0 ? print : 0);
+    // To'lov endi navbat orqali ketadi (2026-10-16): yuborish — `flushNow`.
+    const patch = checkoutSrc.indexOf('flushNow(paymentQid)', print > 0 ? print : 0);
     expect(queued, "to'lovni navbatga yozish topilmadi").toBeGreaterThan(0);
     expect(print, "chek chop etish chaqiruvi topilmadi").toBeGreaterThan(queued);
     expect(patch, "to'lov so'rovi topilmadi").toBeGreaterThan(print);

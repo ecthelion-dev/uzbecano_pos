@@ -199,7 +199,7 @@ function useTill(token: string, offline: { current: boolean }) {
     serviceFeePercent: 0,
     getActiveCafeId,
     queuePatchForSync: sync.queuePatchForSync,
-    queueDeleteForSync: sync.queueDeleteForSync,
+    queueMergeForSync: sync.queueMergeForSync,
     flushNow: sync.flushNow,
     setOrders,
     setTableCarts,

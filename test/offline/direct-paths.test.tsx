@@ -152,8 +152,73 @@ describeOffline('yarim internet: kassaning haqiqiy hook\'lari haqiqiy serverga',
 
     expect(notFound()).toEqual([]);
     expect(till.failed()).toEqual([]);
+    // Manba o'chirilmaydi — bekor bo'lib, maqsadga yo'naltirilgan qoladi.
     expect(serverOrders().map((o) => [o.tableNumber, o.status, o.total])).toEqual([
+      ['Terassa 1', 'cancelled', PRODUCTS.latte.price],
       ['Terassa 2', 'sent_to_kitchen', PRODUCTS.latte.price + PRODUCTS.cappuccino.price],
+    ]);
+  });
+
+  /*
+   * Phase 2 (2026-10-17): kassa maqsad chekka o'zidagi TO'LIQ ro'yxatni
+   * yozardi. Telefon shu orada qo'shgan taom ro'yxatda yo'q edi va o'chib
+   * ketardi — mehmon yegan, lekin to'lamagan.
+   */
+  it('T4c birlashtirish paytida telefon qo‘shgan taom yo‘qolmaydi', async () => {
+    await till.openTable('Terassa 1');
+    await till.addToCart(PRODUCTS.latte);
+    await till.sendToKitchen();
+    await till.openTable('Terassa 2');
+    await till.addToCart(PRODUCTS.cappuccino);
+    await till.sendToKitchen();
+    const target = serverOrders().find((o) => o.tableNumber === 'Terassa 2')!;
+
+    // Ofitsiant telefoni Terassa 2 ga fruit mix qo'shdi; kassa buni bilmaydi.
+    const appended = await fetch(`${BASE_URL}/api/orders/${target.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${waiter}` },
+      body: JSON.stringify({
+        addItems: [{ id: PRODUCTS.fruitMix.id, productId: PRODUCTS.fruitMix.id, name: PRODUCTS.fruitMix.name, price: PRODUCTS.fruitMix.price, quantity: 1 }],
+        appendKey: 'phone-append-1',
+      }),
+    });
+    expect(appended.status).toBe(200);
+
+    await till.moveTable('Terassa 1', 'Terassa 2', true);
+    await till.syncUntilSettled();
+
+    expect(till.failed()).toEqual([]);
+    const live = serverOrders().filter((o) => o.status !== 'cancelled');
+    expect(live.map((o) => [o.tableNumber, o.total])).toEqual([
+      ['Terassa 2', PRODUCTS.latte.price + PRODUCTS.cappuccino.price + PRODUCTS.fruitMix.price],
+    ]);
+  });
+
+  it('T4d birlashgandan keyin eski stolga telefon qo‘shgan taom yangi chekka tushadi', async () => {
+    await till.openTable('Terassa 1');
+    await till.addToCart(PRODUCTS.latte);
+    await till.sendToKitchen();
+    await till.openTable('Terassa 2');
+    await till.addToCart(PRODUCTS.cappuccino);
+    await till.sendToKitchen();
+    const source = serverOrders().find((o) => o.tableNumber === 'Terassa 1')!;
+
+    await till.moveTable('Terassa 1', 'Terassa 2', true);
+    await till.syncUntilSettled();
+    // Telefon birlashtirishni hali ko'rmagan: eski chekka taom qo'shadi.
+    const late = await fetch(`${BASE_URL}/api/orders/${source.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${waiter}` },
+      body: JSON.stringify({
+        addItems: [{ id: PRODUCTS.fruitMix.id, productId: PRODUCTS.fruitMix.id, name: PRODUCTS.fruitMix.name, price: PRODUCTS.fruitMix.price, quantity: 1 }],
+        appendKey: 'phone-late-1',
+      }),
+    });
+
+    expect(late.status).toBe(200);
+    const live = serverOrders().filter((o) => o.status !== 'cancelled');
+    expect(live.map((o) => [o.tableNumber, o.total])).toEqual([
+      ['Terassa 2', PRODUCTS.latte.price + PRODUCTS.cappuccino.price + PRODUCTS.fruitMix.price],
     ]);
   });
 

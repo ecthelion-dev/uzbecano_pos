@@ -533,6 +533,55 @@ describe('stol birlashtirish: eski chek yangisiga qo`shilgandan KEYIN o`chadi', 
   });
 });
 
+describe('stol birlashtirish (server): manba chekning amallaridan KEYIN ketadi', () => {
+  // Manba chek oflayn ochilgan: u serverga yetmasdan birlashtirish yuborilsa,
+  // server manbani topmaydi va birlashtirish rad etiladi.
+  const mergeQueue = (): QueuedItem[] => [
+    create('source', 'q1'),
+    { kind: 'patch', qid: 'q2', orderId: 'target', body: { mergeFromOrderId: 'source' }, label: 'merge_table', afterOrderId: 'source' },
+  ];
+
+  it('manba yaratilishi tarmoqda qolsa, birlashtirish kutadi', async () => {
+    const store = fakeStore(mergeQueue());
+    const sent: string[] = [];
+
+    await runSyncCycle(store.ports({
+      send: async (i) => {
+        sent.push(i.qid!);
+        if (i.kind === 'create') throw new Error('tarmoq');
+        return ok();
+      },
+    }), 'token');
+
+    expect(sent).toEqual(['q1']);
+    expect(store.state.queue.map((i) => i.qid)).toEqual(['q1', 'q2']);
+  });
+
+  it('manba rad etilsa, birlashtirish ham o‘sha sabab bilan rad etilganlarda', async () => {
+    const store = fakeStore(mergeQueue());
+    const sent: string[] = [];
+
+    await runSyncCycle(store.ports({
+      send: async (i) => { sent.push(i.qid!); return i.kind === 'create' ? fail(400) : ok(); },
+    }), 'token');
+
+    expect(sent).toEqual(['q1']);
+    expect(store.state.failed.map((i) => i.qid)).toEqual(['q1', 'q2']);
+  });
+
+  it('manba o‘tsa, birlashtirish darhol ketadi', async () => {
+    const store = fakeStore(mergeQueue());
+    const sent: string[] = [];
+
+    await runSyncCycle(store.ports({
+      send: async (i) => { sent.push(i.qid!); return ok(); },
+    }), 'token');
+
+    expect(sent).toEqual(['q1', 'q2']);
+    expect(store.state.queue).toEqual([]);
+  });
+});
+
 describe('kafe muzlatilganda', () => {
   it('tsikl to`xtaydi va qolganlari navbatda qoladi', async () => {
     const store = fakeStore([create('o1', 'q1'), create('o2', 'q2'), create('o3', 'q3')]);

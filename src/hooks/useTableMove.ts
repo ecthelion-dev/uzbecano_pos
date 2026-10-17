@@ -12,13 +12,18 @@ export interface UseTableMoveParams {
   serviceFeePercent: number;
   getActiveCafeId: () => string;
   queuePatchForSync: (orderId: string, body: any, label?: string, approvalToken?: string) => string;
-  queueDeleteForSync: (orderId: string, label?: string, afterOrderId?: string) => string;
+  queueMergeForSync: (targetOrderId: string, sourceOrderId: string) => string;
   flushNow: (qid?: string | string[]) => Promise<Response | null>;
   setOrders: (orders: DBOrder[]) => void;
   setTableCarts: Dispatch<SetStateAction<Record<string, CartItem[]>>>;
   setTableDraftPromos: Dispatch<SetStateAction<Record<string, PromoTerms | null>>>;
   setSelectedTable: (table: string) => void;
   setToastMessage: (msg: string | null) => void;
+}
+
+/** Chegirma yoki promo bor chek birlashtirilmaydi — server qoidasi bilan bir xil. */
+function hasDiscount(order: DBOrder): boolean {
+  return (Number(order.discount) || 0) > 0 || Boolean(order.promo);
 }
 
 export function useTableMove(params: UseTableMoveParams) {
@@ -30,7 +35,7 @@ export function useTableMove(params: UseTableMoveParams) {
     serviceFeePercent,
     getActiveCafeId,
     queuePatchForSync,
-    queueDeleteForSync,
+    queueMergeForSync,
     flushNow,
     setOrders,
     setTableCarts,
@@ -48,10 +53,10 @@ export function useTableMove(params: UseTableMoveParams) {
 
       let updatedOrders = [...ordersRef.current];
       /*
-       * Yozuvlar faqat navbat orqali (2026-10-16): avval to'g'ridan-to'g'ri
-       * PATCH, keyin DELETE ketardi va PATCH rad etilsa ham DELETE o'tib,
-       * manba chek taomlari bilan yo'qolardi. Navbat ularni tartib bilan
-       * yuboradi, o'chirish esa birlashtirish o'tgandan keyingina ketadi.
+       * Yozuvlar faqat navbat orqali (2026-10-16). Birlashtirishni server
+       * o'zi bajaradi (2026-10-17): kassa endi to'liq ro'yxat yozmaydi va
+       * manbani o'chirmaydi — shu orada boshqa qurilma qo'shgan taom
+       * yo'qolmaydi.
        */
       let pending: string[] = [];
       const moveOrder = (order: DBOrder) => {
@@ -61,6 +66,15 @@ export function useTableMove(params: UseTableMoveParams) {
 
       if (isMerge) {
         const targetOrder = orders.find((o) => o.tableNumber === targetTable && isActiveOrder(o.status));
+
+        if (sourceOrder && targetOrder && (hasDiscount(sourceOrder) || hasDiscount(targetOrder))) {
+          // Server ham rad etadi (`mergeOrders`): kimning chegirmasi qaysi taomga
+          // tegishli ekani noaniq bo'lardi. Bu yerda to'xtatilmasa kassada
+          // birlashgan summa qolib, server rad etgach chek ajralib turardi.
+          setToastMessage("Chegirmali chekni birlashtirib bo'lmaydi — avval chegirmani olib tashlang");
+          setTimeout(() => setToastMessage(null), 3000);
+          return;
+        }
 
         if (sourceOrder && targetOrder) {
           let srcItems: any[] = [];
@@ -82,17 +96,9 @@ export function useTableMove(params: UseTableMoveParams) {
           const fee = Math.round((sub * serviceFeePercent) / 100);
           const tot = sub + fee;
 
-          const mergeTablePatchBody = {
-            tableNumber: targetTable,
-            items: JSON.stringify(mergedItems),
-            subtotal: sub,
-            serviceFee: fee,
-            total: tot,
-          };
-          pending = [
-            queuePatchForSync(targetOrder.id, mergeTablePatchBody, 'merge_table'),
-            queueDeleteForSync(sourceOrder.id, 'merge_table_cleanup', targetOrder.id),
-          ];
+          // Kassada darhol ko'rinsin; haqiqiy tarkib va summani server
+          // (o'zidagi joriy ikkala chekdan) hisoblaydi va keyingi so'rovda keladi.
+          pending = [queueMergeForSync(targetOrder.id, sourceOrder.id)];
 
           updatedOrders = updatedOrders
             .filter((o) => o.id !== sourceOrder.id)
@@ -160,7 +166,7 @@ export function useTableMove(params: UseTableMoveParams) {
       serviceFeePercent,
       getActiveCafeId,
       queuePatchForSync,
-      queueDeleteForSync,
+      queueMergeForSync,
       flushNow,
       setOrders,
       setTableCarts,

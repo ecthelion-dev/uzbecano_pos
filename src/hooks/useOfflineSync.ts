@@ -181,6 +181,31 @@ export function useOfflineSync({
   }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
 
   /*
+   * Stol birlashtirish — server o'zi bajaradi (2026-10-17). Avval kassa
+   * maqsad chekka o'zidagi TO'LIQ ro'yxatni yozib, manbani o'chirardi: shu
+   * orada telefon qo'shgan taom yo'qolardi. Endi bitta amal; u manba
+   * chekning navbatdagi amallaridan keyin ketadi (`afterOrderId`).
+   */
+  const queueMergeForSync = useCallback((targetOrderId: string, sourceOrderId: string) => {
+    const cafeId = getActiveCafeId();
+    const queue = readSyncQueue(cafeId);
+    const qid = newQueueId();
+    queue.push({
+      kind: 'patch',
+      qid,
+      queuedAt: Date.now(),
+      actor: actorName(cafeId),
+      orderId: targetOrderId,
+      body: { mergeFromOrderId: sourceOrderId },
+      label: 'merge_table',
+      afterOrderId: sourceOrderId,
+    });
+    writeSyncQueue(cafeId, queue);
+    refreshUnsynced();
+    return qid;
+  }, [getActiveCafeId, readSyncQueue, writeSyncQueue, actorName, refreshUnsynced]);
+
+  /*
    * Navbat sikllari BITTA-BITTA, ketma-ket.
    *
    * 2026-10-16 22:18: kassa serverga ikki yo'l bilan yozardi — to'g'ridan-
@@ -338,6 +363,7 @@ export function useOfflineSync({
     queuePatchForSync,
     dequeueSyncItem,
     queueDeleteForSync,
+    queueMergeForSync,
     queueCashForSync,
     sendAppendItems,
     syncOfflineOrders,

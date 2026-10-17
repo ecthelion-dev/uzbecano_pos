@@ -24,11 +24,16 @@ import { planTableMerge, type TableMergePlan } from './tableMerge';
  */
 export type QueuedItem = { queuedAt?: number; qid?: string; actor?: string } & (
   | { kind: 'create'; order: any }
-  | { kind: 'patch'; orderId: string; body: any; label?: string; approvalToken?: string }
   /**
-   * `afterOrderId` — shu chekning navbatdagi amallari o'tmaguncha bu o'chirish
-   * yuborilmaydi (stol birlashtirish: manba chek taomlari maqsad chekka
-   * qo'shilgandan keyingina o'chadi).
+   * `afterOrderId` — shu chekning navbatdagi amallari o'tmaguncha bu amal
+   * yuborilmaydi. Stol birlashtirish (`mergeFromOrderId`): manba chek
+   * oflayn ochilgan yoki unga taom qo'shilgan bo'lsa, ular serverga yetmasdan
+   * birlashtirilsa server manbani topmaydi yoki uning eski tarkibini oladi.
+   */
+  | { kind: 'patch'; orderId: string; body: any; label?: string; approvalToken?: string; afterOrderId?: string }
+  /**
+   * `afterOrderId` — yuqoridagidek. Eski kassalarning birlashtirishi: manba
+   * chek taomlari maqsad chekka qo'shilgandan keyingina o'chadi.
    */
   | { kind: 'delete'; orderId: string; label?: string; afterOrderId?: string }
   | { kind: 'cash'; entry: any; label?: string; approvalToken?: string }
@@ -215,7 +220,7 @@ export async function runSyncCycle(
      * (maqsad chek shu orada to'langan), DELETE baribir o'tib, manba chek
      * taomlari bilan birga yo'qolardi.
      */
-    const dependsOn = item.kind === 'delete' ? item.afterOrderId : undefined;
+    const dependsOn = item.kind === 'delete' || item.kind === 'patch' ? item.afterOrderId : undefined;
     if (dependsOn) {
       const dependencyRejected = rejectedOrders.get(dependsOn) ?? parkedOrders.get(dependsOn);
       if (dependencyRejected !== undefined) {

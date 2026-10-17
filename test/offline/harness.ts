@@ -69,7 +69,7 @@ function neutralisedEnv(): Record<string, string> {
 export function resetDatabase(): void {
   execFileSync('dropdb', ['--if-exists', DB_NAME]);
   execFileSync('createdb', [DB_NAME]);
-  execFileSync('npx', ['prisma', 'db', 'push', '--skip-generate'], {
+  execFileSync('npx', ['prisma', 'db', 'push'], {
     cwd: API_REPO,
     env: { ...process.env, DATABASE_URL: DB_URL, DIRECT_URL: DB_URL },
     stdio: 'ignore',

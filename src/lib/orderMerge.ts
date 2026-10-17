@@ -32,6 +32,28 @@ function ownedOrderId(entry: any): string | null {
 }
 
 /**
+ * "Kutilmoqda" belgisidagi son: navbatdagi yozuvlar emas, CHEKLAR soni.
+ *
+ * Bitta chekning bir necha amali (oflayn tez to'lovda yaratish + to'lov)
+ * bitta sanaladi — aks holda kassir 8 ta chek ustiga bitta buyurtma berib
+ * 10 ni ko'rardi (2026-10-17). Stol birlashtirishdagi eski chekni o'chirish
+ * (`afterOrderId`) yangi chekning bir qismi. Kassa yozuvlari chek emas, har
+ * biri alohida.
+ */
+export function pendingOrderCount(queue: unknown): number {
+  if (!Array.isArray(queue)) return 0;
+  const orders = new Set<string>();
+  let other = 0;
+  for (const entry of queue) {
+    const after = entry?.kind === 'delete' && typeof entry.afterOrderId === 'string' ? entry.afterOrderId : null;
+    const id = after || ownedOrderId(entry);
+    if (id) orders.add(id);
+    else other += 1;
+  }
+  return orders.size + other;
+}
+
+/**
  * Serverga hali yetib bormagan cheklarning id lari.
  *
  * IKKALA ro'yxat ham o'qiladi. `sync_failed` ni o'tkazib yuborish — pul

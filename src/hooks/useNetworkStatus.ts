@@ -11,6 +11,7 @@ import {
   type FailedAction,
 } from '../lib/failedActions';
 import type { QueuedItem } from '../lib/syncCycle';
+import { pendingOrderCount } from '../lib/orderMerge';
 
 /**
  * Connection state and the size of the offline backlog.
@@ -22,9 +23,8 @@ import type { QueuedItem } from '../lib/syncCycle';
  */
 const SYNC_POLL_MS = 5000;
 
-function countOf(key: 'sync_queue' | 'sync_failed'): number {
-  const queue = readCafeJson<unknown>(resolveActiveCafeId(), key, []);
-  return Array.isArray(queue) ? queue.length : 0;
+function pendingCountNow(): number {
+  return pendingOrderCount(readCafeJson<unknown>(resolveActiveCafeId(), 'sync_queue', []));
 }
 
 function readFailed(): FailedAction[] {
@@ -42,7 +42,7 @@ export function useNetworkStatus() {
   const [heldCount, setHeldCount] = useState<number>(0);
 
   const refresh = useCallback(() => {
-    setPendingCount(countOf('sync_queue'));
+    setPendingCount(pendingCountNow());
     // Faqat ko'rilmaganlar: "Tushunarli" deyilgan yozuv chekni kassada
     // ushlab turish uchun saqlanadi, lekin belgini yondirib turmaydi.
     const all = readFailed();

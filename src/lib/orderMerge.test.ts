@@ -1,7 +1,52 @@
 import { describe, expect, test } from 'vitest';
-import { mergeActiveOrders, mergeOrderHistory, needsHistorySync, unsyncedOrderIds } from './orderMerge';
+import { mergeActiveOrders, mergeOrderHistory, needsHistorySync, pendingOrderCount, unsyncedOrderIds } from './orderMerge';
 
 const order = (id: string, status = 'sent_to_kitchen') => ({ id, status });
+
+/*
+ * "Kutilmoqda" belgisi kassirga nechta CHEK serverga yetmaganini aytadi,
+ * navbatdagi yozuvlar sonini emas. Oflayn tez to'lov ikki yozuv (yaratish +
+ * to'lov) qo'shadi va belgi bitta buyurtmaga 2 ta qo'shardi (2026-10-17).
+ */
+describe('pendingOrderCount', () => {
+  test('oflayn tez to‘lov: yaratish + to‘lov — bitta chek', () => {
+    const queue = [
+      { kind: 'create', order: { id: 'o1' } },
+      { kind: 'patch', orderId: 'o1', label: 'finalize_payment' },
+    ];
+
+    expect(pendingOrderCount(queue)).toBe(1);
+  });
+
+  test('har xil cheklar alohida sanaladi', () => {
+    const queue = [
+      { kind: 'create', order: { id: 'o1' } },
+      { kind: 'patch', orderId: 'o1' },
+      { kind: 'create', order: { id: 'o2' } },
+    ];
+
+    expect(pendingOrderCount(queue)).toBe(2);
+  });
+
+  test('stol birlashtirish: eski chekni o‘chirish yangisining bir qismi', () => {
+    const queue = [
+      { kind: 'patch', orderId: 'target', label: 'merge_table' },
+      { kind: 'delete', orderId: 'source', afterOrderId: 'target' },
+    ];
+
+    expect(pendingOrderCount(queue)).toBe(1);
+  });
+
+  test('kassa yozuvlari chek emas — har biri alohida sanaladi', () => {
+    const queue = [{ kind: 'cash' }, { kind: 'cash' }, { kind: 'create', order: { id: 'o1' } }];
+
+    expect(pendingOrderCount(queue)).toBe(3);
+  });
+
+  test('navbat buzilgan bo‘lsa 0', () => {
+    expect(pendingOrderCount(null)).toBe(0);
+  });
+});
 
 describe('unsyncedOrderIds', () => {
   test('navbatdagi CREATE ning buyurtma id sini oladi', () => {
